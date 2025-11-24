@@ -1,0 +1,59 @@
+# kubeeye-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubeeye.fullname" . }}-app
+  labels:
+    app: kubeeye
+  {{- include "kubeeye.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: kubeeye
+    {{- include "kubeeye.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: kubeeye
+      {{- include "kubeeye.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: kubeeye
+        image: {{ .Values.image }}:{{ .Values.tag }}
+        ports:
+        - containerPort: 8501
+        env:
+        - name: KUBEEYE_DATA_DIR
+          value: "/app/data"
+        volumeMounts:
+      # Common
+        - name: data-volume
+          mountPath: /app/data
+        - name: localtime
+          mountPath: /etc/localtime
+          readOnly: true
+      # rules
+        {{- range .Values.kubeeyeRules }}
+        - name: {{ .name }}
+          mountPath: /app/rules/{{ .type }}/{{ .name }}.yaml
+          subPath: {{ .name }}.yaml
+          readOnly: true
+        {{- end }}
+        resources:
+	      {{- .Values.resources | toYaml | nindent 10 }}
+      volumes:
+      # Common
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: {{ include "kubeeye.fullname" . }}-pvc
+      - name: localtime
+        hostPath:
+          path: /etc/localtime
+          type: File
+      # rules
+      {{- range .Values.kubeeyeRules }}
+      - name: {{ .name }}
+        configMap:
+          name: {{ .name }}
+        {{- end }}

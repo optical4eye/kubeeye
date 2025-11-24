@@ -1,17 +1,18 @@
 ---
-# OPA规则 - 危险Linux能力检查
+# OPA правило - проверка опасных возможностей Linux
 id: opa_dangerous_capabilities
-name: 容器危险Linux能力检查
-description: 检查容器是否配置了危险的Linux能力，如CAP_SYS_ADMIN等可能带来安全风险的能力
+name: Проверка опасных возможностей контейнера Linux
+description: Проверяет, настроены ли в контейнере опасные возможности Linux, такие как CAP_SYS_ADMIN, которые могут представлять риск безопасности
 type: opa
 category: security
 severity: high
 enabled: true
 tier: standard
 
-# 规则配置
+
+# Конфигурация правила
 config:
-  # 资源配置
+  # Конфигурация ресурсов
   resources:
     - kind: Pod
       apiVersion: v1
@@ -26,34 +27,36 @@ config:
       apiVersion: apps/v1
       namespaced: true
 
-  # 范围配置
+
+  # Конфигурация охвата
   scope:
     namespaces:
-      include: []  # 所有命名空间
+      include: []  # все пространства имен
       exclude:
         - kube-system
         - kube-public
 
-  # Rego规则配置
+
+  # Конфигурация rego-правила
   rego:
     inline: |
       package kubernetes
-      
-      # 获取Pod规范
+
+      # Получение спецификации Pod
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
       }
-      
+
       get_pod_spec(resource) = spec if {
           resource.kind != "Pod"
           spec := resource.spec.template.spec
       }
-      
-      # 危险的Linux能力列表
+
+      # Список опасных возможностей Linux
       dangerous_caps := {
           "SYS_ADMIN",
-          "SYS_TIME", 
+          "SYS_TIME",
           "SYS_MODULE",
           "NET_ADMIN",
           "NET_RAW",
@@ -62,23 +65,23 @@ config:
           "SETUID",
           "SETGID"
       }
-      
-      # 检查容器的危险能力
+
+      # Проверка опасных возможностей в контейнерах
       dangerous_capabilities(containers) = dangerous if {
           dangerous := [container |
               container := containers[_]
               security_context := default_object(container.securityContext)
               capabilities := default_object(security_context.capabilities)
               add_caps := default_array(capabilities.add)
-              container_dangerous_caps := [cap | 
+              container_dangerous_caps := [cap |
                   cap := add_caps[_]
                   dangerous_caps[upper(cap)]
               ]
               count(container_dangerous_caps) > 0
           ]
       }
-      
-      # 违规规则 - 危险能力
+
+      # Правило нарушений - опасные возможности
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -88,12 +91,12 @@ config:
           )
           dangerous := dangerous_capabilities(containers)
           count(dangerous) > 0
-          
+
           result := {
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' in namespace '%s' has %d container(s) with dangerous capabilities: %s", [
+              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) с опасными возможностями: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -102,46 +105,47 @@ config:
               ])
           }
       }
-      
-      # 辅助函数
+
+      # Вспомогательные функции
       default_array(val) = result if {
           val != null
           result = val
       }
-      
+
       default_array(val) = [] if {
           val == null
       }
-      
+
       default_object(val) = result if {
           val != null
           result = val
       }
-      
+
       default_object(val) = {} if {
           val == null
       }
 
-  # 断言配置
-  assertions:
-    - name: "检查危险能力"
-      condition: "violation_count == 0"
-      severity: high
-      description: "发现 {{ violation_count }} 个容器配置了危险的Linux能力"
 
-# 问题解决建议
+# Конфигурация утверждений
+assertions:
+  - name: "Проверка опасных возможностей"
+    condition: "violation_count == 0"
+    severity: high
+    description: "Обнаружено {{ violation_count }} контейнеров с опасными возможностями"
+
+
+# Рекомендации по устранению проблемы
 solution: |
-  
-  移除不必要的Linux能力，采用最小权限原则：
-  
+
+  Удалите ненужные возможности Linux, применяя принцип минимальных прав:
   ```yaml
   securityContext:
     capabilities:
-      drop: ["ALL"]  # 先移除所有能力
-      add: []        # 只添加绝对必需的能力
+      drop: ["ALL"]  # Сначала удалить все возможности
+      add: []        # Добавить только абсолютно необходимые возможности
   ```
 
-# 标签
+# Метки
 tags:
   - security
   - linux-capabilities

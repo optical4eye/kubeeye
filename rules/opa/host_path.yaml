@@ -1,17 +1,18 @@
 ---
-# OPA规则 - 主机路径挂载检查 - 简化版本
+# OPA правило - проверка монтирования путей хоста (упрощённая версия)
 id: opa_host_path
-name: Pod主机路径挂载检查
-description: 检查Pod是否挂载了主机路径，一个规则一个检查项
+name: Проверка монтирования путей хоста для Pod
+description: Проверяет, монтирует ли Pod пути хоста; каждое правило — отдельная проверка
 type: opa
 category: security
 severity: critical
 enabled: true
 tier: basic
 
-# 规则配置
+
+# Конфигурация правила
 config:
-  # 资源配置
+  # Конфигурация ресурсов
   resources:
     - kind: Pod
       apiVersion: v1
@@ -26,43 +27,44 @@ config:
       apiVersion: apps/v1
       namespaced: true
 
-  # Rego规则配置
+
+  # Конфигурация rego-правила
   rego:
     inline: |
       package kubernetes
-      
-      # 获取Pod规范
+
+      # Получить спецификацию Pod
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
       }
-      
+
       get_pod_spec(resource) = spec if {
           resource.kind != "Pod"
           spec := resource.spec.template.spec
       }
-      
-      # 检查主机路径挂载
+
+      # Проверка монтирования путей хоста
       host_path_volumes(volumes) = host_paths if {
           host_paths := [volume |
               volume := volumes[_]
               volume.hostPath
           ]
       }
-      
-      # 定义违规
+
+      # Определение нарушений
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
           volumes := default_array(spec.volumes)
           host_paths := host_path_volumes(volumes)
           count(host_paths) > 0
-          
+
           result := {
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' in namespace '%s' mounts %d host path volume(s): %s", [
+              "message": sprintf("%s '%s' в пространстве имен '%s' монтирует %d том(ов) путем хоста: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -71,32 +73,34 @@ config:
               ])
           }
       }
-      
-      # 辅助函数
+
+      # Вспомогательные функции
       default_array(val) = result if {
           val != null
           result = val
       }
-      
+
       default_array(val) = [] if {
           val == null
       }
-  
-  # 断言配置
+
+  # Конфигурация утверждений
   assertions:
-    - name: "检查主机路径挂载"
+    - name: "Проверка монтирования путей хоста"
       condition: "violation_count == 0"
       severity: critical
-      description: "发现 {{ violation_count }} 个主机路径挂载"
+      description: "Обнаружено {{ violation_count }} монтирований путей хоста"
 
-# 问题解决建议
+
+# Рекомендации по устранению проблемы
 solution: |
-  主机路径挂载安全风险处理：
-  1. 避免挂载主机路径，特别是敏感目录如/、/etc、/var
-  2. 使用PersistentVolume和PersistentVolumeClaim
-  3. 如必须使用，限制挂载路径并设置只读模式
+  Обработка рисков монтирования путей хоста:
+  1. Избегайте монтирования путей хоста, особенно чувствительных директорий, таких как /, /etc, /var
+  2. Используйте PersistentVolume и PersistentVolumeClaim
+  3. Если монтирование необходимо, ограничьте путь и установите режим только для чтения
 
-# 标签
+
+# Метки
 tags:
   - security
   - volumes

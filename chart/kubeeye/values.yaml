@@ -1,0 +1,58 @@
+image: kubeeye
+tag: '1.16'
+
+replicas: 1
+
+service:
+  ports:
+  - port: 8501
+    protocol: TCP
+    targetPort: 8501
+    nodePort: 30693
+  type: NodePort
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi
+
+kubeeyeRules:
+  # Opa
+  - name: opa-dangerous-capabilities
+    type: opa
+  - name: opa-host-network
+    type: opa
+  - name: opa-host-path
+    type: opa
+  - name: opa-image-tags
+    type: opa
+  - name: opa-privileged-container
+    type: opa
+  - name: opa-resource-limits
+    type: opa
+  - name: opa-run-as-non-root
+    type: opa
+  - name: opa-image-registry
+    type: opa
+  # Node
+  - name: node-disk-usage-simple
+    type: node
+  - name: node-kubelet-status
+    type: node
+  - name: node-load-average-simple
+    type: node
+  - name: node-memory-usage-simple
+    type: node
+  - name: node-zombie-processes
+    type: node
+  - name: node-process-count
+    type: node
+
+resources:
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+  requests:
+    memory: "512Mi"
+    cpu: "250m"

@@ -1,30 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-KubeEye - Kubernetes 集群巡检工具主页
+KubeEye - Инструмент для инспекции кластера Kubernetes
 
-此文件是应用程序的入口点，初始化界面并显示主页内容。
+
+Этот файл является точкой входа приложения, инициализирует интерфейс и отображает содержимое главной страницы.
 """
 
-# 标准库导入
+
+# Импорт стандартных библиотек
 import os
 import sys
 import json
 from datetime import datetime
 from pathlib import Path
 
-# 第三方库导入
+
+# Импорт сторонних библиотек
 import streamlit as st
 import pandas as pd
 
-# 设置页面配置 - 必须是第一个Streamlit命令
+
+# Настройка конфигурации страницы - должна быть первой командой Streamlit
 st.set_page_config(
-    page_title="KubeEye - Kubernetes 集群巡检工具",
+    page_title="KubeEye - Инструмент для инспекции кластера Kubernetes",
     page_icon="🔍",
     layout="wide"
 )
 
-# 项目模块导入
+
+# Импорт модулей проекта
 from utils.common import initialize_page
 from utils.cluster_config import list_clusters, get_cluster
 from utils.inspection_result import list_results, get_latest_result_by_cluster
@@ -32,26 +37,31 @@ from utils.rule_loader import load_rules
 from utils.version import VERSION, APP_NAME, APP_DESCRIPTION, RELEASE_DATE
 from utils.cert_checker import get_cluster_cert_status
 
-# 页面配置已经在上面设置完成，现在初始化其他页面组件
+
+# Конфигурация страницы уже настроена выше, теперь инициализируем остальные компоненты страницы
 initialize_page(
-    title="巡检总览",
+    title="Обзор инспекций",
     icon="📊",
-    page_title="集群巡检概览",
-    page_subtitle=" Kubernetes 集群巡检概况"
+    page_title="Обзор инспекции кластера",
+    page_subtitle=" Обзор инспекций кластера Kubernetes"
 )
 
-# 加载集群列表
+
+# Загрузка списка кластеров
 clusters = list_clusters()
 
-# 加载规则数据 - 所有规则现在都使用统一的断言格式
+
+# Загрузка правил - все правила теперь используют единый формат утверждений
 node_rules = load_rules('node')
 prometheus_rules = load_rules('prometheus')
 opa_rules = load_rules('opa')
 
-# 计算总规则数
+
+# Подсчет общего количества правил
 total_rules = len(node_rules) + len(prometheus_rules) + len(opa_rules)
 
-# 设置简洁样式
+
+# Установка упрощенного стиля
 st.markdown("""
 <style>
 .status-healthy { color: #28a745; font-weight: bold; }
@@ -61,27 +71,32 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 获取数据
+
+# Получение данных
 clusters = list_clusters()
 all_results = list_results()
 
-# 计算统计数据
+
+# Подсчет статистики
 total_clusters = len(clusters)
 
-# 最近24小时的巡检结果
+
+# Результаты инспекций за последние 24 часа
 recent_scans = 0
 recent_issues = 0
 
+
 if all_results:
-    # 计算最近24小时的数据
+    # Подсчет данных за последние 24 часа
     now = datetime.now()
     for result in all_results:
         result_time = datetime.fromisoformat(result['timestamp'])
-        if (now - result_time).total_seconds() < 24 * 3600:  # 24小时内
+        if (now - result_time).total_seconds() < 24 * 3600:  # в пределах 24 часов
             recent_scans += 1
             recent_issues += result.get('critical', 0) + result.get('warning', 0)
 
-# 获取每个集群的最新状态
+
+# Получение последнего статуса каждого кластера
 cluster_statuses = {}
 for cluster_name in clusters:
     latest_result = None
@@ -89,11 +104,11 @@ for cluster_name in clusters:
         if result['cluster_name'] == cluster_name:
             latest_result = result
             break
-    
+
     if latest_result:
         critical = latest_result.get('critical', 0)
         warning = latest_result.get('warning', 0)
-        
+
         if critical > 0:
             status = 'critical'
         elif warning > 0:
@@ -102,196 +117,208 @@ for cluster_name in clusters:
             status = 'healthy'
     else:
         status = 'unknown'
-    
+
     cluster_statuses[cluster_name] = {
         'status': status,
         'latest_result': latest_result
     }
 
-# 顶部概览统计
-st.markdown("### 📊 概览")
+
+# Вверху обозрение статистики
+st.markdown("### 📊 Обзор")
 cols = st.columns(5)
+
 
 with cols[0]:
     st.metric(
-        label="总集群数",
+        label="Общее число кластеров",
         value=total_clusters,
         delta=None
     )
 
+
 with cols[1]:
     st.metric(
-        label="24小时内巡检次数",
+        label="Число инспекций за 24 часа",
         value=recent_scans,
         delta=None
     )
 
+
 with cols[2]:
     st.metric(
-        label="发现的问题数",
+        label="Обнаруженные проблемы",
         value=recent_issues,
-        delta=None  
+        delta=None
     )
 
+
 with cols[3]:
-    latest_scan_time = "从未执行"
+    latest_scan_time = "Никогда не запускалась"
     if all_results:
         latest_time = datetime.fromisoformat(all_results[0]['timestamp'])
         latest_scan_time = latest_time.strftime("%m-%d %H:%M")
-    
+
     st.metric(
-        label="最近巡检时间",
+        label="Последняя инспекция",
         value=latest_scan_time,
         delta=None
     )
 
+
 with cols[4]:
     st.metric(
-        label="巡检规则总数",
+        label="Общее число правил инспекции",
         value=total_rules,
         delta=None
     )
 
+
 st.markdown("---")
 
-# 主要内容区域 - 集群状态表格
-st.markdown("### 🏗️ 集群状态详情")
+
+# Основная часть - таблица статусов кластера
+st.markdown("### 🏗️ Детали статусов кластера")
+
 
 if not clusters:
-    st.warning("📝 还没有配置任何集群，请先前往「集群信息」页面添加集群配置。")
-    if st.button("➕ 立即添加集群", type="primary"):
+    st.warning("📝 Конфигурация кластеров отсутствует, пожалуйста, добавьте конфигурации на странице \"Информация о кластере\".")
+    if st.button("➕ Добавить кластер сейчас", type="primary"):
         st.switch_page("pages/1_cluster_info.py")
 else:
-    # 构建集群状态表格数据
+    # Подготовка данных таблицы статусов кластера
     cluster_data = []
-    
+
     for cluster_name in clusters:
         status_info = cluster_statuses[cluster_name]
         status = status_info['status']
         latest_result = status_info['latest_result']
-        
-        # 获取集群配置
+
+        # Получение конфигурации кластера
         cluster_config = get_cluster(cluster_name)
         nodes_count = len(cluster_config.get_nodes())
-        
-        # 检查证书状态
+
+        # Проверка статуса сертификата
         kubeconfig = cluster_config.get_kubeconfig()
         cert_status_info = {'status': 'unknown', 'days_remaining': None}
         if kubeconfig:
             cert_status_info = get_cluster_cert_status(cluster_name, kubeconfig)
-        
-        # 状态显示
+
+        # Отображение статуса
         status_icons = {
-            'healthy': '✅ 健康',
-            'warning': '⚠️ 警告',
-            'critical': '❌ 异常',
-            'unknown': '❓ 未知'
+            'healthy': '✅ Здоров',
+            'warning': '⚠️ Предупреждение',
+            'critical': '❌ Критично',
+            'unknown': '❓ Неизвестно'
         }
-        
+
         cert_status_text = {
-            'valid': '✅ 正常',
-            'warning': '⚠️ 即将过期',
-            'critical': '🔴 临近过期',
-            'expired': '❌ 已过期',
-            'unknown': '❓ 未知'
+            'valid': '✅ В порядке',
+            'warning': '⚠️ Скоро истечет',
+            'critical': '🔴 Близко к истечению',
+            'expired': '❌ Просрочен',
+            'unknown': '❓ Неизвестно'
         }
-        
+
         cert_status = cert_status_info['status']
         days_remaining = cert_status_info.get('days_remaining')
-        
-        cert_display = cert_status_text.get(cert_status, '❓ 未知')
+
+        cert_display = cert_status_text.get(cert_status, '❓ Неизвестно')
         if days_remaining is not None and days_remaining >= 0:
-            cert_display += f" ({days_remaining}天)"
+            cert_display += f" ({days_remaining} дней)"
         elif days_remaining is not None and days_remaining < 0:
-            cert_display += f" (过期{abs(days_remaining)}天)"
-        
-        # 最近巡检时间
-        last_scan = "从未巡检"
+            cert_display += f" (Просрочен на {abs(days_remaining)} дней)"
+
+        # Время последней инспекции
+        last_scan = "Никогда не инспектировался"
         if latest_result:
             scan_time = datetime.fromisoformat(latest_result['timestamp'])
             last_scan = scan_time.strftime("%m-%d %H:%M")
-        
-        # 巡检结果统计
+
+        # Статистика результатов инспекции
         critical_count = latest_result.get('critical', 0) if latest_result else 0
         warning_count = latest_result.get('warning', 0) if latest_result else 0
         passed_count = latest_result.get('passed', 0) if latest_result else 0
-        
+
         cluster_data.append({
-            "集群名称": f"**{cluster_name}**",
-            "状态": status_icons[status],
-            "节点数": nodes_count,
-            "kubeconfig 有效期": cert_display,
-            "最近巡检": last_scan,
-            "关键问题": critical_count,
-            "警告": warning_count,
-            "通过": passed_count
+            "Название кластера": f"**{cluster_name}**",
+            "Статус": status_icons[status],
+            "Количество узлов": nodes_count,
+            "Срок действия kubeconfig": cert_display,
+            "Последняя инспекция": last_scan,
+            "Критичные проблемы": critical_count,
+            "Предупреждения": warning_count,
+            "Успешно": passed_count
         })
-    
-    # 显示集群状态表格
+
+    # Отображение таблицы статусов кластера
     cluster_df = pd.DataFrame(cluster_data)
     st.table(cluster_df)
-    
-    # 快速操作按钮
-    st.markdown("#### 🚀 快速操作")
+
+    # Быстрые действия
+    st.markdown("#### 🚀 Быстрые действия")
     cols = st.columns(3)
-    
+
     with cols[0]:
-        if st.button("🔍 执行巡检", use_container_width=True, type="primary"):
+        if st.button("🔍 Запустить инспекцию", use_container_width=True, type="primary"):
             st.switch_page("pages/2_cluster_inspect.py")
-    
+
     with cols[1]:
-        if st.button("📊 查看报告", use_container_width=True):
+        if st.button("📊 Просмотр отчёта", use_container_width=True):
             st.switch_page("pages/3_inspect_report.py")
-    
+
     with cols[2]:
-        if st.button("⚙️ 管理集群", use_container_width=True):
+        if st.button("⚙️ Управление кластером", use_container_width=True):
             st.switch_page("pages/1_cluster_info.py")
 
-# 最近巡检记录表格
-st.markdown("### 📈 最近巡检记录")
+
+# Таблица последних записей инспекции
+st.markdown("### 📈 Последние записи инспекции")
+
 
 if all_results:
-    # 构建巡检记录表格数据
-    recent_results = all_results[:10]  # 最近10条记录
-    
+    # Подготовка данных для таблицы записей инспекции
+    recent_results = all_results[:10]  # последние 10 записей
+
     scan_records = []
     for result in recent_results:
         timestamp = datetime.fromisoformat(result['timestamp'])
         time_str = timestamp.strftime("%Y-%m-%d %H:%M")
-        
-        # 计算状态
+
+        # Определение статуса
         critical = result.get('critical', 0)
         warning = result.get('warning', 0)
         passed = result.get('passed', 0)
-        
+
         if critical > 0:
-            status = '❌ 异常'
+            status = '❌ Критично'
         elif warning > 0:
-            status = '⚠️ 警告'
+            status = '⚠️ Предупреждение'
         else:
-            status = '✅ 正常'
-        
+            status = '✅ В порядке'
+
         scan_records.append({
-            "时间": time_str,
-            "集群": f"**{result['cluster_name']}**",
-            "类型": result['inspection_type'],
-            "状态": status,
-            "关键问题": critical,
-            "警告": warning,
-            "通过": passed
+            "Время": time_str,
+            "Кластер": f"**{result['cluster_name']}**",
+            "Тип": result['inspection_type'],
+            "Статус": status,
+            "Критичные проблемы": critical,
+            "Предупреждения": warning,
+            "Успешно": passed
         })
-    
+
     scan_df = pd.DataFrame(scan_records)
     st.table(scan_df)
 else:
-    st.info("📋 还没有巡检记录，执行首次巡检后这里将显示历史记录。")
+    st.info("📋 Записи об инспекциях отсутствуют, после первой инспекции здесь появится история.")
 
-# 页面底部信息
+
+# Нижняя часть страницы
 st.markdown("---")
 st.markdown(f"""
 <div style="text-align: center; color: #666; font-size: 0.85rem; padding: 1rem;">
-    KubeEye {VERSION} | 
-    <a href="#" onclick="window.location.reload()">刷新页面</a> | 
-    最后更新: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    KubeEye {VERSION} |
+    <a href="#" onclick="window.location.reload()">Обновить страницу</a> |
+    Последнее обновление: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 </div>
 """, unsafe_allow_html=True)

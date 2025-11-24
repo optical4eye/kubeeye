@@ -1,37 +1,41 @@
 ---
-# CPU负载检查规则
+# Правило проверки нагрузки CPU
 id: node_load_average_simple
-name: CPU负载检查
-description: 检查系统1分钟平均负载
+name: Проверка нагрузки CPU
+description: Проверяет среднюю нагрузку системы за 1 минуту
 type: node
 category: cpu
 severity: warning
 enabled: true
 tier: basic
 
-# 规则配置
+
+# Конфигурация правила
 config:
-  # 执行配置 - 直接返回负载值
+  # Конфигурация выполнения - напрямую возвращает значение нагрузки
   execution:
     command: "uptime | awk -F'load average:' '{ print $2 }' | awk -F, '{ print $1 }' | xargs"
     timeout: 5
 
-  # 断言配置 - 直接使用命令输出
+
+  # Конфигурация утверждений - напрямую использует вывод команды
   assertions:
-    - name: "系统负载正常"
+    - name: "Нагрузка системы в норме"
       condition: "float(output) < 4.0"
       severity: warning
-      description: "1分钟平均负载: {{ output }}"
+      description: "Средняя нагрузка за 1 минуту: {{ output }}"
 
-# 问题解决建议
+
+# Рекомендации по устранению проблемы
 solution: |
-  系统负载过高处理：
-  1. 查看负载详情：uptime
-  2. 查看CPU占用：top -c
-  3. 查看IO等待：iostat -x 1 5
-  4. 检查高负载进程：ps aux --sort=-%cpu | head
+  Обработка высокой нагрузки системы:
+  1. Посмотреть детали нагрузки: uptime
+  2. Проверить использование CPU: top -c
+  3. Проверить IO ожидание: iostat -x 1 5
+  4. Найти процессы с высокой нагрузкой на CPU: ps aux --sort=-%cpu | head
 
-# 标签
+
+# Метки
 tags:
   - cpu
   - load

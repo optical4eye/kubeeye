@@ -30,24 +30,24 @@ config:
   rego:
     inline: |
       package kubernetes
-      
+
       # 获取Pod规范
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
       }
-      
+
       get_pod_spec(resource) = spec if {
           resource.kind != "Pod"
           spec := resource.spec.template.spec
       }
-      
+
       # 定义违规 - 使用主机网络
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
           spec.hostNetwork == true
-          
+
           result := {
               "kind": resource.kind,
               "name": resource.metadata.name,
@@ -59,7 +59,7 @@ config:
               ])
           }
       }
-  
+
   # 断言配置
   assertions:
     - name: "检查主机网络使用"

@@ -1,17 +1,18 @@
 ---
-# OPA规则 - 资源限制检查 - 使用断言格式
+# OPA правило - проверка ограничений ресурсов для контейнеров - с использованием формата утверждений
 id: opa_resource_limits_check
-name: 容器资源限制检查
-description: 检查所有容器是否设置了资源请求和限制，避免资源竞争和节点过载
+name: Проверка ограничений ресурсов контейнеров
+description: Проверяет, что у всех контейнеров установлены запросы и лимиты ресурсов для предотвращения конкуренции за ресурсы и перегрузки узлов
 type: opa
 category: resource
 severity: warning
 enabled: true
 tier: basic
 
-# 规则配置
+
+# Конфигурация правила
 config:
-  # 资源配置
+  # Конфигурация ресурсов
   resources:
     - kind: Pod
       apiVersion: v1
@@ -26,32 +27,32 @@ config:
       apiVersion: apps/v1
       namespaced: true
 
-  # 范围配置
+
+  # Конфигурация области действия
   scope:
     namespaces:
-      include: []  # 空数组表示所有非排除的命名空间
+      include: []  # пустой список означает все непредусмотренные пространства имен
       exclude:
         - kube-system
         - kube-public
-    
-  # Rego规则配置
+
+  # Конфигурация inline rego правила
   rego:
-    # 内联Rego规则定义
     inline: |
       package kubernetes
-      
-      # 获取Pod规范
+
+      # Получение спецификации Pod
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
       }
-      
+
       get_pod_spec(resource) = spec if {
           resource.kind != "Pod"
           spec := resource.spec.template.spec
       }
-      
-      # 检查容器是否缺少资源限制
+
+      # Определение контейнеров без указания заданного поля ресурсов (requests или limits)
       missing_resources_containers(containers, field) = missing if {
           missing := [container |
               container := containers[_]
@@ -59,8 +60,8 @@ config:
               not resources[field]
           ]
       }
-      
-      # 定义违规 - 缺少资源请求
+
+      # Определение нарушений - отсутствие запросов ресурсов
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -70,12 +71,12 @@ config:
           )
           missing_requests := missing_resources_containers(containers, "requests")
           count(missing_requests) > 0
-          
+
           result := {
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' in namespace '%s' has %d container(s) without resource requests: %s", [
+              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) без запросов ресурсов: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -84,23 +85,23 @@ config:
               ])
           }
       }
-      
-      # 定义违规 - 缺少资源限制
+
+      # Определение нарушений - отсутствие лимитов ресурсов
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
           containers := array.concat(
-              default_array(spec.containers), 
+              default_array(spec.containers),
               default_array(spec.initContainers)
           )
           missing_limits := missing_resources_containers(containers, "limits")
           count(missing_limits) > 0
-          
+
           result := {
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' in namespace '%s' has %d container(s) without resource limits: %s", [
+              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) без лимитов ресурсов: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -109,54 +110,56 @@ config:
               ])
           }
       }
-      
-      # 辅助函数 - 返回默认空数组
+
+      # Вспомогательные функции - возвращают пустой массив если значение равно null
       default_array(val) = result if {
           val != null
           result = val
       }
-      
+
       default_array(val) = [] if {
           val == null
       }
-      
-  # 断言配置
+
+  # Конфигурация утверждений
   assertions:
-    - name: "检查是否有缺少资源配置的工作负载"
+    - name: "Проверка отсутствия ресурсов у контейнеров"
       condition: "violation_count == 0"
       severity: warning
-      description: "发现 {{ violation_count }} 个资源没有正确配置资源请求/限制"
-      
-    - name: "检查是否有大量缺少资源配置的工作负载"
+      description: "Обнаружено {{ violation_count }} ресурсов без правильно настроенных запросов и/или лимитов ресурсов"
+
+    - name: "Проверка значительного количества контейнеров без ресурсов"
       condition: "violation_count < 10"
       severity: critical
-      description: "发现大量 ({{ violation_count }}) 资源没有正确配置资源请求/限制"
+      description: "Обнаружено большое количество ({{ violation_count }}) ресурсов без правильно настроенных запросов и/или лимитов ресурсов"
 
-# 问题解决建议
+
+# Рекомендации по решению проблемы
 solution: |
-  为所有容器设置资源请求和限制，避免资源竞争和节点过载：
-  
-  1. 为每个容器设置合理的资源请求值：
-     ```yaml
+  Устанавливайте запросы и лимиты ресурсов для всех контейнеров, чтобы избежать конкуренции за ресурсы и перегрузки узлов:
+
+  1. Задавайте разумные значения запросов ресурсов для каждого контейнера:
+     ```
      resources:
        requests:
          memory: "128Mi"
          cpu: "100m"
      ```
-  
-  2. 为每个容器设置适当的资源限制值：
-     ```yaml
+
+  2. Задавайте адекватные значения лимитов ресурсов для каждого контейнера:
+     ```
      resources:
        limits:
          memory: "256Mi"
          cpu: "500m"
      ```
-  
-  3. 监控应用实际资源使用情况，根据使用模式调整请求和限制值
-  4. 考虑使用LimitRange或ResourceQuota管理命名空间内资源分配
-  5. 为不同环境(开发、测试、生产)设置不同的资源配置
 
-# 标签
+  3. Отслеживайте реальное потребление ресурсов приложениями и корректируйте значения запросов и лимитов соответственно
+  4. Используйте LimitRange или ResourceQuota для управления распределением ресурсов в пространстве имен
+  5. Для разных сред (разработка, тестирование, продакшен) задавайте различные конфигурации ресурсов
+
+
+# Метки
 tags:
   - resources
   - best-practice

@@ -1,0 +1,75 @@
+# kubeeye-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeeye
+  namespace: kubeeye-system
+  labels:
+    app: kubeeye
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubeeye
+  template:
+    metadata:
+      labels:
+        app: kubeeye
+    spec:
+      containers:
+      - name: kubeeye
+        image: kubespheredev/kubeeye:v2.0.0-alpha.1
+        ports:
+        - containerPort: 8501
+        env:
+        - name: KUBEEYE_DATA_DIR
+          value: "/app/data"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /app/data
+        - name: localtime
+          mountPath: /etc/localtime
+          readOnly: true
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: kubeeye-pvc
+      - name: localtime
+        hostPath:
+          path: /etc/localtime
+          type: File
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kubeeye-pvc
+  namespace: kubeeye-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubeeye-service
+  namespace: kubeeye-system
+spec:
+  selector:
+    app: kubeeye
+  ports:
+    - protocol: TCP
+      port: 8501
+      targetPort: 8501
+  type: NodePort
