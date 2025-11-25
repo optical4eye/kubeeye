@@ -1,181 +1,189 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Kubernetes 集群信息管理页面
+Страница управления информацией о кластере Kubernetes
 """
 
-# 导入必要的库
+
+# Импорт необходимых библиотек
 import streamlit as st
 import pandas as pd
 import sys
 from pathlib import Path
 import json
 
-# 设置页面配置 - 必须是第一个Streamlit命令
+
+# Настройка страницы - должна быть первой командой Streamlit
 st.set_page_config(
-    page_title="集群信息 - kubeeye",
+    page_title="Инфо о кластере - kubeeye",
     page_icon="🔗",
     layout="wide"
 )
 
-# 添加项目根目录到Python路径
+
+# Добавление корневой директории проекта в путь Python
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-# 导入应用模块
+
+# Импорт модулей приложения
 from utils.common import initialize_page
 from utils.cluster_config import list_clusters, get_cluster, delete_cluster
 from utils.node_connection import test_node_connection
 from utils.prometheus_client import PrometheusClient
 from utils.k8s_client import K8sClient
 
-# 初始化页面
+
+# Инициализация страницы
 initialize_page(
-    title="集群信息",
+    title="Инфо о кластере",
     icon="🔗",
-    page_title="集群信息管理", 
-    page_subtitle="管理和配置您的 Kubernetes 集群连接"
+    page_title="Управление информацией о кластере",
+    page_subtitle="Управляйте и настраивайте подключения к вашим кластерам Kubernetes"
 )
 
-# 选项卡
-tab1, tab2, tab3 = st.tabs(["集群列表", "添加集群", "编辑集群"])
 
-# 集群列表选项卡
+# Вкладки
+tab1, tab2, tab3 = st.tabs(["Список кластеров", "Добавить кластер", "Редактировать кластер"])
+
+
+# Вкладка списка кластеров
 with tab1:
-    st.header("已配置的集群")
-    
-    # 刷新按钮
-    if st.button("刷新列表"):
+    st.header("Настроенные кластеры")
+
+    # Кнопка обновления списка
+    if st.button("Обновить список"):
         st.rerun()
-    
-    # 加载集群列表
+
+    # Загрузка списка кластеров
     clusters = list_clusters()
-    
+
     if clusters:
         for cluster_name in clusters:
-            with st.expander(f"集群: {cluster_name}", expanded=False):
+            with st.expander(f"Кластер: {cluster_name}", expanded=False):
                 cluster_config = get_cluster(cluster_name)
-                
-                # 显示节点信息
-                st.subheader("节点信息")
+
+                # Отображение информации об узлах
+                st.subheader("Информация об узлах")
                 nodes = cluster_config.get_nodes()
-                
+
                 if nodes:
                     node_data = []
                     for node in nodes:
                         node_data.append({
                             "IP": node['ip'],
-                            "端口": node['port'],
-                            "用户名": node['username'],
-                            "认证类型": node['auth_type']
+                            "Порт": node['port'],
+                            "Имя пользователя": node['username'],
+                            "Тип аутентификации": node['auth_type']
                         })
                     st.dataframe(pd.DataFrame(node_data))
                 else:
-                    st.info("未配置节点")
-                
-                # 显示 Prometheus 配置
-                st.subheader("Prometheus 配置")
+                    st.info("Узлы не настроены")
+
+                # Отображение конфигурации Prometheus
+                st.subheader("Конфигурация Prometheus")
                 prometheus_config = cluster_config.get_prometheus_config()
                 st.json(prometheus_config)
-                
-                # 显示 kubeconfig 配置
+
+                # Отображение kubeconfig
                 st.subheader("Kubeconfig")
                 kubeconfig = cluster_config.get_kubeconfig()
                 if kubeconfig:
                     st.code(kubeconfig, language="yaml")
                 else:
-                    st.info("未配置 kubeconfig")
-                
-                # 删除集群按钮
-                if st.button("删除集群", key=f"delete_{cluster_name}"):
+                    st.info("kubeconfig не настроен")
+
+                # Кнопка удаления кластера
+                if st.button("Удалить кластер", key=f"delete_{cluster_name}"):
                     delete_cluster(cluster_name)
-                    st.success(f"集群 {cluster_name} 已删除")
+                    st.success(f"Кластер {cluster_name} удалён")
                     st.rerun()
     else:
-        st.info("还没有配置任何集群，请前往「添加集群」选项卡添加集群。")
+        st.info("Кластеры ещё не настроены, перейдите на вкладку «Добавить кластер» для создания.")
 
-# 添加集群选项卡
+
+# Вкладка добавления кластера
 with tab2:
-    st.header("添加新集群")
-    
+    st.header("Добавить новый кластер")
+
     with st.form("add_cluster_form"):
-        cluster_name = st.text_input("集群名称", placeholder="production")
-        st.caption("请输入一个唯一的集群名称，用于标识此集群")
-        
-        st.subheader("节点信息")
-        st.caption("添加集群节点信息，用于对节点进行巡检")
-        
+        cluster_name = st.text_input("Название кластера", placeholder="production")
+        st.caption("Введите уникальное имя для идентификации кластера")
+
+        st.subheader("Информация об узлах")
+        st.caption("Добавьте данные узлов для проверки")
+
         col1, col2 = st.columns(2)
         with col1:
-            node_ip = st.text_input("节点 IP", placeholder="192.168.1.100")
-            node_port = st.text_input("SSH 端口", "22")
-            node_username = st.text_input("用户名", "root")
-        
+            node_ip = st.text_input("IP узла", placeholder="192.168.1.100")
+            node_port = st.text_input("SSH порт", "22")
+            node_username = st.text_input("Имя пользователя", "root")
+
         with col2:
-            auth_type = st.selectbox("认证方式", ["password", "key"])
-            
+            auth_type = st.selectbox("Тип аутентификации", ["password", "key"])
+
             if auth_type == "password":
-                node_password = st.text_input("密码", type="password")
+                node_password = st.text_input("Пароль", type="password")
                 node_key_path = ""
             else:
                 node_password = ""
-                node_key_path = st.text_input("密钥路径", placeholder="/home/user/.ssh/id_rsa")
-        
-        st.subheader("Prometheus 配置")
-        st.caption("配置 Prometheus 信息，用于指标巡检")
-        
-        prometheus_enabled = st.checkbox("启用 Prometheus")
-        
+                node_key_path = st.text_input("Путь к ключу", placeholder="/home/user/.ssh/id_rsa")
+
+        st.subheader("Конфигурация Prometheus")
+        st.caption("Настройте Prometheus для мониторинга")
+
+        prometheus_enabled = st.checkbox("Включить Prometheus")
+
         col1, col2 = st.columns(2)
         with col1:
-            prometheus_url = st.text_input("Prometheus URL", placeholder="http://prometheus.example.com:9090")
-            prometheus_username = st.text_input("用户名（可选）")
-        
+            prometheus_url = st.text_input("URL Prometheus", placeholder="http://prometheus.example.com:9090")
+            prometheus_username = st.text_input("Имя пользователя (необязательно)")
+
         with col2:
-            prometheus_password = st.text_input("密码（可选）", type="password")
-            prometheus_token = st.text_input("Token（可选）", type="password")
-        
+            prometheus_password = st.text_input("Пароль (необязательно)", type="password")
+            prometheus_token = st.text_input("Токен (необязательно)", type="password")
+
         st.subheader("Kubeconfig")
-        st.caption("粘贴 kubeconfig 内容，用于资源巡检")
-        
-        kubeconfig_content = st.text_area("Kubeconfig 内容", height=150)
-        
-        submitted = st.form_submit_button("保存集群")
-        
+        st.caption("Вставьте содержимое kubeconfig для управления ресурсами")
+
+        kubeconfig_content = st.text_area("Содержимое kubeconfig", height=150)
+
+        submitted = st.form_submit_button("Сохранить кластер")
+
         if submitted:
             if not cluster_name:
-                st.error("请输入集群名称")
+                st.error("Введите название кластера")
             elif not node_ip:
-                st.error("请输入至少一个节点 IP")
+                st.error("Введите IP хотя бы одного узла")
             else:
-                # 创建新集群
+                # Создание нового кластера
                 cluster_config = get_cluster(cluster_name)
-                
-                # 添加节点信息
+
+                # Добавление данных узла
                 node_info = {
                     "ip": node_ip,
                     "port": node_port,
                     "username": node_username,
                     "auth_type": auth_type
                 }
-                
+
                 if auth_type == "password":
                     node_info["password"] = node_password
                 else:
                     node_info["key_path"] = node_key_path
-                
-                # 测试节点连接
-                with st.spinner("正在测试节点连接..."):
+
+                # Проверка соединения с узлом
+                with st.spinner("Проверка соединения с узлом..."):
                     success, message = test_node_connection(node_info)
-                
+
                 if not success:
-                    st.error(f"节点连接失败: {message}")
+                    st.error(f"Ошибка соединения с узлом: {message}")
                 else:
-                    # 添加节点配置
+                    # Обновление конфигурации узла
                     cluster_config.update_node(node_info)
-                    
-                    # 更新 Prometheus 配置
+
+                    # Обновление конфигурации Prometheus
                     prometheus_config = {
                         "url": prometheus_url,
                         "username": prometheus_username,
@@ -184,134 +192,135 @@ with tab2:
                         "enabled": prometheus_enabled
                     }
                     cluster_config.update_prometheus(prometheus_config)
-                    
-                    # 更新 kubeconfig
+
+                    # Обновление kubeconfig
                     if kubeconfig_content:
                         cluster_config.update_kubeconfig(kubeconfig_content)
-                    
-                    st.success(f"集群 {cluster_name} 已成功添加")
-                    st.info("你可以在「编辑集群」选项卡中添加更多节点")
 
-# 编辑集群选项卡
+                    st.success(f"Кластер {cluster_name} успешно добавлен")
+                    st.info("Вы можете добавить дополнительные узлы во вкладке «Редактировать кластер»")
+
+
+# Вкладка редактирования кластера
 with tab3:
-    st.header("编辑集群")
-    
-    # 加载集群列表
+    st.header("Редактировать кластер")
+
+    # Загрузка списка кластеров
     clusters = list_clusters()
-    
+
     if not clusters:
-        st.info("还没有配置任何集群，请前往「添加集群」选项卡添加集群。")
+        st.info("Кластеры ещё не настроены, перейдите на вкладку «Добавить кластер» для создания.")
     else:
-        selected_cluster = st.selectbox("选择要编辑的集群", clusters)
-        
+        selected_cluster = st.selectbox("Выберите кластер для редактирования", clusters)
+
         if selected_cluster:
             cluster_config = get_cluster(selected_cluster)
-            
-            st.subheader(f"编辑集群: {selected_cluster}")
-            
-            # 编辑选项卡
-            edit_tab1, edit_tab2, edit_tab3 = st.tabs(["节点管理", "Prometheus 配置", "Kubeconfig"])
-            
-            # 节点管理选项卡
+
+            st.subheader(f"Редактировать кластер: {selected_cluster}")
+
+            # Вкладки редактирования
+            edit_tab1, edit_tab2, edit_tab3 = st.tabs(["Управление узлами", "Конфигурация Prometheus", "Kubeconfig"])
+
+            # Вкладка управления узлами
             with edit_tab1:
-                st.subheader("节点管理")
-                
-                # 显示现有节点
+                st.subheader("Управление узлами")
+
+                # Отображение существующих узлов
                 nodes = cluster_config.get_nodes()
-                
+
                 if nodes:
-                    st.write("现有节点:")
-                    
+                    st.write("Существующие узлы:")
+
                     for i, node in enumerate(nodes):
-                        with st.expander(f"节点: {node['ip']}", expanded=False):
+                        with st.expander(f"Узел: {node['ip']}", expanded=False):
                             st.json(node)
-                            
-                            if st.button("删除节点", key=f"delete_node_{i}"):
+
+                            if st.button("Удалить узел", key=f"delete_node_{i}"):
                                 cluster_config.remove_node(node['ip'])
-                                st.success(f"节点 {node['ip']} 已删除")
+                                st.success(f"Узел {node['ip']} удалён")
                                 st.rerun()
-                
-                # 添加新节点
-                st.write("添加新节点:")
-                
+
+                # Добавление нового узла
+                st.write("Добавить новый узел:")
+
                 with st.form("add_node_form"):
                     col1, col2 = st.columns(2)
                     with col1:
-                        node_ip = st.text_input("节点 IP", placeholder="192.168.1.101", key="edit_node_ip")
-                        node_port = st.text_input("SSH 端口", "22", key="edit_node_port")
-                        node_username = st.text_input("用户名", "root", key="edit_node_username")
-                    
+                        node_ip = st.text_input("IP узла", placeholder="192.168.1.101", key="edit_node_ip")
+                        node_port = st.text_input("SSH порт", "22", key="edit_node_port")
+                        node_username = st.text_input("Имя пользователя", "root", key="edit_node_username")
+
                     with col2:
-                        auth_type = st.selectbox("认证方式", ["password", "key"], key="edit_auth_type")
-                        
+                        auth_type = st.selectbox("Тип аутентификации", ["password", "key"], key="edit_auth_type")
+
                         if auth_type == "password":
-                            node_password = st.text_input("密码", type="password", key="edit_node_password")
+                            node_password = st.text_input("Пароль", type="password", key="edit_node_password")
                             node_key_path = ""
                         else:
                             node_password = ""
-                            node_key_path = st.text_input("密钥路径", placeholder="/home/user/.ssh/id_rsa", key="edit_node_key")
-                    
-                    submitted = st.form_submit_button("添加节点")
-                    
+                            node_key_path = st.text_input("Путь к ключу", placeholder="/home/user/.ssh/id_rsa", key="edit_node_key")
+
+                    submitted = st.form_submit_button("Добавить узел")
+
                     if submitted:
                         if not node_ip:
-                            st.error("请输入节点 IP")
+                            st.error("Введите IP узла")
                         else:
-                            # 构建节点信息
+                            # Формирование информации об узле
                             node_info = {
                                 "ip": node_ip,
                                 "port": node_port,
                                 "username": node_username,
                                 "auth_type": auth_type
                             }
-                            
+
                             if auth_type == "password":
                                 node_info["password"] = node_password
                             else:
                                 node_info["key_path"] = node_key_path
-                            
-                            # 测试节点连接
-                            with st.spinner("正在测试节点连接..."):
+
+                            # Проверка соединения
+                            with st.spinner("Проверка соединения с узлом..."):
                                 success, message = test_node_connection(node_info)
-                            
+
                             if not success:
-                                st.error(f"节点连接失败: {message}")
+                                st.error(f"Ошибка соединения с узлом: {message}")
                             else:
-                                # 添加节点配置
+                                # Обновление конфигурации узла
                                 cluster_config.update_node(node_info)
-                                st.success(f"节点 {node_ip} 已添加")
+                                st.success(f"Узел {node_ip} добавлен")
                                 st.rerun()
-            
-            # Prometheus 配置选项卡
+
+            # Вкладка настройки Prometheus
             with edit_tab2:
-                st.subheader("Prometheus 配置")
-                
-                # 获取现有配置
+                st.subheader("Конфигурация Prometheus")
+
+                # Получение текущей конфигурации
                 prometheus_config = cluster_config.get_prometheus_config()
-                
+
                 with st.form("edit_prometheus_form"):
-                    prometheus_enabled = st.checkbox("启用 Prometheus", value=prometheus_config.get('enabled', False))
-                    
+                    prometheus_enabled = st.checkbox("Включить Prometheus", value=prometheus_config.get('enabled', False))
+
                     col1, col2 = st.columns(2)
                     with col1:
-                        prometheus_url = st.text_input("Prometheus URL", value=prometheus_config.get('url', ''))
-                        prometheus_username = st.text_input("用户名", value=prometheus_config.get('username', ''))
-                    
+                        prometheus_url = st.text_input("URL Prometheus", value=prometheus_config.get('url', ''))
+                        prometheus_username = st.text_input("Имя пользователя", value=prometheus_config.get('username', ''))
+
                     with col2:
-                        prometheus_password = st.text_input("密码", type="password", value=prometheus_config.get('password', ''))
-                        prometheus_token = st.text_input("Token", type="password", value=prometheus_config.get('token', ''))
-                    
-                    # 测试连接按钮
-                    test_prom_button = st.form_submit_button("测试连接")
-                    
-                    # 保存配置按钮
-                    save_prom_button = st.form_submit_button("保存配置")
-                    
+                        prometheus_password = st.text_input("Пароль", type="password", value=prometheus_config.get('password', ''))
+                        prometheus_token = st.text_input("Токен", type="password", value=prometheus_config.get('token', ''))
+
+                    # Кнопка теста соединения
+                    test_prom_button = st.form_submit_button("Тест соединения")
+
+                    # Кнопка сохранения конфигурации
+                    save_prom_button = st.form_submit_button("Сохранить конфигурацию")
+
                     if test_prom_button:
                         if not prometheus_url:
-                            st.error("请输入 Prometheus URL")
+                            st.error("Введите URL Prometheus")
                         else:
-                            # 构建临时配置
+                            # Формирование временной конфигурации
                             test_config = {
                                 "url": prometheus_url,
                                 "username": prometheus_username,
@@ -319,19 +328,19 @@ with tab3:
                                 "token": prometheus_token,
                                 "enabled": True
                             }
-                            
-                            # 测试连接
-                            with st.spinner("正在测试连接..."):
+
+                            # Тест соединения
+                            with st.spinner("Тест соединения..."):
                                 client = PrometheusClient(test_config)
                                 result = client.test_connection()
-                            
+
                             if result.get('status') == 'success':
-                                st.success("连接成功")
+                                st.success("Соединение успешно")
                             else:
-                                st.error(f"连接失败: {result.get('error', '未知错误')}")
-                    
+                                st.error(f"Ошибка соединения: {result.get('error', 'Неизвестная ошибка')}")
+
                     if save_prom_button:
-                        # 更新 Prometheus 配置
+                        # Сохранение новой конфигурации
                         new_config = {
                             "url": prometheus_url,
                             "username": prometheus_username,
@@ -339,41 +348,41 @@ with tab3:
                             "token": prometheus_token,
                             "enabled": prometheus_enabled
                         }
-                        
+
                         cluster_config.update_prometheus(new_config)
-                        st.success("Prometheus 配置已更新")
-            
-            # Kubeconfig 选项卡
+                        st.success("Конфигурация Prometheus обновлена")
+
+            # Вкладка настройки Kubeconfig
             with edit_tab3:
-                st.subheader("Kubeconfig 配置")
-                
-                # 获取现有配置
+                st.subheader("Конфигурация Kubeconfig")
+
+                # Получение текущей конфигурации
                 current_kubeconfig = cluster_config.get_kubeconfig()
-                
+
                 with st.form("edit_kubeconfig_form"):
-                    kubeconfig_content = st.text_area("Kubeconfig 内容", value=current_kubeconfig, height=300)
-                    
-                    # 测试连接按钮
-                    test_kube_button = st.form_submit_button("测试连接")
-                    
-                    # 保存配置按钮
-                    save_kube_button = st.form_submit_button("保存配置")
-                    
+                    kubeconfig_content = st.text_area("Содержимое Kubeconfig", value=current_kubeconfig, height=300)
+
+                    # Кнопка теста соединения
+                    test_kube_button = st.form_submit_button("Тест соединения")
+
+                    # Кнопка сохранения конфигурации
+                    save_kube_button = st.form_submit_button("Сохранить конфигурацию")
+
                     if test_kube_button:
                         if not kubeconfig_content:
-                            st.error("请输入 kubeconfig 内容")
+                            st.error("Введите содержимое kubeconfig")
                         else:
-                            # 测试连接
-                            with st.spinner("正在测试连接..."):
+                            # Тест соединения
+                            with st.spinner("Тест соединения..."):
                                 client = K8sClient(kubeconfig_content)
                                 success, message = client.test_connection()
-                            
+
                             if success:
-                                st.success("连接成功")
+                                st.success("Соединение успешно")
                             else:
-                                st.error(f"连接失败: {message}")
-                    
+                                st.error(f"Ошибка соединения: {message}")
+
                     if save_kube_button:
-                        # 更新 kubeconfig
+                        # Обновление конфигурации
                         cluster_config.update_kubeconfig(kubeconfig_content)
-                        st.success("Kubeconfig 配置已更新")
+                        st.success("Конфигурация kubeconfig обновлена")

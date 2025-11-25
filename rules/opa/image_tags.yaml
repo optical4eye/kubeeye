@@ -1,17 +1,17 @@
 ---
-# OPA规则 - 容器镜像标签检查
+# OPA правило - проверка тегов образов контейнеров
 id: opa_image_tags
-name: 容器镜像标签检查
-description: 检查容器镜像标签是否符合规范，包括latest标签检查和标签格式验证
+name: Проверка тегов образов контейнеров
+description: Проверяет, соответствуют ли теги образов контейнеров стандартам, включая проверку тега latest и валидацию формата тегов
 type: opa
 category: security
 severity: warning
 enabled: true
 tier: basic
 
-# 规则配置
+# Конфигурация правила
 config:
-  # 资源配置 - 指定要检查的资源类型
+  # Конфигурация ресурсов - указание типов ресурсов для проверки
   resources:
     - kind: Pod
       apiVersion: v1
@@ -26,23 +26,23 @@ config:
       apiVersion: apps/v1
       namespaced: true
 
-  # Rego规则配置 - 内联规则定义
+  # Конфигурация rego правила - определение inline
   rego:
     inline: |
       package kubernetes
-      
-      # 获取Pod规范
+
+      # Получение спецификации Pod
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
       }
-      
+
       get_pod_spec(resource) = spec if {
           resource.kind != "Pod"
           spec := resource.spec.template.spec
       }
-      
-      # 检查容器镜像是否使用latest标签
+
+      # Проверка контейнеров с тегом latest
       latest_image_containers(containers) = latest if {
           latest := [container |
               container := containers[_]
@@ -50,17 +50,17 @@ config:
               is_latest_tag(image)
           ]
       }
-      
-      # 检查镜像是否使用latest标签
+
+      # Определение, использует ли образ тег latest
       is_latest_tag(image) if {
           endswith(image, ":latest")
       }
-      
+
       is_latest_tag(image) if {
           not contains(image, ":")
       }
-      
-      # 定义违规
+
+      # Определение нарушений
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -70,12 +70,12 @@ config:
           )
           latest := latest_image_containers(containers)
           count(latest) > 0
-          
+
           result := {
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' in namespace '%s' has %d container(s) using latest tag: %s", [
+              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) с тегом latest: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -84,32 +84,32 @@ config:
               ])
           }
       }
-      
-      # 辅助函数
+
+      # Вспомогательные функции
       default_array(val) = result if {
           val != null
           result = val
       }
-      
+
       default_array(val) = [] if {
           val == null
       }
-  
-  # 断言配置 - 简化为单个检查
-  assertions:
-    - name: "检查是否有使用latest标签的镜像"
-      condition: "violation_count == 0"
-      severity: warning
-      description: "发现 {{ violation_count }} 个资源使用了latest标签镜像"
 
-# 问题解决建议
+# Настройки утверждений - упрощённая проверка
+assertions:
+  - name: "Проверка использования тега latest"
+    condition: "violation_count == 0"
+    severity: warning
+    description: "Обнаружено {{ violation_count }} ресурсов с образами, использующими тег latest"
+
+# Рекомендации по устранению проблемы
 solution: |
-  使用latest标签的镜像可能导致部署不稳定，建议：
-  1. 为所有容器镜像指定明确的版本标签，如v1.2.3
-  2. 避免在生产环境中使用latest标签
-  3. 建立镜像版本管理策略
+  Использование тега latest может привести к нестабильным развертываниям, рекомендуется:
+  1. Указывать явные версии тегов для всех контейнерных образов, например v1.2.3
+  2. Избегать использования тега latest в производственной среде
+  3. Внедрить стратегию управления версиями образов
 
-# 标签
+# Метки
 tags:
   - images
   - security

@@ -47,9 +47,12 @@ docs/
 # Local development files
 docker-compose.yml
 docker-compose.override.yml
+kubeeye-deployment.yaml
 
 # Data directories (will be created in container)
 data/
+rules/
+helm/
 
 # 多架构构建脚本
 build-multiarch.sh

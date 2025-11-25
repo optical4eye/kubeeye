@@ -1,37 +1,41 @@
 ---
-# kubelet服务状态检查规则
+# Правило проверки статуса службы kubelet
 id: node_kubelet_status
-name: kubelet服务状态检查
-description: 检查kubelet服务是否正常运行
+name: Проверка статуса службы kubelet
+description: Проверяет, работает ли служба kubelet нормально
 type: node
 category: service
 severity: critical
 enabled: true
 tier: basic
 
-# 规则配置
+
+# Конфигурация правила
 config:
-  # 执行配置 - 直接返回服务状态
+  # Конфигурация выполнения - напрямую возвращает статус службы
   execution:
     command: "systemctl is-active kubelet 2>/dev/null || echo 'inactive'"
     timeout: 5
 
-  # 断言配置 - 直接使用命令输出
+
+  # Конфигурация утверждений - напрямую использует вывод команды
   assertions:
-    - name: "kubelet服务正常"
+    - name: "Служба kubelet активна"
       condition: "output.strip() == 'active'"
       severity: critical
-      description: "kubelet服务状态: {{ output }}"
+      description: "Статус службы kubelet: {{ output }}"
 
-# 问题解决建议
+
+# Рекомендации по устранению проблемы
 solution: |
-  kubelet服务异常处理：
-  1. 查看服务状态：systemctl status kubelet
-  2. 查看日志：journalctl -u kubelet -f
-  3. 检查配置文件：/etc/kubernetes/kubelet/kubelet-config.yaml
-  4. 联系系统管理员进行 kubelet 服务重启（如需要）
+  Обработка проблем со службой kubelet:
+  1. Проверить статус службы: systemctl status kubelet
+  2. Просмотреть логи: journalctl -u kubelet -f
+  3. Проверить конфигурационный файл: /etc/kubernetes/kubelet/kubelet-config.yaml
+  4. При необходимости обратиться к системному администратору для перезапуска службы kubelet
 
-# 标签
+
+# Метки
 tags:
   - service
   - kubelet

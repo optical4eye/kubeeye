@@ -1,17 +1,18 @@
 ---
-# OPA规则 - 特权容器检查 - 简化版本
+# OPA правило - проверка привилегированных контейнеров (упрощённая версия)
 id: opa_privileged_container
-name: 特权容器安全检查
-description: 检查是否存在特权容器，一个规则一个检查项
+name: Проверка безопасности привилегированных контейнеров
+description: Проверяет наличие привилегированных контейнеров; каждое правило — отдельная проверка
 type: opa
 category: security
 severity: critical
 enabled: true
 tier: basic
 
-# 规则配置
+
+# Конфигурация правила
 config:
-  # 资源配置
+  # Конфигурация ресурсов
   resources:
     - kind: Pod
       apiVersion: v1
@@ -26,31 +27,32 @@ config:
       apiVersion: apps/v1
       namespaced: true
 
-  # Rego规则配置
+
+  # Конфигурация rego-правила
   rego:
     inline: |
       package kubernetes
-      
-      # 获取Pod规范
+
+      # Получить спецификацию Pod
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
       }
-      
+
       get_pod_spec(resource) = spec if {
           resource.kind != "Pod"
           spec := resource.spec.template.spec
       }
-      
-      # 检查特权容器
+
+      # Поиск привилегированных контейнеров
       privileged_containers(containers) = privileged if {
           privileged := [container |
               container := containers[_]
               container.securityContext.privileged == true
           ]
       }
-      
-      # 定义违规
+
+      # Определение нарушений
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -60,12 +62,12 @@ config:
           )
           privileged := privileged_containers(containers)
           count(privileged) > 0
-          
+
           result := {
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' in namespace '%s' has %d privileged container(s): %s", [
+              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d привилегированных контейнеров: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -74,32 +76,34 @@ config:
               ])
           }
       }
-      
-      # 辅助函数
+
+      # Вспомогательные функции
       default_array(val) = result if {
           val != null
           result = val
       }
-      
+
       default_array(val) = [] if {
           val == null
       }
-  
-  # 断言配置
+
+  # Конфигурация утверждений
   assertions:
-    - name: "检查特权容器"
+    - name: "Проверка привилегированных контейнеров"
       condition: "violation_count == 0"
       severity: critical
-      description: "发现 {{ violation_count }} 个特权容器"
+      description: "Обнаружено {{ violation_count }} привилегированных контейнеров"
 
-# 问题解决建议
+
+# Рекомендации по устранению проблемы
 solution: |
-  特权容器安全风险处理：
-  1. 避免使用privileged: true
-  2. 使用最小权限原则，只授予必要的权限
-  3. 考虑使用securityContext配置特定的安全权限
+  Риски безопасности привилегированных контейнеров:
+  1. Избегайте использования privileged: true
+  2. Применяйте принцип минимальных привилегий, давая только необходимые права
+  3. Используйте securityContext для настройки конкретных разрешений
 
-# 标签
+
+# Метки
 tags:
   - security
   - privileged

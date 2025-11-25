@@ -47,7 +47,7 @@ ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
 
 # 根据目标架构下载对应的OPA二进制文件
 RUN set -eux; \
-    OPA_VERSION="v1.5.1"; \
+    OPA_VERSION="v1.10.1"; \
     case "${TARGETARCH}" in \
         amd64) \
             OPA_ARCH="amd64"; \
