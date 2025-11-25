@@ -33,6 +33,7 @@ from utils.cluster_config import list_clusters, get_cluster, delete_cluster
 from utils.node_connection import test_node_connection
 from utils.prometheus_client import PrometheusClient
 from utils.k8s_client import K8sClient
+from utils.node_parser import parse_nodes_from_text, generate_nodes_template
 
 
 # Инициализация страницы
@@ -42,6 +43,11 @@ initialize_page(
     page_title="Управление информацией о кластере",
     page_subtitle="Управляйте и настраивайте подключения к вашим кластерам Kubernetes"
 )
+
+
+# Инициализация состояния сессии для управления списком узлов
+if 'temp_nodes' not in st.session_state:
+    st.session_state.temp_nodes = []
 
 
 # Вкладки
@@ -108,97 +114,252 @@ with tab2:
     st.header("Добавить новый кластер")
 
     with st.form("add_cluster_form"):
+        # Основная информация о кластере
+        st.subheader("💾 Основная информация")
         cluster_name = st.text_input("Название кластера", placeholder="production")
-        st.caption("Введите уникальное имя для идентификации кластера")
 
-        st.subheader("Информация об узлах")
-        st.caption("Добавьте данные узлов для проверки")
+        # Добавление узлов
+        st.subheader("📋 Узлы кластера")
+        bulk_nodes_input = st.text_area(
+            "Список узлов",
+            placeholder="""Добавьте SSH узлы для проверки в формате: IP:Порт Пользователь ТипАутентификации [Пароль/ПутьКключу]
+Примеры:
+192.168.1.100:22 root password mypassword123
+192.168.1.101:22 admin key /home/user/.ssh/id_rsa
+10.0.1.50:2222 ubuntu password ubuntu123""",
+            height=200,
+            help="Каждая строка должна содержать: IP:Порт Пользователь ТипАутентификации [Пароль/ПутьКключу]"
+        )
 
-        col1, col2 = st.columns(2)
-        with col1:
-            node_ip = st.text_input("IP узла", placeholder="192.168.1.100")
-            node_port = st.text_input("SSH порт", "22")
-            node_username = st.text_input("Имя пользователя", "root")
+        # Кнопка предварительной проверки узлов
+        check_nodes = st.form_submit_button("🔍 Проверить узлы")
 
-        with col2:
-            auth_type = st.selectbox("Тип аутентификации", ["password", "key"])
+        if check_nodes:
+            if bulk_nodes_input:
+                nodes, errors = parse_nodes_from_text(bulk_nodes_input)
 
-            if auth_type == "password":
-                node_password = st.text_input("Пароль", type="password")
-                node_key_path = ""
+                if errors:
+                    for error in errors:
+                        st.error(error)
+
+                checked_count = 0
+                success_count = 0
+
+                for node_info in nodes:
+                    checked_count += 1
+                    # Проверка соединения
+                    with st.spinner(f"Проверка соединения с {node_info['ip']}..."):
+                        success, message = test_node_connection(node_info)
+
+                    if success:
+                        st.success(f"✅ Узел {node_info['ip']} доступен")
+                        success_count += 1
+                    else:
+                        st.error(f"❌ Ошибка соединения с {node_info['ip']}: {message}")
+
+                st.info(f"Проверка завершена: {success_count}/{checked_count} узлов доступно")
             else:
-                node_password = ""
-                node_key_path = st.text_input("Путь к ключу", placeholder="/home/user/.ssh/id_rsa")
+                st.warning("Введите данные узлов для проверки")
 
-        st.subheader("Конфигурация Prometheus")
-        st.caption("Настройте Prometheus для мониторинга")
+        # Конфигурация Prometheus (свернута по умолчанию)
+        with st.expander("📊 Конфигурация Prometheus", expanded=False):
+            st.caption("Настройте Prometheus для мониторинга")
 
-        prometheus_enabled = st.checkbox("Включить Prometheus")
+            prometheus_enabled = st.checkbox("Включить Prometheus")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            prometheus_url = st.text_input("URL Prometheus", placeholder="http://prometheus.example.com:9090")
-            prometheus_username = st.text_input("Имя пользователя (необязательно)")
+            col1, col2 = st.columns(2)
+            with col1:
+                prometheus_url = st.text_input("URL Prometheus", placeholder="http://prometheus.example.com:9090")
+                prometheus_username = st.text_input("Имя пользователя (необязательно)")
 
-        with col2:
-            prometheus_password = st.text_input("Пароль (необязательно)", type="password")
-            prometheus_token = st.text_input("Токен (необязательно)", type="password")
+            with col2:
+                prometheus_password = st.text_input("Пароль (необязательно)", type="password")
+                prometheus_token = st.text_input("Токен (необязательно)", type="password")
 
-        st.subheader("Kubeconfig")
-        st.caption("Вставьте содержимое kubeconfig для управления ресурсами")
+        # Kubeconfig
+        st.subheader("⚙️ Kubeconfig")
 
-        kubeconfig_content = st.text_area("Содержимое kubeconfig", height=150)
+        # Инициализация состояния для kubeconfig
+        if 'kubeconfig_content' not in st.session_state:
+            st.session_state.kubeconfig_content = ""
 
-        submitted = st.form_submit_button("Сохранить кластер")
+        # Поле для ручного ввода/редактирования kubeconfig
+        kubeconfig_content = st.text_area(
+            "Содержимое kubeconfig",
+            value=st.session_state.kubeconfig_content,
+            height=150,
+            placeholder="Вставьте содержимое kubeconfig здесь...",
+            help="Вставьте содержимое kubeconfig файла вручную"
+        )
+
+        # Обновление состояния при ручном редактировании
+        if kubeconfig_content != st.session_state.kubeconfig_content:
+            st.session_state.kubeconfig_content = kubeconfig_content
+
+        # Постоянная кнопка проверки подключения к Kubernetes
+        test_k8s = st.form_submit_button("🔍 Проверить подключение к Kubernetes")
+        if test_k8s:
+            if not st.session_state.kubeconfig_content:
+                st.error("❌ Введите содержимое kubeconfig для проверки подключения")
+            else:
+                with st.spinner("Проверка подключения к Kubernetes..."):
+                    k8s_client = K8sClient(st.session_state.kubeconfig_content)
+                    success, message = k8s_client.test_connection()
+
+                if success:
+                    st.success("✅ Подключение к Kubernetes успешно")
+                else:
+                    st.error(f"❌ Ошибка подключения к Kubernetes: {message}")
+
+        # Кнопка сохранения кластера
+        submitted = st.form_submit_button("💾 Сохранить кластер")
 
         if submitted:
             if not cluster_name:
                 st.error("Введите название кластера")
-            elif not node_ip:
-                st.error("Введите IP хотя бы одного узла")
+            elif not bulk_nodes_input:
+                st.error("Добавьте хотя бы один узел")
             else:
-                # Создание нового кластера
-                cluster_config = get_cluster(cluster_name)
+                # Парсинг и проверка узлов
+                nodes, errors = parse_nodes_from_text(bulk_nodes_input)
 
-                # Добавление данных узла
-                node_info = {
-                    "ip": node_ip,
-                    "port": node_port,
-                    "username": node_username,
-                    "auth_type": auth_type
-                }
-
-                if auth_type == "password":
-                    node_info["password"] = node_password
+                if errors:
+                    for error in errors:
+                        st.error(error)
+                    st.error("Исправьте ошибки в формате узлов перед сохранением")
+                elif not nodes:
+                    st.error("Не удалось распознать ни одного узла")
                 else:
-                    node_info["key_path"] = node_key_path
+                    # Проверка соединения для всех узлов
+                    valid_nodes = []
+                    failed_nodes = []
 
-                # Проверка соединения с узлом
-                with st.spinner("Проверка соединения с узлом..."):
-                    success, message = test_node_connection(node_info)
+                    for node_info in nodes:
+                        with st.spinner(f"Проверка соединения с {node_info['ip']}..."):
+                            success, message = test_node_connection(node_info)
 
-                if not success:
-                    st.error(f"Ошибка соединения с узлом: {message}")
-                else:
-                    # Обновление конфигурации узла
-                    cluster_config.update_node(node_info)
+                        if success:
+                            valid_nodes.append(node_info)
+                        else:
+                            failed_nodes.append((node_info['ip'], message))
 
-                    # Обновление конфигурации Prometheus
-                    prometheus_config = {
-                        "url": prometheus_url,
-                        "username": prometheus_username,
-                        "password": prometheus_password,
-                        "token": prometheus_token,
-                        "enabled": prometheus_enabled
-                    }
-                    cluster_config.update_prometheus(prometheus_config)
+                    # Проверка подключения к Kubernetes (если предоставлен kubeconfig)
+                    k8s_connection_ok = True
+                    k8s_error_message = ""
 
-                    # Обновление kubeconfig
-                    if kubeconfig_content:
-                        cluster_config.update_kubeconfig(kubeconfig_content)
+                    if st.session_state.kubeconfig_content:
+                        with st.spinner("Проверка подключения к Kubernetes..."):
+                            k8s_client = K8sClient(st.session_state.kubeconfig_content)
+                            k8s_success, k8s_message = k8s_client.test_connection()
 
-                    st.success(f"Кластер {cluster_name} успешно добавлен")
-                    st.info("Вы можете добавить дополнительные узлы во вкладке «Редактировать кластер»")
+                        if not k8s_success:
+                            k8s_connection_ok = False
+                            k8s_error_message = k8s_message
+
+                    # Проверка подключения к Prometheus (если включен)
+                    prometheus_connection_ok = True
+                    prometheus_error_message = ""
+
+                    if prometheus_enabled and prometheus_url:
+                        with st.spinner("Проверка подключения к Prometheus..."):
+                            prometheus_config = {
+                                "url": prometheus_url,
+                                "username": prometheus_username,
+                                "password": prometheus_password,
+                                "token": prometheus_token,
+                                "enabled": True
+                            }
+                            prometheus_client = PrometheusClient(prometheus_config)
+                            prometheus_result = prometheus_client.test_connection()
+
+                        if prometheus_result.get('status') != 'success':
+                            prometheus_connection_ok = False
+                            prometheus_error_message = prometheus_result.get('error', 'Неизвестная ошибка')
+
+                    # Показать результаты проверок
+                    st.subheader("🔍 Результаты проверок:")
+
+                    # Узлы
+                    if failed_nodes:
+                        st.error(f"❌ Недоступные узлы ({len(failed_nodes)}):")
+                        for ip, message in failed_nodes:
+                            st.error(f"  - {ip}: {message}")
+                    else:
+                        st.success(f"✅ Все узлы доступны ({len(valid_nodes)})")
+
+                    # Kubernetes
+                    if st.session_state.kubeconfig_content:
+                        if k8s_connection_ok:
+                            st.success("✅ Подключение к Kubernetes успешно")
+                        else:
+                            st.error(f"❌ Ошибка подключения к Kubernetes: {k8s_error_message}")
+                    else:
+                        st.info("ℹ️ Kubeconfig не предоставлен")
+
+                    # Prometheus
+                    if prometheus_enabled:
+                        if prometheus_connection_ok:
+                            st.success("✅ Подключение к Prometheus успешно")
+                        else:
+                            st.error(f"❌ Ошибка подключения к Prometheus: {prometheus_error_message}")
+                    else:
+                        st.info("ℹ️ Prometheus отключен")
+
+                    # Решение о сохранении
+                    if not valid_nodes:
+                        st.error("❌ Нет доступных узлов. Исправьте конфигурацию узлов и попробуйте снова.")
+                    else:
+                        # Спросить подтверждение, если есть проблемы
+                        should_save = True
+                        warning_message = ""
+
+                        if failed_nodes:
+                            warning_message += f"Только {len(valid_nodes)} из {len(nodes)} узлов доступны. "
+
+                        if st.session_state.kubeconfig_content and not k8s_connection_ok:
+                            warning_message += "Kubernetes недоступен. "
+
+                        if prometheus_enabled and not prometheus_connection_ok:
+                            warning_message += "Prometheus недоступен. "
+
+                        if warning_message:
+                            st.warning(f"⚠️ {warning_message}Вы уверены, что хотите сохранить кластер?")
+                            # В реальном приложении здесь можно добавить подтверждение
+                            # Для простоты продолжаем сохранение, но предупреждаем пользователя
+
+                        # Создание нового кластера
+                        cluster_config = get_cluster(cluster_name)
+
+                        # Добавление доступных узлов
+                        for node_info in valid_nodes:
+                            cluster_config.update_node(node_info)
+
+                        # Обновление конфигурации Prometheus
+                        prometheus_config = {
+                            "url": prometheus_url,
+                            "username": prometheus_username,
+                            "password": prometheus_password,
+                            "token": prometheus_token,
+                            "enabled": prometheus_enabled
+                        }
+                        cluster_config.update_prometheus(prometheus_config)
+
+                        # Обновление kubeconfig
+                        if st.session_state.kubeconfig_content:
+                            cluster_config.update_kubeconfig(st.session_state.kubeconfig_content)
+
+                        st.success(f"✅ Кластер {cluster_name} успешно добавлен")
+
+                        # Очистка kubeconfig после успешного сохранения
+                        st.session_state.kubeconfig_content = ""
+
+                        # Показать сводку
+                        st.info(f"""
+                        **Сводка конфигурации:**
+                        - Узлы: {len(valid_nodes)} доступно ({len(failed_nodes)} недоступно)
+                        - Kubernetes: {'✅ Доступен' if k8s_connection_ok else '❌ Недоступен'}
+                        - Prometheus: {'✅ Доступен' if prometheus_connection_ok else ('❌ Недоступен' if prometheus_enabled else '⚪ Отключен')}
+                        """)
 
 
 # Вкладка редактирования кластера
@@ -231,65 +392,44 @@ with tab3:
                 if nodes:
                     st.write("Существующие узлы:")
 
-                    for i, node in enumerate(nodes):
-                        with st.expander(f"Узел: {node['ip']}", expanded=False):
-                            st.json(node)
+                    # Отображение в виде таблицы
+                    node_data = []
+                    for node in nodes:
+                        node_data.append({
+                            "IP": node['ip'],
+                            "Порт": node['port'],
+                            "Пользователь": node['username'],
+                            "Аутентификация": node['auth_type']
+                        })
 
-                            if st.button("Удалить узел", key=f"delete_node_{i}"):
-                                cluster_config.remove_node(node['ip'])
-                                st.success(f"Узел {node['ip']} удалён")
-                                st.rerun()
+                    st.dataframe(pd.DataFrame(node_data), use_container_width=True)
 
-                # Добавление нового узла
-                st.write("Добавить новый узел:")
-
-                with st.form("add_node_form"):
+                    # Кнопки управления узлами
+                    st.write("Действия с узлами:")
                     col1, col2 = st.columns(2)
+
                     with col1:
-                        node_ip = st.text_input("IP узла", placeholder="192.168.1.101", key="edit_node_ip")
-                        node_port = st.text_input("SSH порт", "22", key="edit_node_port")
-                        node_username = st.text_input("Имя пользователя", "root", key="edit_node_username")
+                        if st.button("🔄 Проверить все узлы"):
+                            success_count = 0
+                            for node in nodes:
+                                with st.spinner(f"Проверка узла {node['ip']}..."):
+                                    success, message = test_node_connection(node)
+                                if success:
+                                    st.success(f"✅ Узел {node['ip']} доступен")
+                                    success_count += 1
+                                else:
+                                    st.error(f"❌ Узел {node['ip']}: {message}")
+
+                            st.info(f"Проверка завершена: {success_count}/{len(nodes)} узлов доступно")
 
                     with col2:
-                        auth_type = st.selectbox("Тип аутентификации", ["password", "key"], key="edit_auth_type")
-
-                        if auth_type == "password":
-                            node_password = st.text_input("Пароль", type="password", key="edit_node_password")
-                            node_key_path = ""
-                        else:
-                            node_password = ""
-                            node_key_path = st.text_input("Путь к ключу", placeholder="/home/user/.ssh/id_rsa", key="edit_node_key")
-
-                    submitted = st.form_submit_button("Добавить узел")
-
-                    if submitted:
-                        if not node_ip:
-                            st.error("Введите IP узла")
-                        else:
-                            # Формирование информации об узле
-                            node_info = {
-                                "ip": node_ip,
-                                "port": node_port,
-                                "username": node_username,
-                                "auth_type": auth_type
-                            }
-
-                            if auth_type == "password":
-                                node_info["password"] = node_password
-                            else:
-                                node_info["key_path"] = node_key_path
-
-                            # Проверка соединения
-                            with st.spinner("Проверка соединения с узлом..."):
-                                success, message = test_node_connection(node_info)
-
-                            if not success:
-                                st.error(f"Ошибка соединения с узлом: {message}")
-                            else:
-                                # Обновление конфигурации узла
-                                cluster_config.update_node(node_info)
-                                st.success(f"Узел {node_ip} добавлен")
-                                st.rerun()
+                        if st.button("🗑️ Удалить все узлы", type="secondary"):
+                            for node in nodes:
+                                cluster_config.remove_node(node['ip'])
+                            st.success("Все узлы удалены из кластера")
+                            st.rerun()
+                else:
+                    st.info("В этом кластере нет узлов. Добавьте узлы во вкладке «Добавить кластер».")
 
             # Вкладка настройки Prometheus
             with edit_tab2:
@@ -359,30 +499,46 @@ with tab3:
                 # Получение текущей конфигурации
                 current_kubeconfig = cluster_config.get_kubeconfig()
 
-                with st.form("edit_kubeconfig_form"):
-                    kubeconfig_content = st.text_area("Содержимое Kubeconfig", value=current_kubeconfig, height=300)
+                # Инициализация состояния для редактирования kubeconfig
+                if 'edit_kubeconfig_content' not in st.session_state:
+                    st.session_state.edit_kubeconfig_content = current_kubeconfig or ""
 
-                    # Кнопка теста соединения
-                    test_kube_button = st.form_submit_button("Тест соединения")
+                with st.form("edit_kubeconfig_form"):
+                    st.caption("Отредактируйте содержимое kubeconfig вручную")
+
+                    # Поле для редактирования kubeconfig
+                    edit_kubeconfig_content = st.text_area(
+                        "Содержимое Kubeconfig",
+                        value=st.session_state.edit_kubeconfig_content,
+                        height=300,
+                        placeholder="Вставьте содержимое kubeconfig здесь..."
+                    )
+
+                    # Обновление состояния при редактировании
+                    if edit_kubeconfig_content != st.session_state.edit_kubeconfig_content:
+                        st.session_state.edit_kubeconfig_content = edit_kubeconfig_content
+
+                    # Постоянная кнопка проверки подключения к Kubernetes
+                    test_kube_button = st.form_submit_button("🔍 Проверить подключение к Kubernetes")
 
                     # Кнопка сохранения конфигурации
                     save_kube_button = st.form_submit_button("Сохранить конфигурацию")
 
                     if test_kube_button:
-                        if not kubeconfig_content:
-                            st.error("Введите содержимое kubeconfig")
+                        if not st.session_state.edit_kubeconfig_content:
+                            st.error("❌ Введите содержимое kubeconfig для проверки подключения")
                         else:
                             # Тест соединения
                             with st.spinner("Тест соединения..."):
-                                client = K8sClient(kubeconfig_content)
+                                client = K8sClient(st.session_state.edit_kubeconfig_content)
                                 success, message = client.test_connection()
 
                             if success:
-                                st.success("Соединение успешно")
+                                st.success("✅ Подключение к Kubernetes успешно")
                             else:
-                                st.error(f"Ошибка соединения: {message}")
+                                st.error(f"❌ Ошибка подключения: {message}")
 
                     if save_kube_button:
                         # Обновление конфигурации
-                        cluster_config.update_kubeconfig(kubeconfig_content)
+                        cluster_config.update_kubeconfig(st.session_state.edit_kubeconfig_content)
                         st.success("Конфигурация kubeconfig обновлена")
