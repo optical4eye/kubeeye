@@ -27,7 +27,7 @@ def set_app_styles():
 
     /* Основные стили боковой панели */
     [data-testid="stSidebar"] {
-        background-color: #f0f2f5;
+        background-color: #948979;
         border-right: 1px solid rgba(0,0,0,0.05);
         resize: none !important;
         min-width: 244px !important;
@@ -150,23 +150,25 @@ def create_sidebar_header(active_page="Главная"):
             bottom: 0 !important;
             left: 0 !important;
             width: 244px !important;
-            background-color: rgba(240, 242, 245, 0.95) !important;
+            background-color: #948979 !important;
             border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
             padding: 0.8rem 1rem !important;
             text-align: center !important;
             font-size: 0.7rem !important;
-            color: #666 !important;
+            color: #ffffff !important;
             line-height: 1.4 !important;
             z-index: 9999 !important;
             transition: all 0.3s ease !important;
         }
         .sidebar-footer a {
-            color: #00a971 !important;
+            color: #ffffff !important;
             text-decoration: none !important;
             font-weight: 500 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
         }
         .sidebar-footer a:hover {
-            color: #007f5f !important;
+            color: #f0f0f0 !important;
+            border-bottom-color: rgba(255, 255, 255, 0.6) !important;
         }
         [data-testid="stSidebar"][aria-expanded="false"] ~ * .sidebar-footer,
         [data-testid="stSidebar"].st-emotion-cache-1d391kg ~ * .sidebar-footer {
@@ -183,7 +185,7 @@ def create_sidebar_header(active_page="Главная"):
 
         st.markdown(f"""
         <div class="sidebar-footer">
-            <div style="margin-bottom: 4px; font-weight: 500;">© 2025 KubeEye v{VERSION}</div>
+            <div style="margin-bottom: 4px; font-weight: 500; color: #ffffff;">© 2025 KubeEye v{VERSION}</div>
             <div><a href="https://kubesphere.io" target="_blank">KubeSphere</a></div>
         </div>
         """, unsafe_allow_html=True)
