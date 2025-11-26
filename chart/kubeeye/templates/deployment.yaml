@@ -18,6 +18,10 @@ spec:
         app: kubeeye
       {{- include "kubeeye.selectorLabels" . | nindent 8 }}
     spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
       containers:
       - name: kubeeye
         image: {{ .Values.image }}:{{ .Values.tag }}

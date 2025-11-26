@@ -1,5 +1,5 @@
 image: kubeeye
-tag: '1.16'
+tag: '1.18'
 
 replicas: 1
 
