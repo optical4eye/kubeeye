@@ -51,7 +51,7 @@ def render_scheduled_scan_tab():
         scheduler_status_text = "Запущен" if st.session_state.scheduler_status else "Остановлен"
         scheduler_status_color = "#00a971" if st.session_state.scheduler_status else "#ff4b4b"
         st.markdown(f"""
-        <div style="padding: 8px; border-radius: 4px; background-color: #f8f9fa; text-align: left;">
+        <div style="padding: 8px; border-radius: 4px; background-color: #393E46; text-align: left;">
             <span>Статус планировщика: </span>
             <span style="color: {scheduler_status_color}; font-weight: bold;">
                 {scheduler_status_text}
