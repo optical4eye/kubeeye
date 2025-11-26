@@ -30,7 +30,7 @@ if str(ROOT_DIR) not in sys.path:
 # Импорт модулей приложения
 from utils.common import initialize_page
 from utils.cluster_config import list_clusters, get_cluster, delete_cluster
-from utils.node_connection import test_node_connection
+from utils.node_connection import test_node_connection, validate_ssh_key
 from utils.prometheus_client import PrometheusClient
 from utils.k8s_client import K8sClient
 from utils.node_parser import parse_nodes_from_text, generate_nodes_template
@@ -48,6 +48,36 @@ initialize_page(
 # Инициализация состояния сессии для управления списком узлов
 if 'temp_nodes' not in st.session_state:
     st.session_state.temp_nodes = []
+
+
+# Инициализация состояния для скрытия паролей
+if 'show_passwords' not in st.session_state:
+    st.session_state.show_passwords = {}
+
+
+# Функция для проверки и валидации ключей
+def validate_key_files(nodes):
+    """
+    Проверяет SSH ключи для списка узлов
+
+    Args:
+        nodes: список узлов
+
+    Returns:
+        список валидных узлов, список ошибок
+    """
+    valid_nodes = []
+    key_errors = []
+
+    for node_info in nodes:
+        if node_info['auth_type'] == 'key':
+            key_valid, key_message = validate_ssh_key(node_info['key_path'])
+            if not key_valid:
+                key_errors.append(f"Узел {node_info['ip']}: {key_message}")
+                continue
+        valid_nodes.append(node_info)
+
+    return valid_nodes, key_errors
 
 
 # Вкладки
@@ -142,10 +172,25 @@ with tab2:
                     for error in errors:
                         st.error(error)
 
+                # Проверка ключей перед тестированием соединения
+                valid_nodes, key_errors = validate_key_files(nodes)
+
+                if key_errors:
+                    st.warning("Обнаружены проблемы с SSH ключами:")
+                    for error in key_errors:
+                        st.error(error)
+
+                    st.info("""
+                    **Рекомендации по исправлению:**
+                    - Убедитесь, что путь к ключу корректен
+                    - Проверьте формат ключа: `ssh-keygen -l -f /путь/к/ключу`
+                    - При необходимости конвертируйте ключ: `ssh-keygen -p -m PEM -f /путь/к/ключу -N ""`
+                    """)
+
                 checked_count = 0
                 success_count = 0
 
-                for node_info in nodes:
+                for node_info in valid_nodes:
                     checked_count += 1
                     # Проверка соединения
                     with st.spinner(f"Проверка соединения с {node_info['ip']}..."):
@@ -158,6 +203,9 @@ with tab2:
                         st.error(f"❌ Ошибка соединения с {node_info['ip']}: {message}")
 
                 st.info(f"Проверка завершена: {success_count}/{checked_count} узлов доступно")
+
+                if key_errors:
+                    st.warning(f"⚠️ {len(key_errors)} узлов не проверены из-за проблем с ключами")
             else:
                 st.warning("Введите данные узлов для проверки")
 
@@ -230,11 +278,19 @@ with tab2:
                 elif not nodes:
                     st.error("Не удалось распознать ни одного узла")
                 else:
+                    # Проверка ключей перед тестированием соединения
+                    valid_nodes_for_check, key_errors = validate_key_files(nodes)
+
+                    if key_errors:
+                        st.warning("Обнаружены проблемы с SSH ключами:")
+                        for error in key_errors:
+                            st.error(error)
+
                     # Проверка соединения для всех узлов
                     valid_nodes = []
                     failed_nodes = []
 
-                    for node_info in nodes:
+                    for node_info in valid_nodes_for_check:
                         with st.spinner(f"Проверка соединения с {node_info['ip']}..."):
                             success, message = test_node_connection(node_info)
 
@@ -287,6 +343,12 @@ with tab2:
                     else:
                         st.success(f"✅ Все узлы доступны ({len(valid_nodes)})")
 
+                    # Проблемы с ключами
+                    if key_errors:
+                        st.error(f"❌ Проблемы с ключами ({len(key_errors)}):")
+                        for error in key_errors:
+                            st.error(f"  - {error}")
+
                     # Kubernetes
                     if st.session_state.kubeconfig_content:
                         if k8s_connection_ok:
@@ -315,6 +377,9 @@ with tab2:
 
                         if failed_nodes:
                             warning_message += f"Только {len(valid_nodes)} из {len(nodes)} узлов доступны. "
+
+                        if key_errors:
+                            warning_message += f"{len(key_errors)} узлов имеют проблемы с ключами. "
 
                         if st.session_state.kubeconfig_content and not k8s_connection_ok:
                             warning_message += "Kubernetes недоступен. "
@@ -356,7 +421,7 @@ with tab2:
                         # Показать сводку
                         st.info(f"""
                         **Сводка конфигурации:**
-                        - Узлы: {len(valid_nodes)} доступно ({len(failed_nodes)} недоступно)
+                        - Узлы: {len(valid_nodes)} доступно ({len(failed_nodes)} недоступно, {len(key_errors)} с ошибками ключей)
                         - Kubernetes: {'✅ Доступен' if k8s_connection_ok else '❌ Недоступен'}
                         - Prometheus: {'✅ Доступен' if prometheus_connection_ok else ('❌ Недоступен' if prometheus_enabled else '⚪ Отключен')}
                         """)
@@ -390,46 +455,196 @@ with tab3:
                 nodes = cluster_config.get_nodes()
 
                 if nodes:
-                    st.write("Существующие узлы:")
+                    st.subheader("Текущие узлы кластера:")
 
-                    # Отображение в виде таблицы
+                    # Создаем DataFrame для отображения с чекбоксами
                     node_data = []
                     for node in nodes:
-                        node_data.append({
-                            "IP": node['ip'],
+                        node_info = {
+                            "Выбрать для удаления": False,
+                            "IP адрес": node['ip'],
                             "Порт": node['port'],
                             "Пользователь": node['username'],
-                            "Аутентификация": node['auth_type']
-                        })
+                            "Тип аутентификации": node['auth_type'],
+                            "Пароль/Ключ": node['password'] if node['auth_type'] == 'password' else node.get('key_path', node.get('password', ''))
+                        }
+                        node_data.append(node_info)
 
-                    st.dataframe(pd.DataFrame(node_data), use_container_width=True)
+                    # Создаем интерактивную таблицу с чекбоксами
+                    df = pd.DataFrame(node_data)
 
-                    # Кнопки управления узлами
-                    st.write("Действия с узлами:")
+                    # Отображаем таблицу с возможностью выбора строк
+                    edited_df = st.data_editor(
+                        df,
+                        column_config={
+                            "Выбрать для удаления": st.column_config.CheckboxColumn(
+                                "Выбрать",
+                                help="Выберите узлы для удаления",
+                                default=False,
+                            )
+                        },
+                        disabled=["IP адрес", "Порт", "Пользователь", "Тип аутентификации", "Пароль/Ключ"],
+                        hide_index=True,
+                        use_container_width=True
+                    )
+
+                    # Обработка выбранных узлов для удаления
+                    nodes_to_delete = []
+                    for idx, row in edited_df.iterrows():
+                        if row['Выбрать для удаления']:
+                            nodes_to_delete.append(row['IP адрес'])
+
+                    # Кнопка для удаления выбранных узлов
+                    if nodes_to_delete:
+                        st.warning(f"Выбрано для удаления: {', '.join(nodes_to_delete)}")
+
+                        if st.button("🗑️ Удалить выбранные узлы", type="secondary"):
+                            for node_ip in nodes_to_delete:
+                                cluster_config.remove_node(node_ip)
+                            st.success(f"Удалено {len(nodes_to_delete)} узлов")
+                            st.rerun()
+                    else:
+                        st.info("Выберите узлы для удаления, установив флажки в столбце 'Выбрать для удаления'")
+
+                    # Массовые действия с узлами
+                    st.write("**Массовые действия с узлами:**")
+
+                    if st.button("🔄 Проверить все узлы", key="check_all_nodes"):
+                        success_count = 0
+                        for node in nodes:
+                            # Сначала проверяем ключи для узлов с аутентификацией по ключу
+                            if node['auth_type'] == 'key':
+                                key_path = node.get('key_path', node.get('password', ''))
+                                key_valid, key_message = validate_ssh_key(key_path)
+                                if not key_valid:
+                                    st.error(f"❌ Ошибка ключа для {node['ip']}: {key_message}")
+                                    continue
+
+                            with st.spinner(f"Проверка узла {node['ip']}..."):
+                                success, message = test_node_connection(node)
+                            if success:
+                                st.success(f"✅ Узел {node['ip']} доступен")
+                                success_count += 1
+                            else:
+                                st.error(f"❌ Узел {node['ip']}: {message}")
+
+                        st.info(f"Проверка завершена: {success_count}/{len(nodes)} узлов доступно")
+
+                else:
+                    st.info("В этом кластере нет узлов.")
+
+                # Раздел для добавления новых узлов
+                st.subheader("Добавить новые узлы")
+
+                with st.form("add_nodes_form"):
+                    new_nodes_input = st.text_area(
+                        "Новые узлы для добавления",
+                        placeholder="""Добавьте SSH узлы в формате: IP:Порт Пользователь ТипАутентификации [Пароль/ПутьКключу]
+Примеры:
+192.168.1.100:22 root password mypassword123
+192.168.1.101:22 admin key /home/user/.ssh/id_rsa
+10.0.1.50:2222 ubuntu password ubuntu123""",
+                        height=150,
+                        help="Каждая строка должна содержать: IP:Порт Пользователь ТипАутентификации [Пароль/ПутьКключу]"
+                    )
+
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        if st.button("🔄 Проверить все узлы"):
-                            success_count = 0
-                            for node in nodes:
-                                with st.spinner(f"Проверка узла {node['ip']}..."):
-                                    success, message = test_node_connection(node)
-                                if success:
-                                    st.success(f"✅ Узел {node['ip']} доступен")
-                                    success_count += 1
-                                else:
-                                    st.error(f"❌ Узел {node['ip']}: {message}")
-
-                            st.info(f"Проверка завершена: {success_count}/{len(nodes)} узлов доступно")
+                        test_new_nodes = st.form_submit_button("🔍 Проверить новые узлы")
 
                     with col2:
-                        if st.button("🗑️ Удалить все узлы", type="secondary"):
-                            for node in nodes:
-                                cluster_config.remove_node(node['ip'])
-                            st.success("Все узлы удалены из кластера")
-                            st.rerun()
-                else:
-                    st.info("В этом кластере нет узлов. Добавьте узлы во вкладке «Добавить кластер».")
+                        add_new_nodes = st.form_submit_button("➕ Добавить новые узлы")
+
+                    if test_new_nodes:
+                        if new_nodes_input:
+                            new_nodes, errors = parse_nodes_from_text(new_nodes_input)
+
+                            if errors:
+                                for error in errors:
+                                    st.error(error)
+
+                            # Проверка ключей перед тестированием соединения
+                            valid_nodes, key_errors = validate_key_files(new_nodes)
+
+                            if key_errors:
+                                st.warning("Обнаружены проблемы с SSH ключами:")
+                                for error in key_errors:
+                                    st.error(error)
+
+                            checked_count = 0
+                            success_count = 0
+
+                            for node_info in valid_nodes:
+                                checked_count += 1
+                                with st.spinner(f"Проверка соединения с {node_info['ip']}..."):
+                                    success, message = test_node_connection(node_info)
+
+                                if success:
+                                    st.success(f"✅ Узел {node_info['ip']} доступен")
+                                    success_count += 1
+                                else:
+                                    st.error(f"❌ Ошибка соединения с {node_info['ip']}: {message}")
+
+                            st.info(f"Проверка завершена: {success_count}/{checked_count} узлов доступно")
+
+                            if key_errors:
+                                st.warning(f"⚠️ {len(key_errors)} узлов не проверены из-за проблем с ключами")
+                        else:
+                            st.warning("Введите данные узлов для проверки")
+
+                    if add_new_nodes:
+                        if new_nodes_input:
+                            new_nodes, errors = parse_nodes_from_text(new_nodes_input)
+
+                            if errors:
+                                for error in errors:
+                                    st.error(error)
+                                st.error("Исправьте ошибки в формате узлов перед добавлением")
+                            elif not new_nodes:
+                                st.error("Не удалось распознать ни одного узла")
+                            else:
+                                # Проверка ключей перед добавлением
+                                valid_nodes, key_errors = validate_key_files(new_nodes)
+
+                                if key_errors:
+                                    st.warning("Обнаружены проблемы с SSH ключами:")
+                                    for error in key_errors:
+                                        st.error(error)
+
+                                # Проверка соединения и добавление только доступных узлов
+                                added_count = 0
+                                failed_count = 0
+
+                                for node_info in valid_nodes:
+                                    with st.spinner(f"Проверка и добавление узла {node_info['ip']}..."):
+                                        success, message = test_node_connection(node_info)
+
+                                    if success:
+                                        # Проверяем, не существует ли уже узел с таким IP
+                                        existing_nodes = cluster_config.get_nodes()
+                                        node_exists = any(node['ip'] == node_info['ip'] for node in existing_nodes)
+
+                                        if node_exists:
+                                            st.warning(f"Узел {node_info['ip']} уже существует, обновляем конфигурацию")
+
+                                        cluster_config.update_node(node_info)
+                                        added_count += 1
+                                        st.success(f"✅ Узел {node_info['ip']} добавлен")
+                                    else:
+                                        failed_count += 1
+                                        st.error(f"❌ Не удалось добавить узел {node_info['ip']}: {message}")
+
+                                st.success(f"Добавлено {added_count} новых узлов")
+                                if failed_count > 0:
+                                    st.error(f"Не удалось добавить {failed_count} узлов")
+
+                                if key_errors:
+                                    st.warning(f"⚠️ {len(key_errors)} узлов не добавлены из-за проблем с ключами")
+
+                                st.rerun()
+                        else:
+                            st.error("Введите данные узлов для добавления")
 
             # Вкладка настройки Prometheus
             with edit_tab2:
@@ -454,7 +669,7 @@ with tab3:
                     test_prom_button = st.form_submit_button("Тест соединения")
 
                     # Кнопка сохранения конфигурации
-                    save_prom_button = st.form_submit_button("Сохранить конфигурацию")
+                    save_prom_button = st.form_submit_button("Сохранить конфигурации")
 
                     if test_prom_button:
                         if not prometheus_url:

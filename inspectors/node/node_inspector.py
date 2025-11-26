@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Инспектор узлов с поддержкой параллельного выполнения и улучшенными функциями безопасности
+Инспектор узлов с централизованным управлением ошибками SSH соединений
 """
 
 import logging
 import os
-import re
-import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Any, Optional, Tuple, Union
@@ -15,47 +13,184 @@ from typing import Dict, List, Any, Optional, Tuple, Union
 from inspectors.base_inspector import BaseInspector
 from utils.inspection_result import InspectionResult
 from utils.rule_loader import Rule
-from utils.node_connection import NodeConnection
+from utils.node_connection import NodeConnection, test_node_connection
 from utils.command_security import CommandSecurityChecker, RiskLevel
+from utils.result_formatter import ResultFormatter
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
+class SSHConnectionErrorManager:
+    """
+    Централизованный менеджер ошибок SSH соединений
+    Гарантирует, что каждая ошибка для хоста отображается только один раз
+    """
+
+    def __init__(self):
+        self._errors_registry = {}  # {node_key: error_data}
+        self._result_formatter = ResultFormatter()
+
+    def reset_for_inspection(self):
+        """Сброс реестра ошибок перед новой проверкой"""
+        self._errors_registry = {}
+        logger.info("🔄 Реестр ошибок SSH соединений сброшен для новой проверки")
+
+    def register_connection_error(self, node: Dict, error_message: str) -> str:
+        """
+        Регистрация ошибки соединения для узла
+        """
+        node_key = self._get_node_key(node)
+
+        # Если ошибка уже зарегистрирована, не регистрируем повторно
+        if node_key in self._errors_registry:
+            return node_key
+
+        # Регистрируем новую ошибку
+        self._errors_registry[node_key] = {
+            'node': node.copy(),
+            'error_message': error_message,
+            'timestamp': time.time(),
+            'formatted_result': None
+        }
+
+        logger.warning(f"🚫 Зарегистрирована ошибка SSH для узла {node_key}: {error_message}")
+        return node_key
+
+    def has_connection_error(self, node: Dict) -> bool:
+        """Проверка наличия ошибки соединения для узла"""
+        node_key = self._get_node_key(node)
+        return node_key in self._errors_registry
+
+    def get_connection_error_result(self, node: Dict) -> Optional[Dict]:
+        """Получение отформатированного результата ошибки для узла"""
+        node_key = self._get_node_key(node)
+        if node_key not in self._errors_registry:
+            return None
+
+        error_data = self._errors_registry[node_key]
+
+        # Создаем отформатированный результат при первом запросе
+        if error_data['formatted_result'] is None:
+            error_data['formatted_result'] = self._format_connection_error_result(
+                error_data['node'],
+                error_data['error_message']
+            )
+
+        return error_data['formatted_result']
+
+    def get_all_connection_errors(self) -> List[Dict]:
+        """Получение всех зарегистрированных ошибок соединения"""
+        errors = []
+        for error_data in self._errors_registry.values():
+            if error_data['formatted_result'] is None:
+                error_data['formatted_result'] = self._format_connection_error_result(
+                    error_data['node'],
+                    error_data['error_message']
+                )
+            errors.append(error_data['formatted_result'])
+
+        logger.info(f"📋 Получено {len(errors)} ошибок SSH соединений из реестра")
+        return errors
+
+    def get_error_count(self) -> int:
+        """Получение количества зарегистрированных ошибок"""
+        return len(self._errors_registry)
+
+    def _format_connection_error_result(self, node: Dict, error_msg: str) -> Dict:
+        """
+        Форматирование результата с ошибкой подключения
+        """
+        node_name = node.get('name', node['ip'])
+        node_ip = node['ip']
+        node_port = node.get('port', 22)
+
+        # Создаем фиктивное правило для форматирования
+        class ConnectionRule:
+            id = "ssh_connection"
+            name = "SSH соединение"
+            solution = "Устраните проблемы с сетевым подключением или настройками SSH"
+
+        rule = ConnectionRule()
+
+        formatted_details = f"""Ошибка подключения к узлу {node_name} ({node_ip}:{node_port})
+
+Сообщение об ошибке: {error_msg}
+
+Диагностика:
+• Проверьте доступность порта {node_port}: telnet {node_ip} {node_port} или nc -zv {node_ip} {node_port}
+• Убедитесь, что SSH сервис запущен на узле
+• Проверьте правильность учетных данных (имя пользователя, пароль/SSH ключ)
+• Проверьте настройки firewall и сетевые политики
+• Проверьте корректность DNS разрешения имени узла
+
+Рекомендуемые действия:
+1. Проверить статус SSH сервиса на узле
+2. Проверить настройки аутентификации
+3. Проверить журналы SSH на целевом узле
+4. Проверить сетевую доступность порта {node_port}"""
+
+        result = self._result_formatter.error_result(
+            rule,
+            error_msg,
+            f"Не удалось установить SSH соединение с узлом {node_name}"
+        )
+
+        # Дополняем результат специфичной информацией
+        result.update({
+            'name': f'SSH соединение - {node_name}',
+            'details': formatted_details,
+            'node': {
+                'ip': node_ip,
+                'name': node_name,
+                'port': node_port
+            },
+            'connection_error': True,
+            'inspector_type': 'node_connection',
+            'error_source': 'ssh_connection_manager'
+        })
+
+        return result
+
+    @staticmethod
+    def _get_node_key(node: Dict) -> str:
+        """Генерация уникального ключа для узла"""
+        return f"{node['ip']}:{node.get('port', 22)}"
+
+
 class NodeInspector(BaseInspector):
     """
-    Инспектор узлов - принудительный безопасный режим, разрешены только операции чтения
-
-    Принципы безопасности:
-    - Принудительное включение проверок безопасности, нельзя отключить
-    - Разрешено выполнение только команд чтения
-    - Все высокорисковые команды строго запрещены
+    Инспектор узлов с гарантией единого отображения ошибок SSH
     """
 
     def __init__(self, config: List[Dict[str, Any]], enable_concurrent: bool = True,
                  max_workers: int = 5, timeout: int = 30, enable_security_check: bool = True):
         """
         Инициализация инспектора узлов
-
-        Args:
-            config: список конфигураций узлов, содержащий информацию о подключении
-            enable_concurrent: включить параллельное выполнение, по умолчанию True
-            max_workers: максимальное количество рабочих потоков, по умолчанию 5
-            timeout: время ожидания выполнения команды на одном узле (секунды), по умолчанию 30
-            enable_security_check: включить проверки безопасности, по умолчанию True
         """
+        inspector_config = {"nodes": config}
+        super().__init__(inspector_config)
+
         self.nodes = config
         self.enable_concurrent = enable_concurrent
         self.max_workers = min(max_workers, len(config)) if enable_concurrent else 1
         self.timeout = timeout
-        self.enable_security_check = enable_security_check  # Новый атрибут, по умолчанию True
+        self.enable_security_check = enable_security_check
 
-        # Проверка безопасности принудительно включена, нельзя отключить
+        # Менеджер ошибок SSH
+        self.ssh_error_manager = SSHConnectionErrorManager()
+
+        # Проверка безопасности
         self.security_checker = CommandSecurityChecker()
-        logger.info("🔒 Проверка безопасности принудительно включена - разрешены только команды чтения")
+        logger.info("🔒 Проверка безопасности принудительно включена")
 
-        # Статистика
-        self.stats = {
-            'total_rules': 0,
+        # Локальный кэш статусов соединений для текущей проверки
+        self.connection_status_cache = {}
+
+        # Статистика выполнения
+        self.execution_stats = {
+            'total_nodes': len(config),
+            'available_nodes': 0,
+            'unavailable_nodes': 0,
             'total_node_executions': 0,
             'successful_executions': 0,
             'failed_executions': 0,
@@ -64,303 +199,333 @@ class NodeInspector(BaseInspector):
             'total_time': 0
         }
 
-        super().__init__({"nodes": config})
-
-        logger.info(f"Инспектор узлов инициализирован - параллельный режим: {'включен' if enable_concurrent else 'отключен'}, "
-                   f"максимум потоков: {self.max_workers}, таймаут: {timeout}сек, "
-                   f"проверка безопасности: принудительно включена")
+        logger.info(f"Инспектор узлов инициализирован - узлов: {len(config)}")
 
     @property
     def inspector_type(self) -> str:
         return "node"
 
-    def _validate_rule_config(self, rule: Rule) -> List[str]:
+    def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
         """
-        Проверка валидности конфигурации правила (включая проверки безопасности)
-
-        Args:
-            rule: объект правила
-
-        Returns:
-            список проблем конфигурации, пустой список если проблем нет
+        Выполнение проверки с гарантией единого отображения ошибок SSH
         """
-        issues = []
+        logger.info(f"🔍 Начало проверки узлов - кластер: {cluster_name}")
 
-        # Проверка необходимой конфигурации команд
-        command = self.get_rule_config(rule, 'execution.command', '')
-        if not command:
-            issues.append("Отсутствует необходимая команда выполнения (execution.command)")
-        else:
-            # Проверка безопасности
-            if self.enable_security_check:
-                is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
-                if not is_safe:
-                    issues.append(f"Проверка безопасности не пройдена: {risk_desc}")
-                elif risk_level != RiskLevel.LOW:  # Исправление: используем значения перечисления вместо строк
-                    issues.append(f"Команда содержит риски ({risk_level.value}): {risk_desc}")
+        # Сбрасываем реестр ошибок перед началом новой проверки
+        self.ssh_error_manager.reset_for_inspection()
 
-        # Проверка необходимой конфигурации утверждений
-        assertions = self.get_rule_config(rule, 'assertions', [])
-        if not assertions:
-            issues.append("Отсутствует необходимая конфигурация утверждений (assertions)")
+        # Сбрасываем локальный кэш статусов
+        self.connection_status_cache = {}
 
-        return issues
+        # Выполняем проверку SSH соединения и определяем доступные узлы
+        available_nodes = self._check_all_node_connections()
+        self.execution_stats['available_nodes'] = len(available_nodes)
+        self.execution_stats['unavailable_nodes'] = len(self.nodes) - len(available_nodes)
 
-    def _apply_rule(self, rule: Rule, context: Dict) -> List[Dict]:
+        # Если нет доступных узлов, возвращаем только ошибки SSH
+        if not available_nodes:
+            logger.error("❌ Нет доступных узлов для проверки")
+            ssh_errors = self.ssh_error_manager.get_all_connection_errors()
+            return InspectionResult(
+                inspector_type=self.inspector_type,
+                cluster_name=cluster_name,
+                items=ssh_errors,
+                stats=self.execution_stats
+            )
+
+        # Выполняем правила проверки только на доступных узлах
+        result = super().run_inspection(cluster_name, rule_ids)
+
+        # Добавляем ошибки SSH соединений в начало отчета
+        ssh_errors = self.ssh_error_manager.get_all_connection_errors()
+        if ssh_errors:
+            result.items = ssh_errors + result.items
+            logger.info(f"📋 Добавлено {len(ssh_errors)} ошибок SSH соединений в отчет")
+
+        # Обновляем статистику
+        result.stats = self.execution_stats
+
+        logger.info(f"✅ Проверка завершена - всего результатов: {len(result.items)}")
+        logger.info(f"📊 Статистика: {self.execution_stats['available_nodes']} доступных, {self.execution_stats['unavailable_nodes']} недоступных узлов")
+
+        return result
+
+    def _check_all_node_connections(self) -> List[Dict]:
         """
-        Применение одного правила для проверки узла (с поддержкой параллелизма и проверок безопасности)
-
-        Args:
-            rule: применяемое правило
-            context: контекст проверки
-
-        Returns:
-            список результатов проверки
+        Проверка SSH соединения со всеми узлами
+        Возвращает список доступных узлов
         """
-        logger.info(f"🎯 Начало выполнения правила для узла: {rule.id} - {rule.name}")
+        logger.info("🔌 Проверка SSH соединения со всеми узлами...")
+
+        available_nodes = []
+
+        for node in self.nodes:
+            node_key = self.ssh_error_manager._get_node_key(node)
+            node_name = node.get('name', node['ip'])
+
+            # Проверяем, не было ли уже ошибки для этого узла
+            if self.ssh_error_manager.has_connection_error(node):
+                logger.debug(f"Узел {node_name} уже имеет ошибку SSH, пропускаем")
+                continue
+
+            # Проверяем кэш статусов
+            if node_key in self.connection_status_cache:
+                status = self.connection_status_cache[node_key]
+                node['connection_status'] = status
+                if status['success']:
+                    available_nodes.append(node)
+                else:
+                    # Регистрируем ошибку в менеджере
+                    self.ssh_error_manager.register_connection_error(node, status['message'])
+                continue
+
+            # Выполняем проверку соединения
+            logger.info(f"Проверка SSH соединения с узлом: {node_name}")
+            success, message = test_node_connection(node)
+
+            # Сохраняем статус
+            status = {'success': success, 'message': message}
+            self.connection_status_cache[node_key] = status
+            node['connection_status'] = status
+
+            if success:
+                available_nodes.append(node)
+                logger.info(f"✅ SSH соединение с узлом {node_name} успешно")
+            else:
+                logger.error(f"❌ SSH соединение с узлом {node_name} недоступно: {message}")
+                # Регистрируем ошибку в менеджере
+                self.ssh_error_manager.register_connection_error(node, message)
+
+        logger.info(f"Проверка соединения завершена. Доступно: {len(available_nodes)}, Недоступно: {len(self.nodes) - len(available_nodes)}")
+        return available_nodes
+
+    def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
+        """
+        Применение правила проверки только к доступным узлам
+        """
+        logger.info(f"🎯 Применение правила: {rule.id} - {rule.name}")
         rule_start_time = time.time()
 
-        # Получение конфигурации команды и утверждений
+        # Получаем конфигурацию правила
         command = self.get_rule_config(rule, 'execution.command', '')
         assertions = self.get_rule_config(rule, 'assertions', [])
 
-        logger.info(f"Правило {rule.id} конфигурация - команда: {command[:100]}{'...' if len(command) > 100 else ''}")
-        logger.info(f"Правило {rule.id} конфигурация - количество утверждений: {len(assertions)}")
-
-        # Проверка безопасности
+        # Проверка безопасности команды
         if self.enable_security_check and command:
-            logger.info(f"Правило {rule.id} начало проверки безопасности...")
             is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
-
             if not is_safe:
-                logger.error(f"Правило {rule.id} команда заблокирована проверкой безопасности: {risk_desc}")
-                self.stats['blocked_by_security'] += 1
+                logger.error(f"Правило {rule.id} заблокировано по безопасности: {risk_desc}")
+                self.execution_stats['blocked_by_security'] += 1
+                return self._format_security_blocked_result(rule, risk_desc, command)
 
-                # Возврат результата с ошибкой безопасности
-                error_result = self._format_error_result(rule,
-                    f"Проверка безопасности не пройдена",
-                    f"Команда содержит риски безопасности и заблокирована: {risk_desc}\nКоманда: {command[:100]}{'...' if len(command) > 100 else ''}")
-                error_result['security_blocked'] = True
-                error_result['risk_level'] = risk_level
-                return [error_result]
-            else:
-                logger.info(f"Правило {rule.id} проверка безопасности пройдена - уровень риска: {risk_level}")
-
-            if risk_level != 'low':
-                logger.warning(f"Правило {rule.id} команда содержит риски безопасности: {risk_desc}")
-                self.stats['security_warnings'] += 1
-                # В строгом режиме, если режим не строгий, продолжаем выполнение но логируем предупреждение
-        else:
-            logger.info(f"Правило {rule.id} пропуск проверки безопасности (enable_security_check={self.enable_security_check}, command_length={len(command)})")
-
-        # Получение селектора узлов и фильтрация узлов
+        # Фильтрация узлов по селектору
         node_selector = self.get_rule_config(rule, 'scope.node_selector', {})
-        logger.info(f"Правило {rule.id} селектор узлов: {node_selector}")
-        logger.info(f"Правило {rule.id} всего доступных узлов: {len(self.nodes)}")
-
         target_nodes = self._filter_nodes_by_selector(self.nodes, node_selector)
-        logger.info(f"Правило {rule.id} количество целевых узлов после фильтрации: {len(target_nodes)}")
 
         if not target_nodes:
-            logger.warning(f"Правило {rule.id} нет подходящих узлов")
-            # Добавление детальной информации об узлах в лог
-            logger.info(f"Список доступных узлов: {[node.get('name', node.get('ip', 'unknown')) for node in self.nodes]}")
-            if node_selector:
-                logger.info(f"Требования селектора узлов: {node_selector}")
-                for node in self.nodes:
-                    node_labels = node.get('labels', {})
-                    logger.info(f"Узел {node.get('name', node.get('ip'))} метки: {node_labels}")
-            return []
+            logger.warning(f"Правило {rule.id} - нет подходящих узлов")
+            return None
 
-        # Запись информации о целевых узлах
-        target_node_names = [node.get('name', node.get('ip', 'unknown')) for node in target_nodes]
-        logger.info(f"Правило {rule.id} целевые узлы: {target_node_names}")
+        # Фильтруем только узлы с успешным SSH соединением
+        available_nodes = []
+        for node in target_nodes:
+            node_name = node.get('name', node['ip'])
 
-        # Выбор режима выполнения: если включен параллелизм и узлов > 1, используем параллельный; иначе последовательный
-        if self.enable_concurrent and len(target_nodes) > 1:
-            logger.info(f"Правило {rule.id}: будет выполнено параллельно на {len(target_nodes)} узлах (максимум потоков: {self.max_workers})")
-            node_results = self._execute_rule_concurrently(rule, command, assertions, target_nodes)
+            # Пропускаем узлы с ошибками SSH соединения
+            if self.ssh_error_manager.has_connection_error(node):
+                logger.debug(f"Правило {rule.id} - узел {node_name} имеет ошибку SSH, пропускаем")
+                continue
+
+            # Проверяем статус соединения
+            status = node.get('connection_status', {})
+            if status.get('success', False):
+                available_nodes.append(node)
+            else:
+                logger.warning(f"Правило {rule.id} - узел {node_name} не прошел проверку соединения")
+
+        logger.info(f"Правило {rule.id} - доступно узлов: {len(available_nodes)} из {len(target_nodes)}")
+
+        # Если нет доступных узлов, правило не выполняется
+        if not available_nodes:
+            logger.warning(f"Правило {rule.id} - нет доступных узлов для выполнения")
+            return None
+
+        # Выполнение правила на доступных узлах
+        if self.enable_concurrent and len(available_nodes) > 1:
+            node_results = self._execute_rule_concurrently(rule, command, assertions, available_nodes)
         else:
-            logger.info(f"Правило {rule.id}: будет выполнено последовательно на {len(target_nodes)} узлах")
-            node_results = self._execute_rule_sequentially(rule, command, assertions, target_nodes)
-
-        rule_duration = time.time() - rule_start_time
-        logger.info(f"✅ Правило {rule.id} выполнено, затрачено времени {rule_duration:.2f}сек, количество результатов: {len(node_results)}")
+            node_results = self._execute_rule_sequentially(rule, command, assertions, available_nodes)
 
         # Обновление статистики
-        self.stats['total_rules'] += 1
-        self.stats['total_node_executions'] += len(target_nodes)
-        self.stats['total_time'] += rule_duration
+        rule_duration = time.time() - rule_start_time
+        self.execution_stats['total_node_executions'] += len(available_nodes)
+        self.execution_stats['total_time'] += rule_duration
 
+        logger.info(f"✅ Правило {rule.id} выполнено за {rule_duration:.2f}сек")
         return node_results
 
     def _execute_rule_concurrently(self, rule: Rule, command: str,
                                  assertions: List[Dict], target_nodes: List[Dict]) -> List[Dict]:
-        """
-        Параллельное выполнение правила на нескольких узлах
-
-        Args:
-            rule: объект правила
-            command: выполняемая команда
-            assertions: список утверждений
-            target_nodes: список целевых узлов
-
-        Returns:
-            список результатов проверки всех узлов
-        """
+        """Параллельное выполнение правила только на доступных узлах"""
         node_results = []
 
-        # Использование пула потоков для параллельного выполнения
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Отправка всех задач для узлов
             future_to_node = {}
             for node in target_nodes:
+                # Дополнительная проверка перед выполнением
+                if self.ssh_error_manager.has_connection_error(node):
+                    continue
+
                 future = executor.submit(
                     self._execute_rule_on_single_node,
                     rule, command, assertions, node
                 )
                 future_to_node[future] = node
 
-            # Сбор результатов
             for future in as_completed(future_to_node, timeout=self.timeout * len(target_nodes)):
                 node = future_to_node[future]
-                node_name = node.get('name', node['ip'])
-
                 try:
                     result = future.result(timeout=self.timeout)
-                    node_results.append(result)
-                    self.stats['successful_executions'] += 1
-                    logger.debug(f"Узел {node_name} выполнение завершено")
-
+                    if result:
+                        node_results.append(result)
+                        self.execution_stats['successful_executions'] += 1
                 except Exception as e:
-                    logger.error(f"Узел {node_name} выполнение не удалось: {str(e)}")
-                    # Создание результата с ошибкой
-                    error_result = self._format_error_result(rule,
-                        f"Выполнение на узле не удалось", str(e))
-                    error_result['name'] = f"{rule.name} - {node_name}"
-                    error_result['node'] = {'ip': node['ip'], 'name': node.get('name', node['ip'])}
-                    node_results.append(error_result)
-                    self.stats['failed_executions'] += 1
+                    logger.error(f"Ошибка выполнения на узле {node.get('name', node['ip'])}: {str(e)}")
+                    # Не создаем ошибку выполнения для узлов с ошибкой SSH
+                    if not self.ssh_error_manager.has_connection_error(node):
+                        error_result = self._format_execution_error_result(rule, node, str(e))
+                        if error_result:
+                            node_results.append(error_result)
+                    self.execution_stats['failed_executions'] += 1
 
         return node_results
 
     def _execute_rule_sequentially(self, rule: Rule, command: str,
                                  assertions: List[Dict], target_nodes: List[Dict]) -> List[Dict]:
-        """
-        Последовательное выполнение правила на нескольких узлах (оригинальный способ)
-
-        Args:
-            rule: объект правила
-            command: выполняемая команда
-            assertions: список утверждений
-            target_nodes: список целевых узлов
-
-        Returns:
-            список результатов проверки всех узлов
-        """
+        """Последовательное выполнение правила только на доступных узлах"""
         node_results = []
 
         for node in target_nodes:
+            # Дополнительная проверка перед выполнением
+            if self.ssh_error_manager.has_connection_error(node):
+                continue
+
             try:
                 result = self._execute_rule_on_single_node(rule, command, assertions, node)
-                node_results.append(result)
-                self.stats['successful_executions'] += 1
-
+                if result:
+                    node_results.append(result)
+                    self.execution_stats['successful_executions'] += 1
             except Exception as e:
-                node_name = node.get('name', node['ip'])
-                logger.error(f"Узел {node_name} выполнение не удалось: {str(e)}")
-
-                error_result = self._format_error_result(rule,
-                    f"Выполнение на узле не удалось", str(e))
-                error_result['name'] = f"{rule.name} - {node_name}"
-                error_result['node'] = {'ip': node['ip'], 'name': node.get('name', node['ip'])}
-                node_results.append(error_result)
-                self.stats['failed_executions'] += 1
+                logger.error(f"Ошибка выполнения на узле {node.get('name', node['ip'])}: {str(e)}")
+                # Не создаем ошибку выполнения для узлов с ошибкой SSH
+                if not self.ssh_error_manager.has_connection_error(node):
+                    error_result = self._format_execution_error_result(rule, node, str(e))
+                    if error_result:
+                        node_results.append(error_result)
+                self.execution_stats['failed_executions'] += 1
 
         return node_results
 
     def _execute_rule_on_single_node(self, rule: Rule, command: str,
-                                   assertions: List[Dict], node: Dict) -> Dict:
-        """
-        Выполнение правила на одном узле
-
-        Args:
-            rule: объект правила
-            command: выполняемая команда
-            assertions: список утверждений
-            node: информация об узле
-
-        Returns:
-            результат проверки для этого узла
-        """
+                                   assertions: List[Dict], node: Dict) -> Optional[Dict]:
+        """Выполнение правила на одном узле (только если узел доступен)"""
         node_name = node.get('name', node['ip'])
+
+        # Финальная проверка: убеждаемся, что нет ошибки SSH соединения
+        if self.ssh_error_manager.has_connection_error(node):
+            logger.warning(f"Узел {node_name} имеет ошибку SSH, пропускаем выполнение")
+            return None
 
         # Выполнение команды
         output, error = self._execute_command(command, node)
 
         if error:
-            # Ошибка выполнения команды
-            node_result = self._format_error_result(rule,
-                f"Выполнение команды не удалось", error)
-            node_result['name'] = f"{rule.name} - {node_name}"
-            node_result['node'] = {'ip': node['ip'], 'name': node.get('name', node['ip'])}
+            # Если произошла ошибка SSH, регистрируем ее и больше не выполняем правила на этом узле
+            if self._is_ssh_connection_error(error):
+                self.ssh_error_manager.register_connection_error(node, error)
+                return None
+            return self._format_execution_error_result(rule, node, error)
         else:
-            # Подготовка словаря переменных - упрощенная версия
-            variables = {
-                'output': output.strip(),  # Прямое использование вывода команды
-                'node_ip': node['ip'],
-                'node_name': node.get('name', node['ip'])
-            }
-
             # Оценка утверждений
-            node_result = self._evaluate_assertions(rule, assertions, variables, node)
+            variables = {
+                'output': output.strip(),
+                'node_ip': node['ip'],
+                'node_name': node_name
+            }
+            return self._evaluate_assertions(rule, assertions, variables, node)
 
-        return node_result
+    def _is_ssh_connection_error(self, error_msg: str) -> bool:
+        """Проверяет, является ли ошибка связанной с SSH соединением"""
+        ssh_keywords = [
+            'connection', 'connect', 'ssh', 'timeout', 'refused',
+            'authentication', 'auth', 'handshake', 'socket',
+            'network', 'unreachable', 'closed', 'reset'
+        ]
+        error_lower = error_msg.lower()
+        return any(keyword in error_lower for keyword in ssh_keywords)
 
-        return node_results
+    def _execute_command(self, command: str, node: Dict) -> Tuple[str, str]:
+        """Выполнение команды на узле (только если узел доступен)"""
+        try:
+            node_name = node.get('name', node['ip'])
+
+            # Финальная проверка перед выполнением
+            if self.ssh_error_manager.has_connection_error(node):
+                return "", "SSH соединение недоступно"
+
+            # Проверка безопасности команды
+            if self.enable_security_check:
+                is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
+                if not is_safe:
+                    error_msg = f"Команда заблокирована по безопасности: {risk_desc}"
+                    logger.error(f"Узел {node_name}: {error_msg}")
+                    return "", error_msg
+
+            # Выполнение команды через SSH
+            with NodeConnection(node) as conn:
+                if not conn.connected:
+                    error_msg = "SSH подключение не удалось"
+                    logger.error(f"Узел {node_name}: {error_msg}")
+                    # Регистрируем ошибку SSH
+                    self.ssh_error_manager.register_connection_error(node, error_msg)
+                    return "", error_msg
+
+                success, stdout, stderr = conn.execute_command(command)
+                if success:
+                    return stdout, ""
+                else:
+                    # Проверяем, является ли ошибка связанной с SSH
+                    if self._is_ssh_connection_error(stderr):
+                        self.ssh_error_manager.register_connection_error(node, stderr)
+                    return stdout, stderr
+
+        except Exception as e:
+            error_msg = f"Ошибка выполнения команды: {str(e)}"
+            logger.error(f"Узел {node.get('name', node['ip'])}: {error_msg}")
+
+            # Проверяем, является ли исключение связанным с SSH
+            if self._is_ssh_connection_error(error_msg):
+                self.ssh_error_manager.register_connection_error(node, error_msg)
+
+            return "", error_msg
 
     def _evaluate_assertions(self, rule: Rule, assertions: List[Dict],
                             variables: Dict[str, Any], node: Dict) -> Dict:
-        """
-        Оценка утверждений
-
-        Args:
-            rule: объект правила
-            assertions: список утверждений
-            variables: словарь переменных
-            node: информация об узле
-
-        Returns:
-            результат оценки
-        """
-        # Оценка всех утверждений
+        """Оценка утверждений правила"""
         assertion_result = self.rule_processor.evaluate_assertions(assertions, variables)
 
-        # Форматирование результата проверки на основе оценки утверждений
         if assertion_result['passed']:
             status = "passed"
             severity = "info"
-            # Для пройденных проверок отображаем конкретный результат проверки в описании
-            first_assertion = assertions[0] if assertions else {}
-            first_assertion_desc = first_assertion.get('description', '')
-            if first_assertion_desc:
-                # Рендеринг шаблона для отображения конкретных значений
-                rendered_desc = self.rule_processor.assertion_manager.render_template(first_assertion_desc, variables)
-                description = f"{rule.name}: {rendered_desc}"
-            else:
-                description = f"{rule.name}: текущее значение {variables.get('output', 'N/A')}"
-            details = "Проверка пройдена, состояние системы нормальное"
+            description = f"{rule.name}: проверка пройдена"
+            details = "Состояние системы соответствует требованиям"
             solution = ""
         else:
             status = "failed"
             severity = assertion_result['severity']
-            # Удаление префикса "Утверждение не выполнено:", прямое использование описания
             description = assertion_result['description'].replace("Утверждение не выполнено: ", "")
-
-            # Построение детальной информации
-            failed_assertions = assertion_result['failed_assertions']
             details = "Детали неудачной проверки:\n" + "\n".join(
-                [f"- {fa['name']}: {fa['description']}" for fa in failed_assertions]
+                [f"- {fa['name']}: {fa['description']}" for fa in assertion_result['failed_assertions']]
             )
             solution = rule.solution
 
@@ -374,297 +539,131 @@ class NodeInspector(BaseInspector):
             solution=solution
         )
 
-        # Изменение имени для включения информации об узле, для удобства отображения в UI
+        # Добавление информации об узле
         node_name = node.get('name', node['ip'])
         result['name'] = f"{rule.name} - {node_name}"
-
-        # Добавление информации об узле и информации о переменных
-        result['node'] = {'ip': node['ip'], 'name': node.get('name', node['ip'])}
+        result['node'] = {'ip': node['ip'], 'name': node_name}
         result['variables'] = variables
-        result['assertions'] = {
-            'total': len(assertions),
-            'failed': len(assertion_result.get('failed_assertions', [])),
-            'failures': assertion_result.get('failed_assertions')
-        }
 
         return result
 
-    def _execute_command(self, command: str, node: Dict) -> Tuple[str, str]:
-        """
-        Выполнение команды на узле (включая аудит безопасности)
-
-        Args:
-            command: выполняемая команда
-            node: информация об узле
-
-        Returns:
-            кортеж из вывода команды и информации об ошибке
-        """
-        try:
-            # Получение базовой информации об узле
-            ip = node.get('ip', 'unknown')
-            port = node.get('port', 22)
-            username = node.get('username', 'unknown')
-            node_name = node.get('name', ip)
-
-            # Финальная проверка безопасности перед выполнением (двойная защита)
-            if self.enable_security_check:
-                is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
-                if not is_safe:
-                    error_msg = f"Проверка безопасности перед выполнением не пройдена: {risk_desc}"
-                    logger.error(f"Узел {node_name} команда заблокирована: {error_msg}")
-                    # Запись в лог аудита безопасности
-                    self._log_security_audit(node_name, ip, username, command, "BLOCKED", risk_desc)
-                    return "", error_msg
-                elif risk_level != 'low':
-                    # Запись в лог аудита рискованной команды
-                    self._log_security_audit(node_name, ip, username, command, "RISKY", risk_desc)
-
-            logger.info(f"Подключение к узлу {node_name} ({ip}:{port}) пользователь: {username}")
-
-            # Проверка целостности конфигурации узла
-            auth_type = node.get('auth_type', 'password')
-            if auth_type == 'password' and not node.get('password'):
-                error_msg = f"Ошибка конфигурации узла {node_name}: используется аутентификация по паролю, но пароль не предоставлен"
-                logger.error(error_msg)
-                return "", error_msg
-            elif auth_type == 'key' and not node.get('key_path'):
-                error_msg = f"Ошибка конфигурации узла {node_name}: используется аутентификация по ключу, но путь к ключу не предоставлен"
-                logger.error(error_msg)
-                return "", error_msg
-
-            # Упрощенное отображение команды (если команда слишком длинная)
-            display_command = command[:100] + "..." if len(command) > 100 else command
-            logger.info(f"Выполнение команды на узле {node_name}: {display_command}")
-
-            # Запись в лог аудита выполнения команды
-            self._log_security_audit(node_name, ip, username, command, "EXECUTE", "Нормальное выполнение")
-
-            # Использование SSH для выполнения команды
-            with NodeConnection(node) as conn:
-                if not conn.connected:
-                    error_msg = f"Не удалось подключиться к узлу {node_name} ({ip}): SSH подключение не удалось"
-                    logger.error(error_msg)
-                    # Запись в лог аудита неудачного подключения
-                    self._log_security_audit(node_name, ip, username, command, "CONN_FAILED", error_msg)
-                    return "", error_msg
-
-                success, stdout, stderr = conn.execute_command(command)
-                if success:
-                    logger.info(f"Команда на узле {node_name} выполнена успешно, длина вывода: {len(stdout)}")
-                    # Запись в лог аудита успешного выполнения
-                    self._log_security_audit(node_name, ip, username, command, "SUCCESS", f"Длина вывода: {len(stdout)}")
-                    return stdout, ""
-                else:
-                    error_msg = f"Выполнение команды не удалось: {stderr}"
-                    logger.error(f"Узел {node_name}: {error_msg}")
-                    # Запись в лог аудита неудачного выполнения
-                    self._log_security_audit(node_name, ip, username, command, "FAILED", error_msg)
-                    return "", error_msg
-
-        except ConnectionError as e:
-            error_msg = f"Ошибка сетевого подключения: {str(e)}"
-            logger.error(f"Не удалось подключиться к узлу {node.get('name', node.get('ip'))}: {error_msg}")
-            return "", error_msg
-        except TimeoutError as e:
-            error_msg = f"Таймаут подключения: {str(e)}"
-            logger.error(f"Таймаут подключения к узлу {node.get('name', node.get('ip'))}: {error_msg}")
-            return "", error_msg
-        except Exception as e:
-            error_msg = f"Непредвиденная ошибка при выполнении команды: {str(e)}"
-            logger.error(f"Узел {node.get('name', node.get('ip'))}: {error_msg}", exc_info=True)
-            return "", error_msg
-
     def _filter_nodes_by_selector(self, nodes: List[Dict], node_selector: Dict) -> List[Dict]:
-        """
-        Фильтрация узлов по селектору
-
-        Args:
-            nodes: список узлов
-            node_selector: конфигурация селектора узлов
-
-        Returns:
-            отфильтрованный список узлов
-        """
+        """Фильтрация узлов по селектору"""
         if not node_selector:
             return nodes
 
         filtered_nodes = []
         for node in nodes:
-            # Проверка соответствия меток узла селектору
             node_labels = node.get('labels', {})
             match = True
-
             for label_key, label_value in node_selector.items():
                 if label_key not in node_labels or str(node_labels[label_key]) != str(label_value):
                     match = False
                     break
-
             if match:
                 filtered_nodes.append(node)
 
         return filtered_nodes
 
+    def _validate_rule_config(self, rule: Rule) -> List[str]:
+        """Валидация конфигурации правила"""
+        issues = []
+        command = self.get_rule_config(rule, 'execution.command', '')
+        if not command:
+            issues.append("Отсутствует команда выполнения")
+        else:
+            if self.enable_security_check:
+                is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
+                if not is_safe:
+                    issues.append(f"Проверка безопасности не пройдена: {risk_desc}")
+
+        assertions = self.get_rule_config(rule, 'assertions', [])
+        if not assertions:
+            issues.append("Отсутствуют утверждения")
+
+        return issues
+
     def _should_apply_rule(self, rule: Rule, context: Dict) -> bool:
-        """
-        Определение, должно ли правило применяться в текущем контексте
-
-        Args:
-            rule: правило
-            context: контекст
-
-        Returns:
-            следует ли применять правило
-        """
-        # Проверка селектора узлов
+        """Определение применимости правила"""
         node_selector = self.get_rule_config(rule, 'scope.node_selector', {})
-        if not node_selector:
-            # Нет селектора узлов, применяется ко всем узлам
-            return True
-
-        # Так как мы проходим по узлам в _apply_rule, здесь просто возвращаем True
-        # Фактическая фильтрация узлов по меткам будет выполнена в _apply_rule
-        return True
-
-    def _format_error_result(self, rule: Rule, description: str, error_msg: str) -> Dict:
-        """Форматирование результата с ошибкой"""
-        return self.rule_processor.format_rule_result(
-            rule=rule,
-            status="error",
-            description=description,
-            severity="error",
-            details=error_msg,
-            solution="Пожалуйста, проверьте конфигурацию узла и сетевое подключение"
+        return not node_selector or any(
+            self._filter_nodes_by_selector(self.nodes, node_selector)
         )
 
-    def _log_security_audit(self, node_name: str, node_ip: str, username: str,
-                           command: str, action: str, details: str):
-        """
-        Запись в лог аудита безопасности
+    def _format_security_blocked_result(self, rule: Rule, risk_desc: str, command: str) -> Dict:
+        """Форматирование результата блокировки по безопасности"""
+        return self.rule_processor.result_formatter.error_result(
+            rule,
+            f"Команда содержит риски безопасности: {risk_desc}",
+            "Проверка безопасности не пройдена"
+        )
 
-        Args:
-            node_name: имя узла
-            node_ip: IP узла
-            username: имя пользователя
-            command: выполняемая команда
-            action: тип операции (EXECUTE, BLOCKED, RISKY, SUCCESS, FAILED, CONN_FAILED)
-            details: детальная информация
-        """
-        import time
-        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+    def _format_execution_error_result(self, rule: Rule, node: Dict, error_msg: str) -> Optional[Dict]:
+        """Форматирование результата ошибки выполнения"""
+        # Не создаем ошибку выполнения для узлов с ошибкой SSH соединения
+        if self.ssh_error_manager.has_connection_error(node):
+            return None
 
-        # Сокращенное отображение команды
-        short_command = command[:150] + '...' if len(command) > 150 else command
-
-        # Выбор уровня логирования в зависимости от типа операции
-        if action == "BLOCKED":
-            log_level = logger.error
-            status_icon = "🚫"
-        elif action == "RISKY":
-            log_level = logger.warning
-            status_icon = "⚠️"
-        elif action == "FAILED" or action == "CONN_FAILED":
-            log_level = logger.error
-            status_icon = "❌"
-        else:
-            log_level = logger.info
-            status_icon = "✅"
-
-        # Запись в лог аудита
-        audit_msg = (f"[SECURITY_AUDIT] {status_icon} {timestamp} | "
-                    f"Узел: {node_name}({node_ip}) | Пользователь: {username} | "
-                    f"Действие: {action} | Команда: {short_command} | "
-                    f"Детали: {details}")
-
-        log_level(audit_msg)
-
-        # Опционально: запись в специальный файл лога аудита безопасности
-        try:
-            audit_file = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'logs', 'security_audit.log')
-            os.makedirs(os.path.dirname(audit_file), exist_ok=True)
-            with open(audit_file, 'a', encoding='utf-8') as f:
-                f.write(f"{audit_msg}\n")
-        except Exception as e:
-            logger.warning(f"Не удалось записать в файл лога аудита безопасности: {str(e)}")
-
-    def get_security_stats(self) -> Dict:
-        """Получение статистики безопасности"""
-        return {
-            'security_enabled': self.enable_security_check,
-            'strict_mode': self.strict_security_mode,
-            'blocked_by_security': self.stats.get('blocked_by_security', 0),
-            'security_warnings': self.stats.get('security_warnings', 0),
-            'total_commands_checked': self.stats.get('total_rules', 0)
-        }
+        node_name = node.get('name', node['ip'])
+        result = self.rule_processor.result_formatter.error_result(
+            rule,
+            error_msg,
+            f"Ошибка выполнения на узле {node_name}"
+        )
+        result['node'] = {'ip': node['ip'], 'name': node_name}
+        result['name'] = f"{rule.name} - {node_name}"
+        return result
 
     def get_execution_stats(self) -> Dict:
-        """Получение статистики выполнения (включая статистику безопасности)"""
-        base_stats = {
-            **self.stats,
-            'average_time_per_rule': self.stats['total_time'] / max(self.stats['total_rules'], 1),
-            'success_rate': self.stats['successful_executions'] / max(self.stats['total_node_executions'], 1) * 100,
+        """Получение статистики выполнения"""
+        stats = self.execution_stats.copy()
+        stats.update({
             'concurrent_mode': self.enable_concurrent,
             'max_workers': self.max_workers,
-            'timeout': self.timeout
-        }
+            'timeout': self.timeout,
+            'security_enabled': self.enable_security_check,
+            'ssh_connection_errors': self.ssh_error_manager.get_error_count()
+        })
 
-        # Добавление статистики безопасности
-        base_stats.update(self.get_security_stats())
-        return base_stats
+        if stats['total_node_executions'] > 0:
+            stats['success_rate'] = (stats['successful_executions'] / stats['total_node_executions'] * 100)
+        else:
+            stats['success_rate'] = 0
+
+        return stats
 
     def print_execution_summary(self):
-        """Печать сводки выполнения (включая информацию о безопасности)"""
+        """Вывод сводки выполнения"""
         stats = self.get_execution_stats()
-
         print(f"\n=== Сводка выполнения проверки узлов ===")
-        print(f"Режим выполнения: {'параллельный' if stats['concurrent_mode'] else 'последовательный'}")
-        print(f"Проверка безопасности: {'включена' if stats['security_enabled'] else 'отключена'} "
-              f"({'строгий режим' if stats.get('strict_mode') else 'мягкий режим'})")
-        print(f"Всего правил: {stats['total_rules']}")
-        print(f"Всего выполнений на узлах: {stats['total_node_executions']}")
+        print(f"Всего узлов: {stats['total_nodes']}")
+        print(f"Доступных узлов: {stats['available_nodes']}")
+        print(f"Недоступных узлов: {stats['unavailable_nodes']}")
+        print(f"Ошибок SSH соединений: {stats['ssh_connection_errors']}")
+        print(f"Выполнений на узлах: {stats['total_node_executions']}")
         print(f"Успешных выполнений: {stats['successful_executions']}")
         print(f"Неудачных выполнений: {stats['failed_executions']}")
-        if stats['security_enabled']:
-            print(f"Блокировок по безопасности: {stats['blocked_by_security']}")
-            print(f"Предупреждений безопасности: {stats['security_warnings']}")
         print(f"Успешность: {stats['success_rate']:.1f}%")
         print(f"Общее время: {stats['total_time']:.2f}сек")
-        print(f"Среднее время на правило: {stats['average_time_per_rule']:.2f}сек")
-        if stats['concurrent_mode']:
-            print(f"Максимум потоков: {stats['max_workers']}")
-        print(f"Настройка таймаута: {stats['timeout']}сек")
         print(f"========================\n")
 
     @classmethod
     def create_optimized(cls, config: List[Dict[str, Any]]) -> 'NodeInspector':
-        """
-        Создание оптимизированного инспектора узлов
-
-        Args:
-            config: список конфигураций узлов
-
-        Returns:
-            экземпляр инспектора узлов с оптимизированной конфигурацией
-        """
+        """Создание оптимизированного инспектора"""
         node_count = len(config)
-
-        # Адаптивная конфигурация в зависимости от количества узлов
         if node_count <= 3:
             max_workers = node_count
             timeout = 30
         elif node_count <= 10:
             max_workers = min(5, node_count)
             timeout = 25
-        elif node_count <= 20:
-            max_workers = min(8, node_count)
-            timeout = 20
         else:
             max_workers = min(10, node_count)
-            timeout = 15
+            timeout = 20
 
         return cls(
             config=config,
-            enable_concurrent=node_count > 1,  # Не включать параллелизм для одного узла
+            enable_concurrent=node_count > 1,
             max_workers=max_workers,
             timeout=timeout
         )
