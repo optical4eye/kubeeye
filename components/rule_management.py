@@ -25,9 +25,10 @@ GITOPS_ENV_VARS = {
     "repo_url": "KUBEEYE_GITOPS_REPO_URL",
     "repo_name": "KUBEEYE_GITOPS_REPO_NAME",
     "repo_branch": "KUBEEYE_GITOPS_REPO_BRANCH",
-    "repo_username": "KUBEEYE_GITOPS_REPO_USERNAME",  # Новое поле для имени пользователя
+    "repo_username": "KUBEEYE_GITOPS_REPO_USERNAME",
     "repo_token": "KUBEEYE_GITOPS_REPO_TOKEN",
-    "repo_description": "KUBEEYE_GITOPS_REPO_DESCRIPTION"
+    "repo_description": "KUBEEYE_GITOPS_REPO_DESCRIPTION",
+    "repo_insecure": "KUBEEYE_GITOPS_REPO_INSECURE"  # Новая переменная для отключения проверки SSL
 }
 
 class GitOpsRuleManager:
@@ -81,14 +82,18 @@ class GitOpsRuleManager:
         if not repo_url or not repo_name:
             return None
 
+        # Получаем значение insecure из ENV (по умолчанию False)
+        repo_insecure = os.getenv(GITOPS_ENV_VARS["repo_insecure"], "").lower() == "true"
+
         return {
             "name": repo_name,
             "url": repo_url,
             "branch": os.getenv(GITOPS_ENV_VARS["repo_branch"], "main"),
-            "username": os.getenv(GITOPS_ENV_VARS["repo_username"]),  # Новое поле
+            "username": os.getenv(GITOPS_ENV_VARS["repo_username"]),
             "token": os.getenv(GITOPS_ENV_VARS["repo_token"]),
             "description": os.getenv(GITOPS_ENV_VARS["repo_description"], ""),
-            "from_env": True  # Флаг что репозиторий загружен из ENV
+            "insecure": repo_insecure,  # Добавляем флаг insecure
+            "from_env": True
         }
 
     def save_config(self, config: Dict):
@@ -114,8 +119,9 @@ class GitOpsRuleManager:
         repo_name = repo_config["name"]
         repo_url = repo_config["url"]
         branch = repo_config.get("branch", "main")
-        username = repo_config.get("username")  # Новое поле
+        username = repo_config.get("username")
         token = repo_config.get("token")
+        insecure = repo_config.get("insecure", False)  # Получаем флаг insecure
 
         repo_path = self.git_rules_dir / repo_name
 
@@ -123,13 +129,11 @@ class GitOpsRuleManager:
             # Формируем URL с аутентификацией
             auth_url = repo_url
             if username and token:
-                # Используем username:token@ формат
                 if repo_url.startswith("https://"):
                     auth_url = repo_url.replace("https://", f"https://{username}:{token}@")
                 elif repo_url.startswith("http://"):
                     auth_url = repo_url.replace("http://", f"http://{username}:{token}@")
             elif token:
-                # Используем только token (для обратной совместимости)
                 if repo_url.startswith("https://"):
                     auth_url = repo_url.replace("https://", f"https://{token}@")
                 elif repo_url.startswith("http://"):
@@ -139,11 +143,21 @@ class GitOpsRuleManager:
                 # Обновить существующий репозиторий
                 repo = git.Repo(repo_path)
                 origin = repo.remotes.origin
-                origin.pull(branch)
+
+                # Добавляем опции для insecure подключения
+                pull_kwargs = {}
+                if insecure:
+                    pull_kwargs = {'env': {'GIT_SSL_NO_VERIFY': '1'}}
+
+                origin.pull(branch, **pull_kwargs)
                 message = f"Репозиторий {repo_name} успешно обновлён"
             else:
                 # Клонировать новый репозиторий
-                git.Repo.clone_from(auth_url, repo_path, branch=branch)
+                clone_kwargs = {'branch': branch}
+                if insecure:
+                    clone_kwargs['env'] = {'GIT_SSL_NO_VERIFY': '1'}
+
+                git.Repo.clone_from(auth_url, repo_path, **clone_kwargs)
                 message = f"Репозиторий {repo_name} успешно клонирован"
 
             return True, message
@@ -239,9 +253,9 @@ class GitOpsRuleManager:
             value = os.getenv(env_var)
             if value:
                 if "token" in key and len(value) > 4:
-                    info[env_var] = value[:4] + "***"  # Маскируем токен
+                    info[env_var] = value[:4] + "***"
                 elif "username" in key and len(value) > 4:
-                    info[env_var] = value[:4] + "***"  # Маскируем имя пользователя
+                    info[env_var] = value[:4] + "***"
                 else:
                     info[env_var] = value
             else:
@@ -294,6 +308,7 @@ def render_env_info(gitops_manager: GitOpsRuleManager, config: Dict):
         | `KUBEEYE_GITOPS_REPO_USERNAME` | ❌ Опционально | Имя пользователя для аутентификации |
         | `KUBEEYE_GITOPS_REPO_TOKEN` | ❌ Опционально | Токен для приватных репозиториев |
         | `KUBEEYE_GITOPS_REPO_DESCRIPTION` | ❌ Опционально | Описание репозитория |
+        | `KUBEEYE_GITOPS_REPO_INSECURE` | ❌ Опционально | Отключить проверку SSL сертификата (true/false) |
 
         **Примеры использования:**
 
@@ -320,10 +335,18 @@ def render_env_info(gitops_manager: GitOpsRuleManager, config: Dict):
         ENV KUBEEYE_GITOPS_REPO_TOKEN=app-password
         ```
 
+        **С отключенной проверкой SSL:**
+        ```dockerfile
+        ENV KUBEEYE_GITOPS_REPO_URL=https://self-signed-cert.example.com/rules.git
+        ENV KUBEEYE_GITOPS_REPO_NAME=internal-rules
+        ENV KUBEEYE_GITOPS_REPO_INSECURE=true
+        ```
+
         **Примечание:**
         - Репозиторий, настроенный через ENV переменные, нельзя изменить или удалить через интерфейс
         - Для GitHub обычно достаточно токена без имени пользователя
         - Для GitLab и Bitbucket рекомендуется указать и имя пользователя и токен
+        - Опция `KUBEEYE_GITOPS_REPO_INSECURE=true` отключает проверку SSL сертификатов (используйте только для тестирования или внутренних репозиториев с самоподписанными сертификатами)
         """)
 
         # Показать текущие значения ENV переменных
@@ -507,6 +530,9 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     st.markdown(f"**Имя пользователя:** `{current_repo['username']}`")
                 if current_repo.get('token'):
                     st.markdown("🔐 **Доступ: с токеном**")
+                # Показываем статус insecure
+                insecure_status = "✅ Включено" if current_repo.get('insecure') else "❌ Отключено"
+                st.markdown(f"**Проверка SSL:** `{insecure_status}`")
                 if current_repo.get('description'):
                     st.markdown(f"**Описание:** {current_repo['description']}")
 
@@ -551,6 +577,9 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     st.markdown(f"**Имя пользователя:** `{current_repo['username']}`")
                 if current_repo.get('token'):
                     st.markdown("🔐 **Доступ: с токеном**")
+                # Показываем статус insecure
+                insecure_status = "✅ Включено" if current_repo.get('insecure') else "❌ Отключено"
+                st.markdown(f"**Проверка SSL:** `{insecure_status}`")
                 if current_repo.get('description'):
                     st.markdown(f"**Описание:** {current_repo['description']}")
 
@@ -593,6 +622,12 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                 repo_token = st.text_input("Токен доступа", type="password",
                                          placeholder="ghp_... для GitHub, glpat_... для GitLab",
                                          help="Токен для доступа к приватным репозиториям")
+                # Добавляем чекбокс для insecure
+                repo_insecure = st.checkbox(
+                    "Отключить проверку SSL сертификата",
+                    value=False,
+                    help="Используйте только для тестирования или внутренних репозиториев с самоподписанными сертификатами"
+                )
 
             submitted = st.form_submit_button("✅ Добавить репозиторий")
 
@@ -606,7 +641,8 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                         "branch": repo_branch or "main",
                         "username": repo_username if repo_username else None,
                         "token": repo_token if repo_token else None,
-                        "description": repo_description
+                        "description": repo_description,
+                        "insecure": repo_insecure  # Добавляем флаг insecure
                     }
 
                     success, message = gitops_manager.set_repository(repo_config)
