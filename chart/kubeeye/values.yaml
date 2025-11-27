@@ -27,11 +27,11 @@ kubeeyeEnv:
   - name: KUBEEYE_GITOPS_REPO_BRANCH
     value: "main"
   - name: KUBEEYE_GITOPS_REPO_USERNAME
-    values: "optical4eye"
+    value: "optical4eye"
   - name: KUBEEYE_GITOPS_REPO_TOKEN
     value: ""
   - name: KUBEEYE_GITOPS_REPO_INSECURE
-    values: false
+    value: "false"
   - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
     value: "kubeeye repo rules"
 

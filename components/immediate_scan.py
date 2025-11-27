@@ -7,6 +7,8 @@ import streamlit as st
 from utils.cluster_config import list_clusters
 from components.ui import display_cluster_info, select_inspectors
 from components.ui.inspection_engine import execute_inspection_unified
+from utils.rule_manager import RuleManager
+from utils.rule_loader import load_rules
 
 def render_immediate_scan_tab():
     """Отобразить вкладку мгновенной проверки — с использованием единого движка"""
@@ -33,14 +35,59 @@ def render_immediate_scan_tab():
             # Определение доступных типов проверки
             run_node_check, run_prometheus_check, run_opa_check = select_inspectors(nodes, prometheus_config, kubeconfig)
 
+            # Определить, использовать ли правила GitOps
+            use_gitops = RuleManager.should_use_gitops()
+
+            if use_gitops:
+                st.success("🔒 Используются правила GitOps (все правила автоматически включены)")
+
+                # Показать отладочную информацию о правилах - СВЕРНУТО по умолчанию
+                with st.expander("🔍 Информация о правилах GitOps", expanded=False):
+                    for rule_type in ["node", "prometheus", "opa"]:
+                        rules = load_rules(rule_type, use_gitops=True)
+                        enabled_rules = [r for r in rules if r.enabled]
+                        st.write(f"**{rule_type} правила:** {len(enabled_rules)} включенных из {len(rules)} всего")
+
+                        if enabled_rules:
+                            st.write("Доступные правила:")
+                            for rule in enabled_rules:
+                                st.write(f"- ✅ {rule.name} (ID: {rule.id})")
+                        else:
+                            st.warning(f"Нет включенных правил для типа: {rule_type}")
+
+                            # Показать все правила (включая отключенные) для отладки
+                            all_rules = load_rules(rule_type, include_disabled=True, use_gitops=True)
+                            if all_rules:
+                                st.write("Все правила (включая отключенные):")
+                                for rule in all_rules:
+                                    status = "✅" if rule.enabled else "❌"
+                                    st.write(f"- {status} {rule.id}: {rule.name} (включено: {rule.enabled})")
+                            else:
+                                st.error(f"Не найдено ни одного файла правил для типа {rule_type} в GitOps")
+
+                                # Показать структуру директорий для отладки
+                                from pathlib import Path
+                                git_rules_dir = Path(__file__).parent.parent / "data" / "git_rules"
+                                if git_rules_dir.exists():
+                                    st.write("Содержимое директории GitOps:")
+                                    for item in git_rules_dir.rglob("*"):
+                                        if item.is_file():
+                                            st.write(f"- Файл: {item.relative_to(git_rules_dir)}")
+                                        elif item.is_dir():
+                                            st.write(f"- Директория: {item.relative_to(git_rules_dir)}/")
+
             # Использование нового RuleManager для создания области выбора правил
-            from utils.rule_manager import RuleManager
             selected_node_rules, selected_prometheus_rules, selected_opa_rules = RuleManager.create_rule_selection_tabs(
-                run_node_check, run_prometheus_check, run_opa_check, key_suffix="_run"
+                run_node_check, run_prometheus_check, run_opa_check, key_suffix="_run", use_gitops=use_gitops
             )
 
+            # Показать предупреждение, если нет выбранных правил
+            total_selected = len(selected_node_rules) + len(selected_prometheus_rules) + len(selected_opa_rules)
+            if total_selected == 0:
+                st.warning("⚠️ Не выбрано ни одного правила для проверки. Пожалуйста, выберите хотя бы одно правило.")
+
             # Кнопка запуска проверки
-            run_inspection = st.button("Начать проверку", type="primary")
+            run_inspection = st.button("Начать проверку", type="primary", disabled=total_selected==0)
 
             if run_inspection:
                 # Формируем словарь выбранных правил

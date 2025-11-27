@@ -12,6 +12,7 @@ from utils.schedule_manager import (
 )
 
 from components.ui import display_cluster_info, InspectionProgress
+from utils.rule_manager import RuleManager
 
 def render_scheduled_scan_tab():
     """Отобразить вкладку плановой проверки"""
@@ -253,9 +254,14 @@ def render_create_task_tab():
         prometheus_check = bool(prometheus_config and prometheus_config.get('enabled', False))
         opa_check = bool(kubeconfig)
 
-        from utils.rule_manager import RuleManager
+        # Определить, использовать ли правила GitOps
+        use_gitops = RuleManager.should_use_gitops()
+
+        if use_gitops:
+            st.info("🔒 Используются правила GitOps")
+
         selected_node_rules, selected_prometheus_rules, selected_opa_rules = RuleManager.create_rule_selection_tabs(
-            node_check, prometheus_check, opa_check, "_schedule", in_form=True
+            node_check, prometheus_check, opa_check, "_schedule", in_form=True, use_gitops=use_gitops
         )
 
         st.divider()

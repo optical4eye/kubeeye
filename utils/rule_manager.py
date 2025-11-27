@@ -24,9 +24,18 @@ class RuleManager:
         }
 
     @staticmethod
-    def get_enabled_rules(rule_type: str) -> List[Rule]:
+    def get_enabled_rules(rule_type: str, use_gitops: bool = False) -> List[Rule]:
         """Получить включённые правила указанного типа"""
-        return [rule for rule in load_rules(rule_type) if rule.enabled]
+        all_rules = load_rules(rule_type, use_gitops=use_gitops)
+        enabled_rules = [rule for rule in all_rules if rule.enabled]
+
+        # Отладочная информация
+        if use_gitops:
+            print(f"GitOps правила для {rule_type}: найдено {len(all_rules)} всего, {len(enabled_rules)} включено")
+            for rule in enabled_rules:
+                print(f"  - {rule.id}: {rule.name} (включено: {rule.enabled})")
+
+        return enabled_rules
 
     @staticmethod
     def get_rule_display_names(rules: List[Rule]) -> Dict[str, str]:
@@ -39,9 +48,9 @@ class RuleManager:
         return [rule.id for rule in rules]
 
     @classmethod
-    def get_rule_selection_data(cls, rule_type: str) -> Tuple[List[Rule], List[str], Dict[str, str]]:
+    def get_rule_selection_data(cls, rule_type: str, use_gitops: bool = False) -> Tuple[List[Rule], List[str], Dict[str, str]]:
         """Получить данные, необходимые для выбора правил"""
-        rules = cls.get_enabled_rules(rule_type)
+        rules = cls.get_enabled_rules(rule_type, use_gitops)
         options = cls.get_rule_options(rules)
         display_names = cls.get_rule_display_names(rules)
         return rules, options, display_names
@@ -60,19 +69,29 @@ class RuleManager:
                 "Категория": rule.category,
                 "Серьезность": rule.severity,
                 "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
-                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0
+                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
+                "Источник": "🔄 Git" if rule.source == 'git' else "📁 Локальный"
             })
         return pd.DataFrame(data)
 
     @classmethod
-    def create_rule_selection(cls, rule_type: str, key_suffix: str = "") -> List[str]:
+    def create_rule_selection(cls, rule_type: str, key_suffix: str = "", use_gitops: bool = False) -> List[str]:
         """
         Упрощённый вариант: выбор правил через data_editor без дополнительной связки таблицы
         Обновление session_state на основе результатов редактирования data_editor
         """
-        rules, options, display_names = cls.get_rule_selection_data(rule_type)
+        rules, options, display_names = cls.get_rule_selection_data(rule_type, use_gitops)
         if not rules:
-            st.info(f"Не найдено включённых правил для {cls.get_rule_type_display_names()[rule_type]}. Пожалуйста, добавьте включённые правила в управлении правилами.")
+            source_type = "GitOps" if use_gitops else "локальных"
+            st.info(f"Не найдено включённых правил для {cls.get_rule_type_display_names()[rule_type]} в {source_type} правилах.")
+
+            # Показать дополнительную отладочную информацию
+            all_rules = load_rules(rule_type, include_disabled=True, use_gitops=use_gitops)
+            if all_rules:
+                st.warning(f"Найдено {len(all_rules)} правил, но все они отключены или имеют проблемы с загрузкой")
+                for rule in all_rules:
+                    st.write(f"- {rule.id}: {rule.name} (включено: {rule.enabled})")
+
             return []
 
         form_key = f"rule_selection_{rule_type}{key_suffix}"
@@ -92,7 +111,8 @@ class RuleManager:
                 "Категория": rule.category,
                 "Серьезность": rule.severity,
                 "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
-                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0
+                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
+                "Источник": "🔄 Git" if rule.source == 'git' else "📁 Локальный"
             })
         rules_df = pd.DataFrame(data)
 
@@ -108,10 +128,11 @@ class RuleManager:
                 "Серьезность": st.column_config.TextColumn("Серьезность", width="small"),
                 "Описание": st.column_config.TextColumn("Описание", width="large"),
                 "Количество утверждений": st.column_config.NumberColumn("Количество утверждений", width="small"),
+                "Источник": st.column_config.TextColumn("Источник", width="small"),
             },
-            disabled=["ID", "Название", "Категория", "Серьезность", "Описание", "Количество утверждений"],
+            disabled=["ID", "Название", "Категория", "Серьезность", "Описание", "Количество утверждений", "Источник"],
             key=table_key,
-            on_change=None  # Не использовать on_change, чтобы избежать перезагрузки
+            on_change=None
         )
 
         selected_rules = [row["ID"] for _, row in edited_df.iterrows() if row["Выбор"]]
@@ -119,24 +140,26 @@ class RuleManager:
         # Обновить session_state без перезагрузки страницы
         st.session_state[form_key] = selected_rules
 
-        st.caption(f"Выбрано: {len(selected_rules)}/{len(options)} правил")
+        source_type = "GitOps" if use_gitops else "локальных"
+        st.caption(f"Выбрано: {len(selected_rules)}/{len(options)} {source_type} правил")
         return selected_rules
 
     @classmethod
-    def create_rule_selection_in_form(cls, rule_type: str, key_suffix: str = "") -> List[str]:
+    def create_rule_selection_in_form(cls, rule_type: str, key_suffix: str = "", use_gitops: bool = False) -> List[str]:
         """
         Выбор правил в форме через data_editor с оптимизацией для уменьшения количества обновлений
         """
-        rules, options, display_names = cls.get_rule_selection_data(rule_type)
+        rules, options, display_names = cls.get_rule_selection_data(rule_type, use_gitops)
         if not rules:
-            st.info(f"Не найдено включённых правил для {cls.get_rule_type_display_names()[rule_type]}. Пожалуйста, добавьте включённые правила в управлении правилами.")
+            source_type = "GitOps" if use_gitops else "локальных"
+            st.info(f"Не найдено включённых правил для {cls.get_rule_type_display_names()[rule_type]} в {source_type} правилах.")
             return []
 
         form_key = f"rule_selection_form_{rule_type}{key_suffix}"
         table_key = f"rule_table_form_{rule_type}{key_suffix}"
 
         if form_key not in st.session_state:
-            st.session_state[form_key] = options.copy()  # По умолчанию все выбраны
+            st.session_state[form_key] = options.copy()
 
         data = []
         for rule in rules:
@@ -148,7 +171,8 @@ class RuleManager:
                 "Категория": rule.category,
                 "Серьезность": rule.severity,
                 "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
-                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0
+                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
+                "Источник": "🔄 Git" if rule.source == 'git' else "📁 Локальный"
             })
         rules_df = pd.DataFrame(data)
 
@@ -164,8 +188,9 @@ class RuleManager:
                 "Серьезность": st.column_config.TextColumn("Серьезность", width="small"),
                 "Описание": st.column_config.TextColumn("Описание", width="large"),
                 "Количество утверждений": st.column_config.NumberColumn("Количество утверждений", width="small"),
+                "Источник": st.column_config.TextColumn("Источник", width="small"),
             },
-            disabled=["ID", "Название", "Категория", "Серьезность", "Описание", "Количество утверждений"],
+            disabled=["ID", "Название", "Категория", "Серьезность", "Описание", "Количество утверждений", "Источник"],
             key=table_key,
         )
 
@@ -174,27 +199,18 @@ class RuleManager:
         if st.session_state[form_key] != selected_rules:
             st.session_state[form_key] = selected_rules
 
-        st.caption(f"Выбрано: {len(selected_rules)}/{len(options)} правил")
+        source_type = "GitOps" if use_gitops else "локальных"
+        st.caption(f"Выбрано: {len(selected_rules)}/{len(options)} {source_type} правил")
         return selected_rules
 
     @classmethod
     def create_rule_selection_tabs(
         cls, node_check: bool, prometheus_check: bool, opa_check: bool, key_suffix: str = "",
-        in_form: bool = False
+        in_form: bool = False, use_gitops: bool = False
     ) -> Tuple[List[str], List[str], List[str]]:
         """
         Создание вкладок выбора правил, показывая только доступные типы правил,
         позволяя пользователю выбирать правила в каждой вкладке.
-
-        Аргументы:
-        node_check (bool): включена ли проверка узлов
-        prometheus_check (bool): включена ли проверка Prometheus
-        opa_check (bool): включена ли проверка OPA
-        key_suffix (str): суффикс ключа для различения вызовов
-        in_form (bool): используется ли внутри формы
-
-        Возвращает:
-        Кортеж выбранных правил для node, prometheus и opa
         """
         selected_node_rules = []
         selected_prometheus_rules = []
@@ -231,7 +247,7 @@ class RuleManager:
             key_suffix_type = f"{key_suffix}_{cfg['type']}"
             selection_key = f"rule_selection_{cfg['type']}{key_suffix_type}"
             if selection_key not in st.session_state:
-                cls.get_rule_selection_data(cfg["type"])
+                cls.get_rule_selection_data(cfg["type"], use_gitops)
 
         tab_labels = [cfg["tab_label"] for cfg in available_configs]
 
@@ -247,12 +263,14 @@ class RuleManager:
                 if in_form:
                     selected_rules = cls.create_rule_selection_in_form(
                         cfg["type"],
-                        key_suffix=f"{key_suffix}_{cfg['type']}"
+                        key_suffix=f"{key_suffix}_{cfg['type']}",
+                        use_gitops=use_gitops
                     )
                 else:
                     selected_rules = cls.create_rule_selection(
                         cfg["type"],
-                        key_suffix=f"{key_suffix}_{cfg['type']}"
+                        key_suffix=f"{key_suffix}_{cfg['type']}",
+                        use_gitops=use_gitops
                     )
 
                 if cfg["result_var"] == "selected_node_rules":
@@ -263,3 +281,27 @@ class RuleManager:
                     selected_opa_rules = selected_rules
 
         return selected_node_rules, selected_prometheus_rules, selected_opa_rules
+
+    @classmethod
+    def should_use_gitops(cls) -> bool:
+        """Определить, следует ли использовать правила GitOps"""
+        try:
+            from utils.gitops_manager import GitOpsRuleManager
+            gitops_manager = GitOpsRuleManager()
+            config = gitops_manager.load_config()
+
+            # Если есть конфигурация из ENV переменных, используем GitOps
+            if config.get("from_env"):
+                return True
+
+            # Если нет ENV переменных, но в конфиге сохранен GitOps режим
+            if config.get("mode") == "gitops" and config.get("repository") is not None:
+                # Проверяем, заданы ли обязательные ENV переменные
+                if not gitops_manager.has_env_config():
+                    print("GitOps настроен в конфиге, но ENV переменные не заданы - используем локальный режим")
+                    return False
+                return True
+
+            return False
+        except Exception:
+            return False
