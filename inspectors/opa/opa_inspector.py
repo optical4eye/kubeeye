@@ -32,10 +32,10 @@ class DateTimeEncoder(json.JSONEncoder):
 class OpaInspector(BaseInspector):
     """Инспектор правил OPA - упрощенная версия"""
 
-    def __init__(self, opa_config: Dict[str, Any]):
+    def __init__(self, opa_config: Dict[str, Any], use_gitops: bool = False):
         self.k8s_client = K8sDynamicClient(opa_config.get('kubeconfig'))
         self.opa_path = opa_config.get('opa_path', '/usr/local/bin/opa')
-        super().__init__(opa_config)
+        super().__init__(opa_config, use_gitops=use_gitops)
 
     @property
     def inspector_type(self) -> str:

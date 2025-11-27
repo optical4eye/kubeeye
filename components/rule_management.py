@@ -207,8 +207,8 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     st.markdown(f"**Имя пользователя:** `{current_repo['username']}`")
                 if current_repo.get('token'):
                     st.markdown("🔐 **Доступ: с токеном**")
-                insecure_status = "✅ Включено" if current_repo.get('insecure') else "❌ Отключено"
-                st.markdown(f"**Проверка SSL:** `{insecure_status}`")
+                ssl_verification_status = "✅ Включена" if not current_repo.get('insecure') else "❌ Отключена"
+                st.markdown(f"**Проверка SSL:** `{ssl_verification_status}`")
                 if current_repo.get('description'):
                     st.markdown(f"**Описание:** {current_repo['description']}")
 
@@ -251,7 +251,7 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     st.markdown(f"**Имя пользователя:** `{current_repo['username']}`")
                 if current_repo.get('token'):
                     st.markdown("🔐 **Доступ: с токеном**")
-                insecure_status = "✅ Включено" if current_repo.get('insecure') else "❌ Отключено"
+                insecure_status = "❌ Отключено" if current_repo.get('insecure') else "✅ Включено"
                 st.markdown(f"**Проверка SSL:** `{insecure_status}`")
                 if current_repo.get('description'):
                     st.markdown(f"**Описание:** {current_repo['description']}")

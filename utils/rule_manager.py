@@ -118,7 +118,7 @@ class RuleManager:
 
         edited_df = st.data_editor(
             rules_df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             column_config={
                 "Выбор": st.column_config.CheckboxColumn("Выбор", help="Выберите правила для выполнения", width="small"),
@@ -178,7 +178,7 @@ class RuleManager:
 
         edited_df = st.data_editor(
             rules_df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             column_config={
                 "Выбор": st.column_config.CheckboxColumn("Выбор", help="Выберите правила для выполнения", width="small"),

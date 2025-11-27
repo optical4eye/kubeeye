@@ -35,7 +35,7 @@ kubeeyeEnv:
   - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
     value: "kubeeye repo rules"
 
-kubeeyeRules:
+kubeeyeLocalRules:
   # Opa
   - name: opa-dangerous-capabilities
     type: opa

@@ -135,7 +135,7 @@ def create_sidebar_header(active_page="Главная"):
 
             if st.button(f"{item['icon']} {item['title']}",
                          type=button_type,
-                         use_container_width=True,
+                         width='stretch',
                          key=f"nav_{item['label']}"):
                 try:
                     st.switch_page(item["path"])

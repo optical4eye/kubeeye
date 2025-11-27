@@ -105,7 +105,8 @@ def render_immediate_scan_tab():
                     selected_rules=selected_rules,
                     inspection_type="immediate",
                     show_progress=True,
-                    show_ui_feedback=True
+                    show_ui_feedback=True,
+                    use_gitops=use_gitops  # Передаем информацию об источнике правил
                 )
 
                 if not success:

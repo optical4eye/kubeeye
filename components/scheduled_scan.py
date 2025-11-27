@@ -104,7 +104,7 @@ def render_task_list_tab(tasks):
             })
         if task_data:
             task_df = pd.DataFrame(task_data)
-            st.dataframe(task_df, use_container_width=True, hide_index=True)
+            st.dataframe(task_df, width='stretch', hide_index=True)
             st.subheader("Управление задачей")
             selected_task_id = st.selectbox(
                 "Выберите задачу",
@@ -129,7 +129,10 @@ def render_task_list_tab(tasks):
                         if rules:
                             for rule_type, rule_config in rules.items():
                                 if rule_config.get('enabled', False):
-                                    st.write(f"**{rule_type.capitalize()}** правила: {len(rule_config.get('rules', []))} шт.")
+                                    # Определяем источник правил для отображения
+                                    use_gitops = RuleManager.should_use_gitops()
+                                    source_text = "GitOps" if use_gitops else "локальных"
+                                    st.write(f"**{rule_type.capitalize()}** правила: {len(rule_config.get('rules', []))} {source_text} правил")
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         if st.button("Выполнить сейчас", key=f"run_{selected_task_id}"):
