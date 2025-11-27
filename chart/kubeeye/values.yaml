@@ -1,5 +1,5 @@
 image: kubeeye
-tag: '1.18'
+tag: 'v2.0'
 
 replicas: 1
 
@@ -17,6 +17,24 @@ persistence:
   accessMode: ReadWriteOnce
   size: 1Gi
 
+kubeeyeEnv:
+  - name: KUBEEYE_DATA_DIR
+    value: "/app/data"
+  - name: KUBEEYE_GITOPS_REPO_NAME
+    value: "kubeeye_rules"
+  - name: KUBEEYE_GITOPS_REPO_URL
+    value: "https://github.com/optical4eye/kubeeye-rules.git"
+  - name: KUBEEYE_GITOPS_REPO_BRANCH
+    value: "main"
+  - name: KUBEEYE_GITOPS_REPO_USERNAME
+    values: "optical4eye"
+  - name: KUBEEYE_GITOPS_REPO_TOKEN
+    value: ""
+  - name: KUBEEYE_GITOPS_REPO_INSECURE
+    values: false
+  - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
+    value: "kubeeye repo rules"
+
 kubeeyeRules:
   # Opa
   - name: opa-dangerous-capabilities
@@ -32,8 +50,6 @@ kubeeyeRules:
   - name: opa-resource-limits
     type: opa
   - name: opa-run-as-non-root
-    type: opa
-  - name: opa-image-registry
     type: opa
   # Node
   - name: node-disk-usage-simple

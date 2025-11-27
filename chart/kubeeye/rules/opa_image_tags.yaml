@@ -1,0 +1,113 @@
+---
+# OPA правило - проверка использования тега latest для образов контейнеров
+id: opa-image-tags
+name: Проверка использования тега latest для образов контейнеров
+description: Запрещает использование тега latest для образов контейнеров в подах и связанных ресурсах.
+type: opa
+category: security
+severity: warning
+enabled: true
+tier: basic
+
+
+# Конфигурация правила
+config:
+  # Конфигурация ресурсов
+  resources:
+    - kind: Pod
+      apiVersion: v1
+      namespaced: true
+    - kind: StatefulSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: DaemonSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: Deployment
+      apiVersion: apps/v1
+      namespaced: true
+
+
+  # Конфигурация rego-правила
+  rego:
+    inline: |
+      package kubernetes
+
+      # Получить спецификацию Pod
+      get_pod_spec(resource) = spec if {
+          resource.kind == "Pod"
+          spec := resource.spec
+      }
+
+      get_pod_spec(resource) = spec if {
+          resource.kind != "Pod"
+          spec := resource.spec.template.spec
+      }
+
+      # Хелпер-функция для проверки, заканчивается ли строка на "latest"
+      is_latest(image) if {
+          endswith(image, ":latest")
+      }
+
+      # Определение нарушения - использование тега latest
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          # Проверяем как обычные контейнеры, так и init-контейнеры
+          container := spec.containers[_]
+          is_latest(container.image)
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' использует запрещенный тег latest для образа %s", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  container.image
+              ])
+          }
+      }
+
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          # Проверяем init-контейнеры
+          container := spec.initContainers[_]
+          is_latest(container.image)
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' использует запрещенный тег latest для образа %s (init container)", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  container.image
+              ])
+          }
+      }
+
+  # Конфигурация утверждений
+  assertions:
+    - name: "Проверка отсутствия тега latest"
+      condition: "violation_count == 0"
+      severity: warning
+      description: "Обнаружено {{ violation_count }} Pod, использующих тег latest"
+
+
+# Рекомендации по устранению проблемы
+solution: |
+  Избегайте использования тега latest в производственной среде.
+  1. Используйте явные, неизменяемые (immutable) теги версий (например, 1.2.3 или SHA-хэши).
+  2. Тег latest может указывать на разный код в разное время, что приводит к непредсказуемому поведению и проблемам воспроизводимости при развертывании.
+
+
+# Метки
+tags:
+  - security
+  - best-practices
+  - images
+  - latest

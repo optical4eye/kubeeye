@@ -6,6 +6,8 @@ metadata:
   labels:
     app: kubeeye
   {{- include "kubeeye.labels" . | nindent 4 }}
+  annotations:
+    checksum/rules: {{ include "rules.checksum" . | quote }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
@@ -17,6 +19,8 @@ spec:
       labels:
         app: kubeeye
       {{- include "kubeeye.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/rules: {{ include "rules.checksum" . | quote }}
     spec:
       securityContext:
         runAsUser: 1001
@@ -28,8 +32,7 @@ spec:
         ports:
         - containerPort: 8501
         env:
-        - name: KUBEEYE_DATA_DIR
-          value: "/app/data"
+      {{- .Values.kubeeyeEnv | toYaml | nindent 8 }}
         volumeMounts:
       # Common
         - name: data-volume
@@ -42,7 +45,6 @@ spec:
         - name: {{ .name }}
           mountPath: /app/rules/{{ .type }}/{{ .name }}.yaml
           subPath: {{ .name }}.yaml
-          readOnly: true
         {{- end }}
         resources:
 	      {{- .Values.resources | toYaml | nindent 10 }}

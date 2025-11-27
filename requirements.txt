@@ -11,7 +11,7 @@ cryptography>=41.0.0
 schedule>=1.2.0
 croniter>=1.4.1
 # GitOps support
-GitPython>=3.1.0
+GitPython>=3.1.45
 # 增加的依赖
 regex>=2023.0.0
 typing-extensions>=4.0.0

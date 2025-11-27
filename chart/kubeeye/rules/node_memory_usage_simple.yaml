@@ -1,0 +1,41 @@
+---
+# Правило проверки использования памяти
+id: node_memory_usage_simple
+name: Проверка использования памяти
+description: Проверяет использование системной памяти
+type: node
+category: memory
+severity: warning
+enabled: true
+tier: basic
+
+
+# Конфигурация правила
+config:
+  # Конфигурация выполнения - напрямую возвращает процент использования памяти
+  execution:
+    command: "free | awk 'NR==2{printf \"%.0f\", $3*100/$2 }'"
+    timeout: 5
+
+
+  # Конфигурация утверждений - напрямую использует вывод команды
+  assertions:
+    - name: "Использование памяти в норме"
+      condition: "int(output) < 90"
+      severity: warning
+      description: "Использование памяти: {{ output }}%"
+
+
+# Рекомендации по устранению проблемы
+solution: |
+  Обработка высокого использования памяти:
+  1. Проверить детали памяти: free -h
+  2. Проверить процессы по использованию памяти: ps aux --sort=-%mem | head
+  3. Очистить кэш: echo 3 > /proc/sys/vm/drop_caches
+  4. Проверить процессы с утечками памяти
+
+
+# Метки
+tags:
+  - memory
+  - usage

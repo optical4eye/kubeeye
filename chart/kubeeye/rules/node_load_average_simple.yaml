@@ -1,0 +1,42 @@
+---
+# Правило проверки нагрузки CPU
+id: node-load-average-simple
+name: Проверка нагрузки CPU
+description: Проверяет среднюю нагрузку системы за 1 минуту
+type: node
+category: cpu
+severity: warning
+enabled: true
+tier: basic
+
+
+# Конфигурация правила
+config:
+  # Конфигурация выполнения - напрямую возвращает значение нагрузки
+  execution:
+    command: "uptime | awk -F'load average:' '{ print $2 }' | awk -F, '{ print $1 }' | xargs"
+    timeout: 5
+
+
+  # Конфигурация утверждений - напрямую использует вывод команды
+  assertions:
+    - name: "Нагрузка системы в норме"
+      condition: "float(output) < 4.0"
+      severity: warning
+      description: "Средняя нагрузка за 1 минуту: {{ output }}"
+
+
+# Рекомендации по устранению проблемы
+solution: |
+  Обработка высокой нагрузки системы:
+  1. Посмотреть детали нагрузки: uptime
+  2. Проверить использование CPU: top -c
+  3. Проверить IO ожидание: iostat -x 1 5
+  4. Найти процессы с высокой нагрузкой на CPU: ps aux --sort=-%cpu | head
+
+
+# Метки
+tags:
+  - cpu
+  - load
+  - performance

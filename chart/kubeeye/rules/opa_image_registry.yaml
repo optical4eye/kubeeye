@@ -1,0 +1,181 @@
+---
+# OPA правило - проверка разрешенных registry и запрет Docker Hub
+id: opa-image-registry
+name: Проверка разрешенных registry образов контейнеров
+description: Требует использование только разрешенных registry (ww.com или ss.com) и запрещает использование Docker Hub.
+type: opa
+category: security
+severity: warning
+enabled: true
+tier: basic
+
+# Конфигурация правила
+config:
+  # Конфигурация ресурсов
+  resources:
+    - kind: Pod
+      apiVersion: v1
+      namespaced: true
+    - kind: StatefulSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: DaemonSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: Deployment
+      apiVersion: apps/v1
+      namespaced: true
+
+  # Конфигурация rego-правила
+  rego:
+    inline: |
+      package kubernetes
+
+      # Разрешенные registry
+      allowed_registries = {"ww.com", "ss.com"}
+
+      # Запрещенные registry
+      forbidden_registries = {"docker.io", "registry.hub.docker.com", "index.docker.io"}
+
+      # Получить спецификацию Pod
+      get_pod_spec(resource) = spec if {
+          resource.kind == "Pod"
+          spec := resource.spec
+      }
+
+      get_pod_spec(resource) = spec if {
+          resource.kind != "Pod"
+          spec := resource.spec.template.spec
+      }
+
+      # Извлечь registry из имени образа
+      extract_registry(image) = registry if {
+          contains(image, "/")
+          parts := split(image, "/")
+          registry := parts[0]
+      }
+
+      extract_registry(image) = "docker.io" if {
+          not contains(image, "/")
+      }
+
+      # Проверить, использует ли образ разрешенный registry
+      uses_allowed_registry(image) if {
+          registry := extract_registry(image)
+          allowed_registries[registry]
+      }
+
+      # Проверить, использует ли образ запрещенный registry
+      uses_forbidden_registry(image) if {
+          registry := extract_registry(image)
+          forbidden_registries[registry]
+      }
+
+      # Определение нарушения - использование запрещенного registry
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          container := spec.containers[_]
+          not uses_allowed_registry(container.image)
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' использует неразрешенный registry для образа %s. Разрешены только: ww.com, ss.com", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  container.image
+              ])
+          }
+      }
+
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          container := spec.initContainers[_]
+          not uses_allowed_registry(container.image)
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' использует неразрешенный registry для образа %s (init container). Разрешены только: ww.com, ss.com", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  container.image
+              ])
+          }
+      }
+
+      # Специальное нарушение для Docker Hub
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          container := spec.containers[_]
+          uses_forbidden_registry(container.image)
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' использует запрещенный Docker Hub для образа %s", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  container.image
+              ])
+          }
+      }
+
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          container := spec.initContainers[_]
+          uses_forbidden_registry(container.image)
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' использует запрещенный Docker Hub для образа %s (init container)", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  container.image
+              ])
+          }
+      }
+
+  # Конфигурация утверждений
+  assertions:
+    - name: "Проверка разрешенных registry"
+      condition: "violation_count == 0"
+      severity: warning
+      description: "Обнаружено {{ violation_count }} ресурсов, использующих неразрешенные registry"
+
+# Рекомендации по устранению проблемы
+solution: |
+  Использование неразрешенных registry запрещено политикой безопасности.
+  1. Используйте только разрешенные registry: ww.com или ss.com
+  2. Запрещено использование Docker Hub и других публичных registry
+  3. Примеры правильных форматов образов:
+      - ww.com/nginx:1.25
+      - ss.com/myapp:v2.1.0
+      - ww.com/library/postgres:15
+  4. Примеры запрещенных форматов:
+      - nginx:latest (Docker Hub)
+      - docker.io/nginx:1.25
+      - registry.hub.docker.com/library/redis:7
+      - gcr.io/myproject/app:v1
+  5. Перестройте образы и загрузите их в разрешенные registry
+
+# Метки
+tags:
+  - security
+  - compliance
+  - registry
+  - images
+  - docker-hub

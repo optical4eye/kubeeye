@@ -1,0 +1,41 @@
+---
+# Правило проверки общего числа процессов
+id: node-process-count
+name: Проверка общего числа процессов
+description: Проверяет, не превышает ли общее количество процессов на узле допустимый уровень
+type: node
+category: process
+severity: warning
+enabled: true
+tier: basic
+
+
+# Конфигурация правила
+config:
+  # Конфигурация выполнения - напрямую возвращает общее количество процессов
+  execution:
+    command: "ps aux | grep -v grep | wc -l"
+    timeout: 10
+
+
+  # Конфигурация утверждений - напрямую использует вывод команды
+  assertions:
+    - name: "Количество процессов в норме"
+      condition: "int(output) < 500"
+      severity: warning
+      description: "Общее количество процессов: {{ output }}"
+
+
+# Рекомендации по устранению проблемы
+solution: |
+  Обработка избыточного количества процессов:
+  1. Просмотреть список процессов: ps aux
+  2. Подсчитать процессы по пользователям: ps aux | sort -k1 | uniq -c -f1
+  3. Найти подозрительные процессы: ps aux | grep <suspicious_process>
+  4. Проверить запланированные задачи: crontab -l
+
+
+# Метки
+tags:
+  - process
+  - count

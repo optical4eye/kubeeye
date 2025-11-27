@@ -1,0 +1,107 @@
+---
+# OPA правило - проверка монтирования путей хоста (упрощённая версия)
+id: opa-host-path
+name: Проверка монтирования путей хоста для Pod
+description: Проверяет, монтирует ли Pod пути хоста; каждое правило — отдельная проверка
+type: opa
+category: security
+severity: critical
+enabled: true
+tier: basic
+
+
+# Конфигурация правила
+config:
+  # Конфигурация ресурсов
+  resources:
+    - kind: Pod
+      apiVersion: v1
+      namespaced: true
+    - kind: StatefulSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: DaemonSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: Deployment
+      apiVersion: apps/v1
+      namespaced: true
+
+
+  # Конфигурация rego-правила
+  rego:
+    inline: |
+      package kubernetes
+
+      # Получить спецификацию Pod
+      get_pod_spec(resource) = spec if {
+          resource.kind == "Pod"
+          spec := resource.spec
+      }
+
+      get_pod_spec(resource) = spec if {
+          resource.kind != "Pod"
+          spec := resource.spec.template.spec
+      }
+
+      # Проверка монтирования путей хоста
+      host_path_volumes(volumes) = host_paths if {
+          host_paths := [volume |
+              volume := volumes[_]
+              volume.hostPath
+          ]
+      }
+
+      # Определение нарушений
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          volumes := default_array(spec.volumes)
+          host_paths := host_path_volumes(volumes)
+          count(host_paths) > 0
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' монтирует %d том(ов) путем хоста: %s", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  count(host_paths),
+                  concat(", ", [v.name | v := host_paths[_]])
+              ])
+          }
+      }
+
+      # Вспомогательные функции
+      default_array(val) = result if {
+          val != null
+          result = val
+      }
+
+      default_array(val) = [] if {
+          val == null
+      }
+
+  # Конфигурация утверждений
+  assertions:
+    - name: "Проверка монтирования путей хоста"
+      condition: "violation_count == 0"
+      severity: critical
+      description: "Обнаружено {{ violation_count }} монтирований путей хоста"
+
+
+# Рекомендации по устранению проблемы
+solution: |
+  Обработка рисков монтирования путей хоста:
+  1. Избегайте монтирования путей хоста, особенно чувствительных директорий, таких как /, /etc, /var
+  2. Используйте PersistentVolume и PersistentVolumeClaim
+  3. Если монтирование необходимо, ограничьте путь и установите режим только для чтения
+
+
+# Метки
+tags:
+  - security
+  - volumes
+  - hostPath
