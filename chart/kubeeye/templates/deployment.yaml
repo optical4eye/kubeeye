@@ -6,6 +6,8 @@ metadata:
   labels:
     app: kubeeye
   {{- include "kubeeye.labels" . | nindent 4 }}
+  annotations:
+    checksum/rules: {{ include "rules.checksum" . | quote }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
@@ -17,6 +19,8 @@ spec:
       labels:
         app: kubeeye
       {{- include "kubeeye.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/rules: {{ include "rules.checksum" . | quote }}
     spec:
       securityContext:
         runAsUser: 1001

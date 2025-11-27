@@ -1,0 +1,152 @@
+---
+# OPA правило - проверка опасных возможностей Linux
+id: opa-dangerous-capabilities
+name: Проверка опасных возможностей контейнера Linux
+description: Проверяет, настроены ли в контейнере опасные возможности Linux, такие как CAP_SYS_ADMIN, которые могут представлять риск безопасности
+type: opa
+category: security
+severity: high
+enabled: true
+tier: standard
+
+
+# Конфигурация правила
+config:
+  # Конфигурация ресурсов
+  resources:
+    - kind: Pod
+      apiVersion: v1
+      namespaced: true
+    - kind: StatefulSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: DaemonSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: Deployment
+      apiVersion: apps/v1
+      namespaced: true
+
+
+  # Конфигурация охвата
+  scope:
+    namespaces:
+      include: []  # все пространства имен
+      exclude:
+        - kube-system
+        - kube-public
+
+
+  # Конфигурация rego-правила
+  rego:
+    inline: |
+      package kubernetes
+
+      # Получение спецификации Pod
+      get_pod_spec(resource) = spec if {
+          resource.kind == "Pod"
+          spec := resource.spec
+      }
+
+      get_pod_spec(resource) = spec if {
+          resource.kind != "Pod"
+          spec := resource.spec.template.spec
+      }
+
+      # Список опасных возможностей Linux
+      dangerous_caps := {
+          "SYS_ADMIN",
+          "SYS_TIME",
+          "SYS_MODULE",
+          "NET_ADMIN",
+          "NET_RAW",
+          "SYS_PTRACE",
+          "DAC_OVERRIDE",
+          "SETUID",
+          "SETGID"
+      }
+
+      # Проверка опасных возможностей в контейнерах
+      dangerous_capabilities(containers) = dangerous if {
+          dangerous := [container |
+              container := containers[_]
+              security_context := default_object(container.securityContext)
+              capabilities := default_object(security_context.capabilities)
+              add_caps := default_array(capabilities.add)
+              container_dangerous_caps := [cap |
+                  cap := add_caps[_]
+                  dangerous_caps[upper(cap)]
+              ]
+              count(container_dangerous_caps) > 0
+          ]
+      }
+
+      # Правило нарушений - опасные возможности
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          containers := array.concat(
+              default_array(spec.containers),
+              default_array(spec.initContainers)
+          )
+          dangerous := dangerous_capabilities(containers)
+          count(dangerous) > 0
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) с опасными возможностями: %s", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  count(dangerous),
+                  concat(", ", [c.name | c := dangerous[_]])
+              ])
+          }
+      }
+
+      # Вспомогательные функции
+      default_array(val) = result if {
+          val != null
+          result = val
+      }
+
+      default_array(val) = [] if {
+          val == null
+      }
+
+      default_object(val) = result if {
+          val != null
+          result = val
+      }
+
+      default_object(val) = {} if {
+          val == null
+      }
+
+
+# Конфигурация утверждений
+assertions:
+  - name: "Проверка опасных возможностей"
+    condition: "violation_count == 0"
+    severity: high
+    description: "Обнаружено {{ violation_count }} контейнеров с опасными возможностями"
+
+
+# Рекомендации по устранению проблемы
+solution: |
+
+  Удалите ненужные возможности Linux, применяя принцип минимальных прав:
+  ```yaml
+  securityContext:
+    capabilities:
+      drop: ["ALL"]  # Сначала удалить все возможности
+      add: []        # Добавить только абсолютно необходимые возможности
+  ```
+
+# Метки
+tags:
+  - security
+  - linux-capabilities
+  - container-security

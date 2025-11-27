@@ -1,0 +1,167 @@
+---
+# OPA правило - проверка ограничений ресурсов для контейнеров - с использованием формата утверждений
+id: opa-resource-limits
+name: Проверка ограничений ресурсов контейнеров
+description: Проверяет, что у всех контейнеров установлены запросы и лимиты ресурсов для предотвращения конкуренции за ресурсы и перегрузки узлов
+type: opa
+category: resource
+severity: warning
+enabled: true
+tier: basic
+
+
+# Конфигурация правила
+config:
+  # Конфигурация ресурсов
+  resources:
+    - kind: Pod
+      apiVersion: v1
+      namespaced: true
+    - kind: StatefulSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: DaemonSet
+      apiVersion: apps/v1
+      namespaced: true
+    - kind: Deployment
+      apiVersion: apps/v1
+      namespaced: true
+
+
+  # Конфигурация области действия
+  scope:
+    namespaces:
+      include: []  # пустой список означает все непредусмотренные пространства имен
+      exclude:
+        - kube-system
+        - kube-public
+
+  # Конфигурация inline rego правила
+  rego:
+    inline: |
+      package kubernetes
+
+      # Получение спецификации Pod
+      get_pod_spec(resource) = spec if {
+          resource.kind == "Pod"
+          spec := resource.spec
+      }
+
+      get_pod_spec(resource) = spec if {
+          resource.kind != "Pod"
+          spec := resource.spec.template.spec
+      }
+
+      # Определение контейнеров без указания заданного поля ресурсов (requests или limits)
+      missing_resources_containers(containers, field) = missing if {
+          missing := [container |
+              container := containers[_]
+              resources := object.get(container, "resources", {})
+              not resources[field]
+          ]
+      }
+
+      # Определение нарушений - отсутствие запросов ресурсов
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          containers := array.concat(
+              default_array(spec.containers),
+              default_array(spec.initContainers)
+          )
+          missing_requests := missing_resources_containers(containers, "requests")
+          count(missing_requests) > 0
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) без запросов ресурсов: %s", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  count(missing_requests),
+                  concat(", ", [c.name | c := missing_requests[_]])
+              ])
+          }
+      }
+
+      # Определение нарушений - отсутствие лимитов ресурсов
+      violations contains result if {
+          resource := input.resources[_]
+          spec := get_pod_spec(resource)
+          containers := array.concat(
+              default_array(spec.containers),
+              default_array(spec.initContainers)
+          )
+          missing_limits := missing_resources_containers(containers, "limits")
+          count(missing_limits) > 0
+
+          result := {
+              "kind": resource.kind,
+              "name": resource.metadata.name,
+              "namespace": resource.metadata.namespace,
+              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) без лимитов ресурсов: %s", [
+                  resource.kind,
+                  resource.metadata.name,
+                  resource.metadata.namespace,
+                  count(missing_limits),
+                  concat(", ", [c.name | c := missing_limits[_]])
+              ])
+          }
+      }
+
+      # Вспомогательные функции - возвращают пустой массив если значение равно null
+      default_array(val) = result if {
+          val != null
+          result = val
+      }
+
+      default_array(val) = [] if {
+          val == null
+      }
+
+  # Конфигурация утверждений
+  assertions:
+    - name: "Проверка отсутствия ресурсов у контейнеров"
+      condition: "violation_count == 0"
+      severity: warning
+      description: "Обнаружено {{ violation_count }} ресурсов без правильно настроенных запросов и/или лимитов ресурсов"
+
+    - name: "Проверка значительного количества контейнеров без ресурсов"
+      condition: "violation_count < 10"
+      severity: critical
+      description: "Обнаружено большое количество {{ violation_count }} ресурсов без правильно настроенных запросов и/или лимитов ресурсов"
+
+
+# Рекомендации по решению проблемы
+solution: |
+  Устанавливайте запросы и лимиты ресурсов для всех контейнеров, чтобы избежать конкуренции за ресурсы и перегрузки узлов:
+
+  1. Задавайте разумные значения запросов ресурсов для каждого контейнера:
+    ```
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+    ```
+
+  2. Задавайте адекватные значения лимитов ресурсов для каждого контейнера:
+    ```
+    resources:
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+    ```
+
+  3. Отслеживайте реальное потребление ресурсов приложениями и корректируйте значения запросов и лимитов соответственно
+  4. Используйте LimitRange или ResourceQuota для управления распределением ресурсов в пространстве имен
+  5. Для разных сред (разработка, тестирование, продакшен) задавайте различные конфигурации ресурсов
+
+
+# Метки
+tags:
+  - resources
+  - best-practice
+  - performance
+  - stability
