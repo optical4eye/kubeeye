@@ -163,12 +163,13 @@ class NodeInspector(BaseInspector):
     """
 
     def __init__(self, config: List[Dict[str, Any]], enable_concurrent: bool = True,
-                 max_workers: int = 5, timeout: int = 30, enable_security_check: bool = True):
+                 max_workers: int = 5, timeout: int = 30, enable_security_check: bool = True,
+                 use_gitops: bool = False):
         """
         Инициализация инспектора узлов
         """
         inspector_config = {"nodes": config}
-        super().__init__(inspector_config)
+        super().__init__(inspector_config, use_gitops=use_gitops)
 
         self.nodes = config
         self.enable_concurrent = enable_concurrent
@@ -199,7 +200,8 @@ class NodeInspector(BaseInspector):
             'total_time': 0
         }
 
-        logger.info(f"Инспектор узлов инициализирован - узлов: {len(config)}")
+        source_type = "GitOps" if use_gitops else "локальных"
+        logger.info(f"Инспектор узлов инициализирован - узлов: {len(config)}, правила: {source_type}")
 
     @property
     def inspector_type(self) -> str:
@@ -209,7 +211,8 @@ class NodeInspector(BaseInspector):
         """
         Выполнение проверки с гарантией единого отображения ошибок SSH
         """
-        logger.info(f"🔍 Начало проверки узлов - кластер: {cluster_name}")
+        source_type = "GitOps" if self.use_gitops else "локальных"
+        logger.info(f"🔍 Начало проверки узлов - кластер: {cluster_name}, правила: {source_type}")
 
         # Сбрасываем реестр ошибок перед началом новой проверки
         self.ssh_error_manager.reset_for_inspection()
@@ -648,7 +651,7 @@ class NodeInspector(BaseInspector):
         print(f"========================\n")
 
     @classmethod
-    def create_optimized(cls, config: List[Dict[str, Any]]) -> 'NodeInspector':
+    def create_optimized(cls, config: List[Dict[str, Any]], use_gitops: bool = False) -> 'NodeInspector':
         """Создание оптимизированного инспектора"""
         node_count = len(config)
         if node_count <= 3:
@@ -663,6 +666,7 @@ class NodeInspector(BaseInspector):
 
         return cls(
             config=config,
+            use_gitops=use_gitops,
             enable_concurrent=node_count > 1,
             max_workers=max_workers,
             timeout=timeout

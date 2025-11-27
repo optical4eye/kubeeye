@@ -260,15 +260,15 @@ else:
     cols = st.columns(3)
 
     with cols[0]:
-        if st.button("🔍 Запустить инспекцию", use_container_width=True, type="primary"):
+        if st.button("🔍 Запустить инспекцию", width='stretch', type="primary"):
             st.switch_page("pages/2_cluster_inspect.py")
 
     with cols[1]:
-        if st.button("📊 Просмотр отчёта", use_container_width=True):
+        if st.button("📊 Просмотр отчёта", width='stretch'):
             st.switch_page("pages/3_inspect_report.py")
 
     with cols[2]:
-        if st.button("⚙️ Управление кластером", use_container_width=True):
+        if st.button("⚙️ Управление кластером", width='stretch'):
             st.switch_page("pages/1_cluster_info.py")
 
 

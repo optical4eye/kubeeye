@@ -12,6 +12,7 @@ from utils.schedule_manager import (
 )
 
 from components.ui import display_cluster_info, InspectionProgress
+from utils.rule_manager import RuleManager
 
 def render_scheduled_scan_tab():
     """Отобразить вкладку плановой проверки"""
@@ -103,7 +104,7 @@ def render_task_list_tab(tasks):
             })
         if task_data:
             task_df = pd.DataFrame(task_data)
-            st.dataframe(task_df, use_container_width=True, hide_index=True)
+            st.dataframe(task_df, width='stretch', hide_index=True)
             st.subheader("Управление задачей")
             selected_task_id = st.selectbox(
                 "Выберите задачу",
@@ -128,7 +129,10 @@ def render_task_list_tab(tasks):
                         if rules:
                             for rule_type, rule_config in rules.items():
                                 if rule_config.get('enabled', False):
-                                    st.write(f"**{rule_type.capitalize()}** правила: {len(rule_config.get('rules', []))} шт.")
+                                    # Определяем источник правил для отображения
+                                    use_gitops = RuleManager.should_use_gitops()
+                                    source_text = "GitOps" if use_gitops else "локальных"
+                                    st.write(f"**{rule_type.capitalize()}** правила: {len(rule_config.get('rules', []))} {source_text} правил")
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         if st.button("Выполнить сейчас", key=f"run_{selected_task_id}"):
@@ -253,9 +257,14 @@ def render_create_task_tab():
         prometheus_check = bool(prometheus_config and prometheus_config.get('enabled', False))
         opa_check = bool(kubeconfig)
 
-        from utils.rule_manager import RuleManager
+        # Определить, использовать ли правила GitOps
+        use_gitops = RuleManager.should_use_gitops()
+
+        if use_gitops:
+            st.info("🔒 Используются правила GitOps")
+
         selected_node_rules, selected_prometheus_rules, selected_opa_rules = RuleManager.create_rule_selection_tabs(
-            node_check, prometheus_check, opa_check, "_schedule", in_form=True
+            node_check, prometheus_check, opa_check, "_schedule", in_form=True, use_gitops=use_gitops
         )
 
         st.divider()

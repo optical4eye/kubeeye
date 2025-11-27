@@ -109,7 +109,7 @@ def display_opa_violations_table(violations_data: List[Dict], show_expander: boo
     if len(violations_data) <= 10:
         st.dataframe(
             df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             column_config={
                 "Тип ресурса": st.column_config.TextColumn("Тип ресурса", help="Тип ресурса Kubernetes"),
@@ -149,7 +149,7 @@ def display_opa_violations_table(violations_data: List[Dict], show_expander: boo
         page_df = df.iloc[start_idx:end_idx]
         st.dataframe(
             page_df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             column_config={
                 "Тип ресурса": st.column_config.TextColumn("Тип ресурса"),

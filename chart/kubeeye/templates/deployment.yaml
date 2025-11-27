@@ -41,7 +41,7 @@ spec:
           mountPath: /etc/localtime
           readOnly: true
       # rules
-        {{- range .Values.kubeeyeRules }}
+        {{- range .Values.kubeeyeLocalRules }}
         - name: {{ .name }}
           mountPath: /app/rules/{{ .type }}/{{ .name }}.yaml
           subPath: {{ .name }}.yaml
@@ -58,7 +58,7 @@ spec:
           path: /etc/localtime
           type: File
       # rules
-      {{- range .Values.kubeeyeRules }}
+      {{- range .Values.kubeeyeLocalRules }}
       - name: {{ .name }}
         configMap:
           name: {{ .name }}

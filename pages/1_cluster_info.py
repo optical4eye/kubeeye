@@ -485,7 +485,7 @@ with tab3:
                         },
                         disabled=["IP адрес", "Порт", "Пользователь", "Тип аутентификации", "Пароль/Ключ"],
                         hide_index=True,
-                        use_container_width=True
+                        width='stretch'
                     )
 
                     # Обработка выбранных узлов для удаления

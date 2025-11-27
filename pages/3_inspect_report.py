@@ -244,7 +244,7 @@ def display_reports_table(filtered_results):
 
     event = st.dataframe(
         df,
-        use_container_width=True,
+        width='stretch',
         hide_index=True,
         on_select="rerun",
         selection_mode="single-row",
@@ -351,16 +351,16 @@ def display_report_operations(report_id):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🔍 Просмотр деталей", type="primary", use_container_width=True):
+        if st.button("🔍 Просмотр деталей", type="primary", width='stretch'):
             st.session_state.view_mode = "detail"
             st.rerun()
 
     with col2:
-        if st.button("📄 Экспорт JSON", use_container_width=True):
+        if st.button("📄 Экспорт JSON", width='stretch'):
             export_and_download(report_id, "json", "JSON")
 
     with col3:
-        if st.button("📊 Экспорт Excel", use_container_width=True):
+        if st.button("📊 Экспорт Excel", width='stretch'):
             export_and_download(report_id, "excel", "Excel")
 
     st.markdown("#### 🗑️ Удаление")
@@ -372,7 +372,7 @@ def display_report_operations(report_id):
     with col2:
         confirm_key = f"confirm_delete_{report_id}"
         if st.session_state.get(confirm_key, False):
-            if st.button("❌ Подтвердить удаление", type="primary", use_container_width=True):
+            if st.button("❌ Подтвердить удаление", type="primary", width='stretch'):
                 try:
                     delete_report(report_id)
                     st.success(f"✅ Отчёт {report_id} удалён")
@@ -383,7 +383,7 @@ def display_report_operations(report_id):
                 except Exception as e:
                     st.error(f"❌ Ошибка при удалении: {str(e)}")
         else:
-            if st.button("🗑️ Удалить", use_container_width=True):
+            if st.button("🗑️ Удалить", width='stretch'):
                 st.session_state[confirm_key] = True
                 st.rerun()
 
@@ -623,11 +623,11 @@ def display_export_page(report_id):
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("📄 Экспорт в JSON", use_container_width=True):
+        if st.button("📄 Экспорт в JSON", width='stretch'):
             export_and_download(report_id, "json", "JSON")
 
     with col2:
-        if st.button("📊 Экспорт в Excel", use_container_width=True):
+        if st.button("📊 Экспорт в Excel", width='stretch'):
             export_and_download(report_id, "excel", "Excel")
 
     st.divider()
@@ -698,7 +698,7 @@ def export_and_download(report_id, format_type, format_name, include_passed=Fals
                     file_name=os.path.basename(file_path),
                     mime=mime_types.get(format_type, "application/octet-stream"),
                     type="secondary",
-                    use_container_width=True
+                    width='stretch'
                 )
                 file_size = len(file_data) / 1024
                 st.caption(f"Размер файла: {file_size:.1f} КБ | Путь: {file_path}")

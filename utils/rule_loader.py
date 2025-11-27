@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-新版规则加载器模块，支持断言格式
+Модуль загрузки правил - поддерживает режим GitOps
 """
 
 import yaml
@@ -10,49 +10,51 @@ import os
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-# 设置日志
+# Настройка логов
 logger = logging.getLogger(__name__)
 
-# 规则目录定义
+# Основная директория правил
 RULES_DIR = Path(__file__).parent.parent / "rules"
+# Директория GitOps правил
+GIT_RULES_DIR = Path(__file__).parent.parent / "data" / "git_rules"
 
 class Rule:
-    """规则类，表示一个巡检规则，支持断言格式"""
+    """Класс правила, представляющий правило проверки, поддерживает формат утверждений"""
 
     def __init__(self, rule_data: Dict):
         """
-        初始化规则对象，支持断言格式
+        Инициализировать объект правила, поддерживает формат утверждений
 
         Args:
-            rule_data: 规则数据字典
+            rule_data: словарь данных правила
         """
-        # 基本元数据
+        # Основные метаданные
         self.id = rule_data.get('id', '')
         self.name = rule_data.get('name', '')
         self.description = rule_data.get('description', '')
-        self.type = rule_data.get('type', '')  # 规则类型：node, prometheus, opa
-        self.category = rule_data.get('category', '')  # 规则类别
-        self.severity = rule_data.get('severity', 'warning')  # 严重程度
-        self.enabled = rule_data.get('enabled', True)  # 是否启用
-        self.solution = rule_data.get('solution', '')  # 解决方案
-        self.tags = rule_data.get('tags', [])  # 标签
-        self.tier = rule_data.get('tier', 'basic')  # 规则层级(basic/standard/extended)
+        self.type = rule_data.get('type', '')  # Тип правила: node, prometheus, opa
+        self.category = rule_data.get('category', '')  # Категория правила
+        self.severity = rule_data.get('severity', 'warning')  # Серьезность
+        self.enabled = rule_data.get('enabled', True)  # Включено ли
+        self.solution = rule_data.get('solution', '')  # Решение
+        self.tags = rule_data.get('tags', [])  # Теги
+        self.tier = rule_data.get('tier', 'basic')  # Уровень правила (basic/standard/extended)
 
-        # GitOps相关字段
-        self.source = rule_data.get('source', 'local')  # 来源: local 或 git
-        self.repository = rule_data.get('repository', '')  # Git仓库名称
-        self.file_path = rule_data.get('file_path', '')  # 在Git仓库中的路径
+        # Поля, связанные с GitOps
+        self.source = rule_data.get('source', 'local')  # Источник: local или git
+        self.repository = rule_data.get('repository', '')  # Имя Git репозитория
+        self.file_path = rule_data.get('file_path', '')  # Путь в Git репозитории
 
-        # 核心配置
-        self.config = rule_data.get('config', {})  # 统一的配置对象
+        # Основная конфигурация
+        self.config = rule_data.get('config', {})  # Единый объект конфигурации
 
-        # 断言模式特定字段
-        self.assertions = self.config.get('assertions', [])  # 断言配置列表
-        self.extractors = self.config.get('extractors', [])  # 提取器配置列表
+        # Специфичные поля для режима утверждений
+        self.assertions = self.config.get('assertions', [])  # Список конфигураций утверждений
+        self.extractors = self.config.get('extractors', [])  # Список конфигураций экстракторов
 
     def to_dict(self) -> Dict:
-        """将规则转换为字典"""
-        # 基础字段
+        """Преобразовать правило в словарь"""
+        # Базовые поля
         rule_dict = {
             'id': self.id,
             'name': self.name,
@@ -67,7 +69,7 @@ class Rule:
             'config': self.config
         }
 
-        # 只在Git规则中包含源信息
+        # Включать информацию об источнике только для Git правил
         if self.source == 'git':
             rule_dict['source'] = self.source
             rule_dict['repository'] = self.repository
@@ -77,88 +79,155 @@ class Rule:
 
     @property
     def execution(self) -> Dict:
-        """获取执行配置"""
+        """Получить конфигурацию выполнения"""
         return self.config.get('execution', {})
 
-def load_rules(rule_type: str = None, include_disabled: bool = False) -> List[Rule]:
+def load_rules(rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False) -> List[Rule]:
     """
-    加载指定类型的规则
+    Загрузить правила указанного типа
 
     Args:
-        rule_type: 规则类型，如 node、opa、prometheus，为None则加载所有规则
-        include_disabled: 是否包含禁用规则
+        rule_type: тип правила, например node, opa, prometheus, если None, загрузить все правила
+        include_disabled: включать ли отключенные правила
+        use_gitops: использовать ли правила GitOps
 
     Returns:
-        规则列表
+        Список правил
     """
     rules = []
 
-    # 确定要搜索的目录
-    search_dirs = []
-    if rule_type:
-        # 只搜索指定类型的规则目录
-        type_dir = RULES_DIR / rule_type
-        if type_dir.exists():
-            search_dirs.append(type_dir)
+    # Определить базовую директорию
+    if use_gitops:
+        base_dir = GIT_RULES_DIR
+        # Если директория GitOps не существует, вернуть пустой список
+        if not base_dir.exists():
+            logger.info(f"Директория GitOps правил не существует: {base_dir}")
+            return rules
+        logger.info(f"Загрузка GitOps правил из: {base_dir}")
+
+        # Для GitOps ищем во всех поддиректориях репозиториев
+        search_dirs = []
+        for repo_dir in base_dir.iterdir():
+            if repo_dir.is_dir():
+                type_dir = repo_dir / rule_type if rule_type else repo_dir
+                if type_dir.exists():
+                    search_dirs.append(type_dir)
+                else:
+                    # Если конкретный тип не найден, ищем все поддиректории с правилами
+                    for sub_dir in repo_dir.iterdir():
+                        if sub_dir.is_dir() and sub_dir.name in ['node', 'prometheus', 'opa']:
+                            if not rule_type or sub_dir.name == rule_type:
+                                search_dirs.append(sub_dir)
     else:
-        # 搜索所有规则目录
-        for item in RULES_DIR.iterdir():
-            if item.is_dir() and not item.name.startswith('_') and not item.name == 'examples':
-                search_dirs.append(item)
+        base_dir = RULES_DIR
+        logger.info(f"Загрузка локальных правил из: {base_dir}")
 
-    # 从每个目录加载规则
+        # Определить директории для поиска
+        search_dirs = []
+        if rule_type:
+            # Искать только в директории указанного типа правил
+            type_dir = base_dir / rule_type
+            if type_dir.exists():
+                search_dirs.append(type_dir)
+            else:
+                logger.warning(f"Директория для типа правил '{rule_type}' не существует: {type_dir}")
+        else:
+            # Искать во всех директориях правил
+            for item in base_dir.iterdir():
+                if item.is_dir() and not item.name.startswith('_') and not item.name == 'examples':
+                    search_dirs.append(item)
+
+    logger.info(f"Найдено директорий для поиска: {[str(d) for d in search_dirs]}")
+
+    # Загрузить правила из каждой директории
     for rules_dir in search_dirs:
-        dir_rule_type = rules_dir.name  # 从目录名推断规则类型
+        logger.info(f"Поиск правил в директории: {rules_dir}")
 
-        for file_path in rules_dir.glob('*.yaml'):
+        yaml_files = list(rules_dir.glob('*.yaml'))
+        logger.info(f"Найдено YAML файлов в {rules_dir}: {len(yaml_files)}")
+
+        for file_path in yaml_files:
             try:
-                # 加载YAML文件
+                # Загрузить YAML файл
                 with open(file_path, 'r', encoding='utf-8') as f:
                     rule_data = yaml.safe_load(f)
 
-                # 确保规则数据是字典
+                # Убедиться, что данные правила являются словарем
                 if not isinstance(rule_data, dict):
-                    logger.warning(f"规则文件 {file_path} 格式错误，应为YAML字典")
+                    logger.warning(f"Формат файла правила {file_path} неверен, должен быть YAML словарь")
                     continue
 
-                # 如果没有明确指定type，则从目录名推断
+                # Определить тип правила
                 if 'type' not in rule_data:
-                    rule_data['type'] = dir_rule_type
+                    # Попробовать определить тип из имени директории
+                    dir_name = rules_dir.name
+                    if dir_name in ['node', 'prometheus', 'opa']:
+                        rule_data['type'] = dir_name
+                    else:
+                        # Если это поддиректория репозитория, посмотреть на родительскую директорию
+                        parent_dir = rules_dir.parent.name
+                        if parent_dir in ['node', 'prometheus', 'opa']:
+                            rule_data['type'] = parent_dir
+                        else:
+                            rule_data['type'] = 'unknown'
 
-                # 创建规则对象
+                # Для правил GitOps добавить информацию об источнике
+                if use_gitops:
+                    # Найти имя репозитория из пути
+                    repo_name = None
+                    try:
+                        # Путь относительно GIT_RULES_DIR
+                        relative_path = file_path.relative_to(GIT_RULES_DIR)
+                        if relative_path.parts:
+                            repo_name = relative_path.parts[0]
+                    except ValueError:
+                        pass
+
+                    rule_data['source'] = 'git'
+                    rule_data['repository'] = repo_name or 'unknown'
+                    rule_data['file_path'] = str(file_path.relative_to(GIT_RULES_DIR))
+
+                    # АВТОМАТИЧЕСКИ ВКЛЮЧАЕМ ПРАВИЛА ИЗ GITOPS
+                    rule_data['enabled'] = True
+                    logger.info(f"Правило из GitOps автоматически включено: {rule_data.get('id', 'unknown')}")
+
+                # Создать объект правила
                 rule = Rule(rule_data)
 
-                # 检查是否应该加入结果
+                # Проверить, следует ли включать в результат
                 if rule.enabled or include_disabled:
                     rules.append(rule)
+                    logger.info(f"Загружено правило: {rule.id} (тип: {rule.type}, включено: {rule.enabled})")
+                else:
+                    logger.info(f"Пропущено отключенное правило: {rule.id}")
 
             except Exception as e:
-                logger.error(f"加载规则文件 {file_path} 失败: {str(e)}")
+                logger.error(f"Не удалось загрузить файл правила {file_path}: {str(e)}")
 
-    logger.info(f"已加载 {len(rules)} 条规则")
+    logger.info(f"Загружено {len(rules)} правил из {'GitOps' if use_gitops else 'локальной'} директории")
     return rules
 
 def load_rule_from_file(file_path: str) -> Optional[Rule]:
     """
-    从文件加载单个规则
+    Загрузить одно правило из файла
 
     Args:
-        file_path: 规则文件路径
+        file_path: путь к файлу правила
 
     Returns:
-        规则对象，如果加载失败则返回None
+        Объект правила, если загрузка не удалась, вернуть None
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             rule_data = yaml.safe_load(f)
 
         if not isinstance(rule_data, dict):
-            logger.warning(f"规则文件 {file_path} 格式错误，应为YAML字典")
+            logger.warning(f"Формат файла правила {file_path} неверен, должен быть YAML словарь")
             return None
 
-        # 如果没有明确指定type，则从文件路径推断
+        # Если тип не указан явно, попытаться вывести из пути к файлу
         if 'type' not in rule_data:
-            # 尝试从路径中提取规则类型
+            # Попытаться извлечь тип правила из пути
             path_parts = Path(file_path).parts
             for part in path_parts:
                 if part in ('node', 'opa', 'prometheus'):
@@ -168,40 +237,40 @@ def load_rule_from_file(file_path: str) -> Optional[Rule]:
         return Rule(rule_data)
 
     except Exception as e:
-        logger.error(f"加载规则文件 {file_path} 失败: {str(e)}")
+        logger.error(f"Не удалось загрузить файл правила {file_path}: {str(e)}")
         return None
 
 def save_rule(rule: Rule) -> bool:
     """
-    保存规则到文件
+    Сохранить правило в файл
 
     Args:
-        rule: 要保存的规则对象
+        rule: объект правила для сохранения
 
     Returns:
-        是否保存成功
+        Успешно ли сохранение
     """
     try:
-        # 确定规则类型目录
+        # Определить директорию типа правила
         rule_type_dir = RULES_DIR / rule.type
 
-        # 确保目录存在
+        # Убедиться, что директория существует
         if not rule_type_dir.exists():
             rule_type_dir.mkdir(parents=True, exist_ok=True)
 
-        # 规则文件路径
+        # Путь к файлу правила
         file_path = rule_type_dir / f"{rule.id}.yaml"
 
-        # 将规则转换为字典
+        # Преобразовать правило в словарь
         rule_dict = rule.to_dict()
 
-        # 保存到文件
+        # Сохранить в файл
         with open(file_path, 'w', encoding='utf-8') as f:
             yaml.dump(rule_dict, f, default_flow_style=False, allow_unicode=True)
 
-        logger.info(f"规则 {rule.id} 已成功保存到文件 {file_path}")
+        logger.info(f"Правило {rule.id} успешно сохранено в файл {file_path}")
         return True
 
     except Exception as e:
-        logger.error(f"保存规则 {rule.id} 失败: {str(e)}")
+        logger.error(f"Не удалось сохранить правило {rule.id}: {str(e)}")
         return False

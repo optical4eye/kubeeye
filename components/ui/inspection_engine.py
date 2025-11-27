@@ -30,7 +30,8 @@ class InspectionEngine:
         selected_rules: Dict[str, List[str]] = None,
         inspection_type: str = "immediate",
         show_progress: bool = True,
-        show_ui_feedback: bool = True
+        show_ui_feedback: bool = True,
+        use_gitops: bool = False  # Добавляем параметр для определения источника правил
     ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
         Выполнить универсальную проверку
@@ -41,10 +42,13 @@ class InspectionEngine:
             inspection_type: тип проверки ("immediate" или "scheduled")
             show_progress: показывать ли прогресс бар
             show_ui_feedback: показывать ли UI обратную связь
+            use_gitops: использовать ли правила GitOps
 
         Returns:
             (успех, сообщение, результаты)
         """
+        self.use_gitops = use_gitops  # Сохраняем информацию об источнике правил
+
         if show_progress:
             total_rules = 0
             if "node" in selected_rules:
@@ -78,6 +82,7 @@ class InspectionEngine:
             logger.info(f"Проверка типов инспекций - количество узлов: {len(nodes)}, Prometheus включен: {prometheus_config.get('enabled', False) if prometheus_config else False}, kubeconfig: {'есть' if kubeconfig else 'нет'}")
             logger.info(f"Выбранные правила: {selected_rules}")
             logger.info(f"Решение проверок - узлы: {run_node_check}, Prometheus: {run_prometheus_check}, OPA: {run_opa_check}")
+            logger.info(f"Режим GitOps: {use_gitops}")
 
             if not (run_node_check or run_prometheus_check or run_opa_check):
                 error_msg = "Нет доступных типов проверки. Проверьте конфигурацию кластера и выбор правил."
@@ -153,7 +158,7 @@ class InspectionEngine:
     def _execute_node_inspection(self, cluster_name: str, nodes: List[Dict], selected_rules: List[str], show_progress: bool) -> Tuple[bool, Any]:
         """Выполнить проверку узлов"""
         try:
-            node_inspector = NodeInspector(nodes)
+            node_inspector = NodeInspector(nodes, use_gitops=self.use_gitops)
 
             if show_progress and self.progress.by_rules:
                 combined_result = InspectionResult(cluster_name, "node")
@@ -181,7 +186,7 @@ class InspectionEngine:
         """Выполнить проверку Prometheus"""
         try:
             if prometheus_config and prometheus_config.get("enabled", False):
-                prometheus_inspector = PrometheusInspector(prometheus_config)
+                prometheus_inspector = PrometheusInspector(prometheus_config, use_gitops=self.use_gitops)
                 if show_progress and self.progress.by_rules:
                     combined_result = InspectionResult(cluster_name, "prometheus")
                     for rule_id in selected_rules:
@@ -217,7 +222,7 @@ class InspectionEngine:
         try:
             if kubeconfig:
                 opa_config = {'kubeconfig': kubeconfig, 'opa_path': 'opa'}
-                opa_inspector = OpaInspector(opa_config)
+                opa_inspector = OpaInspector(opa_config, use_gitops=self.use_gitops)
                 if show_progress and self.progress.by_rules:
                     combined_result = InspectionResult(cluster_name, "opa")
                     for rule_id in selected_rules:
@@ -262,12 +267,15 @@ class InspectionEngine:
         except Exception:
             config_dict = {'nodes': [], 'prometheus': {}, 'opa': {'kubeconfig': ''}}
 
-        controller = InspectionController(config_dict)
+        controller = InspectionController(config_dict, use_gitops=self.use_gitops)
         return controller.save_inspection_result(all_results, cluster_name, inspection_type)
 
     def _show_inspection_completion_ui(self, all_results: Dict, result_path: str, cluster_name: str):
         """Показать UI обратной связи после завершения проверки"""
-        st.success("✅ Проверка завершена!")
+        # Определяем источник правил для отображения
+        rules_source = "🔄 GitOps" if self.use_gitops else "📁 Локальные"
+
+        st.success(f"✅ Проверка завершена с использованием {rules_source} правил!")
 
         total_items = sum(len(result.items) if hasattr(result, 'items') else 0 for result in all_results.values() if result)
         passed_count = 0
@@ -309,7 +317,7 @@ class InspectionEngine:
             st.info("📊 Пожалуйста, перейдите на страницу «Отчёты проверки» в левой навигации для просмотра деталей.")
 
         with col2:
-            if st.button("🔄 Повторить проверку", use_container_width=True):
+            if st.button("🔄 Повторить проверку", width='stretch'):
                 st.rerun()
 
 
@@ -317,10 +325,10 @@ inspection_engine = InspectionEngine()
 
 def execute_inspection_unified(cluster_name: str, selected_rules: Dict[str, List[str]] = None,
                              inspection_type: str = "immediate", show_progress: bool = True,
-                             show_ui_feedback: bool = True) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+                             show_ui_feedback: bool = True, use_gitops: bool = False) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
     """Единый интерфейс запуска проверки для всех компонентов"""
     return inspection_engine.execute_inspection(
-        cluster_name, selected_rules, inspection_type, show_progress, show_ui_feedback
+        cluster_name, selected_rules, inspection_type, show_progress, show_ui_feedback, use_gitops
     )
 
 def execute_inspection_task(task, show_progress=True):
@@ -330,10 +338,16 @@ def execute_inspection_task(task, show_progress=True):
         for rule_type in ['node', 'prometheus', 'opa']:
             if rule_type in task.rules and task.rules[rule_type].get("enabled", False):
                 selected_rules[rule_type] = task.rules[rule_type].get("rules", [])
+
+    # Определяем, использовать ли GitOps для плановых задач
+    from utils.rule_manager import RuleManager
+    use_gitops = RuleManager.should_use_gitops()
+
     return execute_inspection_unified(
         cluster_name=task.cluster,
         selected_rules=selected_rules,
         inspection_type="scheduled",
         show_progress=show_progress,
-        show_ui_feedback=False
+        show_ui_feedback=False,
+        use_gitops=use_gitops
     )

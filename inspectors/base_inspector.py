@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-巡检器基类，定义了所有巡检器的通用接口和基础功能
+Базовый класс инспектора, определяет общие интерфейсы и базовые функции для всех инспекторов
 """
 
 from abc import ABC, abstractmethod
@@ -12,267 +12,271 @@ from utils.inspection_result import InspectionResult
 from utils.rule_loader import Rule, load_rules
 from inspectors.rule_processor import RuleProcessor
 
-# 设置日志
+# Настройка логирования
 logger = logging.getLogger(__name__)
 
 class BaseInspector(ABC):
-    """巡检器基类，所有类型的巡检器都应继承此类"""
-    
-    def __init__(self, config: Dict[str, Any]):
+    """Базовый класс инспектора, все типы инспекторов должны наследовать этот класс"""
+
+    def __init__(self, config: Dict[str, Any], use_gitops: bool = False):
         """
-        初始化巡检器
-        
+        Инициализация инспектора
+
         Args:
-            config: 巡检器配置
+            config: конфигурация инспектора
+            use_gitops: использовать ли правила GitOps
         """
         self.config = config
+        self.use_gitops = use_gitops
         self.rules = []
         self.rule_processor = RuleProcessor()
         self._load_rules()
-        
+
     @property
     @abstractmethod
     def inspector_type(self) -> str:
-        """返回巡检器类型，如 'node', 'opa', 'prometheus'"""
+        """Возвращает тип инспектора, например 'node', 'opa', 'prometheus'"""
         pass
-        
+
     def _load_rules(self):
-        """加载适用于此巡检器的规则"""
-        yaml_rules = load_rules(rule_type=self.inspector_type)
+        """Загрузить правила, применимые к этому инспектору"""
+        yaml_rules = load_rules(rule_type=self.inspector_type, use_gitops=self.use_gitops)
         self.rules = [rule for rule in yaml_rules if rule.enabled]
-        logger.info(f"加载了 {len(self.rules)} 条{self.inspector_type}巡检规则")
-        
+        source_type = "GitOps" if self.use_gitops else "локальных"
+        logger.info(f"Загружено {len(self.rules)} {source_type} правил {self.inspector_type} проверки")
+
     @abstractmethod
     def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
         """
-        应用单条规则进行检查
-        
+        Применить одно правило для проверки
+
         Args:
-            rule: 要应用的规则
-            context: 检查上下文
-            
+            rule: применяемое правило
+            context: контекст проверки
+
         Returns:
-            检查结果，可以是单个结果字典，结果列表，或者None（表示规则不适用）
+            Результат проверки, может быть одним словарем результата, списком результатов или None (означает, что правило неприменимо)
         """
         pass
-        
+
     def get_rule_by_id(self, rule_id: str) -> Optional[Rule]:
         """
-        根据ID获取规则
-        
+        Получить правило по ID
+
         Args:
-            rule_id: 规则ID
-            
+            rule_id: ID правила
+
         Returns:
-            规则对象，如果未找到返回None
+            Объект правила, если не найден, возвращает None
         """
         for rule in self.rules:
             if rule.id == rule_id:
                 return rule
         return None
-        
+
     def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
         """
-        运行巡检
-        
+        Выполнить проверку
+
         Args:
-            cluster_name: 集群名称
-            rule_ids: 要运行的规则ID列表，如果为None则运行所有规则
-            
+            cluster_name: имя кластера
+            rule_ids: список ID правил для выполнения, если None, выполнить все правила
+
         Returns:
-            巡检结果对象
+            Объект результата проверки
         """
-        logger.info(f"🔍 BaseInspector.run_inspection 开始 - 巡检器类型: {self.inspector_type}, 集群: {cluster_name}")
-        logger.info(f"可用规则总数: {len(self.rules)}, 指定规则ID: {rule_ids}")
-        
+        source_type = "GitOps" if self.use_gitops else "локальных"
+        logger.info(f"🔍 BaseInspector.run_inspection начато - тип инспектора: {self.inspector_type}, кластер: {cluster_name}, источник: {source_type}")
+        logger.info(f"Доступных правил всего: {len(self.rules)}, указанные ID правил: {rule_ids}")
+
         result = InspectionResult(cluster_name, self.inspector_type)
-        
-        # 确定要运行的规则
+
+        # Определить правила для выполнения
         if rule_ids:
             active_rules = [rule for rule in self.rules if rule.id in rule_ids]
-            logger.info(f"根据指定ID筛选后的规则数: {len(active_rules)}")
+            logger.info(f"Количество правил после фильтрации по указанным ID: {len(active_rules)}")
         else:
             active_rules = self.rules
-            logger.info(f"使用所有可用规则数: {len(active_rules)}")
-            
+            logger.info(f"Использование всех доступных правил: {len(active_rules)}")
+
         if not active_rules:
-            logger.warning(f"没有可执行的规则，巡检结束")
+            logger.warning(f"Нет выполняемых правил, проверка завершена")
             return result
-        
-        logger.info(f"准备执行 {len(active_rules)} 条规则:")
+
+        logger.info(f"Подготовка к выполнению {len(active_rules)} правил:")
         for rule in active_rules:
             logger.info(f"  - {rule.id}: {rule.name}")
-            
-        # 执行规则
+
+        # Выполнение правил
         context = self._prepare_context(cluster_name)
-        logger.info(f"上下文准备完成: {context}")
-        
+        logger.info(f"Контекст подготовлен: {context}")
+
         executed_count = 0
         for rule in active_rules:
             try:
-                logger.info(f"📋 开始执行规则 {rule.id}: {rule.name}")
-                
-                # 验证规则配置
+                logger.info(f"📋 Начало выполнения правила {rule.id}: {rule.name}")
+
+                # Проверка конфигурации правила
                 validation_issues = self._validate_rule_config(rule)
                 if validation_issues:
-                    logger.error(f"规则 {rule.id} 配置无效: {validation_issues}")
-                    # 规则配置无效
+                    logger.error(f"Правило {rule.id} имеет неверную конфигурацию: {validation_issues}")
+                    # Конфигурация правила недействительна
                     result.add_item(self._format_invalid_result(
-                        rule, 
-                        "规则配置无效", 
-                        f"以下配置问题阻止了规则执行: {', '.join(validation_issues)}"
+                        rule,
+                        "Конфигурация правила недействительна",
+                        f"Следующие проблемы конфигурации препятствуют выполнению правила: {', '.join(validation_issues)}"
                     ))
                     continue
                 else:
-                    logger.info(f"规则 {rule.id} 配置验证通过")
-                    
-                # 检查规则是否适用当前环境    
+                    logger.info(f"Правило {rule.id} прошло проверку конфигурации")
+
+                # Проверить, применимо ли правило к текущей среде
                 should_apply = self._should_apply_rule(rule, context)
-                logger.info(f"规则 {rule.id} 适用性检查: {should_apply}")
-                
+                logger.info(f"Правило {rule.id} проверка применимости: {should_apply}")
+
                 if should_apply:
-                    logger.info(f"🎯 开始应用规则 {rule.id}")
+                    logger.info(f"🎯 Применение правила {rule.id}")
                     inspection_result = self._apply_rule(rule, context)
-                    logger.info(f"规则 {rule.id} 应用完成，结果类型: {type(inspection_result)}")
-                    
+                    logger.info(f"Правило {rule.id} применено, тип результата: {type(inspection_result)}")
+
                     if inspection_result:
-                        # 处理单个结果或结果列表
+                        # Обработка одного результата или списка результатов
                         if isinstance(inspection_result, list):
-                            logger.info(f"规则 {rule.id} 返回结果列表，长度: {len(inspection_result)}")
+                            logger.info(f"Правило {rule.id} вернуло список результатов, длина: {len(inspection_result)}")
                             for item in inspection_result:
                                 result.add_item(item)
                         else:
-                            logger.info(f"规则 {rule.id} 返回单个结果")
+                            logger.info(f"Правило {rule.id} вернуло одиночный результат")
                             result.add_item(inspection_result)
                     else:
-                        logger.warning(f"规则 {rule.id} 返回空结果")
+                        logger.warning(f"Правило {rule.id} вернуло пустой результат")
                 else:
-                    logger.info(f"规则 {rule.id} 不适用于当前环境")
-                    # 规则不适用于当前环境
+                    logger.info(f"Правило {rule.id} не применимо к текущей среде")
+                    # Правило не применимо к текущей среде
                     result.add_item(self._format_not_applicable_result(
-                        rule, 
-                        "规则不适用于当前环境"
+                        rule,
+                        "Правило не применимо к текущей среде"
                     ))
-                
+
                 executed_count += 1
-                logger.info(f"✅ 规则 {rule.id} 执行完成 ({executed_count}/{len(active_rules)})")
-                
+                logger.info(f"✅ Правило {rule.id} выполнено ({executed_count}/{len(active_rules)})")
+
             except Exception as e:
-                logger.exception(f"❌ 执行规则 {rule.id} 时出错: {str(e)}")
+                logger.exception(f"❌ Ошибка выполнения правила {rule.id}: {str(e)}")
                 error_result = self._format_error_result(
                     rule,
-                    f"执行规则时发生错误: {str(e)}",
+                    f"Ошибка выполнения правила: {str(e)}",
                     str(e)
                 )
                 result.add_item(error_result)
-        
-        logger.info(f"🏁 BaseInspector.run_inspection 完成 - 巡检器: {self.inspector_type}, 执行规则数: {executed_count}, 结果数: {len(result.items)}")        
+
+        logger.info(f"🏁 BaseInspector.run_inspection завершено - инспектор: {self.inspector_type}, выполнено правил: {executed_count}, результатов: {len(result.items)}")
         return result
-        
+
     def _prepare_context(self, cluster_name: str) -> Dict:
         """
-        准备检查上下文
-        
+        Подготовить контекст проверки
+
         Args:
-            cluster_name: 集群名称
-            
+            cluster_name: имя кластера
+
         Returns:
-            检查上下文
+            Контекст проверки
         """
         return {'cluster_name': cluster_name}
-        
+
     def _should_apply_rule(self, rule: Rule, context: Dict) -> bool:
         """
-        判断规则是否应该应用于当前上下文
-        
+        Определить, следует ли применять правило к текущему контексту
+
         Args:
-            rule: 规则
-            context: 上下文
-            
+            rule: правило
+            context: контекст
+
         Returns:
-            是否应用规则
+            Применять ли правило
         """
-        # 默认实现总是返回True
-        # 子类可以覆盖此方法以实现更复杂的规则过滤
+        # Реализация по умолчанию всегда возвращает True
+        # Подклассы могут переопределить этот метод для реализации более сложной фильтрации правил
         return True
-        
+
     def _validate_rule_config(self, rule: Rule) -> List[str]:
         """
-        验证规则配置是否有效
-        
+        Проверить, действительна ли конфигурация правила
+
         Args:
-            rule: 规则对象
-            
+            rule: объект правила
+
         Returns:
-            配置问题列表，如果没有问题则为空列表
+            Список проблем конфигурации, если проблем нет, возвращает пустой список
         """
-        # 子类应该重写此方法以实现特定规则类型的验证逻辑
+        # Подклассы должны переопределить этот метод для реализации логики проверки конкретного типа правил
         return []
-        
+
     def get_rule_config(self, rule: Rule, path: str, default_value: Any = None) -> Any:
         """
-        从规则中获取配置值，支持嵌套路径
-        
+        Получить значение конфигурации из правила, поддерживает вложенные пути
+
         Args:
-            rule: 规则对象
-            path: 配置路径，使用点表示法，例如 "execution.command"
-            default_value: 默认值，当路径不存在时返回
-            
+            rule: объект правила
+            path: путь конфигурации, использует точечную нотацию, например "execution.command"
+            default_value: значение по умолчанию, возвращаемое, если путь не существует
+
         Returns:
-            配置值或默认值
+            Значение конфигурации или значение по умолчанию
         """
         return self.rule_processor.get_rule_config(rule, path, default_value)
-        
+
     def _format_invalid_result(self, rule: Rule, description: str, details: str) -> Dict:
         """
-        格式化配置无效的规则结果（已委托给 ResultFormatter）
-        
+        Форматировать результат правила с недействительной конфигурацией (делегировано ResultFormatter)
+
         Args:
-            rule: 规则对象
-            description: 简要描述
-            details: 详细信息
-            
+            rule: объект правила
+            description: краткое описание
+            details: подробная информация
+
         Returns:
-            格式化的结果字典
+            Форматированный словарь результата
         """
         return self.rule_processor.result_formatter.invalid_result(rule, description, details)
-        
+
     def _format_not_applicable_result(self, rule: Rule, reason: str) -> Dict:
         """
-        格式化不适用规则结果（已委托给 ResultFormatter）
-        
+        Форматировать результат неприменимого правила (делегировано ResultFormatter)
+
         Args:
-            rule: 规则对象
-            reason: 不适用原因
-            
+            rule: объект правила
+            reason: причина неприменимости
+
         Returns:
-            格式化的结果字典
+            Форматированный словарь результата
         """
         return self.rule_processor.result_formatter.not_applicable_result(rule, reason)
-        
+
     def _format_skipped_result(self, rule: Rule, reason: str) -> Dict:
         """
-        格式化跳过的规则结果（已委托给 ResultFormatter）
-        
+        Форматировать результат пропущенного правила (делегировано ResultFormatter)
+
         Args:
-            rule: 规则对象
-            reason: 跳过原因
-            
+            rule: объект правила
+            reason: причина пропуска
+
         Returns:
-            格式化的结果字典
+            Форматированный словарь результата
         """
         return self.rule_processor.result_formatter.skipped_result(rule, reason)
-        
+
     def _format_error_result(self, rule: Rule, description: str, error: str) -> Dict:
         """
-        格式化错误的规则结果（已委托给 ResultFormatter）
-        
+        Форматировать результат правила с ошибкой (делегировано ResultFormatter)
+
         Args:
-            rule: 规则对象
-            description: 错误描述
-            error: 错误详情
-            
+            rule: объект правила
+            description: описание ошибки
+            error: детали ошибки
+
         Returns:
-            格式化的结果字典
+            Форматированный словарь результата
         """
         return self.rule_processor.result_formatter.error_result(rule, error, description)
