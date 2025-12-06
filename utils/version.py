@@ -1,40 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-版本信息模块，用于管理项目版本信息
+Модуль информации о версии, для управления информацией о версии проекта
 """
 
-# 主版本号
+# Основной номер версии
 VERSION_MAJOR = 2
-# 次版本号
+# Второстепенный номер версии
 VERSION_MINOR = 0
-# 修订号
+# Номер исправления
 VERSION_PATCH = 0
-# 版本标签（如 'alpha'、'beta'、'rc1'，正式版留空）
+# Метка версии (например 'alpha', 'beta', 'rc1', оставить пустым для официальной версии)
 VERSION_TAG = 'alpha'
 
-# 完整版本号
+# Полный номер версии
 VERSION = f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}"
 if VERSION_TAG:
     VERSION = f"{VERSION}-{VERSION_TAG}"
 
-# 应用名称
+# Название приложения
 APP_NAME = "kubeeye"
-# 应用描述
-APP_DESCRIPTION = "Kubernetes 集群巡检工具"
-# 应用作者
+# Описание приложения
+APP_DESCRIPTION = "Инструмент инспекции кластера Kubernetes"
+# Автор приложения
 APP_AUTHOR = "pixiake"
-# 应用主页
+# Домашняя страница приложения
 APP_URL = "https://github.com/kubesphere/kubeeye"
 
-# 版本发布日期
+# Дата выпуска версии
 RELEASE_DATE = "2025-06-25"
 
 def get_version():
-    """获取当前版本号"""
+    """Получить текущий номер версии"""
     return VERSION
 
-# 版本信息字典
+# Словарь информации о версии
 VERSION_INFO = {
     'name': APP_NAME,
     'version': VERSION,
@@ -45,11 +45,11 @@ VERSION_INFO = {
 }
 
 def get_version_info():
-    """获取版本信息字典"""
+    """Получить словарь информации о версии"""
     return VERSION_INFO
 
 def get_version_string():
-    """获取版本字符串"""
+    """Получить строку версии"""
     return f"{APP_NAME} v{VERSION}"
 
 if __name__ == "__main__":

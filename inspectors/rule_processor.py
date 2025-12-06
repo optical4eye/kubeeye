@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-规则处理器模块，提供基于断言的规则处理功能
+Модуль обработчика правил, предоставляющий функциональность обработки правил на основе утверждений
 """
 
 import logging
@@ -17,71 +17,71 @@ logger = logging.getLogger(__name__)
 
 class RuleProcessor:
     """
-    规则处理器，提供通用的规则处理功能
+    Обработчик правил, предоставляющий общую функциональность обработки правил
     """
-    
+
     def __init__(self):
-        """初始化规则处理器"""
+        """Инициализировать обработчик правил"""
         self.assertion_manager = AssertionManager()
         self.result_formatter = ResultFormatter()
         self.result_extractor = ResultExtractor()
-        
-        # 为了向后兼容，保留旧的属性名
+
+        # Для обратной совместимости сохранить старые имена атрибутов
         self.assertion_evaluator = self.assertion_manager
-    
+
     @staticmethod
     def get_rule_config(rule: Rule, path: str, default_value: Any = None) -> Any:
         """
-        安全地从规则配置中获取值，支持点表示法路径
-        
+        Безопасно получить значение из конфигурации правила, поддерживает пути с точечной нотацией
+
         Args:
-            rule: 规则对象
-            path: 配置路径，使用点表示法，例如 "execution.command"
-            default_value: 如果路径不存在，返回的默认值
-            
+            rule: Объект правила
+            path: Путь конфигурации, используя точечную нотацию, например "execution.command"
+            default_value: Значение по умолчанию, если путь не существует
+
         Returns:
-            路径指向的值，如果路径不存在则返回默认值
+            Значение, на которое указывает путь, или значение по умолчанию, если путь не существует
         """
         parts = path.split('.')
         current = getattr(rule, 'config', {})
-        
-        # 处理非config情况，直接从rule获取顶层属性
+
+        # Обработать случай без config, напрямую получить атрибут верхнего уровня из rule
         if not current and hasattr(rule, parts[0]):
             if len(parts) == 1:
                 return getattr(rule, parts[0])
             else:
-                # 如果属性值是字典，继续处理子路径
+                # Если значение атрибута является словарем, продолжить обработку подпути
                 current = getattr(rule, parts[0])
                 if not isinstance(current, dict):
                     return default_value
                 parts = parts[1:]
-        
+
         for part in parts:
             if isinstance(current, dict) and part in current:
                 current = current[part]
             else:
                 return default_value
-        
+
         return current
-    
-    def format_rule_result(self, rule: Rule, status: str, description: str, severity: str, 
-                          details: str, solution: Optional[str] = None, 
+
+    def format_rule_result(self, rule: Rule, status: str, description: str, severity: str,
+                          details: str, solution: Optional[str] = None,
                           violations: Optional[List[Dict]] = None, **kwargs) -> Dict:
         """
-        格式化规则检查结果（已委托给 ResultFormatter）
-        
+        Форматировать результат проверки правила (делегировано ResultFormatter)
+
         Args:
-            rule: 规则对象
-            status: 状态（passed, failed, error, warning, skipped, unknown）
-            description: 结果简短描述
-            severity: 严重性级别
-            details: 详细信息
-            solution: 可选的解决方案
-            violations: 可选的违规列表
-            **kwargs: 其他额外字段
-            
+            rule: Объект правила
+            status: Статус (passed, failed, error, warning, skipped, unknown)
+            description: Краткое описание результата
+            severity: Уровень серьезности
+            details: Подробная информация
+            solution: Опциональное решение
+            violations: Опциональный список нарушений
+            **kwargs: Другие дополнительные поля
+
         Returns:
-            格式化的结果字典
+            Форматированный словарь результата
         """
         return self.result_formatter.format_result(
             rule=rule,
@@ -93,17 +93,17 @@ class RuleProcessor:
             violations=violations,
             **kwargs
         )
-    
+
     @staticmethod
     def get_severity_order(severity: str) -> int:
         """
-        获取严重性级别的顺序值，用于排序
-        
+        Получить порядковое значение уровня серьезности для сортировки
+
         Args:
-            severity: 严重性级别名称
-            
+            severity: Название уровня серьезности
+
         Returns:
-            严重性级别的整数顺序值
+            Целое порядковое значение уровня серьезности
         """
         severity_order = {
             'critical': 4,
@@ -112,57 +112,57 @@ class RuleProcessor:
             'info': 1,
             'unknown': 0
         }
-        
+
         return severity_order.get(severity.lower(), 0)
-    
+
     @staticmethod
     def get_highest_severity(severities: List[str]) -> str:
         """
-        获取最高级别的严重性
-        
+        Получить самый высокий уровень серьезности
+
         Args:
-            severities: 严重性级别列表
-            
+            severities: Список уровней серьезности
+
         Returns:
-            最高级别的严重性
+            Самый высокий уровень серьезности
         """
         if not severities:
             return 'unknown'
-            
+
         highest = 'unknown'
         highest_order = 0
-        
+
         for severity in severities:
             order = RuleProcessor.get_severity_order(severity)
             if order > highest_order:
                 highest = severity
                 highest_order = order
-                
+
         return highest
-    
+
     def evaluate_assertions(self, assertions: List[Dict], context: Dict[str, Any]) -> Dict:
         """
-        评估一组断言（已委托给 AssertionManager）
-        
+        Оценить набор утверждений (делегировано AssertionManager)
+
         Args:
-            assertions: 断言列表
-            context: 上下文变量字典
-            
+            assertions: Список утверждений
+            context: Словарь контекстных переменных
+
         Returns:
-            评估结果字典，包含是否通过、失败的断言等
+            Словарь результатов оценки, содержащий пройденные, неудачные утверждения и т.д.
         """
         return self.assertion_manager.evaluate_assertions(assertions, context, mode="detailed")
 
     def extract_variables(self, output: str, extractors: List[Dict], context: Dict = None) -> Dict[str, Any]:
         """
-        从输出中提取变量
-        
+        Извлечь переменные из вывода
+
         Args:
-            output: 命令输出
-            extractors: 提取器配置列表
-            context: 上下文变量
-            
+            output: Вывод команды
+            extractors: Список конфигураций экстракторов
+            context: Контекстные переменные
+
         Returns:
-            提取的变量字典
+            Словарь извлеченных переменных
         """
         return self.result_extractor.extract(output, extractors, context)

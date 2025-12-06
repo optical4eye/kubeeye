@@ -1,6 +1,6 @@
 # KubeEye - Инструмент проверки кластеров Kubernetes
 
-Данная версия kubeeye находиться тут - https://github.com/optical4eye/kubeeye/
+Данная версия kubeeye находится тут - https://github.com/optical4eye/kubeeye/
 
 ## Обзор
 

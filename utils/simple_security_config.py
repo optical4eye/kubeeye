@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-KubeEye 简化安全配置 - 只读取基本配置参数
+Упрощенная конфигурация безопасности KubeEye - чтение только основных параметров конфигурации
 """
 
 import os
@@ -13,30 +13,30 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 class SimpleSecurityConfig:
-    """简化的安全配置类 - 只处理可调整参数"""
-    
+    """Упрощенный класс конфигурации безопасности - обработка только настраиваемых параметров"""
+
     def __init__(self, config_file: str = "config/security.yaml"):
         """
-        初始化简化安全配置
-        
+        Инициализировать упрощенную конфигурацию безопасности
+
         Args:
-            config_file: 配置文件路径
+            config_file: Путь к файлу конфигурации
         """
         self.config_file = config_file
         self.config = self._load_config()
-    
+
     def _load_config(self) -> Dict:
-        """加载配置文件"""
+        """Загрузить файл конфигурации"""
         try:
             config_path = Path(self.config_file)
             if config_path.exists():
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = yaml.safe_load(f) or {}
             else:
-                logger.warning(f"配置文件不存在: {config_path}，使用默认配置")
+                logger.warning(f"Файл конфигурации не существует: {config_path}，использовать конфигурацию по умолчанию")
                 config = {}
-            
-            # 设置默认值
+
+            # Установить значения по умолчанию
             return {
                 'max_command_length': config.get('max_command_length', 1000),
                 'command_timeout': config.get('command_timeout', 30),
@@ -48,11 +48,11 @@ class SimpleSecurityConfig:
                 'require_key_auth': config.get('require_key_auth', False)
             }
         except Exception as e:
-            logger.error(f"加载安全配置失败: {e}")
+            logger.error(f"Не удалось загрузить конфигурацию безопасности: {e}")
             return self._get_default_config()
-    
+
     def _get_default_config(self) -> Dict:
-        """获取默认配置"""
+        """Получить конфигурацию по умолчанию"""
         return {
             'max_command_length': 1000,
             'command_timeout': 30,
@@ -63,56 +63,56 @@ class SimpleSecurityConfig:
             'blocked_ips': [],
             'require_key_auth': False
         }
-    
+
     def get(self, key: str, default=None):
-        """获取配置值"""
+        """Получить значение конфигурации"""
         return self.config.get(key, default)
-    
+
     @property
     def max_command_length(self) -> int:
-        """最大命令长度"""
+        """Максимальная длина команды"""
         return self.config['max_command_length']
-    
+
     @property
     def command_timeout(self) -> int:
-        """命令超时时间"""
+        """Время ожидания команды"""
         return self.config['command_timeout']
-    
+
     @property
     def audit_log_path(self) -> str:
-        """审计日志路径"""
+        """Путь к журналу аудита"""
         return self.config['audit_log_path']
-    
+
     @property
     def audit_retention_days(self) -> int:
-        """审计日志保留天数"""
+        """Количество дней хранения журнала аудита"""
         return self.config['audit_retention_days']
-    
+
     @property
     def enable_detailed_logging(self) -> bool:
-        """是否启用详细日志"""
+        """Включить ли подробное логирование"""
         return self.config['enable_detailed_logging']
-    
+
     @property
     def allowed_ports(self) -> List[int]:
-        """允许的端口列表"""
+        """Список разрешенных портов"""
         return self.config['allowed_ports']
-    
+
     @property
     def blocked_ips(self) -> List[str]:
-        """阻止的IP列表"""
+        """Список заблокированных IP"""
         return self.config['blocked_ips']
-    
+
     @property
     def require_key_auth(self) -> bool:
-        """是否要求密钥认证"""
+        """Требовать ли аутентификацию по ключу"""
         return self.config['require_key_auth']
 
-# 全局配置实例
+# Глобальный экземпляр конфигурации
 _global_security_config = None
 
 def get_security_config() -> SimpleSecurityConfig:
-    """获取全局安全配置实例"""
+    """Получить глобальный экземпляр конфигурации безопасности"""
     global _global_security_config
     if _global_security_config is None:
         _global_security_config = SimpleSecurityConfig()

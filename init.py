@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-KubeEye 初始化脚本
-用于Docker容器启动时的初始化工作
+Скрипт инициализации KubeEye
+Для инициализационной работы при запуске Docker-контейнера
 """
 
 import os
@@ -10,10 +10,10 @@ import sys
 from pathlib import Path
 
 def ensure_data_directories():
-    """确保数据目录存在"""
+    """Обеспечить существование каталогов данных"""
     data_dir = Path(os.environ.get('KUBEEYE_DATA_DIR', '/app/data'))
-    
-    # 创建必要的目录
+
+    # Создать необходимые каталоги
     directories = [
         data_dir / 'clusters',
         data_dir / 'results',
@@ -21,46 +21,46 @@ def ensure_data_directories():
         data_dir / 'schedules',
         data_dir / 'git_rules'
     ]
-    
+
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
-        print(f"✅ 确保目录存在: {directory}")
+        print(f"✅ Обеспечить существование каталога: {directory}")
 
 def validate_environment():
-    """验证环境配置"""
+    """Проверить конфигурацию среды"""
     required_env_vars = [
         'PYTHONPATH',
         'KUBEEYE_DATA_DIR'
     ]
-    
+
     missing_vars = []
     for var in required_env_vars:
         if not os.environ.get(var):
             missing_vars.append(var)
-    
+
     if missing_vars:
-        print(f"⚠️ 缺少环境变量: {', '.join(missing_vars)}")
+        print(f"⚠️ Отсутствуют переменные среды: {', '.join(missing_vars)}")
         return False
-    
-    print("✅ 环境变量验证通过")
+
+    print("✅ Проверка переменных среды пройдена")
     return True
 
 def main():
-    """主初始化函数"""
-    print("🚀 KubeEye 初始化开始...")
-    
+    """Главная функция инициализации"""
+    print("🚀 Инициализация KubeEye начата...")
+
     try:
-        # 验证环境
+        # Проверить среду
         if not validate_environment():
             sys.exit(1)
-        
-        # 确保数据目录
+
+        # Обеспечить каталоги данных
         ensure_data_directories()
-        
-        print("✅ KubeEye 初始化完成!")
-        
+
+        print("✅ Инициализация KubeEye завершена!")
+
     except Exception as e:
-        print(f"❌ 初始化失败: {e}")
+        print(f"❌ Инициализация не удалась: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

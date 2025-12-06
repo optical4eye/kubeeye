@@ -1,74 +1,74 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-结果提取器模块，用于从命令输出中提取变量
+Модуль экстрактора результатов, для извлечения переменных из вывода команд
 """
 
 import re
 import logging
 from typing import Dict, List, Any
 
-# 设置日志
+# Настроить логирование
 logger = logging.getLogger(__name__)
 
 class ResultExtractor:
-    """从命令输出中提取变量"""
-    
+    """Извлечение переменных из вывода команд"""
+
     def extract(self, output: str, extractors: List[Dict], context: Dict = None) -> Dict[str, Any]:
         """
-        根据提取器配置从输出中提取变量
-        
+        Извлечение переменных из вывода на основе конфигурации экстракторов
+
         Args:
-            output: 命令输出文本
-            extractors: 提取器配置列表
-            context: 已有的上下文变量
-            
+            output: Текст вывода команды
+            extractors: Список конфигураций экстракторов
+            context: Существующие контекстные переменные
+
         Returns:
-            提取的变量字典
+            Словарь извлеченных переменных
         """
         result = context.copy() if context else {}
-        
+
         for extractor in extractors:
             name = extractor.get("name")
             if not name:
-                logger.warning("提取器缺少name字段")
+                logger.warning("У экстрактора отсутствует поле name")
                 continue
-                
+
             pattern = extractor.get("pattern")
             value_type = extractor.get("type", "str")
-            
+
             if pattern:
-                # 使用正则表达式提取
+                # Использовать регулярные выражения для извлечения
                 try:
                     match = re.search(pattern, output)
                     if match:
-                        # 检查是否有捕获组
+                        # Проверить, есть ли группы захвата
                         if match.groups():
-                            # 有捕获组，使用第一个捕获组
+                            # Есть группы захвата, использовать первую группу захвата
                             value = match.group(1)
                         else:
-                            # 没有捕获组，使用整个匹配
+                            # Нет групп захвата, использовать все совпадение
                             value = match.group(0)
                         result[name] = self._convert_value(value, value_type)
                     else:
-                        logger.warning(f"提取器 '{name}' 的模式 '{pattern}' 没有匹配到内容")
+                        logger.warning(f"Паттерн экстрактора '{name}' '{pattern}' не нашел совпадений")
                         result[name] = None
                 except (re.error, IndexError) as e:
-                    logger.error(f"提取器 '{name}' 正则表达式错误: {str(e)}")
+                    logger.error(f"Ошибка регулярного выражения экстрактора '{name}': {str(e)}")
                     result[name] = None
-        
+
         return result
-    
+
     def _convert_value(self, value: str, value_type: str) -> Any:
         """
-        转换值类型
-        
+        Преобразовать тип значения
+
         Args:
-            value: 字符串值
-            value_type: 目标类型
-            
+            value: Строковое значение
+            value_type: Целевой тип
+
         Returns:
-            转换后的值
+            Преобразованное значение
         """
         try:
             if value_type == "int":
@@ -80,7 +80,5 @@ class ResultExtractor:
             else:
                 return value
         except (ValueError, TypeError) as e:
-            logger.error(f"类型转换失败: {str(e)}, 返回原始值")
+            logger.error(f"Не удалось преобразовать тип: {str(e)}, вернуть исходное значение")
             return value
-    
-

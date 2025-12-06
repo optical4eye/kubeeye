@@ -1,33 +1,33 @@
 ---
-# Pod运行状态比例检查
+# Проверка пропорции состояния выполнения Pod
 id: prom_pod_running_ratio
-name: Pod运行状态比例检查
-description: 检查集群中Running状态Pod的比例
+name: Проверка пропорции состояния выполнения Pod
+description: Проверить пропорцию Pod в состоянии Running в кластере
 type: prometheus
 category: workload
 severity: warning
 enabled: true
 tier: cluster
 
-# 规则配置
+# Конфигурация правила
 config:
-  # Prometheus查询配置 - Running状态Pod比例
+  # Конфигурация запроса Prometheus - пропорция Pod в состоянии Running
   query: "(sum(kube_pod_status_phase{phase=\"Running\"}) / sum(kube_pod_status_phase)) * 100"
-  
-  # 时间范围配置
+
+  # Конфигурация временного диапазона
   time_range:
     start: "now-5m"
     end: "now"
     step: "1m"
 
-  # 断言配置
+  # Конфигурация утверждений
   assertions:
-    - name: "Pod运行状态比例检查"
+    - name: "Проверка пропорции состояния выполнения Pod"
       condition: "max_value < 85"
       severity: warning
-      description: "Pod运行状态比例过高: {{ max_value | round(2) }}%，建议考虑添加节点扩容"
+      description: "Пропорция состояния выполнения Pod слишком высока: {{ max_value | round(2) }}%, рекомендуется рассмотреть добавление узлов для расширения"
 
-# 标签
+# Теги
 tags:
   - pod
   - workload

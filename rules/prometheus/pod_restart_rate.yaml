@@ -1,33 +1,33 @@
 ---
-# Pod重启率检查
+# Проверка частоты перезапуска Pod
 id: prom_pod_restart_rate
-name: Pod重启率检查
-description: 检查Pod的重启频率是否异常
+name: Проверка частоты перезапуска Pod
+description: Проверить, является ли частота перезапуска Pod аномальной
 type: prometheus
 category: stability
 severity: warning
 enabled: true
 tier: basic
 
-# 规则配置
+# Конфигурация правила
 config:
-  # Prometheus查询配置 - Pod重启次数增长率
+  # Конфигурация запроса Prometheus - скорость роста количества перезапусков Pod
   query: "increase(kube_pod_container_status_restarts_total[10m])"
-  
-  # 时间范围配置
+
+  # Конфигурация временного диапазона
   time_range:
     start: "now-10m"
     end: "now"
     step: "1m"
 
-  # 断言配置
+  # Конфигурация утверждений
   assertions:
-    - name: "Pod重启率检查"
+    - name: "Проверка частоты перезапуска Pod"
       condition: "max_value < 3"
       severity: warning
-      description: "Pod重启次数: {{ max_value | round(0) }}次/10分钟"
+      description: "Количество перезапусков Pod: {{ max_value | round(0) }} раз/10 минут"
 
-# 标签
+# Теги
 tags:
   - pod
   - stability
