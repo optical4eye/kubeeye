@@ -832,8 +832,10 @@ def export_and_download(report_id, format_type, format_name, include_passed=Fals
                     type="secondary",
                     width='stretch'
                 )
+                # Удаляем файл из папки exports после предоставления для скачивания
+                os.remove(file_path)
                 file_size = len(file_data) / 1024
-                st.caption(f"Размер файла: {file_size:.1f} КБ | Путь: {file_path}")
+                st.caption(f"Размер файла: {file_size:.1f} КБ")
             except Exception as e:
                 st.error(f"Ошибка при чтении файла: {str(e)}")
         else:
