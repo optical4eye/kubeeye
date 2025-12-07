@@ -38,10 +38,10 @@ from utils.node_parser import parse_nodes_from_text, generate_nodes_template
 
 # Инициализация страницы
 initialize_page(
-    title="Инфо о кластере",
+    title="Кластеры",
     icon="🔗",
-    page_title="Управление информацией о кластере",
-    page_subtitle="Управляйте и настраивайте подключения к вашим кластерам Kubernetes"
+    page_title="Управление кластерами",
+    page_subtitle="Настройка подключений к Kubernetes кластерам"
 )
 
 
@@ -113,19 +113,22 @@ def validate_cluster_name(name):
     return True, ""
 
 
-# Вкладки
-tab1, tab2, tab3 = st.tabs(["Список кластеров", "Добавить кластер", "Редактировать кластер"])
+# Выбор действия
+action = st.radio(
+    "Выберите действие",
+    ["Список кластеров", "Добавить кластер", "Редактировать кластер"],
+    horizontal=True
+)
 
+st.markdown("---")
 
-# Вкладка списка кластеров
-with tab1:
+# Список кластеров
+if action == "Список кластеров":
     st.header("Настроенные кластеры")
 
-    # Кнопка обновления списка
     if st.button("Обновить список"):
         st.rerun()
 
-    # Загрузка списка кластеров
     clusters = list_clusters()
 
     if clusters:
@@ -133,52 +136,47 @@ with tab1:
             with st.expander(f"Кластер: {cluster_name}", expanded=False):
                 cluster_config = get_cluster(cluster_name)
 
-                # Отображение информации об узлах
-                st.subheader("Информация об узлах")
+                # Информация об узлах
                 nodes = cluster_config.get_nodes()
-
                 if nodes:
                     node_data = []
                     for node in nodes:
                         node_data.append({
                             "IP": node['ip'],
                             "Порт": node['port'],
-                            "Имя пользователя": node['username'],
-                            "Тип аутентификации": node['auth_type']
+                            "Пользователь": node['username'],
+                            "Аутентификация": node['auth_type']
                         })
-                    st.dataframe(pd.DataFrame(node_data))
+                    st.dataframe(pd.DataFrame(node_data), use_container_width=True, hide_index=True)
                 else:
                     st.info("Узлы не настроены")
 
-                # Отображение конфигурации Prometheus
-                st.subheader("Конфигурация Prometheus")
+                # Конфигурация Prometheus
                 prometheus_config = cluster_config.get_prometheus_config()
-                st.json(prometheus_config)
+                if prometheus_config.get('enabled'):
+                    st.json(prometheus_config)
 
-                # Отображение kubeconfig
-                st.subheader("Kubeconfig")
+                # Kubeconfig
                 kubeconfig = cluster_config.get_kubeconfig()
                 if kubeconfig:
                     st.code(kubeconfig, language="yaml")
                 else:
-                    st.info("kubeconfig не настроен")
+                    st.info("Kubeconfig не настроен")
 
-                # Кнопка удаления кластера
+                # Удаление кластера
                 if st.button("Удалить кластер", key=f"delete_{cluster_name}"):
                     delete_cluster(cluster_name)
                     st.success(f"Кластер {cluster_name} удалён")
                     st.rerun()
     else:
-        st.info("Кластеры ещё не настроены, перейдите на вкладку «Добавить кластер» для создания.")
+        st.info("Кластеры не настроены")
 
-
-# Вкладка добавления кластера
-with tab2:
+# Добавление кластера
+elif action == "Добавить кластер":
     st.header("Добавить новый кластер")
 
     with st.form("add_cluster_form"):
-        # Основная информация о кластере
-        st.subheader("💾 Основная информация")
+        # Основная информация
         cluster_name = st.text_input("Название кластера", placeholder="production", key="cluster_name_input")
 
         # Real-time валидация имени кластера
@@ -189,8 +187,7 @@ with tab2:
             else:
                 st.success("✅ Имя кластера корректно")
 
-        # Добавление узлов
-        st.subheader("📋 Узлы кластера")
+        # Узлы кластера
         bulk_nodes_input = st.text_area(
             "Список узлов",
             placeholder="""Добавьте SSH узлы для проверки в формате: IP:Порт Пользователь ТипАутентификации [Пароль/ПутьКключу]
@@ -468,8 +465,8 @@ with tab2:
                         """)
 
 
-# Вкладка редактирования кластера
-with tab3:
+# Редактирование кластера
+elif action == "Редактировать кластер":
     st.header("Редактировать кластер")
 
     # Загрузка списка кластеров

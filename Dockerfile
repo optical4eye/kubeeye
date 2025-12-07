@@ -39,15 +39,6 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-
-# [translate:复制项目文件]  # Копировать файлы проекта
-COPY . /app/
-
-
-# [translate:创建数据目录并设置权限]  # Создать каталоги данных и установить права доступа
-RUN mkdir -p /app/data/clusters /app/data/results /app/data/logs /app/data/schedules /app/data/git_rules
-
-
 # [translate:设置环境变量]  # Установить переменные окружения
 ENV PYTHONPATH=/app
 ENV KUBEEYE_DATA_DIR=/app/data
@@ -77,6 +68,12 @@ RUN set -eux; \
     curl -sSL "https://github.com/open-policy-agent/opa/releases/download/${OPA_VERSION}/opa_linux_${OPA_ARCH}_static" -o opa && \
     chmod +x opa && \
     mv opa /usr/local/bin/opa
+
+# [translate:复制项目文件]  # Копировать файлы проекта
+COPY . /app/
+
+# [translate:创建数据目录并设置权限]  # Создать каталоги данных и установить права доступа
+RUN mkdir -p /app/data/clusters /app/data/results /app/data/logs /app/data/schedules /app/data/git_rules
 
 # [translate:初始化应用（在切换用户前执行）]  # Инициализировать приложение (выполнить до смены пользователя)
 RUN python init.py

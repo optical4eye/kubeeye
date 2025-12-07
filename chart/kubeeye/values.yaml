@@ -34,6 +34,8 @@ kubeeyeEnv:
     value: "false"
   - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
     value: "kubeeye repo rules"
+  - name: KUBEYE_REPORT_RETENTION_DAYS
+    value: '1'
 
 kubeeyeLocalRules:
   # Opa

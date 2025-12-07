@@ -13,7 +13,24 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Dict
+import time
+from functools import wraps
 
+def timing_decorator(func):
+    """Декоратор для измерения времени выполнения функций"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+
+        execution_time = end_time - start_time
+        if execution_time > 1.0:  # Логировать только медленные операции
+            st.info(f"⏱️ {func.__name__} выполнен за {execution_time:.2f} сек")
+
+        return result
+    return wrapper
 
 # Настройка страницы
 st.set_page_config(
@@ -23,48 +40,11 @@ st.set_page_config(
 )
 
 
-# Добавление пользовательских CSS стилей
+# Минималистичные стили
 st.markdown("""
 <style>
-    /* Оптимизация отступов и выравнивания строк в таблице */
-    .row-container {
-        padding: 8px 0;
-        border-bottom: 1px solid #e0e0e0;
-    }
-
-    /* Стиль маленьких кнопок */
-    .stButton > button {
-        padding: 4px 8px;
-        font-size: 12px;
-        height: 28px;
-        margin: 1px;
-    }
-
-    /* Стиль заголовков таблицы */
-    .table-header {
-        font-weight: bold;
-        padding: 8px 0;
-        border-bottom: 2px solid #555;
-        background-color: #333333;
-        color: #ffffff;
-    }
-
-    /* Стиль меток состояния */
-    .status-normal {
-        color: #28a745;
-        font-weight: bold;
-    }
-
-    .status-error {
-        color: #dc3545;
-        font-weight: bold;
-    }
-
-    /* Выделение чисел */
-    .number-highlight {
-        font-weight: bold;
-        color: #007bff;
-    }
+.stDataFrame { font-size: 14px; }
+.stButton > button { padding: 6px 12px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -82,6 +62,50 @@ from utils.inspection_result import list_results, load_result
 from components.ui.result_display import display_inspection_results
 from components.ui.result_display import parse_opa_violations_to_table, display_opa_violations_table
 
+# Конфигурация для очистки отчётов
+CONFIG_FILE = Path(__file__).parent.parent / "data" / "cleanup_config.json"
+DEFAULT_RETENTION_DAYS = 14
+DEFAULT_AUTO_CLEANUP = False
+
+# Environment variable for retention days
+ENV_RETENTION_DAYS = "KUBEYE_REPORT_RETENTION_DAYS"
+
+def load_cleanup_config() -> dict:
+    """Загрузить конфигурацию очистки"""
+    # Check environment variable first
+    env_retention = os.getenv(ENV_RETENTION_DAYS)
+    if env_retention:
+        try:
+            retention_days = int(env_retention)
+            if retention_days > 0:
+                return {
+                    'retention_days': retention_days,
+                    'source': 'env'
+                }
+        except ValueError:
+            pass
+
+    # Fall back to config file
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                config['source'] = 'file'
+                return config
+        except Exception:
+            pass
+
+    return {
+        'retention_days': DEFAULT_RETENTION_DAYS,
+        'source': 'default'
+    }
+
+def save_cleanup_config(config: dict):
+    """Сохранить конфигурацию очистки"""
+    CONFIG_FILE.parent.mkdir(exist_ok=True)
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+
 
 def safe_display_opa_violations_table(violations_data, show_expander=False, table_key=None):
     """Безопасный вызов функции display_opa_violations_table с учётом совместимости параметров"""
@@ -94,72 +118,138 @@ def safe_display_opa_violations_table(violations_data, show_expander=False, tabl
         return display_opa_violations_table(violations_data, show_expander=show_expander)
 
 
+def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
+    """Очистить старые отчёты старше retention_days дней
+
+    Returns:
+        tuple: (удалено_файлов, освобождено_места_в_байтах)
+    """
+    if retention_days <= 0:
+        return 0, 0
+
+    cutoff_date = datetime.now() - timedelta(days=retention_days)
+    results_dir = Path(__file__).parent.parent / "data" / "results"
+
+    if not results_dir.exists():
+        return 0, 0
+
+    deleted_count = 0
+    freed_space = 0
+
+    for file_path in results_dir.glob("*.json"):
+        try:
+            # Проверяем дату изменения файла
+            file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+            if file_mtime < cutoff_date:
+                file_size = file_path.stat().st_size
+                file_path.unlink()
+                deleted_count += 1
+                freed_space += file_size
+        except Exception:
+            continue
+
+    return deleted_count, freed_space
+
+
+
+def display_cleanup_section(all_results):
+    """Отобразить секцию очистки старых отчётов"""
+    with st.expander("🧹 Очистка старых отчётов", expanded=False):
+        # Загрузить текущую конфигурацию
+        config = load_cleanup_config()
+        retention_days = config.get('retention_days', DEFAULT_RETENTION_DAYS)
+
+        # Настройки
+        st.markdown("#### ⚙️ Настройки периода хранения")
+
+        # Показать источник настройки
+        source = config.get('source', 'default')
+        if source == 'env':
+            st.info(f"📄 Настройка установлена через переменную окружения `{ENV_RETENTION_DAYS}={retention_days}` дней")
+            st.number_input(
+                "Сохранять отчёты (дней)",
+                min_value=1,
+                max_value=365,
+                value=retention_days,
+                disabled=True,
+                help="Значение установлено через переменную окружения"
+            )
+        else:
+            retention_days_input = st.number_input(
+                "Сохранять отчёты (дней)",
+                min_value=1,
+                max_value=365,
+                value=retention_days,
+                help="Отчёты старше этого периода удаляются автоматически"
+            )
+
+            # Сохранить настройки
+            if st.button("💾 Сохранить настройки"):
+                config['retention_days'] = retention_days_input
+                save_cleanup_config(config)
+                st.success("Настройки сохранены")
+                st.rerun()
+
+        # Ручная очистка
+        if st.button("🧹 Очистить старые отчёты сейчас"):
+            with st.spinner("Очистка..."):
+                deleted_count, freed_space = cleanup_old_reports(retention_days)
+                if deleted_count > 0:
+                    freed_mb = freed_space / (1024 * 1024)
+                    st.success(f"Удалено {deleted_count} старых отчётов, освобождено {freed_mb:.1f} MB")
+                else:
+                    st.info("Старых отчётов для удаления не найдено")
+
+        st.info("💡 Старые отчёты удаляются автоматически при открытии этой страницы")
+
+
+@st.cache_data(ttl=60)  # Кэш на 1 минуту для списка отчётов
+def get_reports_list(limit=500, force_refresh=False, _version="v2"):
+    """Получить список отчётов с кэшированием"""
+    if force_refresh:
+        # Принудительная очистка всех кэшей
+        from utils.inspection_result import _clear_results_cache, list_results_cached
+        _clear_results_cache()
+        list_results_cached.cache_clear()
+    return list_results(limit=limit, order_by='timestamp DESC')
+
 def display_reports_overview():
     """Отобразить обзор страницы отчётов"""
-    st.markdown("Просмотр и управление отчётами по всем кластерам, быстрое выявление проблем и получение рекомендаций по их решению.")
-    st.caption("💡 Система автоматически хранит отчёты за последние 30 дней, старые отчёты удаляются для экономии места")
+    st.markdown("Просмотр и управление отчётами по всем кластерам")
+
+    # Кэширование отключено
+
+    # Убрана кнопка обновления для минималистичного дизайна
 
     clusters = list_clusters()
-    all_results = list_results()
-
-    if hasattr(st.session_state, 'last_result_path') and st.session_state.last_result_path:
-        st.success(f"🆕 Найден последний результат проверки: {os.path.basename(st.session_state.last_result_path)}")
-        if st.button("🔍 Просмотр последнего результата", type="primary"):
-            result_id = None
-            if hasattr(st.session_state, 'last_result_id'):
-                result_id = st.session_state.last_result_id
-            if not result_id and all_results:
-                latest_result = max(all_results, key=lambda x: x['timestamp'])
-                result_id = latest_result['result_id']
-            if not result_id and st.session_state.last_result_path:
-                try:
-                    with open(st.session_state.last_result_path, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    result_id = data.get('result_id')
-                except Exception:
-                    pass
-            if result_id:
-                st.session_state.selected_report_id = result_id
-                st.session_state.view_mode = "detail"
-                st.rerun()
-            else:
-                st.error("❌ Не удалось получить ID последнего результата, выберите в списке отчётов")
+    all_results = get_reports_list(limit=500)  # Используем кэшированную функцию
 
     if not all_results:
-        st.info("📭 Нет доступных отчётов. Сначала выполните проверку, чтобы создать отчёты.")
-        if st.button("🚀 Выполнить проверку", type="primary"):
+        st.info("Нет доступных отчётов. Выполните проверку для создания отчётов.")
+        if st.button("Выполнить проверку", type="primary"):
             st.switch_page("pages/2_cluster_inspect.py")
         return
 
-    st.markdown("### 🔍 Фильтры отчётов")
-    col1, col2, col3 = st.columns(3)
+    # Секция очистки старых отчётов
+    display_cleanup_section(all_results)
 
+    st.divider()
+
+    # Информация о количестве отчётов
+    st.info(f"📊 Найдено {len(all_results)} отчётов")
+
+    # Минималистичный дизайн - убраны лишние предупреждения
+
+    # Простые фильтры
+    col1, col2 = st.columns(2)
     with col1:
-        selected_cluster = st.selectbox(
-            "Выбрать кластер",
-            ["Все"] + clusters,
-            help="Фильтрация отчётов по кластеру"
-        )
-
+        selected_cluster = st.selectbox("Кластер", ["Все"] + clusters)
     with col2:
-        inspection_types = ["Все", "immediate", "scheduled"]
-        selected_type = st.selectbox(
-            "Тип проверки",
-            inspection_types,
-            format_func=lambda x: "Немедленная" if x == "immediate" else ("Плановая" if x == "scheduled" else x)
-        )
-
-    with col3:
-        date_filter = st.selectbox(
-            "Временной диапазон",
-            ["Все", "Сегодня", "Последние 7 дней", "Последние 30 дней"]
-        )
+        date_filter = st.selectbox("Период", ["Все", "Сегодня", "Последние 7 дней", "Последние 30 дней"])
 
     filtered_results = all_results
     if selected_cluster != "Все":
         filtered_results = [r for r in filtered_results if r["cluster_name"] == selected_cluster]
-    if selected_type != "Все":
-        filtered_results = [r for r in filtered_results if r["inspection_type"] == selected_type]
 
     now = datetime.now()
     if date_filter != "Все":
@@ -179,66 +269,66 @@ def display_reports_overview():
         display_statistics_overview(filtered_results)
         display_reports_table(filtered_results)
     else:
-        st.info("🔍 Нет отчётов, соответствующих критериям")
+        st.info("Нет отчётов по выбранным критериям")
 
 
 def display_statistics_overview(filtered_results):
     """Показать обзор статистики"""
-    st.markdown("### 📈 Обзор статистики")
+    st.markdown("### Статистика")
 
     total_reports = len(filtered_results)
-    total_exceptions = sum(r['critical'] + r['warning'] for r in filtered_results)
+    total_critical = sum(r['critical'] for r in filtered_results)
+    total_warnings = sum(r['warning'] for r in filtered_results)
+    total_info = sum(r.get('info', 0) for r in filtered_results)  # Добавить подсчёт info ошибок
     total_passed = sum(r['passed'] for r in filtered_results)
 
-    latest_report = max(filtered_results, key=lambda x: x['timestamp'])
-    latest_time = datetime.fromisoformat(latest_report['timestamp']).strftime('%m-%d %H:%M')
-
-    col1, col2, col3, col4 = st.columns(4)
-
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
-        st.metric("📄 Всего отчётов", total_reports)
-
+        st.metric("Отчётов", total_reports)
     with col2:
-        st.metric("⚠️ Ошибок", total_exceptions,
-                  delta=f"-{total_exceptions}" if total_exceptions > 0 else None,
-                  delta_color="inverse")
-
+        st.metric("Критично", total_critical)
     with col3:
-        st.metric("✅ Успешно", total_passed,
-                  delta=f"+{total_passed}" if total_passed > 0 else None)
-
+        st.metric("Предупреждения", total_warnings)
     with col4:
-        st.metric("🕒 Последний отчёт", latest_time)
+        st.metric("Прочее", total_info)
+    with col5:
+        st.metric("Успешно", total_passed)
+    with col6:
+        latest_report = max(filtered_results, key=lambda x: x['timestamp'])
+        latest_time = datetime.fromisoformat(latest_report['timestamp']).strftime('%m-%d %H:%M')
+        st.metric("Последний", latest_time)
 
 
 def display_reports_table(filtered_results):
     """Показать список отчётов с возможностью выбора"""
-    st.markdown("### 📋 Список отчётов")
-    st.markdown("💡 *Нажмите на ID отчёта для просмотра деталей и действий*")
+    st.markdown("### Список отчётов")
 
     if not filtered_results:
-        st.info("📭 Нет доступных отчётов")
+        st.info("Нет доступных отчётов")
         return
 
     sorted_results = sorted(filtered_results,
-                           key=lambda x: (-(x['critical'] + x['warning']), x['timestamp']),
+                           key=lambda x: (-x['critical'], -x['warning'], -x.get('info', 0), x['timestamp']),
                            reverse=True)
 
     df_data = []
     for result in sorted_results:
         timestamp = datetime.fromisoformat(result['timestamp'])
-        total_exceptions = result['critical'] + result['warning']
-        report_id = result['result_id']
+        critical_count = result['critical']
+        warning_count = result['warning']
+        info_count = result.get('info', 0)  # Добавить info ошибки
+        total_exceptions = critical_count + warning_count + info_count
 
         df_data.append({
-            "📄 ID отчёта": report_id,
-            "🏢 Кластер": result['cluster_name'],
-            "⏰ Время проверки": timestamp.strftime('%m-%d %H:%M'),
-            "🔄 Тип": "⚡ Немедленная" if result['inspection_type'] == 'immediate' else "⏲️ Плановая",
-            "📊 Статус": "🔴 Ошибка" if total_exceptions > 0 else "🟢 Норма",
-            "⚠️ Ошибок": total_exceptions,
-            "✅ Успешно": result['passed'],
-            "📈 Всего": total_exceptions + result['passed']
+            "ID": result['result_id'],
+            "Кластер": result['cluster_name'],
+            "Время": timestamp.strftime('%m-%d %H:%M'),
+            "Тип": "Немедленная" if result['inspection_type'] == 'immediate' else "Плановая",
+            "Статус": "Ошибка" if total_exceptions > 0 else "OK",
+            "Критично": critical_count,
+            "Предупреждения": warning_count,
+            "Прочее": info_count,
+            "Успешно": result['passed']
         })
 
     df = pd.DataFrame(df_data)
@@ -250,21 +340,21 @@ def display_reports_table(filtered_results):
         on_select="rerun",
         selection_mode="single-row",
         column_config={
-            "📄 ID отчёта": st.column_config.TextColumn("📄 ID отчёта", help="Нажмите на строку для просмотра деталей и действий"),
-            "🏢 Кластер": st.column_config.TextColumn("🏢 Кластер"),
-            "⏰ Время проверки": st.column_config.TextColumn("⏰ Время проверки"),
-            "🔄 Тип": st.column_config.TextColumn("🔄 Тип"),
-            "📊 Статус": st.column_config.TextColumn("📊 Статус"),
-            "⚠️ Ошибок": st.column_config.NumberColumn("⚠️ Ошибок"),
-            "✅ Успешно": st.column_config.NumberColumn("✅ Успешно"),
-            "📈 Всего": st.column_config.NumberColumn("📈 Всего")
+            "ID": st.column_config.TextColumn("ID"),
+            "Кластер": st.column_config.TextColumn("Кластер"),
+            "Время": st.column_config.TextColumn("Время"),
+            "Тип": st.column_config.TextColumn("Тип"),
+            "Статус": st.column_config.TextColumn("Статус"),
+            "Критично": st.column_config.NumberColumn("Критично"),
+            "Предупреждения": st.column_config.NumberColumn("Предупреждения"),
+            "Прочее": st.column_config.NumberColumn("Прочее"),
+            "Успешно": st.column_config.NumberColumn("Успешно")
         }
     )
 
     if len(event.selection.rows) > 0:
         selected_row = event.selection.rows[0]
         selected_result = sorted_results[selected_row]
-
         st.session_state.selected_report_id = selected_result['result_id']
         st.session_state.view_mode = "operations"
         st.rerun()
@@ -323,24 +413,34 @@ def display_report_operations(report_id):
         else:
             all_items = report_data.get('items', [])
 
-        exception_count = 0
+        exception_critical_count = 0
+        exception_warning_count = 0
         passed_count = 0
 
         for item in all_items:
             if isinstance(item, dict):
                 status = item.get('status', 'unknown')
+                severity = item.get('severity', 'unknown')
             elif hasattr(item, 'status'):
                 status = getattr(item, 'status', 'unknown')
+                severity = getattr(item, 'severity', 'unknown')
             else:
                 status = 'unknown'
+                severity = 'unknown'
 
             if status == 'passed':
                 passed_count += 1
             elif status == 'exception':
-                exception_count += 1
+                if severity == 'critical':
+                    exception_critical_count += 1
+                elif severity == 'warning':
+                    exception_warning_count += 1
 
-        if exception_count > 0:
-            st.error(f"🔴 Ошибок: {exception_count}")
+        if exception_critical_count > 0 or exception_warning_count > 0:
+            if exception_critical_count > 0:
+                st.error(f"🔴 Критических ошибок: {exception_critical_count}")
+            if exception_warning_count > 0:
+                st.warning(f"🟡 Предупреждений: {exception_warning_count}")
         else:
             st.success("🟢 Все проверки пройдены")
         st.info(f"📊 Всего: {len(all_items)}")
@@ -456,18 +556,21 @@ def display_report_detail(report_id):
         for item in all_items:
             if isinstance(item, dict):
                 status = item.get('status', 'unknown')
+                severity = item.get('severity', 'unknown')
             elif hasattr(item, 'status'):
                 status = getattr(item, 'status', 'unknown')
+                severity = getattr(item, 'severity', 'unknown')
             else:
                 status = 'unknown'
+                severity = 'unknown'
 
             if status == 'passed':
                 passed_count += 1
-            elif status == 'exception':
+            elif status == 'exception' and severity == 'critical':
                 exception_count += 1
 
         if exception_count > 0:
-            st.error(f"🔴 Найдено {exception_count} ошибок")
+            st.error(f"🔴 Найдено {exception_count} критических ошибок")
         else:
             st.success(f"🟢 Все пройдено ({passed_count} позиций)")
 
@@ -574,7 +677,7 @@ def display_inspection_items(items, report_id=None):
         tab_data.append(exception_critical)
 
     if exception_warning:
-        tab_names.append(f"🟡 Обычные ошибки ({len(exception_warning)})")
+        tab_names.append(f"🟡 Предупреждения ({len(exception_warning)})")
         tab_data.append(exception_warning)
 
     if exception_info:

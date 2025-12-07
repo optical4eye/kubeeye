@@ -8,6 +8,8 @@ import json
 import yaml
 import os
 import re
+from functools import lru_cache
+import time
 
 import openpyxl
 from datetime import datetime
@@ -149,6 +151,9 @@ class InspectionResult:
         result_file = cluster_dir / f"{self.result_id}.json"
         with open(result_file, 'w', encoding='utf-8') as f:
             json.dump(result_data, f, ensure_ascii=False, indent=2)
+
+        # Очистка кэша после сохранения нового отчёта
+        _clear_results_cache()
 
         return str(result_file)
 
@@ -599,9 +604,112 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
         return False, f"不支持的导出格式: {format_type}"
 
 
-def list_results(cluster_name: Optional[str] = None) -> List[Dict]:
+# Глобальный кэш для результатов
+_results_cache = {}
+_cache_timestamp = None
+_CACHE_TTL = 300  # 5 минут
+
+def _clear_results_cache():
+    """Очистка кэша результатов"""
+    global _results_cache, _cache_timestamp
+    _results_cache.clear()
+    _cache_timestamp = None
+    # Также очищаем LRU кэш
+    list_results_cached.cache_clear()
+
+
+def _calculate_result_summary(result_data: Dict) -> Dict:
+    """Вычисление сводки результатов для одного файла"""
+    # Всегда пересчитываем заново для точности, игнорируя старые summary поля
+    # 处理新的数据结构
+    if 'inspection_results' in result_data:
+        # 新格式：但没有summary，需要计算
+        critical = 0
+        warning = 0
+        info = 0
+        passed = 0
+        total = 0
+
+        for inspector_type, inspector_result in result_data.get('inspection_results', {}).items():
+            items = inspector_result.get('items', [])
+            total += len(items)
+
+            for item in items:
+                # 安全地获取status和severity，处理不同类型的item
+                if isinstance(item, dict):
+                    status = item.get('status', 'unknown')
+                    severity = item.get('severity', 'unknown')
+                elif hasattr(item, 'status'):
+                    status = getattr(item, 'status', 'unknown')
+                    severity = getattr(item, 'severity', 'unknown')
+                else:
+                    status = 'unknown'
+                    severity = 'unknown'
+
+                if status == 'passed':
+                    passed += 1
+                elif status == 'exception':
+                    # Подсчёт по severity как в старом формате
+                    if severity == 'critical':
+                        critical += 1
+                    elif severity == 'warning':
+                        warning += 1
+                    else:
+                        info += 1
+                else:
+                    # Неизвестный статус - считаем как info
+                    info += 1
+    else:
+        # 旧格式：直接items字段
+        critical = 0
+        warning = 0
+        info = 0
+        passed = 0
+
+        for item in result_data.get('items', []):
+            # 安全地获取status和severity，处理不同类型的item
+            if isinstance(item, dict):
+                status = item.get('status', 'unknown')
+                severity = item.get('severity', 'unknown')
+            elif hasattr(item, 'status'):
+                status = getattr(item, 'status', 'unknown')
+                severity = getattr(item, 'severity', 'unknown')
+            else:
+                status = 'unknown'
+                severity = 'unknown'
+
+            if status == 'passed':
+                passed += 1
+            elif status == 'exception':
+                if severity == 'critical':
+                    critical += 1
+                elif severity == 'warning':
+                    warning += 1
+                else:
+                    info += 1
+            else:
+                # Неизвестный статус - считаем как info
+                info += 1
+
+        total = len(result_data.get('items', []))
+
+    return {
+        'cluster_name': result_data.get('cluster_name', ''),
+        'inspection_type': result_data.get('inspection_type', 'unknown'),
+        'timestamp': result_data.get('timestamp', ''),
+        'result_id': result_data.get('result_id', ''),
+        'total': total,
+        'passed': passed,
+        'critical': critical,
+        'warning': warning,
+        'info': info
+    }
+
+
+@lru_cache(maxsize=10)
+def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
     """
-    列出巡检结果
+    Оптимизированная версия list_results с кэшированием
 
     Args:
         cluster_name: 可选的集群名称过滤
@@ -609,107 +717,102 @@ def list_results(cluster_name: Optional[str] = None) -> List[Dict]:
     Returns:
         巡检结果摘要列表
     """
+    global _results_cache, _cache_timestamp
+
+    cache_key = f"results_{cluster_name or 'all'}"
+    current_time = time.time()
+
+    # Проверка актуальности кэша
+    if (cache_key in _results_cache and
+        _cache_timestamp is not None and
+        current_time - _cache_timestamp < _CACHE_TTL):
+        return _results_cache[cache_key]
+
     results = []
 
-    # 直接搜索results目录下的所有json文件
+    # Оптимизированная загрузка: предварительная фильтрация по имени файла
     for file_path in RESULTS_DIR.glob('*.json'):
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                result_data = json.load(f)
-
-            # 如果指定了集群名称，进行过滤
-            if cluster_name and result_data.get('cluster_name') != cluster_name:
-                continue
-
-            # 处理新的数据结构
-            if 'summary' in result_data:
-                # 新格式：有summary字段 - 使用简化状态系统
-                summary_data = result_data['summary']
-                passed = summary_data.get('passed', 0)
-                # 在简化状态系统中，所有异常都在 error 字段中
-                total_exceptions = summary_data.get('error', 0) + summary_data.get('failed', 0) + summary_data.get('warning', 0)
-                critical = total_exceptions  # 所有异常都显示为需要关注的问题
-                warning = 0  # 简化状态系统中不再区分警告
-                info = 0
-                total = summary_data.get('total_items', 0)
-            elif 'inspection_results' in result_data:
-                # 新格式：但没有summary，需要计算
-                critical = 0
-                warning = 0
-                info = 0
-                passed = 0
-                total = 0
-
-                for inspector_type, inspector_result in result_data.get('inspection_results', {}).items():
-                    items = inspector_result.get('items', [])
-                    total += len(items)
-
-                    for item in items:
-                        # 安全地获取status，处理不同类型的item
-                        if isinstance(item, dict):
-                            status = item.get('status', 'unknown')
-                        elif hasattr(item, 'status'):
-                            status = getattr(item, 'status', 'unknown')
-                        else:
-                            status = 'unknown'
-
-                        if status == 'passed':
-                            passed += 1
-                        elif status == 'exception':  # 使用新的简化状态
-                            critical += 1
-                        else:
-                            info += 1
+            # Быстрая предварительная проверка по имени файла для кластера
+            if cluster_name:
+                # Ищем упоминание кластера в первых 200 символах файла
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    chunk = f.read(200)
+                    if f'cluster_name": "{cluster_name}"' not in chunk:
+                        continue
+                    f.seek(0)
+                    result_data = json.load(f)
             else:
-                # 旧格式：直接items字段
-                critical = 0
-                warning = 0
-                info = 0
-                passed = 0
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    result_data = json.load(f)
 
-                for item in result_data.get('items', []):
-                    # 安全地获取status和severity，处理不同类型的item
-                    if isinstance(item, dict):
-                        status = item.get('status', 'unknown')
-                        severity = item.get('severity', 'unknown')
-                    elif hasattr(item, 'status'):
-                        status = getattr(item, 'status', 'unknown')
-                        severity = getattr(item, 'severity', 'unknown')
-                    else:
-                        status = 'unknown'
-                        severity = 'unknown'
-
-                    if status == 'passed':
-                        passed += 1
-                    elif severity == 'critical':
-                        critical += 1
-                    elif severity == 'warning':
-                        warning += 1
-                    else:
-                        info += 1
-
-                total = len(result_data.get('items', []))
-
-            summary = {
-                'cluster_name': result_data.get('cluster_name', ''),
-                'inspection_type': result_data.get('inspection_type', 'unknown'),
-                'timestamp': result_data.get('timestamp', ''),
-                'result_id': result_data.get('result_id', ''),
-                'total': total,
-                'passed': passed,
-                'critical': critical,
-                'warning': warning,
-                'info': info
-            }
-
+            # Вычисление сводки
+            summary = _calculate_result_summary(result_data)
             results.append(summary)
+
+        except (json.JSONDecodeError, IOError, UnicodeDecodeError) as e:
+            # Игнорируем поврежденные файлы
+            continue
         except Exception as e:
-            # 跳过无法解析的文件
+            # Для других ошибок также пропускаем файл
             continue
 
-    # 按时间戳排序，最新的在前
+    # Сортировка по времени (новые сначала)
     results.sort(key=lambda x: x['timestamp'], reverse=True)
+
+    # Кэширование результата
+    _results_cache[cache_key] = results
+    _cache_timestamp = current_time
+
     return results
 
+
+def list_results(cluster_name: Optional[str] = None, limit: Optional[int] = None, offset: int = 0, order_by: Optional[str] = None) -> List[Dict]:
+    """
+    列出巡检结果 с поддержкой пагинации и сортировки
+
+    Args:
+        cluster_name: 可选的集群名称过滤
+        limit: максимальное количество результатов (None для всех)
+        offset: смещение для пагинации
+        order_by: поле для сортировки ('timestamp DESC' для сортировки по времени)
+
+    Returns:
+        巡检结果摘要列表
+    """
+    results = list_results_cached(cluster_name)
+
+    # Применяем сортировку
+    if order_by == 'timestamp DESC':
+        results.sort(key=lambda x: x['timestamp'], reverse=True)
+
+    # Применяем пагинацию
+    if limit is not None:
+        start_idx = offset
+        end_idx = offset + limit
+        results = results[start_idx:end_idx]
+
+    return results
+
+
+def load_result_minimal(file_path: Path) -> Optional[Dict]:
+    """Загрузка только необходимых полей результата для списков"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Вернуть только необходимые поля для списка
+        return {
+            'result_id': data.get('result_id'),
+            'cluster_name': data.get('cluster_name'),
+            'timestamp': data.get('timestamp'),
+            'inspection_type': data.get('inspection_type'),
+            'critical': data.get('critical', 0),
+            'warning': data.get('warning', 0),
+            'passed': data.get('passed', 0)
+        }
+    except:
+        return None
 
 def get_latest_result_by_cluster(cluster_name: str) -> Optional[Dict[str, Any]]:
     """
@@ -721,10 +824,6 @@ def get_latest_result_by_cluster(cluster_name: str) -> Optional[Dict[str, Any]]:
     Returns:
         Optional[Dict[str, Any]]: 最新的巡检结果，如果没有则返回 None
     """
-    results = list_results()
+    results = list_results(cluster_name=cluster_name, limit=1)
 
-    for result in results:
-        if result.get('cluster_name') == cluster_name:
-            return result
-
-    return None
+    return results[0] if results else None
