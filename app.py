@@ -11,14 +11,13 @@ KubeEye - Инструмент для инспекции кластера Kubern
 # Импорт стандартных библиотек
 import os
 import sys
-import json
 from datetime import datetime
 from pathlib import Path
-
 
 # Импорт сторонних библиотек
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 
 # Настройка конфигурации страницы - должна быть первой командой Streamlit
@@ -43,7 +42,8 @@ initialize_page(
     title="Обзор инспекций",
     icon="📊",
     page_title="Обзор инспекции кластера",
-    page_subtitle=" Обзор инспекций кластера Kubernetes"
+    page_subtitle=" Обзор инспекций кластера Kubernetes",
+    breadcrumbs=[{"title": "Главная", "path": "app.py"}]
 )
 
 
@@ -124,6 +124,26 @@ for cluster_name in clusters:
     }
 
 
+# Создание данных для графиков
+status_counts = {'healthy': 0, 'warning': 0, 'critical': 0, 'unknown': 0}
+for status_info in cluster_statuses.values():
+    status = status_info['status']
+    status_counts[status] += 1
+
+# Pie chart для статусов кластеров
+status_labels = {'healthy': 'Здоров', 'warning': 'Предупреждение', 'critical': 'Критично', 'unknown': 'Неизвестно'}
+status_colors = {'healthy': '#00D4AA', 'warning': '#FFC107', 'critical': '#FF6B6B', 'unknown': '#6c757d'}
+
+fig_pie = px.pie(
+    values=list(status_counts.values()),
+    names=[status_labels[k] for k in status_counts.keys()],
+    title="Распределение статусов кластеров",
+    color=[status_labels[k] for k in status_counts.keys()],
+    color_discrete_map=status_colors
+)
+fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+
+
 # Вверху обозрение статистики
 st.markdown("### 📊 Обзор")
 cols = st.columns(5)
@@ -173,6 +193,9 @@ with cols[4]:
         delta=None
     )
 
+# Отображение pie chart
+if total_clusters > 0:
+    st.plotly_chart(fig_pie, use_container_width=True)
 
 st.markdown("---")
 
@@ -180,6 +203,8 @@ st.markdown("---")
 # Основная часть - таблица статусов кластера
 st.markdown("### 🏗️ Детали статусов кластера")
 
+# Поиск по кластерам
+search_term = st.text_input("🔍 Поиск кластеров", placeholder="Введите имя кластера...")
 
 if not clusters:
     st.warning("📝 Конфигурация кластеров отсутствует, пожалуйста, добавьте конфигурации на странице \"Информация о кластере\".")
@@ -251,9 +276,30 @@ else:
             "Успешно": passed_count
         })
 
-    # Отображение таблицы статусов кластера
-    cluster_df = pd.DataFrame(cluster_data)
-    st.table(cluster_df)
+    # Фильтрация по поисковому термину
+    if search_term:
+        cluster_data = [row for row in cluster_data if search_term.lower() in row["Название кластера"].lower()]
+
+    # Пагинация
+    if cluster_data:
+        items_per_page = st.selectbox("Показывать строк на странице", [10, 25, 50, 100], index=1)
+        total_pages = (len(cluster_data) + items_per_page - 1) // items_per_page
+        if total_pages > 1:
+            page = st.number_input("Страница", min_value=1, max_value=total_pages, value=1) - 1
+        else:
+            page = 0
+
+        start_idx = page * items_per_page
+        end_idx = min(start_idx + items_per_page, len(cluster_data))
+        page_data = cluster_data[start_idx:end_idx]
+
+        cluster_df = pd.DataFrame(page_data)
+        st.dataframe(cluster_df, use_container_width=True, hide_index=True)
+
+        if total_pages > 1:
+            st.caption(f"Показаны записи {start_idx + 1}-{end_idx} из {len(cluster_data)}")
+    else:
+        st.info("🔍 Кластеры не найдены по критериям поиска")
 
     # Быстрые действия
     st.markdown("#### 🚀 Быстрые действия")
@@ -316,9 +362,9 @@ else:
 # Нижняя часть страницы
 st.markdown("---")
 st.markdown(f"""
-<div style="text-align: center; color: #666; font-size: 0.85rem; padding: 1rem;">
+<div style="text-align: center; color: #cccccc; font-size: 0.85rem; padding: 1rem;">
     KubeEye {VERSION} |
-    <a href="#" onclick="window.location.reload()">Обновить страницу</a> |
+    <a href="#" onclick="window.location.reload()" style="color: #cccccc;">Обновить страницу</a> |
     Последнее обновление: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 </div>
 """, unsafe_allow_html=True)

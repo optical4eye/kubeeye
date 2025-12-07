@@ -40,7 +40,7 @@ def _initialize_background_services():
         # Другие ошибки также не влияют на загрузку страницы
         pass
 
-def initialize_page(title, icon="🔍", sidebar_name="", page_title="", page_subtitle="", page_icon=""):
+def initialize_page(title, icon="🔍", sidebar_name="", page_title="", page_subtitle="", page_icon="", breadcrumbs=None):
     """
     Инициализировать настройки страницы, включая стили и навигационную панель
     Примечание: эта функция предполагает, что st.set_page_config() уже был вызван перед вызовом этой функции
@@ -52,6 +52,7 @@ def initialize_page(title, icon="🔍", sidebar_name="", page_title="", page_sub
         page_title: Заголовок страницы (если отличается от title)
         page_subtitle: Подзаголовок страницы
         page_icon: Иконка страницы (если отличается от icon)
+        breadcrumbs: Список breadcrumbs [{"title": "Главная", "path": "app.py"}, ...]
 
     Returns:
         None
@@ -74,7 +75,7 @@ def initialize_page(title, icon="🔍", sidebar_name="", page_title="", page_sub
 
     # Создать боковую панель и заголовок страницы
     create_sidebar_header(sidebar_name or title)
-    create_page_header(page_title or title, page_subtitle, icon=page_icon or icon)
+    create_page_header(page_title or title, page_subtitle, icon=page_icon or icon, breadcrumbs=breadcrumbs)
 
 def create_status_badge(status, text=None):
     """

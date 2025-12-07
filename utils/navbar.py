@@ -10,79 +10,129 @@ from utils.version import VERSION
 
 def set_app_styles():
     """
-    Установить базовые стили приложения
+    Установить базовые стили приложения (темная тема)
 
     Возвращает:
         None
     """
-    st.markdown("""
+    # Темная тема по умолчанию
+    base_bg = "#1e1e1e"
+    base_color = "#ffffff"
+    sidebar_bg = "#2d2d2d"
+    card_bg = "#2d2d2d"
+
+    st.markdown(f"""
     <style>
     /* Скрыть стандартный заголовок страницы и футер */
-    .main .block-container h1:first-child { display: none; }
-    footer { visibility: hidden; }
-    #MainMenu { visibility: hidden; }
+    .main .block-container h1:first-child {{ display: none; }}
+    footer {{ visibility: hidden; }}
+    #MainMenu {{ visibility: hidden; }}
 
     /* Улучшение общего интерфейса и отступов */
-    .main .block-container { padding-top: 1.5rem; }
+    .main .block-container {{ padding-top: 1.5rem; }}
 
     /* Основные стили боковой панели */
-    [data-testid="stSidebar"] {
-        background-color: #948979;
+    [data-testid="stSidebar"] {{
+        background-color: {sidebar_bg};
         border-right: 1px solid rgba(0,0,0,0.05);
         resize: none !important;
         min-width: 244px !important;
         max-width: 244px !important;
         width: 244px !important;
-    }
+    }}
+
+    /* Темная тема */
+    .main {{
+        background-color: {base_bg};
+        color: {base_color};
+    }}
+
+    .stCard {{
+        background-color: {card_bg};
+    }}
+
+    /* Заголовки */
+    h1, h2, h3 {{
+        color: {base_color};
+    }}
+
+    /* Темная тема для footer */
+    .sidebar-footer {{
+        background-color: {sidebar_bg} !important;
+        color: {base_color} !important;
+    }}
+
+    /* Мобильная адаптивность */
+    @media (max-width: 768px) {{
+        [data-testid="stSidebar"] {{
+            width: 200px !important;
+            min-width: 200px !important;
+            max-width: 200px !important;
+        }}
+
+        .sidebar-footer {{
+            width: 200px !important;
+        }}
+
+        .main .block-container {{
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }}
+
+        /* Скрыть некоторые колонки на мобильных */
+        .stDataFrame {{
+            font-size: 0.8rem;
+        }}
+    }}
 
     /* Отключение возможности перетаскивания и изменения размера боковой панели */
     [data-testid="stSidebar"] .css-1d391kg,
     [data-testid="stSidebar"] .css-1y4p8pa,
-    [data-testid="stSidebar"] .css-1cypcdb {
+    [data-testid="stSidebar"] .css-1cypcdb {{
         resize: none !important;
         min-width: 244px !important;
         max-width: 244px !important;
         width: 244px !important;
-    }
+    }}
 
     /* Скрытие перетаскивающих рукояток боковой панели */
     [data-testid="stSidebar"] .css-1d391kg::after,
     [data-testid="stSidebar"] .css-1y4p8pa::after,
-    [data-testid="stSidebar"] .css-1cypcdb::after {
+    [data-testid="stSidebar"] .css-1cypcdb::after {{
         display: none !important;
-    }
+    }}
 
     /* Отключение изменения размера мышью у правого края боковой панели при наведении */
-    [data-testid="stSidebar"]:hover {
+    [data-testid="stSidebar"]:hover {{
         cursor: default !important;
-    }
+    }}
 
-    [data-testid="stSidebar"] * {
+    [data-testid="stSidebar"] * {{
         resize: none !important;
-    }
+    }}
 
     /* Стили заголовков */
-    h1, h2, h3 {
-        color: #333;
+    h1, h2, h3 {{
+        color: {base_color};
         font-weight: 600;
-    }
+    }}
 
     /* Улучшение стилей кнопок */
-    [data-testid="stSidebar"] .stButton > button {
+    [data-testid="stSidebar"] .stButton > button {{
         width: 100% !important;
         margin-bottom: 0.5rem !important;
         border-radius: 6px !important;
         transition: all 0.2s ease !important;
-    }
+    }}
 
     /* Улучшение стилей ссылок */
-    [data-testid="stSidebar"] a {
+    [data-testid="stSidebar"] a {{
         transition: color 0.2s ease !important;
-    }
+    }}
 
-    [data-testid="stSidebar"] a:hover {
+    [data-testid="stSidebar"] a:hover {{
         color: #007acc !important;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -150,7 +200,7 @@ def create_sidebar_header(active_page="Главная"):
             bottom: 0 !important;
             left: 0 !important;
             width: 244px !important;
-            background-color: #948979 !important;
+            background-color: {sidebar_bg} !important;
             border-top: 1px solid rgba(0, 0, 0, 0.15) !important;
             padding: 0.8rem 1rem !important;
             text-align: center !important;
@@ -190,24 +240,39 @@ def create_sidebar_header(active_page="Главная"):
         </div>
         """, unsafe_allow_html=True)
 
-def create_page_header(title, subtitle="", icon=""):
+def create_page_header(title, subtitle="", icon="", breadcrumbs=None):
     """
-    Создать заголовок страницы
+    Создать заголовок страницы с breadcrumbs
 
     Args:
         title: заголовок страницы
         subtitle: подзаголовок страницы
         icon: иконка (необязательно)
+        breadcrumbs: список словарей [{"title": "Главная", "path": "app.py"}, ...]
 
     Возвращает:
         None
     """
+    # Цвета для темной темы
+    base_color = "#ffffff"
+    subtitle_color = "#cccccc"
+    # Breadcrumbs
+    if breadcrumbs:
+        breadcrumb_html = '<nav aria-label="breadcrumb"><ol class="breadcrumb" style="background: none; padding: 0; margin-bottom: 1rem;">'
+        for i, crumb in enumerate(breadcrumbs):
+            if i < len(breadcrumbs) - 1:
+                breadcrumb_html += f'<li class="breadcrumb-item"><a href="#" onclick="window.location.href=\'{crumb.get("path", "#")}\'">{crumb["title"]}</a></li>'
+            else:
+                breadcrumb_html += f'<li class="breadcrumb-item active" aria-current="page">{crumb["title"]}</li>'
+        breadcrumb_html += '</ol></nav>'
+        st.markdown(breadcrumb_html, unsafe_allow_html=True)
+
     st.markdown(f"""
     <div style="margin-bottom: 1rem;">
-        <h2 style="color: #333; font-weight: 600; margin-bottom: 0.25rem;">
+        <h2 style="color: {base_color}; font-weight: 600; margin-bottom: 0.25rem;">
             {icon} {title}
         </h2>
-        <p style="color: #666; font-size: 1rem; margin-top: 0;">
+        <p style="color: {subtitle_color}; font-size: 1rem; margin-top: 0;">
             {subtitle}
         </p>
     </div>

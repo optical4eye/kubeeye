@@ -10,7 +10,7 @@ import streamlit as st
 import pandas as pd
 import sys
 from pathlib import Path
-import json
+import re
 
 
 # Настройка страницы - должна быть первой командой Streamlit
@@ -54,6 +54,10 @@ if 'temp_nodes' not in st.session_state:
 if 'show_passwords' not in st.session_state:
     st.session_state.show_passwords = {}
 
+# Инициализация состояния для валидации
+if 'validation_errors' not in st.session_state:
+    st.session_state.validation_errors = {}
+
 
 # Функция для проверки и валидации ключей
 def validate_key_files(nodes):
@@ -78,6 +82,35 @@ def validate_key_files(nodes):
         valid_nodes.append(node_info)
 
     return valid_nodes, key_errors
+
+
+def validate_ip_port(ip_port):
+    """Валидация IP:Port"""
+    try:
+        ip, port = ip_port.split(':')
+        port = int(port)
+        if port < 1 or port > 65535:
+            return False, "Порт должен быть от 1 до 65535"
+        # Простая проверка IP
+        parts = ip.split('.')
+        if len(parts) != 4:
+            return False, "Неверный формат IP"
+        for part in parts:
+            num = int(part)
+            if num < 0 or num > 255:
+                return False, "Каждая часть IP должна быть от 0 до 255"
+        return True, ""
+    except:
+        return False, "Формат должен быть IP:Port"
+
+
+def validate_cluster_name(name):
+    """Валидация имени кластера"""
+    if not name:
+        return False, "Имя кластера обязательно"
+    if not re.match(r'^[a-zA-Z0-9_-]+$', name):
+        return False, "Имя кластера может содержать только буквы, цифры, дефис и подчеркивание"
+    return True, ""
 
 
 # Вкладки
@@ -146,7 +179,15 @@ with tab2:
     with st.form("add_cluster_form"):
         # Основная информация о кластере
         st.subheader("💾 Основная информация")
-        cluster_name = st.text_input("Название кластера", placeholder="production")
+        cluster_name = st.text_input("Название кластера", placeholder="production", key="cluster_name_input")
+
+        # Real-time валидация имени кластера
+        if cluster_name:
+            valid, error = validate_cluster_name(cluster_name)
+            if not valid:
+                st.error(f"❌ {error}")
+            else:
+                st.success("✅ Имя кластера корректно")
 
         # Добавление узлов
         st.subheader("📋 Узлы кластера")

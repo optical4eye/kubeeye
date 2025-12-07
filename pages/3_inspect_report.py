@@ -44,8 +44,9 @@ st.markdown("""
     .table-header {
         font-weight: bold;
         padding: 8px 0;
-        border-bottom: 2px solid #ddd;
-        background-color: #f8f9fa;
+        border-bottom: 2px solid #555;
+        background-color: #333333;
+        color: #ffffff;
     }
 
     /* Стиль меток состояния */
