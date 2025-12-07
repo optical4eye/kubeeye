@@ -26,6 +26,8 @@ RUN apk add --no-cache \
     openssh-client \
     curl \
     git \
+    font-dejavu \
+    font-liberation \
     && apk upgrade --no-cache
 
 

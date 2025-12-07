@@ -18,10 +18,11 @@ def set_app_styles():
     # Темная тема по умолчанию
     base_bg = "#1e1e1e"
     base_color = "#ffffff"
-    sidebar_bg = "#2d2d2d"
+    sidebar_bg = "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%)"
     card_bg = "#2d2d2d"
 
-    st.markdown(f"""
+    # CSS стили с переменными
+    css_styles = f"""
     <style>
     /* Скрыть стандартный заголовок страницы и футер */
     .main .block-container h1:first-child {{ display: none; }}
@@ -33,7 +34,7 @@ def set_app_styles():
 
     /* Основные стили боковой панели */
     [data-testid="stSidebar"] {{
-        background-color: {sidebar_bg};
+        background: {sidebar_bg};
         border-right: 1px solid rgba(0,0,0,0.05);
         resize: none !important;
         min-width: 244px !important;
@@ -58,34 +59,11 @@ def set_app_styles():
 
     /* Темная тема для footer */
     .sidebar-footer {{
-        background-color: {sidebar_bg} !important;
+        background: {sidebar_bg} !important;
         color: {base_color} !important;
     }}
 
-    /* Мобильная адаптивность */
-    @media (max-width: 768px) {{
-        [data-testid="stSidebar"] {{
-            width: 200px !important;
-            min-width: 200px !important;
-            max-width: 200px !important;
-        }}
 
-        .sidebar-footer {{
-            width: 200px !important;
-        }}
-
-        .main .block-container {{
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-        }}
-
-        /* Скрыть некоторые колонки на мобильных */
-        .stDataFrame {{
-            font-size: 0.8rem;
-        }}
-    }}
-
-    /* Отключение возможности перетаскивания и изменения размера боковой панели */
     [data-testid="stSidebar"] .css-1d391kg,
     [data-testid="stSidebar"] .css-1y4p8pa,
     [data-testid="stSidebar"] .css-1cypcdb {{
@@ -95,14 +73,12 @@ def set_app_styles():
         width: 244px !important;
     }}
 
-    /* Скрытие перетаскивающих рукояток боковой панели */
     [data-testid="stSidebar"] .css-1d391kg::after,
     [data-testid="stSidebar"] .css-1y4p8pa::after,
     [data-testid="stSidebar"] .css-1cypcdb::after {{
         display: none !important;
     }}
 
-    /* Отключение изменения размера мышью у правого края боковой панели при наведении */
     [data-testid="stSidebar"]:hover {{
         cursor: default !important;
     }}
@@ -111,13 +87,11 @@ def set_app_styles():
         resize: none !important;
     }}
 
-    /* Стили заголовков */
     h1, h2, h3 {{
         color: {base_color};
         font-weight: 600;
     }}
 
-    /* Улучшение стилей кнопок */
     [data-testid="stSidebar"] .stButton > button {{
         width: 100% !important;
         margin-bottom: 0.5rem !important;
@@ -125,7 +99,6 @@ def set_app_styles():
         transition: all 0.2s ease !important;
     }}
 
-    /* Улучшение стилей ссылок */
     [data-testid="stSidebar"] a {{
         transition: color 0.2s ease !important;
     }}
@@ -133,7 +106,261 @@ def set_app_styles():
     [data-testid="stSidebar"] a:hover {{
         color: #007acc !important;
     }}
+
+    .fade-in {{
+        animation: fadeIn 0.3s ease-in;
+    }}
+
+    @keyframes fadeIn {{
+        from {{ opacity: 0; transform: translateY(10px); }}
+        to {{ opacity: 1; transform: translateY(0); }}
+    }}
+
+    .slide-in {{
+        animation: slideIn 0.4s ease-out;
+    }}
+
+    @keyframes slideIn {{
+        from {{ transform: translateX(-20px); opacity: 0; }}
+        to {{ transform: translateX(0); opacity: 1; }}
+    }}
+
+    .stButton > button {{
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }}
+
+    .stButton > button:hover {{
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    }}
+
+    .stButton > button:active {{
+        transform: translateY(0) !important;
+        transition: all 0.1s !important;
+    }}
+
+    [data-testid="stExpander"] {{
+        transition: all 0.2s ease !important;
+    }}
+
+    [data-testid="stExpander"]:hover {{
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    }}
+
+    .metric-animation {{
+        animation: metricPulse 0.6s ease-out;
+    }}
+
+    @keyframes metricPulse {{
+        0% {{ transform: scale(0.95); opacity: 0; }}
+        50% {{ transform: scale(1.02); }}
+        100% {{ transform: scale(1); opacity: 1; }}
+    }}
+
+    .loading-spinner {{
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #ffffff;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 8px;
+    }}
+
+    @keyframes spin {{
+        to {{ transform: rotate(360deg); }}
+    }}
+
+    .loading-dots {{
+        display: inline-block;
+    }}
+
+    .loading-dots::after {{
+        content: '';
+        animation: dots 1.5s infinite;
+    }}
+
+    @keyframes dots {{
+        0%, 20% {{ content: ''; }}
+        40% {{ content: '.'; }}
+        60% {{ content: '..'; }}
+        80%, 100% {{ content: '...'; }}
+    }}
+
+    .toast-container {{
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        z-index: 10000 !important;
+        max-width: 400px !important;
+    }}
+
+    .toast {{
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+        color: white !important;
+        padding: 16px 20px !important;
+        border-radius: 8px !important;
+        margin-bottom: 10px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+        border-left: 4px solid #326CE5 !important;
+        animation: toastSlideIn 0.3s ease-out !important;
+        backdrop-filter: blur(10px) !important;
+    }}
+
+    .toast.success {{
+        border-left-color: #00D4AA !important;
+    }}
+
+    .toast.error {{
+        border-left-color: #FF6B6B !important;
+    }}
+
+    .toast.warning {{
+        border-left-color: #FFC107 !important;
+    }}
+
+    .toast.info {{
+        border-left-color: #17a2b8 !important;
+    }}
+
+    @keyframes toastSlideIn {{
+        from {{
+            transform: translateX(100%);
+            opacity: 0;
+        }}
+        to {{
+            transform: translateX(0);
+            opacity: 1;
+        }}
+    }}
+
+    .toast.fade-out {{
+        animation: toastFadeOut 0.3s ease-in forwards !important;
+    }}
+
+    @keyframes toastFadeOut {{
+        to {{
+            transform: translateX(100%);
+            opacity: 0;
+        }}
+    }}
+
+    .pulse {{
+        animation: pulse 2s infinite;
+    }}
+
+    @keyframes pulse {{
+        0% {{ box-shadow: 0 0 0 0 rgba(50, 108, 229, 0.7); }}
+        70% {{ box-shadow: 0 0 0 10px rgba(50, 108, 229, 0); }}
+        100% {{ box-shadow: 0 0 0 0 rgba(50, 108, 229, 0); }}
+    }}
+
+    * {{
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+    }}
     </style>
+    """
+
+    st.markdown(css_styles, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <script>
+
+    // Toast уведомления система
+    window.showToast = function(message, type = 'info', duration = 4000) {{
+        // Создаем контейнер если его нет
+        let container = document.querySelector('.toast-container');
+        if (!container) {{
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }}
+
+        // Создаем toast
+        const toast = document.createElement('div');
+        toast.className = `toast ${{type}} fade-in`;
+        toast.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 18px;">
+                    ${{type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}}
+                </div>
+                <div style="flex: 1;">${{message}}</div>
+                <button onclick="this.parentElement.parentElement.remove()"
+                        style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">×</button>
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        // Автоматическое удаление
+        setTimeout(() => {{
+            toast.classList.add('fade-out');
+            setTimeout(() => {{
+                if (toast.parentElement) {{
+                    toast.remove();
+                }}
+            }}, 300);
+        }}, duration);
+
+        return toast;
+    }};
+
+    // Переопределяем Streamlit success/error/info функции для использования toast
+    const originalSuccess = window.parent.streamlitSuccess || (() => {{}});
+    const originalError = window.parent.streamlitError || (() => {{}});
+    const originalInfo = window.parent.streamlitInfo || (() => {{}});
+
+    // Добавляем анимации к метрикам при загрузке
+    function animateMetrics() {{
+        const metrics = document.querySelectorAll('[data-testid="stMetricValue"]');
+        metrics.forEach((metric, index) => {{
+            metric.style.animationDelay = `${{index * 0.1}}s`;
+            metric.classList.add('metric-animation');
+        }});
+    }}
+
+    // Вызываем анимации метрик при загрузке страницы
+    setTimeout(animateMetrics, 100);
+
+    // Добавляем fade-in ко всем основным элементам
+    function addFadeInAnimations() {{
+        const elements = document.querySelectorAll('h1, h2, h3, .stDataFrame, .stColumns, [data-testid="stExpander"]');
+        elements.forEach((el, index) => {{
+            el.style.animationDelay = `${{index * 0.05}}s`;
+            el.classList.add('fade-in');
+        }});
+    }}
+
+    setTimeout(addFadeInAnimations, 200);
+
+    // Улучшенные loading состояния
+    window.showLoading = function(element, text = 'Загрузка...') {{
+        if (typeof element === 'string') {{
+            element = document.querySelector(element);
+        }}
+        if (!element) return;
+
+        element.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
+                <div class="loading-spinner"></div>
+                <span>${{text}}</span>
+            </div>
+        `;
+    }};
+
+    window.hideLoading = function(element) {{
+        if (typeof element === 'string') {{
+            element = document.querySelector(element);
+        }}
+        if (!element) return;
+
+        // Восстанавливаем оригинальное содержимое или просто очищаем
+        element.innerHTML = '';
+    }};
+    </script>
     """, unsafe_allow_html=True)
 
 def show_app_logo():
@@ -239,6 +466,7 @@ def create_sidebar_header(active_page="Главная"):
             <div><a href="https://kubesphere.io" target="_blank">KubeSphere</a></div>
         </div>
         """, unsafe_allow_html=True)
+
 
 def create_page_header(title, subtitle="", icon="", breadcrumbs=None):
     """

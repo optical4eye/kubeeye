@@ -7,11 +7,25 @@
 import json
 import yaml
 import os
+import re
 
 import openpyxl
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union, Tuple
+
+# Попытка импорта для PDF генерации
+try:
+    from reportlab.lib.pagesizes import letter, A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
+    from reportlab.lib import colors
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.lib.units import cm, inch
+    PDF_SUPPORT = True
+except ImportError:
+    PDF_SUPPORT = False
 
 # 数据目录定义
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -220,6 +234,7 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
     # 从 result_data 获取集群名
     cluster_name = result_data.get('cluster_name', 'unknown')
     export_dir = RESULTS_DIR / cluster_name / "exports"
+    import os
     os.makedirs(export_dir, exist_ok=True)
 
     # 根据格式类型导出
@@ -288,6 +303,298 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
             return True, str(export_path)
         except Exception as e:
             return False, f"导出Excel失败: {str(e)}"
+    elif format_type == "pdf":
+        if not PDF_SUPPORT:
+            return False, "PDF экспорт недоступен. Установите reportlab: pip install reportlab"
+
+        export_path = export_dir / f"{result_id}.pdf"
+
+        try:
+            # Улучшенный поиск шрифтов для кириллицы
+            font_name = 'DejaVuSans'  # По умолчанию используем DejaVuSans
+
+            # Проверяем доступные системные шрифты (в порядке приоритета)
+            possible_fonts = [
+                # DejaVu Sans (часто есть в Linux)
+                ('/usr/share/fonts/dejavu/DejaVuSans.ttf', 'DejaVuSans'),
+                ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 'DejaVuSans'),
+                ('/usr/share/fonts/TTF/DejaVuSans.ttf', 'DejaVuSans'),
+
+                # Liberation Sans (альтернатива в Linux)
+                ('/usr/share/fonts/liberation/LiberationSans-Regular.ttf', 'LiberationSans'),
+
+                # Arial (Windows/Linux)
+                ('/usr/share/fonts/arial.ttf', 'Arial'),
+                ('/usr/share/fonts/Arial.ttf', 'Arial'),
+                ('/usr/share/fonts/truetype/msttcorefonts/Arial.ttf', 'Arial'),
+                ('C:/Windows/Fonts/arial.ttf', 'Arial'),
+                ('C:/Windows/Fonts/arial.ttf', 'Arial'),
+
+                # Times New Roman
+                ('/usr/share/fonts/TTF/Times.ttf', 'TimesNewRoman'),
+                ('C:/Windows/Fonts/times.ttf', 'TimesNewRoman'),
+
+                # FreeSans (может быть в системах с ghostscript)
+                ('/usr/share/fonts/type1/gsfonts/FreeSans.pfb', 'FreeSans'),
+            ]
+
+            font_found = False
+            for font_path, font_alias in possible_fonts:
+                if os.path.exists(font_path):
+                    try:
+                        pdfmetrics.registerFont(TTFont(font_alias, font_path))
+                        font_name = font_alias
+                        font_found = True
+                        print(f"Используется шрифт: {font_alias} из {font_path}")
+                        break
+                    except Exception as e:
+                        print(f"Не удалось загрузить шрифт {font_path}: {e}")
+                        continue
+
+            # Если не нашли подходящий шрифт, используем Times-Roman (лучше поддерживает Unicode)
+            if not font_found:
+                font_name = 'Times-Roman'
+                print(f"Используется встроенный шрифт: {font_name}")
+
+            # Создаем PDF документ с альбомной ориентацией
+            doc = SimpleDocTemplate(str(export_path), pagesize=landscape(A4),
+                                    topMargin=1*cm, bottomMargin=1*cm,
+                                    leftMargin=1*cm, rightMargin=1*cm)
+            styles = getSampleStyleSheet()
+
+            # Создаем стили для кириллицы
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=14,
+                spaceAfter=20,
+                alignment=1,  # center
+                fontName=font_name
+            )
+
+            header_style = ParagraphStyle(
+                'CustomHeader',
+                parent=styles['Heading2'],
+                fontSize=11,
+                spaceAfter=10,
+                alignment=0,  # left
+                fontName=font_name,
+                textColor=colors.white
+            )
+
+            normal_style = ParagraphStyle(
+                'CustomNormal',
+                parent=styles['Normal'],
+                fontSize=9,
+                spaceAfter=6,
+                fontName=font_name,
+                leading=11  # межстрочный интервал
+            )
+
+            # Стиль для ячеек таблицы с переносом текста
+            cell_style = ParagraphStyle(
+                'TableCell',
+                parent=styles['Normal'],
+                fontSize=8,
+                fontName=font_name,
+                leading=10,
+                wordWrap='CJK'  # Включаем перенос текста
+            )
+
+            # Функция для очистки текста от эмодзи
+            def clean_text(text):
+                if not isinstance(text, str):
+                    text = str(text)
+                # Удаляем эмодзи и специальные символы
+                emoji_pattern = re.compile(
+                    "["
+                    "\U0001F600-\U0001F64F"  # emoticons
+                    "\U0001F300-\U0001F5FF"  # symbols & pictographs
+                    "\U0001F680-\U0001F6FF"  # transport & map symbols
+                    "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                    "\U00002700-\U000027BF"  # dingbats
+                    "\U0001f926-\U0001f937"  # gestures
+                    "\U00010000-\U0010ffff"  # other unicode
+                    "\u2640-\u2642"  # gender symbols
+                    "\u2600-\u2B55"  # misc symbols
+                    "\u200d"  # zero width joiner
+                    "\u23cf"  # eject symbol
+                    "\u23e9"  # fast forward
+                    "\u231a"  # watch
+                    "\ufe0f"  # variation selector
+                    "\u3030"  # wavy dash
+                    "]+",
+                    flags=re.UNICODE
+                )
+                return emoji_pattern.sub('', text).strip()
+
+            # Функция для создания Paragraph с переносом текста
+            def create_cell_paragraph(text, max_length=150):
+                """Создает Paragraph с обрезанным текстом при необходимости"""
+                clean = clean_text(text)
+                if len(clean) > max_length:
+                    clean = clean[:max_length] + "..."
+                return Paragraph(clean, cell_style)
+
+            # Собираем содержимое PDF
+            story = []
+
+            # Заголовок
+            title = clean_text("Отчет о проверке кластера Kubernetes")
+            story.append(Paragraph(title, title_style))
+            story.append(Spacer(1, 10))
+
+            # Информация о кластере
+            cluster_info = [
+                f"<b>Название кластера:</b> {clean_text(result_data.get('cluster_name', 'Неизвестно'))}",
+                f"<b>Время проверки:</b> {result_data.get('timestamp', 'Неизвестно')}",
+                f"<b>ID отчета:</b> {clean_text(result_data.get('result_id', 'Неизвестно'))}",
+                f"<b>Тип проверки:</b> {clean_text(result_data.get('inspection_type', 'Неизвестно'))}"
+            ]
+
+            for info in cluster_info:
+                story.append(Paragraph(info, normal_style))
+            story.append(Spacer(1, 15))
+
+            # Получаем все элементы проверки
+            all_items = []
+            if 'inspection_results' in result_data:
+                for inspector_type, inspector_result in result_data['inspection_results'].items():
+                    items = inspector_result.get('items', [])
+                    all_items.extend(items)
+            else:
+                all_items = result_data.get('items', [])
+
+            # Статистика
+            passed_count = sum(1 for item in all_items if item.get('status') == 'passed')
+            exception_count = len(all_items) - passed_count
+
+            stats_text = f"<b>Всего проверок:</b> {len(all_items)}, <b>Пройдено:</b> {passed_count}, <b>Ошибок:</b> {exception_count}"
+            story.append(Paragraph(stats_text, normal_style))
+            story.append(Spacer(1, 15))
+
+            # Таблица результатов
+            if all_items:
+                # Определяем максимальное количество строк на странице
+                max_rows_per_page = 30  # Ограничиваем для читаемости
+
+                # Разбиваем данные на части для пагинации
+                for page_num, start_idx in enumerate(range(0, len(all_items), max_rows_per_page)):
+                    end_idx = min(start_idx + max_rows_per_page, len(all_items))
+                    page_items = all_items[start_idx:end_idx]
+
+                    if page_num > 0:
+                        story.append(Paragraph(f"<i>Продолжение таблицы...</i>", normal_style))
+                        story.append(Spacer(1, 10))
+
+                    # Создаем данные для таблицы
+                    table_data = []
+
+                    # Заголовки таблицы
+                    header_row = [
+                        create_cell_paragraph('Название проверки'),
+                        create_cell_paragraph('Статус'),
+                        create_cell_paragraph('Уровень важности'),
+                        create_cell_paragraph('Описание'),
+                        create_cell_paragraph('Решение')
+                    ]
+                    table_data.append(header_row)
+
+                    # Добавляем данные
+                    for item in page_items:
+                        name = create_cell_paragraph(item.get('name', ''))
+                        status = create_cell_paragraph(item.get('status', ''))
+
+                        # Определяем цвет для статуса
+                        status_color = colors.green
+                        if item.get('status') != 'passed':
+                            status_color = colors.red
+
+                        severity = create_cell_paragraph(item.get('severity', ''))
+                        description = create_cell_paragraph(item.get('description', ''))
+                        solution = create_cell_paragraph(item.get('solution', ''))
+
+                        row = [name, status, severity, description, solution]
+                        table_data.append(row)
+
+                    # Автоматическое определение ширины колонок
+                    # Используем пропорциональное распределение с учетом содержимого
+                    page_width = landscape(A4)[0] - 2*cm  # Ширина страницы минус отступы
+
+                    # Определяем примерные пропорции колонок на основе их содержимого
+                    col_proportions = [3.0, 1.0, 1.5, 4.0, 3.0]  # Примерные пропорции
+                    total_proportion = sum(col_proportions)
+
+                    # Рассчитываем ширину каждой колонки
+                    col_widths = [(page_width / total_proportion) * prop for prop in col_proportions]
+
+                    # Создаем таблицу
+                    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+                    # Применяем стили к таблице
+                    table_style = TableStyle([
+                        # Заголовок таблицы
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F81BD')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), font_name),
+                        ('FONTSIZE', (0, 0), (-1, 0), 9),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                        ('TOPPADDING', (0, 0), (-1, 0), 8),
+
+                        # Чередование цветов строк для читаемости
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F2F2F2')]),
+
+                        # Границы таблицы
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+
+                        # Выравнивание содержимого
+                        ('ALIGN', (0, 1), (1, -1), 'CENTER'),  # Статус и важность по центру
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+
+                        # Автоматический перенос текста
+                        ('WORDWRAP', (0, 0), (-1, -1), True),
+                    ])
+
+                    # Динамическое окрашивание ячеек статуса
+                    for i in range(1, len(table_data)):
+                        status_text = all_items[start_idx + i - 1].get('status', '')
+                        if status_text == 'passed':
+                            table_style.add('BACKGROUND', (1, i), (1, i), colors.lightgreen)
+                        elif status_text in ['failed', 'error', 'exception']:
+                            table_style.add('BACKGROUND', (1, i), (1, i), colors.lightcoral)
+                        elif status_text == 'warning':
+                            table_style.add('BACKGROUND', (1, i), (1, i), colors.lightyellow)
+
+                    table.setStyle(table_style)
+
+                    # Добавляем таблицу в историю
+                    story.append(table)
+
+                    # Добавляем разрыв страницы если это не последняя часть
+                    if end_idx < len(all_items):
+                        story.append(Spacer(1, 10))
+                        story.append(Paragraph(f"Страница {page_num + 1}", normal_style))
+                        story.append(Spacer(1, 20))
+
+            # Добавляем итоговую статистику
+            story.append(Spacer(1, 20))
+            summary_text = f"<b>Итог:</b> Отчет сгенерирован {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            story.append(Paragraph(summary_text, normal_style))
+
+            # Генерируем PDF
+            doc.build(story)
+            return True, str(export_path)
+
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            return False, f"Ошибка экспорта PDF: {str(e)}\nДетали: {error_details}"
+
     else:
         return False, f"不支持的导出格式: {format_type}"
 

@@ -71,6 +71,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Toast уведомления для успешных операций
+def show_toast(message, type="success"):
+    toast_js = f"""
+    <script>
+    if (window.showToast) {{
+        window.showToast("{message}", "{type}");
+    }}
+    </script>
+    """
+    st.markdown(toast_js, unsafe_allow_html=True)
+
 
 # Получение данных
 clusters = list_clusters()
@@ -145,6 +156,7 @@ fig_pie.update_traces(textposition='inside', textinfo='percent+label')
 
 
 # Вверху обозрение статистики
+st.markdown('<div class="fade-in">', unsafe_allow_html=True)
 st.markdown("### 📊 Обзор")
 cols = st.columns(5)
 
@@ -316,6 +328,8 @@ else:
     with cols[2]:
         if st.button("⚙️ Управление кластером", width='stretch'):
             st.switch_page("pages/1_cluster_info.py")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # Таблица последних записей инспекции

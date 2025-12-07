@@ -351,6 +351,8 @@ def display_report_operations(report_id):
 
     col1, col2, col3 = st.columns(3)
 
+    col1, col2, col3, col4 = st.columns(4)
+
     with col1:
         if st.button("🔍 Просмотр деталей", type="primary", width='stretch'):
             st.session_state.view_mode = "detail"
@@ -363,6 +365,31 @@ def display_report_operations(report_id):
     with col3:
         if st.button("📊 Экспорт Excel", width='stretch'):
             export_and_download(report_id, "excel", "Excel")
+
+    with col4:
+        if st.button("📕 Экспорт PDF", width='stretch'):
+            success, message = export_report(report_id, "pdf")
+            if success:
+                st.success("✅ PDF отчет успешно создан!")
+                try:
+                    with open(message, "rb") as f:
+                        pdf_data = f.read()
+                    st.download_button(
+                        label="⬇️ Скачать PDF отчет",
+                        data=pdf_data,
+                        file_name=f"{report_id}.pdf",
+                        mime="application/pdf",
+                        type="secondary",
+                        width='stretch'
+                    )
+                except Exception as e:
+                    st.error(f"❌ Ошибка при чтении PDF файла: {str(e)}")
+            else:
+                if "reportlab" in message:
+                    st.error(f"❌ {message}")
+                    st.info("💡 Установите reportlab для PDF экспорта: `pip install reportlab`")
+                else:
+                    st.error(f"❌ {message}")
 
     st.markdown("#### 🗑️ Удаление")
     col1, col2 = st.columns([3, 1])
