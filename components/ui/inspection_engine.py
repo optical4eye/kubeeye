@@ -273,9 +273,9 @@ class InspectionEngine:
     def _show_inspection_completion_ui(self, all_results: Dict, result_path: str, cluster_name: str):
         """Показать UI обратной связи после завершения проверки"""
         # Определяем источник правил для отображения
-        rules_source = "🔄 GitOps" if self.use_gitops else "📁 Локальные"
+        rules_source = "GitOps" if self.use_gitops else "Локальные"
 
-        st.success(f"✅ Проверка завершена с использованием {rules_source} правил!")
+        st.success(f"Проверка завершена с использованием {rules_source} правил!")
 
         total_items = sum(len(result.items) if hasattr(result, 'items') else 0 for result in all_results.values() if result)
         passed_count = 0
@@ -290,9 +290,9 @@ class InspectionEngine:
         with col1:
             st.metric("Всего проверок", total_items)
         with col2:
-            st.metric("✅ Пройдено", passed_count)
+            st.metric("Пройдено", passed_count)
         with col3:
-            st.metric("⚠️ Ошибок", exception_count)
+            st.metric("Ошибок", exception_count)
 
         st.session_state.last_result_path = result_path
         st.session_state.last_cluster_name = cluster_name
@@ -313,11 +313,11 @@ class InspectionEngine:
             if result_id:
                 st.session_state.selected_report_id = result_id
                 st.session_state.view_mode = "detail"
-            st.success("✅ Проверка завершена! Отчёт готов к просмотру.")
-            st.info("📊 Пожалуйста, перейдите на страницу «Отчёты проверки» в левой навигации для просмотра деталей.")
+            st.success("Проверка завершена! Отчёт готов к просмотру.")
+            st.info("Пожалуйста, перейдите на страницу «Отчёты проверки» в левой навигации для просмотра деталей.")
 
         with col2:
-            if st.button("🔄 Повторить проверку", width='stretch'):
+            if st.button("Повторить проверку", width='stretch'):
                 st.rerun()
 
 

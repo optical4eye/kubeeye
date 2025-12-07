@@ -40,7 +40,7 @@ def _initialize_background_services():
         # Другие ошибки также не влияют на загрузку страницы
         pass
 
-def initialize_page(title, icon="🔍", sidebar_name="", page_title="", page_subtitle="", page_icon="", breadcrumbs=None):
+def initialize_page(title, icon="", sidebar_name="", page_title="", page_subtitle="", page_icon="", breadcrumbs=None):
     """
     Инициализировать настройки страницы, включая стили и навигационную панель
     Примечание: эта функция предполагает, что st.set_page_config() уже был вызван перед вызовом этой функции

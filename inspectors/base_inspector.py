@@ -86,7 +86,7 @@ class BaseInspector(ABC):
             Объект результата проверки
         """
         source_type = "GitOps" if self.use_gitops else "локальных"
-        logger.info(f"🔍 BaseInspector.run_inspection начато - тип инспектора: {self.inspector_type}, кластер: {cluster_name}, источник: {source_type}")
+        logger.info(f"BaseInspector.run_inspection начато - тип инспектора: {self.inspector_type}, кластер: {cluster_name}, источник: {source_type}")
         logger.info(f"Доступных правил всего: {len(self.rules)}, указанные ID правил: {rule_ids}")
 
         result = InspectionResult(cluster_name, self.inspector_type)
@@ -114,7 +114,7 @@ class BaseInspector(ABC):
         executed_count = 0
         for rule in active_rules:
             try:
-                logger.info(f"📋 Начало выполнения правила {rule.id}: {rule.name}")
+                logger.info(f"Начало выполнения правила {rule.id}: {rule.name}")
 
                 # Проверка конфигурации правила
                 validation_issues = self._validate_rule_config(rule)
@@ -135,7 +135,7 @@ class BaseInspector(ABC):
                 logger.info(f"Правило {rule.id} проверка применимости: {should_apply}")
 
                 if should_apply:
-                    logger.info(f"🎯 Применение правила {rule.id}")
+                    logger.info(f"Применение правила {rule.id}")
                     inspection_result = self._apply_rule(rule, context)
                     logger.info(f"Правило {rule.id} применено, тип результата: {type(inspection_result)}")
 
@@ -159,10 +159,10 @@ class BaseInspector(ABC):
                     ))
 
                 executed_count += 1
-                logger.info(f"✅ Правило {rule.id} выполнено ({executed_count}/{len(active_rules)})")
+                logger.info(f"Правило {rule.id} выполнено ({executed_count}/{len(active_rules)})")
 
             except Exception as e:
-                logger.exception(f"❌ Ошибка выполнения правила {rule.id}: {str(e)}")
+                logger.exception(f"Ошибка выполнения правила {rule.id}: {str(e)}")
                 error_result = self._format_error_result(
                     rule,
                     f"Ошибка выполнения правила: {str(e)}",
@@ -170,7 +170,7 @@ class BaseInspector(ABC):
                 )
                 result.add_item(error_result)
 
-        logger.info(f"🏁 BaseInspector.run_inspection завершено - инспектор: {self.inspector_type}, выполнено правил: {executed_count}, результатов: {len(result.items)}")
+        logger.info(f"BaseInspector.run_inspection завершено - инспектор: {self.inspector_type}, выполнено правил: {executed_count}, результатов: {len(result.items)}")
         return result
 
     def _prepare_context(self, cluster_name: str) -> Dict:

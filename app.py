@@ -24,7 +24,6 @@ import plotly.express as px
 # Настройка конфигурации страницы - должна быть первой командой Streamlit
 st.set_page_config(
     page_title="KubeEye - Инструмент для инспекции кластера Kubernetes",
-    page_icon="🔍",
     layout="wide"
 )
 
@@ -41,7 +40,6 @@ from utils.cert_checker import get_cluster_cert_status
 # Инициализация страницы
 initialize_page(
     title="KubeEye",
-    icon="🔍",
     page_title="Обзор кластеров",
     page_subtitle="Мониторинг и инспекция Kubernetes кластеров"
 )
@@ -252,9 +250,9 @@ recent_results = dashboard_data['recent_results']
 
 # Улучшенная диаграмма статусов кластеров (связанная с отчетами)
 status_labels = {
-    'healthy': 'Пройдено',      # Соответствует "✅ Пройдено" в отчетах
-    'warning': 'Предупреждения', # Соответствует "🟡 Предупреждения" в отчетах
-    'critical': 'Критические ошибки', # Соответствует "🔴 Критические ошибки" в отчетах
+    'healthy': 'Пройдено',
+    'warning': 'Предупреждения',
+    'critical': 'Критические ошибки',
     'unknown': 'Неизвестно'
 }
 status_colors = {
@@ -391,7 +389,7 @@ if total_clusters > 0:
         st.plotly_chart(fig_bar, use_container_width=True)
 
     with col2:
-        st.markdown("### 📊 Статистика")
+        st.markdown("### Статистика")
 
         # Подсчёт общего количества ошибок из всех кластеров (используем централизованную функцию)
         total_critical_issues = 0
@@ -410,9 +408,9 @@ if total_clusters > 0:
             total_passed_issues += counts['passed']
 
         # Ключевые метрики - общее количество ошибок (всегда отображаем)
-        st.error(f"🔴 Критические ошибки: {total_critical_issues}")
-        st.warning(f"🟡 Предупреждения: {total_warning_issues}")
-        st.success(f"✅ Пройдено: {total_passed_issues}")
+        st.error(f"Критические ошибки: {total_critical_issues}")
+        st.warning(f"Предупреждения: {total_warning_issues}")
+        st.success(f"Пройдено: {total_passed_issues}")
 
         # Кластеры по статусам с именами
         if dashboard_data['cluster_statuses']:
@@ -433,10 +431,10 @@ if total_clusters > 0:
 
             # Отображаем кластеры по статусам
             status_display = {
-                'critical': ('🔴 Критические ошибки', '#EF4444'),
-                'warning': ('🟡 Предупреждения', '#F59E0B'),
-                'healthy': ('✅ Пройдено', '#10B981'),
-                'unknown': ('❓ Неизвестно', '#6B7280')
+                'critical': ('Критические ошибки', '#EF4444'),
+                'warning': ('Предупреждения', '#F59E0B'),
+                'healthy': ('Пройдено', '#10B981'),
+                'unknown': ('Неизвестно', '#6B7280')
             }
 
             for status_key, (label, color) in status_display.items():
@@ -453,7 +451,7 @@ if total_clusters > 0:
                     clusters_with_warnings.append(cs['name'])
 
             if clusters_with_warnings:
-                with st.expander(f"⚠️ Предупреждения ({len(clusters_with_warnings)})", expanded=False):
+                with st.expander(f"Предупреждения ({len(clusters_with_warnings)})", expanded=False):
                     for cluster_name in sorted(clusters_with_warnings):
                         st.write(f"• {cluster_name}")
 

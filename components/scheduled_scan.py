@@ -77,16 +77,12 @@ def render_task_list_tab(tasks):
         task_data = []
         for task in tasks:
             if task.last_status == "success":
-                status_icon = "✅"
                 status_text = "Выполнена"
             elif task.last_status == "running":
-                status_icon = "⏳"
                 status_text = "Выполняется"
             elif task.last_status == "failed":
-                status_icon = "❌"
                 status_text = "Сбой"
             else:
-                status_icon = "⏸️"
                 status_text = "Не выполнялась"
             enabled_text = "Включена" if task.enabled else "Отключена"
             next_run = task.get_next_run()
@@ -96,7 +92,7 @@ def render_task_list_tab(tasks):
                 "Название задачи": task.name,
                 "Кластер": task.cluster,
                 "Расписание": schedule_type,
-                "Статус": f"{status_icon} {status_text}",
+                "Статус": status_text,
                 "Включена": enabled_text,
                 "Последний запуск": task.last_run.replace("T", " ").split(".")[0] if task.last_run else "Не запускалась",
                 "Следующий запуск": next_run_text,
@@ -142,9 +138,9 @@ def render_task_list_tab(tasks):
                                 st.success(f"Задача {selected_task.name} успешно выполнена")
                                 if results:
                                     total_items = sum(len(result.items) for result in results.values())
-                                    st.info(f"✅ Проверено {total_items} элементов")
-                                    st.info(f"📄 {message}")
-                                    if st.button("📊 Перейти к подробному отчёту", key="view_scheduled_report"):
+                                    st.info(f"Проверено {total_items} элементов")
+                                    st.info(f"{message}")
+                                    if st.button("Перейти к подробному отчёту", key="view_scheduled_report"):
                                         st.switch_page("pages/3_inspect_report.py")
                                 st.rerun()
                             else:
@@ -261,7 +257,7 @@ def render_create_task_tab():
         use_gitops = RuleManager.should_use_gitops()
 
         if use_gitops:
-            st.info("🔒 Используются правила GitOps")
+            st.info("Используются правила GitOps")
 
         selected_node_rules, selected_prometheus_rules, selected_opa_rules = RuleManager.create_rule_selection_tabs(
             node_check, prometheus_check, opa_check, "_schedule", in_form=True, use_gitops=use_gitops

@@ -39,10 +39,10 @@ def render_immediate_scan_tab():
             use_gitops = RuleManager.should_use_gitops()
 
             if use_gitops:
-                st.success("🔒 Используются правила GitOps (все правила автоматически включены)")
+                st.success("Используются правила GitOps (все правила автоматически включены)")
 
                 # Показать отладочную информацию о правилах - СВЕРНУТО по умолчанию
-                with st.expander("🔍 Информация о правилах GitOps", expanded=False):
+                with st.expander("Информация о правилах GitOps", expanded=False):
                     for rule_type in ["node", "prometheus", "opa"]:
                         rules = load_rules(rule_type, use_gitops=True)
                         enabled_rules = [r for r in rules if r.enabled]
@@ -51,7 +51,7 @@ def render_immediate_scan_tab():
                         if enabled_rules:
                             st.write("Доступные правила:")
                             for rule in enabled_rules:
-                                st.write(f"- ✅ {rule.name} (ID: {rule.id})")
+                                st.write(f"- {rule.name} (ID: {rule.id})")
                         else:
                             st.warning(f"Нет включенных правил для типа: {rule_type}")
 
@@ -60,8 +60,8 @@ def render_immediate_scan_tab():
                             if all_rules:
                                 st.write("Все правила (включая отключенные):")
                                 for rule in all_rules:
-                                    status = "✅" if rule.enabled else "❌"
-                                    st.write(f"- {status} {rule.id}: {rule.name} (включено: {rule.enabled})")
+                                    status = "включено" if rule.enabled else "отключено"
+                                    st.write(f"- {rule.id}: {rule.name} ({status}: {rule.enabled})")
                             else:
                                 st.error(f"Не найдено ни одного файла правил для типа {rule_type} в GitOps")
 
@@ -84,7 +84,7 @@ def render_immediate_scan_tab():
             # Показать предупреждение, если нет выбранных правил
             total_selected = len(selected_node_rules) + len(selected_prometheus_rules) + len(selected_opa_rules)
             if total_selected == 0:
-                st.warning("⚠️ Не выбрано ни одного правила для проверки. Пожалуйста, выберите хотя бы одно правило.")
+                st.warning("Не выбрано ни одного правила для проверки. Пожалуйста, выберите хотя бы одно правило.")
 
             # Кнопка запуска проверки
             run_inspection = st.button("Начать проверку", type="primary", disabled=total_selected==0)

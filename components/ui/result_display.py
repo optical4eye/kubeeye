@@ -11,24 +11,24 @@ from typing import Dict, List, Any, Optional
 def display_status(status):
     """Отобразить цветовую метку статуса"""
     status_colors = {
-        'passed': '🟢',
-        'failed': '🔴',
-        'warning': '🟡',
-        'error': '🔴',
-        'skipped': '⚪'
+        'passed': 'green',
+        'failed': 'red',
+        'warning': 'yellow',
+        'error': 'red',
+        'skipped': 'white'
     }
-    return status_colors.get(status, '❓')
+    return status_colors.get(status, 'unknown')
 
 def format_status_badge(status):
     """Форматировать метку статуса"""
     status_map = {
-        'passed': '✅ Пройдено',
-        'failed': '❌ Провалено',
-        'warning': '⚠️ Предупреждение',
-        'error': '🔥 Ошибка',
-        'skipped': '⏭️ Пропущено'
+        'passed': 'Пройдено',
+        'failed': 'Провалено',
+        'warning': 'Предупреждение',
+        'error': 'Ошибка',
+        'skipped': 'Пропущено'
     }
-    return status_map.get(status, f'❓ {status}')
+    return status_map.get(status, f'{status}')
 
 def parse_opa_violations_to_table(violations_text):
     """Разобрать текст нарушений OPA в табличный формат"""
@@ -162,7 +162,7 @@ def display_opa_violations_table(violations_data: List[Dict], show_expander: boo
         st.caption(f"Показаны записи с {start_idx + 1} по {end_idx} из {len(violations_data)}")
 
     if show_expander and len(violations_data) > 0:
-        with st.expander("📋 Просмотр подробного списка", expanded=False):
+        with st.expander("Просмотр подробного списка", expanded=False):
             for i, violation in enumerate(violations_data, 1):
                 st.markdown(f"**{i}. {violation.get('Тип ресурса', violation.get('kind', 'Unknown'))}/{violation.get('Имя ресурса', violation.get('name', 'unnamed'))}**")
                 col1, col2 = st.columns([1, 3])
@@ -204,11 +204,11 @@ def display_inspection_results(inspector_type: str, result, show_summary: bool =
         show_summary: отображать ли сводную информацию
     """
     if not result:
-        st.info(f"📝 Результат проверки {inspector_type} пуст")
+        st.info(f"Результат проверки {inspector_type} пуст")
         return
     items = get_items_safely(result)
     if not items:
-        st.info(f"📝 Нет элементов проверки {inspector_type}")
+        st.info(f"Нет элементов проверки {inspector_type}")
         return
     passed_items = [item for item in items if item.get('status') == 'passed']
     failed_items = [item for item in items if item.get('status') == 'failed']
@@ -216,14 +216,14 @@ def display_inspection_results(inspector_type: str, result, show_summary: bool =
     error_items = [item for item in items if item.get('status') == 'error']
     if show_summary:
         col1, col2, col3, col4 = st.columns(4)
-        with col1: st.metric("✅ Пройдено", len(passed_items))
-        with col2: st.metric("❌ Провалено", len(failed_items))
-        with col3: st.metric("⚠️ Предупреждения", len(warning_items))
-        with col4: st.metric("🔥 Ошибки", len(error_items))
+        with col1: st.metric("Пройдено", len(passed_items))
+        with col2: st.metric("Провалено", len(failed_items))
+        with col3: st.metric("Предупреждения", len(warning_items))
+        with col4: st.metric("Ошибки", len(error_items))
     if failed_items:
-        st.markdown("#### ❌ Проблемы соответствия")
+        st.markdown("#### Проблемы соответствия")
         for item in failed_items:
-            with st.expander(f"🔴 {item.get('name', 'Без имени')} - {item.get('description', '')}", expanded=True):
+            with st.expander(f"{item.get('name', 'Без имени')} - {item.get('description', '')}", expanded=True):
                 col1, col2 = st.columns([2, 1])
                 with col1:
                     st.markdown(f"**Проверка:** {item.get('name', 'Неизвестно')}")
@@ -231,11 +231,11 @@ def display_inspection_results(inspector_type: str, result, show_summary: bool =
                 with col2:
                     severity = item.get('severity', 'unknown')
                     if severity == 'critical':
-                        st.error(f"🔴 Критический уровень: {severity}")
+                        st.error(f"Критический уровень: {severity}")
                     elif severity == 'warning':
-                        st.warning(f"🟡 Уровень предупреждения: {severity}")
+                        st.warning(f"Уровень предупреждения: {severity}")
                     else:
-                        st.info(f"ℹ️ Уровень: {severity}")
+                        st.info(f"Уровень: {severity}")
                 st.divider()
                 details_content = item.get('details', '')
                 if details_content and details_content != "нет нарушений":
@@ -254,19 +254,19 @@ def display_inspection_results(inspector_type: str, result, show_summary: bool =
                         st.text_area("Детали", details_content, height=150)
                 if item.get('solution'):
                     st.divider()
-                    st.markdown("**💡 Решение:**")
+                    st.markdown("**Решение:**")
                     st.info(item['solution'])
     if warning_items:
-        st.markdown("#### ⚠️ Предупреждения соответствия")
+        st.markdown("#### Предупреждения соответствия")
         for item in warning_items:
-            with st.expander(f"🟡 {item.get('name', 'Без имени')} - {item.get('description', '')}"):
+            with st.expander(f"{item.get('name', 'Без имени')} - {item.get('description', '')}"):
                 col1, col2 = st.columns([2, 1])
                 with col1:
                     st.markdown(f"**Проверка:** {item.get('name', 'Неизвестно')}")
                     st.markdown(f"**Описание:** {item.get('description', 'Без описания')}")
                 with col2:
                     severity = item.get('severity', 'warning')
-                    st.warning(f"⚠️ Уровень предупреждения: {severity}")
+                    st.warning(f"Уровень предупреждения: {severity}")
                 st.divider()
                 details_content = item.get('details', '')
                 if details_content and details_content != "нет нарушений":
@@ -285,15 +285,15 @@ def display_inspection_results(inspector_type: str, result, show_summary: bool =
                         st.text_area("Детали", details_content, height=150)
                 if item.get('solution'):
                     st.divider()
-                    st.markdown("**💡 Рекомендации:**")
+                    st.markdown("**Рекомендации:**")
                     st.info(item['solution'])
     if error_items:
-        st.markdown("#### 🔥 Системные ошибки")
+        st.markdown("#### Системные ошибки")
         for item in error_items:
-            with st.expander(f"🔥 {item.get('name', 'Без имени')} - {item.get('description', '')}"):
+            with st.expander(f"{item.get('name', 'Без имени')} - {item.get('description', '')}"):
                 st.error(f"Информация об ошибке: {item.get('details', 'Нет подробностей')}")
                 if item.get('solution'):
-                    st.markdown("**💡 Решение:**")
+                    st.markdown("**Решение:**")
                     st.info(item['solution'])
 
 def display_result_summary(results):
@@ -314,13 +314,13 @@ def display_result_summary(results):
         total_error += status_counts['error']
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("✅ Пройдено", total_passed)
+        st.metric("Пройдено", total_passed)
     with col2:
-        st.metric("❌ Провалено", total_failed)
+        st.metric("Провалено", total_failed)
     with col3:
-        st.metric("⚠️ Предупреждений", total_warning)
+        st.metric("Предупреждений", total_warning)
     with col4:
-        st.metric("🔥 Ошибок", total_error)
+        st.metric("Ошибок", total_error)
 
 def display_opa_results(result):
     """Отобразить результаты проверки OPA"""

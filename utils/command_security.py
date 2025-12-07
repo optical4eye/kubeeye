@@ -181,7 +181,7 @@ class CommandSecurityChecker:
         """
         command = command.strip()
 
-        logger.info(f"🔍 Начинается проверка безопасности - Команда: {command[:100]}{'...' if len(command) > 100 else ''}")
+        logger.info(f" Начинается проверка безопасности - Команда: {command[:100]}{'...' if len(command) > 100 else ''}")
 
         if not command:
             logger.info("Пустая команда, считается безопасной")
@@ -189,18 +189,18 @@ class CommandSecurityChecker:
 
         # Шаг первый: Проверка, является ли команда явно безопасной только для чтения (белый список)
         if self._is_safe_readonly_command(command):
-            logger.info("✅ Команда прошла проверку белого списка")
+            logger.info("Команда прошла проверку белого списка")
             return True, RiskLevel.LOW, "Безопасная команда только для чтения"
 
         # Шаг второй: Проверка, содержит ли команда абсолютно запрещенные операции (черный список)
         if self._contains_critical_operations(command):
             risk_level, risk_desc = self._analyze_command_risk(command)
-            logger.error(f"❌ Обнаружена запрещенная операция изменения: {command[:100]}... Риск: {risk_desc}")
+            logger.error(f"Обнаружена запрещенная операция изменения: {command[:100]}... Риск: {risk_desc}")
             return False, risk_level, risk_desc
 
         # Шаг третий: Если включен режим только белого списка, отклонить все не явно разрешенные команды
         if self.whitelist_only:
-            logger.warning(f"⚠️ Режим только белого списка: Команда не в безопасном белом списке: {command[:100]}...")
+            logger.warning(f" Режим только белого списка: Команда не в безопасном белом списке: {command[:100]}...")
             return False, RiskLevel.HIGH, "Команда не в безопасном белом списке, инструмент инспекции разрешает только команды просмотра только для чтения"
 
         # Шаг четвертый: Традиционный анализ риска (для режима совместимости)
@@ -245,7 +245,7 @@ class CommandSecurityChecker:
         cmd = command.strip()
         sep_pattern = r'(\|\||&&)'
 
-        logger.info(f"🔍 Проверка белого списка - Исходная команда: {cmd}")
+        logger.info(f" Проверка белого списка - Исходная команда: {cmd}")
 
         def strip_redirect(s):
             s = re.split(r'>+.*', s)[0].strip()
@@ -270,15 +270,15 @@ class CommandSecurityChecker:
             matched = False
             for pattern in self.safe_readonly_patterns:
                 if re.match(pattern, sub, re.IGNORECASE):
-                    logger.info(f"✅ Подкоманда {i} соответствует шаблону белого списка: {pattern}")
+                    logger.info(f"Подкоманда {i} соответствует шаблону белого списка: {pattern}")
                     matched = True
                     break
 
             if not matched:
-                logger.warning(f"❌ Подкоманда {i} не соответствует ни одному шаблону белого списка: '{sub}'")
+                logger.warning(f"Подкоманда {i} не соответствует ни одному шаблону белого списка: '{sub}'")
                 return False
 
-        logger.info("✅ Все подкоманды прошли проверку белого списка")
+        logger.info("Все подкоманды прошли проверку белого списка")
         return True
 
     def _analyze_command_risk(self, command: str) -> Tuple[RiskLevel, str]:

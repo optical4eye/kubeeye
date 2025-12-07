@@ -285,7 +285,7 @@ def set_app_styles():
         toast.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="font-size: 18px;">
-                    ${{type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}}
+                    ${{type === 'success' ? 'OK' : type === 'error' ? 'ERR' : type === 'warning' ? 'WARN' : 'INFO'}}
                 </div>
                 <div style="flex: 1;">${{message}}</div>
                 <button onclick="this.parentElement.parentElement.remove()"
@@ -397,10 +397,10 @@ def create_sidebar_header(active_page="Главная"):
         None
     """
     menu_items = [
-        {"title": "Главная", "path": "app.py", "label": "Главная", "icon": "🏠"},
-        {"title": "Инфо о кластере", "path": "pages/1_cluster_info.py", "label": "Информация", "icon": "🔗"},
-        {"title": "Проверка кластера", "path": "pages/2_cluster_inspect.py", "label": "Проверка", "icon": "🔍"},
-        {"title": "Отчёты проверки", "path": "pages/3_inspect_report.py", "label": "Отчёты", "icon": "📊"},
+        {"title": "Главная", "path": "app.py", "label": "Главная", "icon": ""},
+        {"title": "Инфо о кластере", "path": "pages/1_cluster_info.py", "label": "Информация", "icon": ""},
+        {"title": "Проверка кластера", "path": "pages/2_cluster_inspect.py", "label": "Проверка", "icon": ""},
+        {"title": "Отчёты проверки", "path": "pages/3_inspect_report.py", "label": "Отчёты", "icon": ""},
     ]
 
     with st.sidebar:
@@ -410,10 +410,10 @@ def create_sidebar_header(active_page="Главная"):
             is_active = active_page == item["label"]
             button_type = "primary" if is_active else "secondary"
 
-            if st.button(f"{item['icon']} {item['title']}",
-                         type=button_type,
-                         width='stretch',
-                         key=f"nav_{item['label']}"):
+            if st.button(item['title'],
+                          type=button_type,
+                          width='stretch',
+                          key=f"nav_{item['label']}"):
                 try:
                     st.switch_page(item["path"])
                 except Exception as e:

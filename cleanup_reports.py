@@ -99,13 +99,13 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
 
 def run_cleanup():
     """Выполнить очистку отчётов согласно настройкам"""
-    print("🧹 Запуск очистки отчётов KubeEye...")
+    print("Запуск очистки отчётов KubeEye...")
 
     try:
         # Загрузить конфигурацию
         config = load_cleanup_config()
         retention_days = config.get('retention_days', DEFAULT_RETENTION_DAYS)
-        print(f"📅 Период хранения: {retention_days} дней")
+        print(f"Период хранения: {retention_days} дней")
 
         # Выполнить очистку
         deleted_count, freed_space = cleanup_old_reports(retention_days)
@@ -113,12 +113,12 @@ def run_cleanup():
         # Вывести результаты
         if deleted_count > 0:
             freed_mb = freed_space / (1024 * 1024)
-            print(f"✅ Удалено {deleted_count} файлов, освобождено {freed_mb:.1f} MB")
+            print(f"Удалено {deleted_count} файлов, освобождено {freed_mb:.1f} MB")
         else:
-            print("ℹ️ Не найдено файлов для удаления")
+            print("Не найдено файлов для удаления")
 
     except Exception as e:
-        print(f"❌ Ошибка при очистке: {e}")
+        print(f"Ошибка при очистке: {e}")
         sys.exit(1)
 
 

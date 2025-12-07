@@ -24,7 +24,7 @@ def ensure_data_directories():
 
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
-        print(f"✅ Обеспечить существование каталога: {directory}")
+        print(f"Обеспечить существование каталога: {directory}")
 
 def validate_environment():
     """Проверить конфигурацию среды"""
@@ -39,15 +39,15 @@ def validate_environment():
             missing_vars.append(var)
 
     if missing_vars:
-        print(f"⚠️ Отсутствуют переменные среды: {', '.join(missing_vars)}")
+        print(f"Отсутствуют переменные среды: {', '.join(missing_vars)}")
         return False
 
-    print("✅ Проверка переменных среды пройдена")
+    print("Проверка переменных среды пройдена")
     return True
 
 def main():
     """Главная функция инициализации"""
-    print("🚀 Инициализация KubeEye начата...")
+    print("Инициализация KubeEye начата...")
 
     try:
         # Проверить среду
@@ -57,10 +57,10 @@ def main():
         # Обеспечить каталоги данных
         ensure_data_directories()
 
-        print("✅ Инициализация KubeEye завершена!")
+        print("Инициализация KubeEye завершена!")
 
     except Exception as e:
-        print(f"❌ Инициализация не удалась: {e}")
+        print(f"Инициализация не удалась: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

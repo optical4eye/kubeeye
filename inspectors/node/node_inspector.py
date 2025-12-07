@@ -33,7 +33,7 @@ class SSHConnectionErrorManager:
     def reset_for_inspection(self):
         """Сброс реестра ошибок перед новой проверкой"""
         self._errors_registry = {}
-        logger.info("🔄 Реестр ошибок SSH соединений сброшен для новой проверки")
+        logger.info("Реестр ошибок SSH соединений сброшен для новой проверки")
 
     def register_connection_error(self, node: Dict, error_message: str) -> str:
         """
@@ -53,7 +53,7 @@ class SSHConnectionErrorManager:
             'formatted_result': None
         }
 
-        logger.warning(f"🚫 Зарегистрирована ошибка SSH для узла {node_key}: {error_message}")
+        logger.warning(f"Зарегистрирована ошибка SSH для узла {node_key}: {error_message}")
         return node_key
 
     def has_connection_error(self, node: Dict) -> bool:
@@ -89,7 +89,7 @@ class SSHConnectionErrorManager:
                 )
             errors.append(error_data['formatted_result'])
 
-        logger.info(f"📋 Получено {len(errors)} ошибок SSH соединений из реестра")
+        logger.info(f"Получено {len(errors)} ошибок SSH соединений из реестра")
         return errors
 
     def get_error_count(self) -> int:
@@ -182,7 +182,7 @@ class NodeInspector(BaseInspector):
 
         # Проверка безопасности
         self.security_checker = CommandSecurityChecker()
-        logger.info("🔒 Проверка безопасности принудительно включена")
+        logger.info("Проверка безопасности принудительно включена")
 
         # Локальный кэш статусов соединений для текущей проверки
         self.connection_status_cache = {}
@@ -212,7 +212,7 @@ class NodeInspector(BaseInspector):
         Выполнение проверки с гарантией единого отображения ошибок SSH
         """
         source_type = "GitOps" if self.use_gitops else "локальных"
-        logger.info(f"🔍 Начало проверки узлов - кластер: {cluster_name}, правила: {source_type}")
+        logger.info(f"Начало проверки узлов - кластер: {cluster_name}, правила: {source_type}")
 
         # Сбрасываем реестр ошибок перед началом новой проверки
         self.ssh_error_manager.reset_for_inspection()
@@ -227,7 +227,7 @@ class NodeInspector(BaseInspector):
 
         # Если нет доступных узлов, возвращаем только ошибки SSH
         if not available_nodes:
-            logger.error("❌ Нет доступных узлов для проверки")
+            logger.error("Нет доступных узлов для проверки")
             ssh_errors = self.ssh_error_manager.get_all_connection_errors()
             return InspectionResult(
                 inspector_type=self.inspector_type,
@@ -243,13 +243,13 @@ class NodeInspector(BaseInspector):
         ssh_errors = self.ssh_error_manager.get_all_connection_errors()
         if ssh_errors:
             result.items = ssh_errors + result.items
-            logger.info(f"📋 Добавлено {len(ssh_errors)} ошибок SSH соединений в отчет")
+            logger.info(f"Добавлено {len(ssh_errors)} ошибок SSH соединений в отчет")
 
         # Обновляем статистику
         result.stats = self.execution_stats
 
-        logger.info(f"✅ Проверка завершена - всего результатов: {len(result.items)}")
-        logger.info(f"📊 Статистика: {self.execution_stats['available_nodes']} доступных, {self.execution_stats['unavailable_nodes']} недоступных узлов")
+        logger.info(f"Проверка завершена - всего результатов: {len(result.items)}")
+        logger.info(f"Статистика: {self.execution_stats['available_nodes']} доступных, {self.execution_stats['unavailable_nodes']} недоступных узлов")
 
         return result
 
@@ -258,7 +258,7 @@ class NodeInspector(BaseInspector):
         Проверка SSH соединения со всеми узлами
         Возвращает список доступных узлов
         """
-        logger.info("🔌 Проверка SSH соединения со всеми узлами...")
+        logger.info("Проверка SSH соединения со всеми узлами...")
 
         available_nodes = []
 
@@ -293,9 +293,9 @@ class NodeInspector(BaseInspector):
 
             if success:
                 available_nodes.append(node)
-                logger.info(f"✅ SSH соединение с узлом {node_name} успешно")
+                logger.info(f"SSH соединение с узлом {node_name} успешно")
             else:
-                logger.error(f"❌ SSH соединение с узлом {node_name} недоступно: {message}")
+                logger.error(f"SSH соединение с узлом {node_name} недоступно: {message}")
                 # Регистрируем ошибку в менеджере
                 self.ssh_error_manager.register_connection_error(node, message)
 
@@ -306,7 +306,7 @@ class NodeInspector(BaseInspector):
         """
         Применение правила проверки только к доступным узлам
         """
-        logger.info(f"🎯 Применение правила: {rule.id} - {rule.name}")
+        logger.info(f"Применение правила: {rule.id} - {rule.name}")
         rule_start_time = time.time()
 
         # Получаем конфигурацию правила
@@ -364,7 +364,7 @@ class NodeInspector(BaseInspector):
         self.execution_stats['total_node_executions'] += len(available_nodes)
         self.execution_stats['total_time'] += rule_duration
 
-        logger.info(f"✅ Правило {rule.id} выполнено за {rule_duration:.2f}сек")
+        logger.info(f"Правило {rule.id} выполнено за {rule_duration:.2f}сек")
         return node_results
 
     def _execute_rule_concurrently(self, rule: Rule, command: str,

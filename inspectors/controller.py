@@ -99,13 +99,13 @@ class InspectionController:
                 if rule_ids and inspector_type in rule_ids:
                     inspector_rule_ids = rule_ids[inspector_type]
 
-                logger.info(f"🚀 Выполнение {inspector_type} проверки...")
+                logger.info(f"Выполнение {inspector_type} проверки...")
                 result = inspector.run_inspection(cluster_name, inspector_rule_ids)
                 results[inspector_type] = result
-                logger.info(f"✅ {inspector_type} проверка завершена, найдено {len(result.items)} результатов")
+                logger.info(f"{inspector_type} проверка завершена, найдено {len(result.items)} результатов")
 
             except Exception as e:
-                logger.exception(f"❌ Ошибка выполнения {inspector_type} проверки: {str(e)}")
+                logger.exception(f"Ошибка выполнения {inspector_type} проверки: {str(e)}")
 
         return results
 

@@ -16,7 +16,6 @@ import re
 # Настройка страницы - должна быть первой командой Streamlit
 st.set_page_config(
     page_title="Инфо о кластере - kubeeye",
-    page_icon="🔗",
     layout="wide"
 )
 
@@ -39,7 +38,6 @@ from utils.node_parser import parse_nodes_from_text, generate_nodes_template
 # Инициализация страницы
 initialize_page(
     title="Кластеры",
-    icon="🔗",
     page_title="Управление кластерами",
     page_subtitle="Настройка подключений к Kubernetes кластерам"
 )
@@ -183,9 +181,9 @@ elif action == "Добавить кластер":
         if cluster_name:
             valid, error = validate_cluster_name(cluster_name)
             if not valid:
-                st.error(f"❌ {error}")
+                st.error(f"{error}")
             else:
-                st.success("✅ Имя кластера корректно")
+                st.success("Имя кластера корректно")
 
         # Узлы кластера
         bulk_nodes_input = st.text_area(
@@ -200,7 +198,7 @@ elif action == "Добавить кластер":
         )
 
         # Кнопка предварительной проверки узлов
-        check_nodes = st.form_submit_button("🔍 Проверить узлы")
+        check_nodes = st.form_submit_button("Проверить узлы")
 
         if check_nodes:
             if bulk_nodes_input:
@@ -235,20 +233,20 @@ elif action == "Добавить кластер":
                         success, message = test_node_connection(node_info)
 
                     if success:
-                        st.success(f"✅ Узел {node_info['ip']} доступен")
+                        st.success(f"Узел {node_info['ip']} доступен")
                         success_count += 1
                     else:
-                        st.error(f"❌ Ошибка соединения с {node_info['ip']}: {message}")
+                        st.error(f"Ошибка соединения с {node_info['ip']}: {message}")
 
                 st.info(f"Проверка завершена: {success_count}/{checked_count} узлов доступно")
 
                 if key_errors:
-                    st.warning(f"⚠️ {len(key_errors)} узлов не проверены из-за проблем с ключами")
+                    st.warning(f"{len(key_errors)} узлов не проверены из-за проблем с ключами")
             else:
                 st.warning("Введите данные узлов для проверки")
 
         # Конфигурация Prometheus (свернута по умолчанию)
-        with st.expander("📊 Конфигурация Prometheus", expanded=False):
+        with st.expander("Конфигурация Prometheus", expanded=False):
             st.caption("Настройте Prometheus для мониторинга")
 
             prometheus_enabled = st.checkbox("Включить Prometheus")
@@ -263,7 +261,7 @@ elif action == "Добавить кластер":
                 prometheus_token = st.text_input("Токен (необязательно)", type="password")
 
         # Kubeconfig
-        st.subheader("⚙️ Kubeconfig")
+        st.subheader("Kubeconfig")
 
         # Инициализация состояния для kubeconfig
         if 'kubeconfig_content' not in st.session_state:
@@ -283,22 +281,22 @@ elif action == "Добавить кластер":
             st.session_state.kubeconfig_content = kubeconfig_content
 
         # Постоянная кнопка проверки подключения к Kubernetes
-        test_k8s = st.form_submit_button("🔍 Проверить подключение к Kubernetes")
+        test_k8s = st.form_submit_button("Проверить подключение к Kubernetes")
         if test_k8s:
             if not st.session_state.kubeconfig_content:
-                st.error("❌ Введите содержимое kubeconfig для проверки подключения")
+                st.error("Введите содержимое kubeconfig для проверки подключения")
             else:
                 with st.spinner("Проверка подключения к Kubernetes..."):
                     k8s_client = K8sClient(st.session_state.kubeconfig_content)
                     success, message = k8s_client.test_connection()
 
                 if success:
-                    st.success("✅ Подключение к Kubernetes успешно")
+                    st.success("Подключение к Kubernetes успешно")
                 else:
-                    st.error(f"❌ Ошибка подключения к Kubernetes: {message}")
+                    st.error(f"Ошибка подключения к Kubernetes: {message}")
 
         # Кнопка сохранения кластера
-        submitted = st.form_submit_button("💾 Сохранить кластер")
+        submitted = st.form_submit_button("Сохранить кластер")
 
         if submitted:
             if not cluster_name:
@@ -371,43 +369,43 @@ elif action == "Добавить кластер":
                             prometheus_error_message = prometheus_result.get('error', 'Неизвестная ошибка')
 
                     # Показать результаты проверок
-                    st.subheader("🔍 Результаты проверок:")
+                    st.subheader("Результаты проверок:")
 
                     # Узлы
                     if failed_nodes:
-                        st.error(f"❌ Недоступные узлы ({len(failed_nodes)}):")
+                        st.error(f"Недоступные узлы ({len(failed_nodes)}):")
                         for ip, message in failed_nodes:
                             st.error(f"  - {ip}: {message}")
                     else:
-                        st.success(f"✅ Все узлы доступны ({len(valid_nodes)})")
+                        st.success(f"Все узлы доступны ({len(valid_nodes)})")
 
                     # Проблемы с ключами
                     if key_errors:
-                        st.error(f"❌ Проблемы с ключами ({len(key_errors)}):")
+                        st.error(f"Проблемы с ключами ({len(key_errors)}):")
                         for error in key_errors:
                             st.error(f"  - {error}")
 
                     # Kubernetes
                     if st.session_state.kubeconfig_content:
                         if k8s_connection_ok:
-                            st.success("✅ Подключение к Kubernetes успешно")
+                            st.success("Подключение к Kubernetes успешно")
                         else:
-                            st.error(f"❌ Ошибка подключения к Kubernetes: {k8s_error_message}")
+                            st.error(f"Ошибка подключения к Kubernetes: {k8s_error_message}")
                     else:
-                        st.info("ℹ️ Kubeconfig не предоставлен")
+                        st.info("Kubeconfig не предоставлен")
 
                     # Prometheus
                     if prometheus_enabled:
                         if prometheus_connection_ok:
-                            st.success("✅ Подключение к Prometheus успешно")
+                            st.success("Подключение к Prometheus успешно")
                         else:
-                            st.error(f"❌ Ошибка подключения к Prometheus: {prometheus_error_message}")
+                            st.error(f"Ошибка подключения к Prometheus: {prometheus_error_message}")
                     else:
-                        st.info("ℹ️ Prometheus отключен")
+                        st.info("Prometheus отключен")
 
                     # Решение о сохранении
                     if not valid_nodes:
-                        st.error("❌ Нет доступных узлов. Исправьте конфигурацию узлов и попробуйте снова.")
+                        st.error("Нет доступных узлов. Исправьте конфигурацию узлов и попробуйте снова.")
                     else:
                         # Спросить подтверждение, если есть проблемы
                         should_save = True
@@ -426,7 +424,7 @@ elif action == "Добавить кластер":
                             warning_message += "Prometheus недоступен. "
 
                         if warning_message:
-                            st.warning(f"⚠️ {warning_message}Вы уверены, что хотите сохранить кластер?")
+                            st.warning(f"{warning_message}Вы уверены, что хотите сохранить кластер?")
                             # В реальном приложении здесь можно добавить подтверждение
                             # Для простоты продолжаем сохранение, но предупреждаем пользователя
 
@@ -451,7 +449,7 @@ elif action == "Добавить кластер":
                         if st.session_state.kubeconfig_content:
                             cluster_config.update_kubeconfig(st.session_state.kubeconfig_content)
 
-                        st.success(f"✅ Кластер {cluster_name} успешно добавлен")
+                        st.success(f"Кластер {cluster_name} успешно добавлен")
 
                         # Очистка kubeconfig после успешного сохранения
                         st.session_state.kubeconfig_content = ""
@@ -460,8 +458,8 @@ elif action == "Добавить кластер":
                         st.info(f"""
                         **Сводка конфигурации:**
                         - Узлы: {len(valid_nodes)} доступно ({len(failed_nodes)} недоступно, {len(key_errors)} с ошибками ключей)
-                        - Kubernetes: {'✅ Доступен' if k8s_connection_ok else '❌ Недоступен'}
-                        - Prometheus: {'✅ Доступен' if prometheus_connection_ok else ('❌ Недоступен' if prometheus_enabled else '⚪ Отключен')}
+                        - Kubernetes: {'Доступен' if k8s_connection_ok else 'Недоступен'}
+                        - Prometheus: {'Доступен' if prometheus_connection_ok else ('Недоступен' if prometheus_enabled else 'Отключен')}
                         """)
 
 
@@ -536,7 +534,7 @@ elif action == "Редактировать кластер":
                     if nodes_to_delete:
                         st.warning(f"Выбрано для удаления: {', '.join(nodes_to_delete)}")
 
-                        if st.button("🗑️ Удалить выбранные узлы", type="secondary"):
+                        if st.button("Удалить выбранные узлы", type="secondary"):
                             for node_ip in nodes_to_delete:
                                 cluster_config.remove_node(node_ip)
                             st.success(f"Удалено {len(nodes_to_delete)} узлов")
@@ -547,7 +545,7 @@ elif action == "Редактировать кластер":
                     # Массовые действия с узлами
                     st.write("**Массовые действия с узлами:**")
 
-                    if st.button("🔄 Проверить все узлы", key="check_all_nodes"):
+                    if st.button("Проверить все узлы", key="check_all_nodes"):
                         success_count = 0
                         for node in nodes:
                             # Сначала проверяем ключи для узлов с аутентификацией по ключу
@@ -555,16 +553,16 @@ elif action == "Редактировать кластер":
                                 key_path = node.get('key_path', node.get('password', ''))
                                 key_valid, key_message = validate_ssh_key(key_path)
                                 if not key_valid:
-                                    st.error(f"❌ Ошибка ключа для {node['ip']}: {key_message}")
+                                    st.error(f"Ошибка ключа для {node['ip']}: {key_message}")
                                     continue
 
                             with st.spinner(f"Проверка узла {node['ip']}..."):
                                 success, message = test_node_connection(node)
                             if success:
-                                st.success(f"✅ Узел {node['ip']} доступен")
+                                st.success(f"Узел {node['ip']} доступен")
                                 success_count += 1
                             else:
-                                st.error(f"❌ Узел {node['ip']}: {message}")
+                                st.error(f"Узел {node['ip']}: {message}")
 
                         st.info(f"Проверка завершена: {success_count}/{len(nodes)} узлов доступно")
 
@@ -589,10 +587,10 @@ elif action == "Редактировать кластер":
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        test_new_nodes = st.form_submit_button("🔍 Проверить новые узлы")
+                        test_new_nodes = st.form_submit_button("Проверить новые узлы")
 
                     with col2:
-                        add_new_nodes = st.form_submit_button("➕ Добавить новые узлы")
+                        add_new_nodes = st.form_submit_button("Добавить новые узлы")
 
                     if test_new_nodes:
                         if new_nodes_input:
@@ -619,15 +617,15 @@ elif action == "Редактировать кластер":
                                     success, message = test_node_connection(node_info)
 
                                 if success:
-                                    st.success(f"✅ Узел {node_info['ip']} доступен")
+                                    st.success(f"Узел {node_info['ip']} доступен")
                                     success_count += 1
                                 else:
-                                    st.error(f"❌ Ошибка соединения с {node_info['ip']}: {message}")
+                                    st.error(f"Ошибка соединения с {node_info['ip']}: {message}")
 
                             st.info(f"Проверка завершена: {success_count}/{checked_count} узлов доступно")
 
                             if key_errors:
-                                st.warning(f"⚠️ {len(key_errors)} узлов не проверены из-за проблем с ключами")
+                                st.warning(f"{len(key_errors)} узлов не проверены из-за проблем с ключами")
                         else:
                             st.warning("Введите данные узлов для проверки")
 
@@ -668,17 +666,17 @@ elif action == "Редактировать кластер":
 
                                         cluster_config.update_node(node_info)
                                         added_count += 1
-                                        st.success(f"✅ Узел {node_info['ip']} добавлен")
+                                        st.success(f"Узел {node_info['ip']} добавлен")
                                     else:
                                         failed_count += 1
-                                        st.error(f"❌ Не удалось добавить узел {node_info['ip']}: {message}")
+                                        st.error(f"Не удалось добавить узел {node_info['ip']}: {message}")
 
                                 st.success(f"Добавлено {added_count} новых узлов")
                                 if failed_count > 0:
                                     st.error(f"Не удалось добавить {failed_count} узлов")
 
                                 if key_errors:
-                                    st.warning(f"⚠️ {len(key_errors)} узлов не добавлены из-за проблем с ключами")
+                                    st.warning(f"{len(key_errors)} узлов не добавлены из-за проблем с ключами")
 
                                 st.rerun()
                         else:
@@ -772,14 +770,14 @@ elif action == "Редактировать кластер":
                         st.session_state.edit_kubeconfig_content = edit_kubeconfig_content
 
                     # Постоянная кнопка проверки подключения к Kubernetes
-                    test_kube_button = st.form_submit_button("🔍 Проверить подключение к Kubernetes")
+                    test_kube_button = st.form_submit_button("Проверить подключение к Kubernetes")
 
                     # Кнопка сохранения конфигурации
                     save_kube_button = st.form_submit_button("Сохранить конфигурацию")
 
                     if test_kube_button:
                         if not st.session_state.edit_kubeconfig_content:
-                            st.error("❌ Введите содержимое kubeconfig для проверки подключения")
+                            st.error("Введите содержимое kubeconfig для проверки подключения")
                         else:
                             # Тест соединения
                             with st.spinner("Тест соединения..."):
@@ -787,9 +785,9 @@ elif action == "Редактировать кластер":
                                 success, message = client.test_connection()
 
                             if success:
-                                st.success("✅ Подключение к Kubernetes успешно")
+                                st.success("Подключение к Kubernetes успешно")
                             else:
-                                st.error(f"❌ Ошибка подключения: {message}")
+                                st.error(f"Ошибка подключения: {message}")
 
                     if save_kube_button:
                         # Обновление конфигурации
