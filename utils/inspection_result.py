@@ -8,7 +8,6 @@ import json
 import yaml
 import os
 import re
-from functools import lru_cache
 import time
 
 import openpyxl
@@ -152,9 +151,6 @@ class InspectionResult:
         with open(result_file, 'w', encoding='utf-8') as f:
             json.dump(result_data, f, ensure_ascii=False, indent=2)
 
-        # Очистка кэша после сохранения нового отчёта
-        _clear_results_cache()
-
         return str(result_file)
 
 
@@ -169,7 +165,7 @@ def load_result(result_id: str) -> Optional[Dict]:
         巡检结果字典，如果不存在则返回 None
     """
     # 搜索results目录下所有json文件，找到匹配的result_id
-    for file_path in RESULTS_DIR.glob('*.json'):
+    for file_path in RESULTS_DIR.rglob('*.json'):
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 result_data = json.load(f)
@@ -246,7 +242,7 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
     if format_type == "json":
         # 找到原始结果文件
         source_path = None
-        for file_path in RESULTS_DIR.glob('*.json'):
+        for file_path in RESULTS_DIR.rglob('*.json'):
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
@@ -604,18 +600,7 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
         return False, f"不支持的导出格式: {format_type}"
 
 
-# Глобальный кэш для результатов
-_results_cache = {}
-_cache_timestamp = None
-_CACHE_TTL = 300  # 5 минут
-
-def _clear_results_cache():
-    """Очистка кэша результатов"""
-    global _results_cache, _cache_timestamp
-    _results_cache.clear()
-    _cache_timestamp = None
-    # Также очищаем LRU кэш
-    list_results_cached.cache_clear()
+# Кэширование отключено
 
 
 def _calculate_result_summary(result_data: Dict) -> Dict:
@@ -706,10 +691,9 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
     }
 
 
-@lru_cache(maxsize=10)
 def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
     """
-    Оптимизированная версия list_results с кэшированием
+    Загрузка результатов без кэширования
 
     Args:
         cluster_name: 可选的集群名称过滤
@@ -717,34 +701,17 @@ def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
     Returns:
         巡检结果摘要列表
     """
-    global _results_cache, _cache_timestamp
-
-    cache_key = f"results_{cluster_name or 'all'}"
-    current_time = time.time()
-
-    # Проверка актуальности кэша
-    if (cache_key in _results_cache and
-        _cache_timestamp is not None and
-        current_time - _cache_timestamp < _CACHE_TTL):
-        return _results_cache[cache_key]
-
     results = []
 
-    # Оптимизированная загрузка: предварительная фильтрация по имени файла
-    for file_path in RESULTS_DIR.glob('*.json'):
+    # Загрузка: фильтрация по содержимому файла
+    for file_path in RESULTS_DIR.rglob('*.json'):
         try:
-            # Быстрая предварительная проверка по имени файла для кластера
-            if cluster_name:
-                # Ищем упоминание кластера в первых 200 символах файла
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    chunk = f.read(200)
-                    if f'cluster_name": "{cluster_name}"' not in chunk:
-                        continue
-                    f.seek(0)
-                    result_data = json.load(f)
-            else:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    result_data = json.load(f)
+            with open(file_path, 'r', encoding='utf-8') as f:
+                result_data = json.load(f)
+
+            # Фильтрация по имени кластера
+            if cluster_name and result_data.get('cluster_name') != cluster_name:
+                continue
 
             # Вычисление сводки
             summary = _calculate_result_summary(result_data)
@@ -759,10 +726,6 @@ def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
 
     # Сортировка по времени (новые сначала)
     results.sort(key=lambda x: x['timestamp'], reverse=True)
-
-    # Кэширование результата
-    _results_cache[cache_key] = results
-    _cache_timestamp = current_time
 
     return results
 

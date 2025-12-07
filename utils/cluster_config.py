@@ -207,7 +207,8 @@ def get_cluster_quick_status(cluster_name: str) -> str:
     latest_result = get_latest_result_by_cluster(cluster_name)
 
     if not latest_result:
-        return 'unknown'
+        # Если нет результатов инспекции, считаем кластер здоровым по умолчанию
+        return 'healthy'
 
     critical = latest_result.get('critical', 0)
     warning = latest_result.get('warning', 0)

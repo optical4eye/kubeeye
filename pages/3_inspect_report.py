@@ -202,14 +202,8 @@ def display_cleanup_section(all_results):
         st.info("Старые отчёты удаляются автоматически при открытии этой страницы")
 
 
-@st.cache_data(ttl=60)  # Кэш на 1 минуту для списка отчётов
 def get_reports_list(limit=500, force_refresh=False, _version="v2"):
-    """Получить список отчётов с кэшированием"""
-    if force_refresh:
-        # Принудительная очистка всех кэшей
-        from utils.inspection_result import _clear_results_cache, list_results_cached
-        _clear_results_cache()
-        list_results_cached.cache_clear()
+    """Получить список отчётов без кэширования"""
     return list_results(limit=limit, order_by='timestamp DESC')
 
 def display_reports_overview():

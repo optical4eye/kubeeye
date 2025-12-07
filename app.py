@@ -35,6 +35,9 @@ from utils.inspection_result import list_results, get_latest_result_by_cluster, 
 from utils.rule_loader import load_rules
 from utils.version import VERSION, APP_NAME, APP_DESCRIPTION, RELEASE_DATE
 from utils.cert_checker import get_cluster_cert_status
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Инициализация страницы
@@ -99,6 +102,25 @@ def get_dashboard_data() -> Dict:
             status = get_cluster_quick_status(cluster_name)
             latest_result = get_latest_result_by_cluster(cluster_name)
 
+            # Получение информации о узлах и сертификатах
+            node_count = 0
+            cert_status = 'unknown'
+            cert_days_remaining = None
+            try:
+                cluster_config = get_cluster(cluster_name)
+                nodes = cluster_config.get_nodes()
+                node_count = len(nodes) if nodes else 0
+
+                kubeconfig_content = cluster_config.get_kubeconfig()
+                if kubeconfig_content:
+                    cert_info = get_cluster_cert_status(cluster_name, kubeconfig_content)
+                    cert_status = cert_info.get('status', 'unknown')
+                    cert_days_remaining = cert_info.get('days_remaining')
+            except Exception as e:
+                logger.warning(f"Не удалось получить информацию для кластера {cluster_name}: {e}")
+                cert_status = 'unknown'
+                cert_days_remaining = None
+
             cluster_status_dict = {
                 'name': cluster_name,
                 'status': status,
@@ -106,14 +128,15 @@ def get_dashboard_data() -> Dict:
                 'critical_count': latest_result.get('critical', 0) if latest_result else 0,
                 'warning_count': latest_result.get('warning', 0) if latest_result else 0,
                 'passed_count': latest_result.get('passed', 0) if latest_result else 0,
-                'node_count': 0,  # Загружается по требованию
-                'cert_status': 'unknown',  # Загружается по требованию
-                'cert_days_remaining': None
+                'node_count': node_count,
+                'cert_status': cert_status,
+                'cert_days_remaining': cert_days_remaining
             }
 
             cluster_statuses.append(cluster_status_dict)
-        except Exception:
+        except Exception as e:
             # В случае ошибки - минимальная информация
+            logger.warning(f"Ошибка при обработке кластера {cluster_name}: {e}")
             cluster_statuses.append({
                 'name': cluster_name,
                 'status': 'unknown',
@@ -350,36 +373,28 @@ if total_clusters > 0:
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        # Столбчатая диаграмма - отображаем все статусы с приоритетом на ошибки
-        # Упорядочиваем: критические ошибки, предупреждения, пройдено, неизвестно
-        status_order = ['critical', 'warning', 'healthy', 'unknown']
-        ordered_labels = []
-        ordered_values = []
+        # Столбчатая диаграмма - отображаем общее количество проверок по типам
+        # Подсчитываем общее количество проверок по типам из всех кластеров
+        total_critical = sum(cs.get('critical_count', 0) for cs in dashboard_data['cluster_statuses'])
+        total_warnings = sum(cs.get('warning_count', 0) for cs in dashboard_data['cluster_statuses'])
+        total_passed = sum(cs.get('passed_count', 0) for cs in dashboard_data['cluster_statuses'])
 
-        for status_key in status_order:
-            if status_key in status_counts and status_counts[status_key] > 0:
-                ordered_labels.append(status_labels[status_key])
-                ordered_values.append(status_counts[status_key])
-
-        # Создаем цветовую карту для меток (не для ключей)
-        label_colors = {
-            'Критические ошибки': '#EF4444',   # Красный для критических
-            'Предупреждения': '#F59E0B',       # Оранжевый для предупреждений
-            'Пройдено': '#10B981',             # Зеленый для пройденных
-            'Неизвестно': '#6B7280'            # Серый для неизвестных
-        }
+        # Упорядочиваем: критические ошибки, предупреждения, пройдено
+        issue_labels = ['Критические ошибки', 'Предупреждения', 'Пройдено']
+        issue_values = [total_critical, total_warnings, total_passed]
+        issue_colors = ['#EF4444', '#F59E0B', '#10B981']  # Красный, оранжевый, зеленый
 
         fig_bar = px.bar(
-            x=ordered_labels,
-            y=ordered_values,
-            title="Распределение статусов кластеров",
-            color=ordered_labels,  # Используем метки как категории цветов
-            color_discrete_map=label_colors,  # Карта цветов по меткам
+            x=issue_labels,
+            y=issue_values,
+            title="Распределение результатов проверок",
+            color=issue_labels,
+            color_discrete_map=dict(zip(issue_labels, issue_colors)),
             text_auto=True
         )
         fig_bar.update_layout(
-            xaxis_title="Статус кластеров",
-            yaxis_title="Количество кластеров",
+            xaxis_title="Тип результата",
+            yaxis_title="Количество проверок",
             showlegend=False
         )
         # Улучшенные hover для столбчатой диаграммы
