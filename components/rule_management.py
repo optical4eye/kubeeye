@@ -98,7 +98,7 @@ def render_mode_selector(gitops_manager: GitOpsRuleManager, config: Dict):
                 st.metric("GitOps rules", 0)
 
     with col3:
-        if st.button(" Refresh", help="Refresh rules list"):
+        if st.button(" Refresh", type="primary", help="Refresh rules list"):
             st.rerun()
 
 
@@ -218,7 +218,7 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     sync_repository(gitops_manager, current_repo)
 
             with col3:
-                if st.button(" Delete", type="secondary", use_container_width=True):
+                if st.button(" Delete", type="primary", use_container_width=True):
                     success, message = gitops_manager.remove_repository()
                     if success:
                         st.success(message)
@@ -293,7 +293,7 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     help="Use only for testing or internal repositories with self-signed certificates"
                 )
 
-            submitted = st.form_submit_button("Add repository")
+            submitted = st.form_submit_button("Add repository", type="primary")
 
             if submitted:
                 if not repo_name or not repo_url:

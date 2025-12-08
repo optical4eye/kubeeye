@@ -316,7 +316,7 @@ class InspectionEngine:
             st.info("Please go to the 'Inspection Reports' page in the left navigation to view details.")
 
         with col2:
-            if st.button("Repeat inspection", width='stretch'):
+            if st.button("Repeat inspection", type="primary", width='stretch'):
                 st.rerun()
 
 

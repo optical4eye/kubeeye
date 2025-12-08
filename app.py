@@ -342,7 +342,7 @@ st.markdown("## Overview")
 # Dashboard data refresh button
 col_refresh, col_spacer = st.columns([1, 5])
 with col_refresh:
-    if st.button("🔄 Refresh data", help="Refresh dashboard data"):
+    if st.button("Refresh data", type="primary", help="Refresh dashboard data"):
         get_dashboard_data.clear()  # Clear cache before refresh
         st.rerun()
 
@@ -641,11 +641,11 @@ else:
             st.switch_page("pages/2_cluster_inspect.py")
 
     with col2:
-        if st.button("View report"):
+        if st.button("View report", type="primary"):
             st.switch_page("pages/3_inspect_report.py")
 
     with col3:
-        if st.button("Cluster management"):
+        if st.button("Cluster management", type="primary"):
             st.switch_page("pages/1_cluster_info.py")
 
 

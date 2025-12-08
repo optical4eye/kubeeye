@@ -24,7 +24,7 @@ def render_scheduled_scan_tab():
     scheduler_col1, scheduler_col2, scheduler_col3 = st.columns([1, 1, 2])
     with scheduler_col1:
         if st.session_state.scheduler_status:
-            if st.button("Stop scheduler", key="stop_scheduler"):
+            if st.button("Stop scheduler", key="stop_scheduler", type="primary"):
                 if stop_scheduler():
                     st.session_state.scheduler_status = False
                     st.success("Scheduler stopped")
@@ -32,7 +32,7 @@ def render_scheduled_scan_tab():
                 else:
                     st.error("Failed to stop scheduler")
         else:
-            if st.button("Start scheduler", key="start_scheduler"):
+            if st.button("Start scheduler", key="start_scheduler", type="primary"):
                 if start_scheduler():
                     st.session_state.scheduler_status = True
                     st.success("Scheduler started")
@@ -41,7 +41,7 @@ def render_scheduled_scan_tab():
                     st.error("Failed to start scheduler")
 
     with scheduler_col2:
-        if st.button("Restart tasks", key="restart_scheduler"):
+        if st.button("Restart tasks", key="restart_scheduler", type="primary"):
             if restart_scheduler():
                 st.success("Tasks restarted")
                 st.rerun()
@@ -131,7 +131,7 @@ def render_task_list_tab(tasks):
                                     st.write(f"**{rule_type.capitalize()}** rules: {len(rule_config.get('rules', []))} {source_text} rules")
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        if st.button("Run now", key=f"run_{selected_task_id}"):
+                        if st.button("Run now", key=f"run_{selected_task_id}", type="primary"):
                             success, message, results = run_inspection(selected_task_id, return_results=True)
                             if success:
                                 st.success(f"Task {selected_task.name} completed successfully")
@@ -139,14 +139,14 @@ def render_task_list_tab(tasks):
                                     total_items = sum(len(result.items) for result in results.values())
                                     st.info(f"Checked {total_items} items")
                                     st.info(f"{message}")
-                                    if st.button("Go to detailed report", key="view_scheduled_report"):
+                                    if st.button("Go to detailed report", key="view_scheduled_report", type="primary"):
                                         st.switch_page("pages/3_inspect_report.py")
                                 st.rerun()
                             else:
                                 st.error(f"Task execution error: {message}")
                     with col2:
                         if selected_task.enabled:
-                            if st.button("Disable task", key=f"disable_{selected_task_id}"):
+                            if st.button("Disable task", key=f"disable_{selected_task_id}", type="primary"):
                                 selected_task.enabled = False
                                 if add_schedule(selected_task, update=True):
                                     st.success(f"Task {selected_task.name} disabled")
@@ -155,7 +155,7 @@ def render_task_list_tab(tasks):
                                 else:
                                     st.error("Failed to disable task")
                         else:
-                            if st.button("Enable task", key=f"enable_{selected_task_id}"):
+                            if st.button("Enable task", key=f"enable_{selected_task_id}", type="primary"):
                                 selected_task.enabled = True
                                 if add_schedule(selected_task, update=True):
                                     st.success(f"Task {selected_task.name} enabled")
@@ -180,7 +180,7 @@ def render_create_task_tab():
     clusters = list_clusters()
     if not clusters:
         st.warning("No clusters configured yet. Please add a cluster on the 'Cluster info' page.")
-        if st.button("Go to cluster info", key="goto_cluster_info_btn2"):
+        if st.button("Go to cluster info", key="goto_cluster_info_btn2", type="primary"):
             st.switch_page("pages/1_cluster_info.py")
         return
 
@@ -264,7 +264,7 @@ def render_create_task_tab():
         st.divider()
         st.divider()
         task_enabled = st.checkbox("Enable task immediately", value=True)
-        submit_button = st.form_submit_button("Create task")
+        submit_button = st.form_submit_button("Create task", type="primary")
 
         if submit_button:
             if not task_name:

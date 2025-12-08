@@ -181,14 +181,14 @@ def display_cleanup_section(all_results):
             )
 
             # Save settings
-            if st.button("Save settings"):
+            if st.button("Save settings", type="primary"):
                 config['retention_days'] = retention_days_input
                 save_cleanup_config(config)
                 st.success("Settings saved")
                 st.rerun()
 
         # Manual cleanup
-        if st.button("Clean up old reports now"):
+        if st.button("Clean up old reports now", type="primary"):
             with st.spinner("Cleaning..."):
                 deleted_count, freed_space = cleanup_old_reports(retention_days)
                 if deleted_count > 0:
@@ -374,7 +374,7 @@ from utils.inspection_result import export_report
 
 def display_report_operations(report_id):
     """Display report operations page"""
-    if st.button("Back to reports list"):
+    if st.button("Back to reports list", type="primary"):
         st.session_state.view_mode = "list"
         st.rerun()
 
@@ -450,15 +450,15 @@ def display_report_operations(report_id):
             st.rerun()
 
     with col2:
-        if st.button("Export JSON", width='stretch'):
+        if st.button("Export JSON", type="primary", width='stretch'):
             export_and_download(report_id, "json", "JSON")
 
     with col3:
-        if st.button("Export Excel", width='stretch'):
+        if st.button("Export Excel", type="primary", width='stretch'):
             export_and_download(report_id, "excel", "Excel")
 
     with col4:
-        if st.button("Export PDF", width='stretch'):
+        if st.button("Export PDF", type="primary", width='stretch'):
             success, message = export_report(report_id, "pdf")
             if success:
                 st.success("PDF report created successfully!")
@@ -470,7 +470,7 @@ def display_report_operations(report_id):
                         data=pdf_data,
                         file_name=f"{report_id}.pdf",
                         mime="application/pdf",
-                        type="secondary",
+                        type="primary",
                         width='stretch'
                     )
                     # Remove file from exports folder after download
@@ -504,7 +504,7 @@ def display_report_operations(report_id):
                 except Exception as e:
                     st.error(f"Error during deletion: {str(e)}")
         else:
-            if st.button("Delete", width='stretch'):
+            if st.button("Delete", type="primary", width='stretch'):
                 st.session_state[confirm_key] = True
                 st.rerun()
 
@@ -514,7 +514,7 @@ def display_report_operations(report_id):
 
 def display_report_detail(report_id):
     """Display report details"""
-    if st.button("Back to operations"):
+    if st.button("Back to operations", type="primary"):
         st.session_state.view_mode = "operations"
         st.rerun()
 
@@ -574,7 +574,7 @@ def display_report_detail(report_id):
 
 def display_report_preview(report_id):
     """Show quick report preview - version with simplified status system"""
-    if st.button("Back"):
+    if st.button("Back", type="primary"):
         st.session_state.view_mode = "list"
         st.rerun()
 
@@ -736,7 +736,7 @@ def display_items_list(items, is_passed=False, report_id=None, tab_name=None):
 
 def display_export_page(report_id):
     """Show export page - optimized version"""
-    if st.button("Back"):
+    if st.button("Back", type="primary"):
         st.session_state.view_mode = "list"
         st.rerun()
 
@@ -747,11 +747,11 @@ def display_export_page(report_id):
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("Export to JSON", width='stretch'):
+        if st.button("Export to JSON", type="primary", width='stretch'):
             export_and_download(report_id, "json", "JSON")
 
     with col2:
-        if st.button("Export to Excel", width='stretch'):
+        if st.button("Export to Excel", type="primary", width='stretch'):
             export_and_download(report_id, "excel", "Excel")
 
     st.divider()
@@ -821,7 +821,7 @@ def export_and_download(report_id, format_type, format_name, include_passed=Fals
                     data=file_data,
                     file_name=os.path.basename(file_path),
                     mime=mime_types.get(format_type, "application/octet-stream"),
-                    type="secondary",
+                    type="primary",
                     width='stretch'
                 )
                 # Remove file from exports folder after download

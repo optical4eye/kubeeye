@@ -118,7 +118,7 @@ tab1, tab2, tab3 = st.tabs(["Cluster list", "Add cluster", "Edit cluster"])
 with tab1:
     st.header("Configured clusters")
 
-    if st.button("Refresh list"):
+    if st.button("Refresh list", type="primary"):
         st.rerun()
 
     clusters = list_clusters()
@@ -156,7 +156,7 @@ with tab1:
                     st.info("Kubeconfig not configured")
 
                 # Cluster deletion
-                if st.button("Delete cluster", key=f"delete_{cluster_name}"):
+                if st.button("Delete cluster", key=f"delete_{cluster_name}", type="primary"):
                     delete_cluster(cluster_name)
                     st.success(f"Cluster {cluster_name} deleted")
                     st.rerun()
@@ -192,7 +192,7 @@ help="Each line must contain: IP:User Identification Type Port [Password/Pathkey
         )
 
         # Preliminary node check button
-        check_nodes = st.form_submit_button("Check nodes")
+        check_nodes = st.form_submit_button("Check nodes", type="primary")
 
         if check_nodes:
             if bulk_nodes_input:
@@ -275,7 +275,7 @@ help="Each line must contain: IP:User Identification Type Port [Password/Pathkey
             st.session_state.kubeconfig_content = kubeconfig_content
 
         # Persistent Kubernetes connection test button
-        test_k8s = st.form_submit_button("Test Kubernetes connection")
+        test_k8s = st.form_submit_button("Test Kubernetes connection", type="primary")
         if test_k8s:
             if not st.session_state.kubeconfig_content:
                 st.error("Enter kubeconfig content for connection test")
@@ -290,7 +290,7 @@ help="Each line must contain: IP:User Identification Type Port [Password/Pathkey
                     st.error(f"Kubernetes connection error: {message}")
 
         # Cluster save button
-        submitted = st.form_submit_button("Save cluster")
+        submitted = st.form_submit_button("Save cluster", type="primary")
 
         if submitted:
             if not cluster_name:
@@ -528,7 +528,7 @@ with tab3:
                     if nodes_to_delete:
                         st.warning(f"Selected for deletion: {', '.join(nodes_to_delete)}")
 
-                        if st.button("Delete selected nodes", type="secondary"):
+                        if st.button("Delete selected nodes", type="primary"):
                             for node_ip in nodes_to_delete:
                                 cluster_config.remove_node(node_ip)
                             st.success(f"Deleted {len(nodes_to_delete)} nodes")
@@ -539,7 +539,7 @@ with tab3:
                     # Bulk node actions
                     st.write("**Bulk node actions:**")
 
-                    if st.button("Check all nodes", key="check_all_nodes"):
+                    if st.button("Check all nodes", key="check_all_nodes", type="primary"):
                         success_count = 0
                         for node in nodes:
                             # First check keys for nodes with key authentication
@@ -582,10 +582,10 @@ Examples:
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        test_new_nodes = st.form_submit_button("Check new nodes")
+                        test_new_nodes = st.form_submit_button("Check new nodes", type="primary")
 
                     with col2:
-                        add_new_nodes = st.form_submit_button("Add new nodes")
+                        add_new_nodes = st.form_submit_button("Add new nodes", type="primary")
 
                     if test_new_nodes:
                         if new_nodes_input:
@@ -697,10 +697,10 @@ Examples:
                         prometheus_token = st.text_input("Token", type="password", value=prometheus_config.get('token', ''))
 
                     # Connection test button
-                    test_prom_button = st.form_submit_button("Test connection")
+                    test_prom_button = st.form_submit_button("Test connection", type="primary")
 
                     # Save configuration button
-                    save_prom_button = st.form_submit_button("Save configuration")
+                    save_prom_button = st.form_submit_button("Save configuration", type="primary")
 
                     if test_prom_button:
                         if not prometheus_url:
@@ -765,10 +765,10 @@ Examples:
                         st.session_state.edit_kubeconfig_content = edit_kubeconfig_content
 
                     # Persistent Kubernetes connection test button
-                    test_kube_button = st.form_submit_button("Test Kubernetes connection")
+                    test_kube_button = st.form_submit_button("Test Kubernetes connection", type="primary")
 
                     # Save configuration button
-                    save_kube_button = st.form_submit_button("Save configuration")
+                    save_kube_button = st.form_submit_button("Save configuration", type="primary")
 
                     if test_kube_button:
                         if not st.session_state.edit_kubeconfig_content:

@@ -17,7 +17,7 @@ def render_immediate_scan_tab():
 
     if not clusters:
         st.warning("No clusters configured yet. Go to the Cluster Info page to add clusters.")
-        if st.button("Go to cluster info page", key="goto_cluster_info_btn1"):
+        if st.button("Go to cluster info page", key="goto_cluster_info_btn1", type="primary"):
             st.switch_page("pages/1_cluster_info.py")
     else:
         # Cluster selection
