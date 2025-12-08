@@ -12,7 +12,7 @@ for fname in os.listdir(RULES_DIR):
     path = os.path.join(RULES_DIR, fname)
     with open(path, 'r', encoding='utf-8') as f:
         rule = yaml.safe_load(f)
-    # 兼容不同格式
+    # Compatibility with different formats
     try:
         cmd = rule['config']['execution']['command']
     except Exception:
@@ -26,6 +26,6 @@ for fname in os.listdir(RULES_DIR):
         'desc': desc
     })
 
-print('Node规则命令安全性校验结果:')
+print('Node rules command security check results:')
 for r in results:
-    print(f"{r['file']}: {r['command']} => {'安全' if r['is_safe'] else '禁止'} | 风险: {r['risk']} | {r['desc']}")
+    print(f"{r['file']}: {r['command']} => {'Safe' if r['is_safe'] else 'Forbidden'} | Risk: {r['risk']} | {r['desc']}")

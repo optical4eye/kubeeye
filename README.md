@@ -1,49 +1,49 @@
-# KubeEye - Инструмент проверки кластеров Kubernetes
+# KubeEye - Kubernetes Cluster Inspection Tool
 
-Данная версия kubeeye находится тут - https://github.com/optical4eye/kubeeye/
+This version of kubeeye is located here - https://github.com/optical4eye/kubeeye/
 
-## Обзор
+## Overview
 
-KubeEye - это инструмент проверки кластеров Kubernetes **чисто наблюдательного типа**, ориентированный на безопасный сбор информации о кластере и выявление потенциальных проблем. Инструмент разработан на основе Streamlit и предоставляет интуитивно понятный веб-интерфейс, поддерживающий различные способы проверки.
+KubeEye is a **purely observational** Kubernetes cluster inspection tool focused on safe information gathering about the cluster and identifying potential issues. The tool is built on Streamlit and provides an intuitive web interface supporting various inspection methods.
 
-** Гарантия безопасности**: KubeEye использует строгую политику проверки только для чтения, все операции ограничиваются сбором информации и просмотром состояния, никогда не выполняются какие-либо модификации, удаления или опасные операции, обеспечивая безопасность кластера.
+**Security Guarantee**: KubeEye uses a strict read-only inspection policy, all operations are limited to information gathering and status viewing, no modifications, deletions, or dangerous operations are ever performed, ensuring cluster security.
 
-## Основные функции
+## Main Features
 
-- ** Безопасность прежде всего**: Принудительный режим только для чтения, все команды проверки проходят строгую проверку безопасности, обеспечивая нулевой риск
-- ** Управление информацией о кластере**: Поддержка настройки и управления информацией о подключении нескольких кластеров
-- ** Различные способы проверки**: Состояние узлов, метрики Prometheus, соответствие правилам OPA
-- ** Визуальные отчеты**: Интуитивное отображение результатов проверки, включая графики и подробные описания проблем
-- ** Запрос истории**: Поддержка просмотра истории результатов проверки и анализа тенденций
-- ** Рекомендации по исправлению**: Предоставление рекомендаций по решению для обнаруженных проблем
-- ** Шифрование конфиденциальной информации**: Защита паролей подключения к кластеру и другой конфиденциальной информации с помощью алгоритмов шифрования
-- ** Управление журналами**: Унифицированная система журналирования для удобного отслеживания и диагностики проблем
-- ** Мониторинг сертификатов**: Автоматическая проверка срока действия сертификатов kubeconfig, заблаговременное предупреждение
+- **Security First**: Mandatory read-only mode, all inspection commands undergo strict security checks, ensuring zero risk
+- **Cluster Information Management**: Support for configuring and managing connection information for multiple clusters
+- **Various Inspection Methods**: Node status, Prometheus metrics, OPA rule compliance
+- **Visual Reports**: Intuitive display of inspection results, including charts and detailed problem descriptions
+- **History Query**: Support for viewing inspection result history and trend analysis
+- **Fix Recommendations**: Providing solution recommendations for detected problems
+- **Sensitive Information Encryption**: Protection of cluster connection passwords and other sensitive information using encryption algorithms
+- **Log Management**: Unified logging system for convenient tracking and problem diagnostics
+- **Certificate Monitoring**: Automatic checking of kubeconfig certificate expiration dates, advance warnings
 
-##  Функции безопасности
+## Security Features
 
-### Чисто наблюдательный дизайн
-- **Принцип только для чтения**: Все операции проверки ограничиваются получением информации и просмотром состояния
-- **Режим белого списка**: Разрешено выполнение только явно безопасных команд, по умолчанию запрещены все неизвестные команды
-- **Многоуровневая проверка безопасности**: Строгая проверка безопасности перед выполнением команд
-- **Журнал аудита**: Полная запись всех операций и событий безопасности
+### Purely Observational Design
+- **Read-Only Principle**: All inspection operations are limited to information retrieval and status viewing
+- **Whitelist Mode**: Only explicitly safe commands are allowed to execute, all unknown commands are prohibited by default
+- **Multi-Level Security Checks**: Strict security checks before command execution
+- **Audit Log**: Complete recording of all operations and security events
 
-### Меры обеспечения безопасности
-- **Запрет операций модификации**: Запрещены опасные команды, такие как `rm`, `chmod`, `systemctl restart` и т.д.
-- **Запрет операций записи**: Не разрешены любые действия по записи, такие как перенаправление файлов, создание файлов и т.д.
-- **Запрет операций установки**: Не разрешена установка программного обеспечения, такая как `apt install`, `pip install` и т.д.
-- **Принудительный безопасный режим**: Невозможно понизить уровень безопасности через настройки
+### Security Measures
+- **Modification Operation Ban**: Dangerous commands such as `rm`, `chmod`, `systemctl restart`, etc. are prohibited
+- **Write Operation Ban**: No write actions are allowed, such as file redirection, file creation, etc.
+- **Installation Operation Ban**: Software installation such as `apt install`, `pip install`, etc. is not allowed
+- **Mandatory Safe Mode**: It is impossible to lower security levels through settings
 
-## Быстрый старт
+## Quick Start
 
-### Способ 1: Запуск через Docker
+### Method 1: Run via Docker
 
-#### Сохранение данных
+#### Data Persistence
 ```bash
-# Создание каталога данных
+# Create data directory
 mkdir -p /opt/kubeeye/data
 
-# Запуск контейнера с подключением каталога данных и времени
+# Run container with data directory and time mounting
 docker run -d \
   --name kubeeye \
   -p 8501:8501 \

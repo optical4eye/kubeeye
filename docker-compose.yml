@@ -7,7 +7,7 @@ services:
       - "8501:8501"
     volumes:
       - kubeeye-data:/app/data
-      # Режим разработки: монтирование исходного кода для разработки в реальном времени
+      # Development mode: mounting source code for real-time development
       # - .:/app
     environment:
       - PYTHONPATH=/app

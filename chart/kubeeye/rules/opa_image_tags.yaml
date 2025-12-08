@@ -1,8 +1,8 @@
 ---
-# OPA правило - проверка использования тега latest для образов контейнеров
+# OPA rule - check for using latest tag for container images
 id: opa-image-tags
-name: Проверка использования тега latest для образов контейнеров
-description: Запрещает использование тега latest для образов контейнеров в подах и связанных ресурсах.
+name: Check for using latest tag for container images
+description: Prohibits using the latest tag for container images in pods and related resources.
 type: opa
 category: security
 severity: warning
@@ -10,9 +10,9 @@ enabled: true
 tier: basic
 
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация ресурсов
+  # Resources configuration
   resources:
     - kind: Pod
       apiVersion: v1
@@ -28,12 +28,12 @@ config:
       namespaced: true
 
 
-  # Конфигурация rego-правила
+  # Rego rule configuration
   rego:
     inline: |
       package kubernetes
 
-      # Получить спецификацию Pod
+      # Get Pod specification
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
@@ -44,16 +44,16 @@ config:
           spec := resource.spec.template.spec
       }
 
-      # Хелпер-функция для проверки, заканчивается ли строка на "latest"
+      # Helper function to check if string ends with "latest"
       is_latest(image) if {
           endswith(image, ":latest")
       }
 
-      # Определение нарушения - использование тега latest
+      # Violation definition - using latest tag
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
-          # Проверяем как обычные контейнеры, так и init-контейнеры
+          # Check both regular containers and init containers
           container := spec.containers[_]
           is_latest(container.image)
 
@@ -61,7 +61,7 @@ config:
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' в пространстве имен '%s' использует запрещенный тег latest для образа %s", [
+              "message": sprintf("%s '%s' in namespace '%s' uses forbidden latest tag for image %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -73,7 +73,7 @@ config:
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
-          # Проверяем init-контейнеры
+          # Check init containers
           container := spec.initContainers[_]
           is_latest(container.image)
 
@@ -81,7 +81,7 @@ config:
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' в пространстве имен '%s' использует запрещенный тег latest для образа %s (init container)", [
+              "message": sprintf("%s '%s' in namespace '%s' uses forbidden latest tag for image %s (init container)", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -90,22 +90,22 @@ config:
           }
       }
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Проверка отсутствия тега latest"
+    - name: "Check for absence of latest tag"
       condition: "violation_count == 0"
       severity: warning
-      description: "Обнаружено {{ violation_count }} Pod, использующих тег latest"
+      description: "Found {{ violation_count }} Pods using latest tag"
 
 
-# Рекомендации по устранению проблемы
+# Problem resolution recommendations
 solution: |
-  Избегайте использования тега latest в производственной среде.
-  1. Используйте явные, неизменяемые (immutable) теги версий (например, 1.2.3 или SHA-хэши).
-  2. Тег latest может указывать на разный код в разное время, что приводит к непредсказуемому поведению и проблемам воспроизводимости при развертывании.
+  Avoid using latest tag in production environment.
+  1. Use explicit, immutable version tags (e.g., 1.2.3 or SHA hashes).
+  2. Latest tag may point to different code at different times, leading to unpredictable behavior and deployment reproducibility issues.
 
 
-# Метки
+# Tags
 tags:
   - security
   - best-practices

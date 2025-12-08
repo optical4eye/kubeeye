@@ -1,33 +1,33 @@
 ---
-# Проверка использования ограничения памяти Pod
+# Pod memory limit usage check
 id: prom_pod_memory_limit_usage
-name: Проверка использования ограничения памяти Pod
-description: Проверить, приближается ли использование памяти Pod к его ограничению
+name: Pod memory limit usage check
+description: Check if Pod memory usage is approaching its limit
 type: prometheus
 category: workload
 severity: warning
 enabled: true
 tier: basic
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация запроса Prometheus - использование памяти Pod относительно его ограничения
+  # Prometheus query configuration - Pod memory usage relative to its limit
   query: "(container_memory_working_set_bytes{container!=\"\"} / on(container,pod,namespace) kube_pod_container_resource_limits{resource=\"memory\"}) * 100"
 
-  # Конфигурация временного диапазона
+  # Time range configuration
   time_range:
     start: "now-10m"
     end: "now"
     step: "1m"
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Проверка использования ограничения памяти Pod"
+    - name: "Pod memory limit usage check"
       condition: "max_value < 85"
       severity: warning
-      description: "Использование памяти Pod: {{ max_value | round(2) }}%"
+      description: "Pod memory usage: {{ max_value | round(2) }}%"
 
-# Теги
+# Tags
 tags:
   - pod
   - memory

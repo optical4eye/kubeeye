@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Prometheus инспектор - упрощенная версия, поддерживает "одно правило = один запрос = один элемент проверки"
+Prometheus inspector - simplified version, supports "one rule = one query = one check item"
 """
 
 import logging
@@ -12,39 +12,39 @@ from inspectors.base_inspector import BaseInspector
 from utils.prometheus_client import PrometheusClient
 from utils.rule_loader import Rule
 
-# Настройка логирования
+# Logging setup
 logger = logging.getLogger(__name__)
 
 class PrometheusInspector(BaseInspector):
     """
-    Prometheus инспектор правил - упрощенная версия
+    Prometheus rule inspector - simplified version
     """
 
     def __init__(self, config: Dict[str, Any], use_gitops: bool = False):
         """
-        Инициализация Prometheus инспектора
+        Initialize Prometheus inspector
 
         Args:
-            config: словарь конфигурации Prometheus, должен содержать следующие поля:
-                - url: URL сервера Prometheus
-                - username: опциональное имя пользователя
-                - password: опциональный пароль
-                - token: опциональный токен доступа
-                - enabled: включен ли
-            use_gitops: использовать ли правила GitOps
+            config: Prometheus configuration dictionary, must contain the following fields:
+                - url: Prometheus server URL
+                - username: optional username
+                - password: optional password
+                - token: optional access token
+                - enabled: whether enabled
+            use_gitops: whether to use GitOps rules
         """
-        # Убедиться, что конфигурация действительна
+        # Ensure configuration is valid
         if not isinstance(config, dict):
-            raise TypeError("Конфигурация должна быть словарем")
+            raise TypeError("Configuration must be a dictionary")
 
-        # Если переданная конфигурация отсутствует необходимые поля, добавить значения по умолчанию
+        # If passed configuration lacks required fields, add default values
         if 'url' not in config:
-            raise ValueError("Конфигурация Prometheus отсутствует поле url")
+            raise ValueError("Prometheus configuration missing url field")
 
-        # Создать экземпляр PrometheusClient
+        # Create PrometheusClient instance
         self.prometheus_client = PrometheusClient(config)
 
-        # Вызов инициализации родительского класса
+        # Call parent class initialization
         super().__init__(config, use_gitops=use_gitops)
 
     @property
@@ -53,145 +53,145 @@ class PrometheusInspector(BaseInspector):
 
     def _prepare_context(self, cluster_name: str) -> Dict:
         """
-        Подготовить контекст проверки Prometheus
+        Prepare Prometheus check context
 
         Args:
-            cluster_name: имя кластера
+            cluster_name: cluster name
 
         Returns:
-            Подготовленный контекст
+            Prepared context
         """
         context = super()._prepare_context(cluster_name)
         return context
 
     def _validate_rule_config(self, rule: Rule) -> List[str]:
         """
-        Проверить, действительна ли конфигурация правила
+        Check if rule configuration is valid
 
         Args:
-            rule: объект правила
+            rule: rule object
 
         Returns:
-            Список проблем конфигурации, если проблем нет, возвращает пустой список
+            List of configuration issues, if no issues, returns empty list
         """
         issues = []
 
-        # Проверить необходимую конфигурацию запроса
+        # Check required query configuration
         query = self.get_rule_config(rule, 'query', '')
         if not query:
-            issues.append("Отсутствует необходимый Prometheus запрос (query)")
+            issues.append("Missing required Prometheus query (query)")
 
-        # Проверить необходимую конфигурацию утверждений
+        # Check required assertions configuration
         assertions = self.get_rule_config(rule, 'assertions', [])
         if not assertions:
-            issues.append("Отсутствует необходимая конфигурация утверждений (assertions)")
+            issues.append("Missing required assertions configuration (assertions)")
 
         return issues
 
     def _apply_rule(self, rule: Rule, context: Dict) -> Dict:
         """
-        Применить правило Prometheus для проверки - упрощенная версия
+        Apply Prometheus rule for checking - simplified version
 
         Args:
-            rule: объект правила
-            context: контекст
+            rule: rule object
+            context: context
 
         Returns:
-            Результат проверки
+            Check result
         """
-        # Получить конфигурацию запроса и утверждений
+        # Get query and assertions configuration
         query = self.get_rule_config(rule, 'query', '')
         assertions = self.get_rule_config(rule, 'assertions', [])
 
-        # Выполнить запрос
+        # Execute query
         try:
-            # Выполнить мгновенный запрос (упрощенная версия, больше не поддерживает сложные запросы по диапазону времени)
+            # Execute instant query (simplified version, no longer supports complex range queries)
             result = self.prometheus_client.query(query)
 
-            # Обработать результат
+            # Process result
             metrics = self._process_query_result(result)
             if not metrics:
                 return self.rule_processor.format_rule_result(
                     rule=rule,
                     status="passed",
-                    description=f"{rule.name}: нет данных",
+                    description=f"{rule.name}: no data",
                     severity="info",
-                    details="Prometheus запрос не вернул соответствующих данных метрик",
+                    details="Prometheus query returned no matching metric data",
                     solution=""
                 )
 
-            # Извлечь данные для оценки утверждений
+            # Extract data for assertion evaluation
             variables = self._extract_metrics_variables(metrics)
 
-            # Сгенерировать суффикс имени, содержащий информацию о контексте
+            # Generate name suffix containing context information
             name_suffix = self._generate_context_suffix(metrics, variables)
 
-            # Оценить утверждения
+            # Evaluate assertions
             assertion_result = self.rule_processor.evaluate_assertions(assertions, variables)
 
-            # Вернуть результат проверки на основе результата утверждений
+            # Return check result based on assertion result
             if assertion_result['passed']:
-                # Для пройденных проверок отображать конкретные данные мониторинга в описании
+                # For passed checks, display specific monitoring data in description
                 first_assertion = assertions[0] if assertions else {}
                 first_assertion_desc = first_assertion.get('description', '')
                 if first_assertion_desc:
-                    # Отрендерить шаблон для отображения конкретных значений
+                    # Render template to display specific values
                     rendered_desc = self.rule_processor.assertion_manager.render_template(first_assertion_desc, variables)
                     description = f"{rule.name}: {rendered_desc}"
                 else:
-                    # Отобразить ключевые значения метрик
+                    # Display key metric values
                     if 'max_value' in variables:
-                        description = f"{rule.name}: максимальное значение {variables['max_value']:.2f}"
+                        description = f"{rule.name}: maximum value {variables['max_value']:.2f}"
                     elif 'value' in variables:
-                        description = f"{rule.name}: текущее значение {variables['value']:.2f}"
+                        description = f"{rule.name}: current value {variables['value']:.2f}"
                     else:
-                        description = f"{rule.name}: проверка пройдена"
+                        description = f"{rule.name}: check passed"
 
                 result = self.rule_processor.format_rule_result(
                     rule=rule,
                     status="passed",
                     description=description,
                     severity="info",
-                    details="Метрики мониторинга в норме",
+                    details="Monitoring metrics are normal",
                     solution=""
                 )
             else:
-                # Удалить префикс "Утверждение не выполнено: ", использовать описание напрямую
-                clean_description = assertion_result['description'].replace("Утверждение не выполнено: ", "")
+                # Remove "Assertion failed: " prefix, use description directly
+                clean_description = assertion_result['description'].replace("Assertion failed: ", "")
 
                 result = self.rule_processor.format_rule_result(
                     rule=rule,
                     status="failed",
                     description=clean_description,
                     severity=assertion_result['severity'],
-                    details=f"Сработало оповещение мониторинга\nЗапрос: {query}\nЗначение результата: {self._format_simple_metrics(metrics)}",
+                    details=f"Monitoring alert triggered\nQuery: {query}\nResult value: {self._format_simple_metrics(metrics)}",
                     solution=rule.solution
                 )
 
-            # Добавить информацию о контексте к имени
+            # Add context information to name
             if name_suffix:
                 result['name'] = f"{rule.name} - {name_suffix}"
 
             return result
 
         except Exception as e:
-            logger.exception(f"Ошибка выполнения Prometheus запроса: {str(e)}")
+            logger.exception(f"Error executing Prometheus query: {str(e)}")
             return self._format_error_result(rule,
-                "Ошибка выполнения Prometheus запроса", str(e))
+                "Error executing Prometheus query", str(e))
 
     def _process_query_result(self, result: Dict) -> List[Dict]:
         """
-        Обработать результат Prometheus запроса - упрощенная версия, поддерживает только vector тип
+        Process Prometheus query result - simplified version, supports only vector type
 
         Args:
-            result: результат Prometheus запроса
+            result: Prometheus query result
 
         Returns:
-            Обработанный список метрик
+            Processed metrics list
         """
         metrics = []
 
-        # Проверить формат результата
+        # Check result format
         if not result or not isinstance(result, dict):
             return metrics
 
@@ -202,7 +202,7 @@ class PrometheusInspector(BaseInspector):
         if not result_data:
             return metrics
 
-        # Обрабатывать только результаты мгновенных запросов (vector тип)
+        # Only process instant query results (vector type)
         if result_type == 'vector':
             for item in result_data:
                 metric = {
@@ -211,36 +211,36 @@ class PrometheusInspector(BaseInspector):
                 }
                 metrics.append(metric)
         else:
-            # Больше не поддерживает matrix тип сложных временных рядов
-            logger.warning(f"Неподдерживаемый тип результата запроса: {result_type}, используйте мгновенный запрос")
+            # No longer supports matrix type complex time series
+            logger.warning(f"Unsupported query result type: {result_type}, use instant query")
 
         return metrics
 
     def _extract_metrics_variables(self, metrics: List[Dict]) -> Dict[str, Any]:
         """
-        Извлечь переменные из метрик для оценки утверждений
+        Extract variables from metrics for assertion evaluation
 
         Args:
-            metrics: список метрик
+            metrics: metrics list
 
         Returns:
-            Словарь переменных
+            Variables dictionary
         """
         variables = {
-            # Хранить список всех значений для удобства вычисления среднего, максимума и т.д.
+            # Store list of all values for easy calculation of average, maximum, etc.
             'values': [m.get('value', 0) for m in metrics],
         }
 
-        # Если только одна метрика, использовать ее значение напрямую
+        # If only one metric, use its value directly
         if len(metrics) == 1:
             variables['value'] = metrics[0].get('value', 0)
 
-            # Добавить метки как переменные
+            # Add labels as variables
             metric_labels = metrics[0].get('metric', {})
             for label, label_value in metric_labels.items():
                 variables[f"label_{label}"] = label_value
 
-        # Добавить агрегированные значения
+        # Add aggregated values
         if variables['values']:
             variables['max_value'] = max(variables['values'])
             variables['min_value'] = min(variables['values'])
@@ -250,82 +250,82 @@ class PrometheusInspector(BaseInspector):
 
     def _generate_context_suffix(self, metrics: List[Dict], variables: Dict[str, Any]) -> str:
         """
-        Сгенерировать суффикс имени, содержащий информацию о контексте
+        Generate name suffix containing context information
 
         Args:
-            metrics: список метрик
-            variables: словарь переменных
+            metrics: metrics list
+            variables: variables dictionary
 
         Returns:
-            Строка суффикса контекста
+            Context suffix string
         """
         if not metrics:
             return ""
 
-        # Если только одна метрика, попытаться извлечь значимые метки
+        # If only one metric, try to extract meaningful labels
         if len(metrics) == 1:
             metric_labels = metrics[0].get('metric', {})
 
-            # Приоритетно отображать информацию, связанную с узлом
+            # Prioritize displaying node-related information
             if 'instance' in metric_labels:
                 instance = metric_labels['instance']
-                # Очистить формат instance (обычно IP:PORT или hostname:PORT)
+                # Clean instance format (usually IP:PORT or hostname:PORT)
                 if ':' in instance:
                     instance = instance.split(':')[0]
-                return f"Узел {instance}"
+                return f"Node {instance}"
             elif 'node' in metric_labels:
-                return f"Узел {metric_labels['node']}"
+                return f"Node {metric_labels['node']}"
             elif 'job' in metric_labels:
-                return f"Задача {metric_labels['job']}"
+                return f"Job {metric_labels['job']}"
             elif '__name__' in metric_labels:
-                return f"Метрика {metric_labels['__name__']}"
+                return f"Metric {metric_labels['__name__']}"
 
-        # Если несколько метрик, отобразить количество метрик
+        # If multiple metrics, display number of metrics
         elif len(metrics) > 1:
-            # Попытаться найти общие метки
+            # Try to find common labels
             first_metric_labels = metrics[0].get('metric', {})
             if 'job' in first_metric_labels:
                 job_name = first_metric_labels['job']
-                return f"{len(metrics)} экземпляров {job_name}"
+                return f"{len(metrics)} instances of {job_name}"
             else:
-                return f"{len(metrics)} экземпляров"
+                return f"{len(metrics)} instances"
 
         return ""
 
     def _format_simple_metrics(self, metrics: List[Dict]) -> str:
         """
-        Упрощенный метод форматирования метрик
+        Simplified metrics formatting method
 
         Args:
-            metrics: список метрик
+            metrics: metrics list
 
         Returns:
-            Отформатированная строка метрик
+            Formatted metrics string
         """
         if not metrics:
-            return "Нет данных"
+            return "No data"
 
         if len(metrics) == 1:
             metric = metrics[0]
             value = metric.get('value', 'N/A')
-            return f"Текущее значение: {value}"
+            return f"Current value: {value}"
         else:
             values = [m.get('value', 0) for m in metrics]
             max_val = max(values)
             avg_val = sum(values) / len(values)
-            return f"Максимальное значение: {max_val:.2f}, Среднее значение: {avg_val:.2f}, Всего {len(metrics)} экземпляров"
+            return f"Maximum value: {max_val:.2f}, Average value: {avg_val:.2f}, Total {len(metrics)} instances"
 
     def get_rule_config(self, rule: Rule, key: str, default: Any = None) -> Any:
         """
-        Получить значение определенного ключа из конфигурации правила
+        Get value of specific key from rule configuration
 
         Args:
-            rule: объект правила
-            key: ключ конфигурации
-            default: значение по умолчанию, возвращаемое, если ключ не существует
+            rule: rule object
+            key: configuration key
+            default: default value returned if key does not exist
 
         Returns:
-            Значение конфигурации или значение по умолчанию
+            Configuration value or default value
         """
         if rule.config and key in rule.config:
             return rule.config[key]
@@ -333,30 +333,30 @@ class PrometheusInspector(BaseInspector):
 
     def _format_skipped_result(self, rule: Rule, reason: str) -> Dict:
         """
-        Форматировать результат пропущенного правила (делегировано ResultFormatter)
+        Format skipped rule result (delegated to ResultFormatter)
 
         Args:
-            rule: объект правила
-            reason: причина пропуска
+            rule: rule object
+            reason: skip reason
 
         Returns:
-            Словарь результата
+            Result dictionary
         """
         return self.rule_processor.result_formatter.skipped_result(rule, reason)
 
     def _format_error_result(self, rule: Rule, error_type: str, error_msg: str) -> Dict:
         """
-        Форматировать результат ошибки (делегировано ResultFormatter)
+        Format error result (delegated to ResultFormatter)
 
         Args:
-            rule: объект правила
-            error_type: тип ошибки
-            error_msg: сообщение об ошибке
+            rule: rule object
+            error_type: error type
+            error_msg: error message
 
         Returns:
-            Словарь результата
+            Result dictionary
         """
-        full_error_msg = f"Тип ошибки: {error_type}\nИнформация об ошибке: {error_msg}\nРекомендация по решению: Проверьте конфигурацию подключения Prometheus и синтаксис запроса"
+        full_error_msg = f"Error type: {error_type}\nError information: {error_msg}\nSolution recommendation: Check Prometheus connection configuration and query syntax"
         return self.rule_processor.result_formatter.error_result(
-            rule, full_error_msg, f"{rule.name} ошибка: {error_type}"
+            rule, full_error_msg, f"{rule.name} error: {error_type}"
         )

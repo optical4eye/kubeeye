@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Базовый клиент Kubernetes - предоставление общей логики инициализации и конфигурации
-Уменьшение дублирования кода между k8s_client.py и k8s_dynamic_client.py
+Base Kubernetes client - providing common initialization and configuration logic
+Reducing code duplication between k8s_client.py and k8s_dynamic_client.py
 """
 
 import tempfile
@@ -15,14 +15,14 @@ from kubernetes.client.rest import ApiException
 logger = logging.getLogger(__name__)
 
 class K8sBaseClient:
-    """Базовый клиент Kubernetes, предоставляющий общую функциональность инициализации и конфигурации"""
+    """Base Kubernetes client providing common initialization and configuration functionality"""
 
     def __init__(self, kubeconfig_content: str = None):
         """
-        Инициализировать базовый клиент
+        Initialize the base client
 
         Args:
-            kubeconfig_content: Содержимое файла kubeconfig
+            kubeconfig_content: Content of the kubeconfig file
         """
         self.kubeconfig_content = kubeconfig_content
         self.temp_config = None
@@ -30,78 +30,78 @@ class K8sBaseClient:
 
     def init_client_base(self) -> bool:
         """
-        Общая логика инициализации клиента
+        Common client initialization logic
 
         Returns:
-            Возвращает True при успехе, False при неудаче
+            Returns True on success, False on failure
         """
         try:
             if self.kubeconfig_content:
-                # Создать временный файл для хранения kubeconfig
+                # Create temporary file to store kubeconfig
                 self.temp_config = tempfile.NamedTemporaryFile(delete=False)
                 self.temp_config.write(self.kubeconfig_content.encode())
                 self.temp_config.flush()
                 config.load_kube_config(self.temp_config.name)
             else:
-                # Попробовать загрузить конфигурацию способом по умолчанию
+                # Try to load configuration using default method
                 config.load_kube_config()
 
-            # Настроить проверку SSL сертификатов
+            # Configure SSL certificate verification
             client.Configuration.set_default(self._configure_no_verify_ssl())
 
             self.initialized = True
-            logger.info("Инициализация базового клиента Kubernetes прошла успешно")
+            logger.info("Base Kubernetes client initialization successful")
             return True
 
         except Exception as e:
-            logger.error(f"Не удалось инициализировать базовый клиент Kubernetes: {e}")
+            logger.error(f"Failed to initialize base Kubernetes client: {e}")
             self.initialized = False
             return False
 
     def _configure_no_verify_ssl(self):
         """
-        Настроить клиент Kubernetes для пропуска проверки SSL сертификатов, для среды с самоподписанными сертификатами
+        Configure Kubernetes client to skip SSL certificate verification, for environments with self-signed certificates
 
         Returns:
-            Настроенная конфигурация клиента
+            Configured client configuration
         """
-        # Получить текущую конфигурацию клиента
+        # Get current client configuration
         configuration = client.Configuration.get_default_copy()
 
-        # Отключить проверку SSL сертификатов
+        # Disable SSL certificate verification
         configuration.verify_ssl = False
         configuration.ssl_ca_cert = None
 
-        # Установить предупреждение
-        logger.warning("Проверка SSL сертификатов отключена, это может представлять угрозу безопасности")
+        # Set warning
+        logger.warning("SSL certificate verification disabled, this may pose a security threat")
 
         return configuration
 
     def test_connection(self) -> Tuple[bool, str]:
         """
-        Тестировать подключение к кластеру Kubernetes
+        Test connection to Kubernetes cluster
 
         Returns:
-            (Успешно ли, Сообщение)
+            (Whether successful, Message)
         """
         try:
             if not self.initialized:
-                return False, "Клиент не инициализирован"
+                return False, "Client not initialized"
 
-            # Попробовать получить информацию о версии кластера
+            # Try to get cluster version information
             version_api = client.VersionApi()
             version = version_api.get_code().git_version
-            return True, f"Подключение успешно, версия кластера: {version}"
+            return True, f"Connection successful, cluster version: {version}"
 
         except ApiException as e:
-            logger.error(f"Тест подключения не удался: {e}")
-            return False, f"Ошибка API: {e.reason}"
+            logger.error(f"Connection test failed: {e}")
+            return False, f"API error: {e.reason}"
         except Exception as e:
-            logger.error(f"Тест подключения не удался: {e}")
-            return False, f"Подключение не удалось: {str(e)}"
+            logger.error(f"Connection test failed: {e}")
+            return False, f"Connection failed: {str(e)}"
 
     def __del__(self):
-        """Деструктор, удалить временные файлы"""
+        """Destructor, delete temporary files"""
         if self.temp_config:
             try:
                 self.temp_config.close()

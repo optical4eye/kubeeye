@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Страница отчётов проверки кластера Kubernetes - переработанная версия
-Предоставление улучшенного пользовательского опыта и более ясного интерфейса управления отчётами
+Kubernetes cluster inspection reports page - reworked version
+Providing improved user experience and clearer report management interface
 """
 
 
@@ -18,7 +18,7 @@ import time
 from functools import wraps
 
 def timing_decorator(func):
-    """Декоратор для измерения времени выполнения функций"""
+    """Decorator for measuring function execution time"""
     @wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -26,20 +26,20 @@ def timing_decorator(func):
         end_time = time.time()
 
         execution_time = end_time - start_time
-        if execution_time > 1.0:  # Логировать только медленные операции
-            st.info(f"{func.__name__} выполнен за {execution_time:.2f} сек")
+        if execution_time > 1.0:  # Log only slow operations
+            st.info(f"{func.__name__} executed in {execution_time:.2f} sec")
 
         return result
     return wrapper
 
-# Настройка страницы
+# Page setup
 st.set_page_config(
-    page_title="Отчёты проверки - kubeeye",
+    page_title="Inspection reports - kubeeye",
     layout="wide"
 )
 
 
-# Минималистичные стили
+# Minimalist styles
 st.markdown("""
 <style>
 .stDataFrame { font-size: 14px; }
@@ -48,20 +48,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# Добавление корневой директории проекта в путь Python
+# Add project root directory to Python path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 
-# Импорт утилит
+# Import utilities
 from utils.common import initialize_page
 from utils.cluster_config import list_clusters
 from utils.inspection_result import list_results, load_result
 from components.ui.result_display import display_inspection_results
 from components.ui.result_display import parse_opa_violations_to_table, display_opa_violations_table
 
-# Конфигурация для очистки отчётов
+# Configuration for report cleanup
 CONFIG_FILE = Path(__file__).parent.parent / "data" / "cleanup_config.json"
 DEFAULT_RETENTION_DAYS = 14
 DEFAULT_AUTO_CLEANUP = False
@@ -70,7 +70,7 @@ DEFAULT_AUTO_CLEANUP = False
 ENV_RETENTION_DAYS = "KUBEYE_REPORT_RETENTION_DAYS"
 
 def load_cleanup_config() -> dict:
-    """Загрузить конфигурацию очистки"""
+    """Load cleanup configuration"""
     # Check environment variable first
     env_retention = os.getenv(ENV_RETENTION_DAYS)
     if env_retention:
@@ -100,14 +100,14 @@ def load_cleanup_config() -> dict:
     }
 
 def save_cleanup_config(config: dict):
-    """Сохранить конфигурацию очистки"""
+    """Save cleanup configuration"""
     CONFIG_FILE.parent.mkdir(exist_ok=True)
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
 
 
 def safe_display_opa_violations_table(violations_data, show_expander=False, table_key=None):
-    """Безопасный вызов функции display_opa_violations_table с учётом совместимости параметров"""
+    """Safe call to display_opa_violations_table function considering parameter compatibility"""
     try:
         if table_key:
             return display_opa_violations_table(violations_data, show_expander=show_expander, table_key=table_key)
@@ -118,10 +118,10 @@ def safe_display_opa_violations_table(violations_data, show_expander=False, tabl
 
 
 def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
-    """Очистить старые отчёты старше retention_days дней
+    """Clean up old reports older than retention_days days
 
     Returns:
-        tuple: (удалено_файлов, освобождено_места_в_байтах)
+        tuple: (deleted_files, freed_space_in_bytes)
     """
     if retention_days <= 0:
         return 0, 0
@@ -137,7 +137,7 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
 
     for file_path in results_dir.glob("*.json"):
         try:
-            # Проверяем дату изменения файла
+            # Check file modification date
             file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
             if file_mtime < cutoff_date:
                 file_size = file_path.stat().st_size
@@ -152,152 +152,152 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
 
 
 def display_cleanup_section(all_results):
-    """Отобразить секцию очистки старых отчётов"""
-    with st.expander("Очистка старых отчётов", expanded=False):
-        # Загрузить текущую конфигурацию
+    """Display old reports cleanup section"""
+    with st.expander("Cleanup old reports", expanded=False):
+        # Load current configuration
         config = load_cleanup_config()
         retention_days = config.get('retention_days', DEFAULT_RETENTION_DAYS)
 
-        # Настройки
-        st.markdown("#### Настройки периода хранения")
+        # Settings
+        st.markdown("#### Retention period settings")
 
-        # Показать источник настройки
+        # Show setting source
         source = config.get('source', 'default')
         if source == 'env':
-            st.info(f"Настройка установлена через переменную окружения `{ENV_RETENTION_DAYS}={retention_days}` дней")
+            st.info(f"Setting configured via environment variable `{ENV_RETENTION_DAYS}={retention_days}` days")
             st.number_input(
-                "Сохранять отчёты (дней)",
+                "Keep reports (days)",
                 min_value=1,
                 max_value=365,
                 value=retention_days,
                 disabled=True,
-                help="Значение установлено через переменную окружения"
+                help="Value set via environment variable"
             )
         else:
             retention_days_input = st.number_input(
-                "Сохранять отчёты (дней)",
+                "Keep reports (days)",
                 min_value=1,
                 max_value=365,
                 value=retention_days,
-                help="Отчёты старше этого периода удаляются автоматически"
+                help="Reports older than this period are deleted automatically"
             )
 
-            # Сохранить настройки
-            if st.button("Сохранить настройки"):
+            # Save settings
+            if st.button("Save settings"):
                 config['retention_days'] = retention_days_input
                 save_cleanup_config(config)
-                st.success("Настройки сохранены")
+                st.success("Settings saved")
                 st.rerun()
 
-        # Ручная очистка
-        if st.button("Очистить старые отчёты сейчас"):
-            with st.spinner("Очистка..."):
+        # Manual cleanup
+        if st.button("Clean up old reports now"):
+            with st.spinner("Cleaning..."):
                 deleted_count, freed_space = cleanup_old_reports(retention_days)
                 if deleted_count > 0:
                     freed_mb = freed_space / (1024 * 1024)
-                    st.success(f"Удалено {deleted_count} старых отчётов, освобождено {freed_mb:.1f} MB")
+                    st.success(f"Deleted {deleted_count} old reports, freed {freed_mb:.1f} MB")
                 else:
-                    st.info("Старых отчётов для удаления не найдено")
+                    st.info("No old reports found for deletion")
 
-        st.info("Старые отчёты удаляются автоматически при открытии этой страницы")
+        st.info("Old reports are automatically deleted when opening this page")
 
 
 def get_reports_list(limit=500, force_refresh=False, _version="v2"):
-    """Получить список отчётов без кэширования"""
+    """Get list of reports without caching"""
     return list_results(limit=limit, order_by='timestamp DESC')
 
 def display_reports_overview():
-    """Отобразить обзор страницы отчётов"""
-    st.markdown("Просмотр и управление отчётами по всем кластерам")
+    """Display reports page overview"""
+    st.markdown("View and manage reports for all clusters")
 
-    # Кэширование отключено
+    # Caching disabled
 
-    # Убрана кнопка обновления для минималистичного дизайна
+    # Removed refresh button for minimalist design
 
     clusters = list_clusters()
-    all_results = get_reports_list(limit=500)  # Используем кэшированную функцию
+    all_results = get_reports_list(limit=500)  # Use cached function
 
     if not all_results:
-        st.info("Нет доступных отчётов. Выполните проверку для создания отчётов.")
-        if st.button("Выполнить проверку", type="primary"):
+        st.info("No available reports. Run inspection to create reports.")
+        if st.button("Run inspection", type="primary"):
             st.switch_page("pages/2_cluster_inspect.py")
         return
 
-    # Секция очистки старых отчётов
+    # Old reports cleanup section
     display_cleanup_section(all_results)
 
     st.divider()
 
-    # Информация о количестве отчётов
-    st.info(f"Найдено {len(all_results)} отчётов")
+    # Information about number of reports
+    st.info(f"Found {len(all_results)} reports")
 
-    # Минималистичный дизайн - убраны лишние предупреждения
+    # Minimalist design - removed unnecessary warnings
 
-    # Простые фильтры
+    # Simple filters
     col1, col2 = st.columns(2)
     with col1:
-        selected_cluster = st.selectbox("Кластер", ["Все"] + clusters)
+        selected_cluster = st.selectbox("Cluster", ["All"] + clusters)
     with col2:
-        date_filter = st.selectbox("Период", ["Все", "Сегодня", "Последние 7 дней", "Последние 30 дней"])
+        date_filter = st.selectbox("Period", ["All", "Today", "Last 7 days", "Last 30 days"])
 
     filtered_results = all_results
-    if selected_cluster != "Все":
+    if selected_cluster != "All":
         filtered_results = [r for r in filtered_results if r["cluster_name"] == selected_cluster]
 
     now = datetime.now()
-    if date_filter != "Все":
-        if date_filter == "Сегодня":
+    if date_filter != "All":
+        if date_filter == "Today":
             filtered_results = [r for r in filtered_results if
-                               datetime.fromisoformat(r['timestamp']).date() == now.date()]
-        elif date_filter == "Последние 7 дней":
+                                datetime.fromisoformat(r['timestamp']).date() == now.date()]
+        elif date_filter == "Last 7 days":
             week_ago = now - timedelta(days=7)
             filtered_results = [r for r in filtered_results if
-                               datetime.fromisoformat(r['timestamp']) >= week_ago]
-        elif date_filter == "Последние 30 дней":
+                                datetime.fromisoformat(r['timestamp']) >= week_ago]
+        elif date_filter == "Last 30 days":
             month_ago = now - timedelta(days=30)
             filtered_results = [r for r in filtered_results if
-                               datetime.fromisoformat(r['timestamp']) >= month_ago]
+                                datetime.fromisoformat(r['timestamp']) >= month_ago]
 
     if filtered_results:
         display_statistics_overview(filtered_results)
         display_reports_table(filtered_results)
     else:
-        st.info("Нет отчётов по выбранным критериям")
+        st.info("No reports found for selected criteria")
 
 
 def display_statistics_overview(filtered_results):
-    """Показать обзор статистики"""
-    st.markdown("### Статистика")
+    """Show statistics overview"""
+    st.markdown("### Statistics")
 
     total_reports = len(filtered_results)
     total_critical = sum(r['critical'] for r in filtered_results)
     total_warnings = sum(r['warning'] for r in filtered_results)
-    total_info = sum(r.get('info', 0) for r in filtered_results)  # Добавить подсчёт info ошибок
+    total_info = sum(r.get('info', 0) for r in filtered_results)  # Add info errors count
     total_passed = sum(r['passed'] for r in filtered_results)
 
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
-        st.metric("Отчётов", total_reports)
+        st.metric("Reports", total_reports)
     with col2:
-        st.metric("Критично", total_critical)
+        st.metric("Critical", total_critical)
     with col3:
-        st.metric("Предупреждения", total_warnings)
+        st.metric("Warnings", total_warnings)
     with col4:
-        st.metric("Прочее", total_info)
+        st.metric("Other", total_info)
     with col5:
-        st.metric("Успешно", total_passed)
+        st.metric("Passed", total_passed)
     with col6:
         latest_report = max(filtered_results, key=lambda x: x['timestamp'])
         latest_time = datetime.fromisoformat(latest_report['timestamp']).strftime('%m-%d %H:%M')
-        st.metric("Последний", latest_time)
+        st.metric("Latest", latest_time)
 
 
 def display_reports_table(filtered_results):
-    """Показать список отчётов с возможностью выбора"""
-    st.markdown("### Список отчётов")
+    """Show list of reports with selection option"""
+    st.markdown("### Reports list")
 
     if not filtered_results:
-        st.info("Нет доступных отчётов")
+        st.info("No available reports")
         return
 
     sorted_results = sorted(filtered_results,
@@ -309,19 +309,19 @@ def display_reports_table(filtered_results):
         timestamp = datetime.fromisoformat(result['timestamp'])
         critical_count = result['critical']
         warning_count = result['warning']
-        info_count = result.get('info', 0)  # Добавить info ошибки
+        info_count = result.get('info', 0)  # Add info errors
         total_exceptions = critical_count + warning_count + info_count
 
         df_data.append({
             "ID": result['result_id'],
-            "Кластер": result['cluster_name'],
-            "Время": timestamp.strftime('%m-%d %H:%M'),
-            "Тип": "Немедленная" if result['inspection_type'] == 'immediate' else "Плановая",
-            "Статус": "Ошибка" if total_exceptions > 0 else "OK",
-            "Критично": critical_count,
-            "Предупреждения": warning_count,
-            "Прочее": info_count,
-            "Успешно": result['passed']
+            "Cluster": result['cluster_name'],
+            "Time": timestamp.strftime('%m-%d %H:%M'),
+            "Type": "Immediate" if result['inspection_type'] == 'immediate' else "Scheduled",
+            "Status": "Error" if total_exceptions > 0 else "OK",
+            "Critical": critical_count,
+            "Warnings": warning_count,
+            "Other": info_count,
+            "Passed": result['passed']
         })
 
     df = pd.DataFrame(df_data)
@@ -334,14 +334,14 @@ def display_reports_table(filtered_results):
         selection_mode="single-row",
         column_config={
             "ID": st.column_config.TextColumn("ID"),
-            "Кластер": st.column_config.TextColumn("Кластер"),
-            "Время": st.column_config.TextColumn("Время"),
-            "Тип": st.column_config.TextColumn("Тип"),
-            "Статус": st.column_config.TextColumn("Статус"),
-            "Критично": st.column_config.NumberColumn("Критично"),
-            "Предупреждения": st.column_config.NumberColumn("Предупреждения"),
-            "Прочее": st.column_config.NumberColumn("Прочее"),
-            "Успешно": st.column_config.NumberColumn("Успешно")
+            "Cluster": st.column_config.TextColumn("Cluster"),
+            "Time": st.column_config.TextColumn("Time"),
+            "Type": st.column_config.TextColumn("Type"),
+            "Status": st.column_config.TextColumn("Status"),
+            "Critical": st.column_config.NumberColumn("Critical"),
+            "Warnings": st.column_config.NumberColumn("Warnings"),
+            "Other": st.column_config.NumberColumn("Other"),
+            "Passed": st.column_config.NumberColumn("Passed")
         }
     )
 
@@ -354,7 +354,7 @@ def display_reports_table(filtered_results):
 
 
 def delete_report(report_id):
-    """Удаление файла отчёта"""
+    """Delete report file"""
     import os
     from pathlib import Path
 
@@ -375,26 +375,26 @@ from utils.inspection_result import export_report
 
 
 def display_report_operations(report_id):
-    """Отобразить страницу операций с отчётом"""
-    if st.button("Вернуться к списку отчётов"):
+    """Display report operations page"""
+    if st.button("Back to reports list"):
         st.session_state.view_mode = "list"
         st.rerun()
 
     report_data = load_result(report_id)
     if not report_data:
-        st.error("Не удалось загрузить данные отчёта")
+        st.error("Failed to load report data")
         return
 
-    st.markdown(f"### Центр операций с отчётом")
+    st.markdown(f"### Report operations center")
 
     col1, col2 = st.columns([3, 1])
     with col1:
         timestamp = datetime.fromisoformat(report_data['timestamp'])
         st.markdown(f"""
-        **ID отчёта:** `{report_id}`
-        **Кластер:** {report_data['cluster_name']}
-        **Время проверки:** {timestamp.strftime('%Y-%m-%d %H:%M:%S')}
-        **Тип:** {'Немедленная проверка' if report_data['inspection_type'] == 'immediate' else 'Плановая проверка'}
+        **Report ID:** `{report_id}`
+        **Cluster:** {report_data['cluster_name']}
+        **Inspection time:** {timestamp.strftime('%Y-%m-%d %H:%M:%S')}
+        **Type:** {'Immediate inspection' if report_data['inspection_type'] == 'immediate' else 'Scheduled inspection'}
         """)
 
     with col2:
@@ -431,109 +431,109 @@ def display_report_operations(report_id):
 
         if exception_critical_count > 0 or exception_warning_count > 0:
             if exception_critical_count > 0:
-                st.error(f"Критических ошибок: {exception_critical_count}")
+                st.error(f"Critical errors: {exception_critical_count}")
             if exception_warning_count > 0:
-                st.warning(f"Предупреждений: {exception_warning_count}")
+                st.warning(f"Warnings: {exception_warning_count}")
         else:
-            st.success("Все проверки пройдены")
-        st.info(f"Всего: {len(all_items)}")
+            st.success("All checks passed")
+        st.info(f"Total: {len(all_items)}")
 
     st.divider()
 
-    st.markdown("### Операции")
+    st.markdown("### Operations")
 
     col1, col2, col3 = st.columns(3)
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        if st.button("Просмотр деталей", type="primary", width='stretch'):
+        if st.button("View details", type="primary", width='stretch'):
             st.session_state.view_mode = "detail"
             st.rerun()
 
     with col2:
-        if st.button("Экспорт JSON", width='stretch'):
+        if st.button("Export JSON", width='stretch'):
             export_and_download(report_id, "json", "JSON")
 
     with col3:
-        if st.button("Экспорт Excel", width='stretch'):
+        if st.button("Export Excel", width='stretch'):
             export_and_download(report_id, "excel", "Excel")
 
     with col4:
-        if st.button("Экспорт PDF", width='stretch'):
+        if st.button("Export PDF", width='stretch'):
             success, message = export_report(report_id, "pdf")
             if success:
-                st.success("PDF отчет успешно создан!")
+                st.success("PDF report created successfully!")
                 try:
                     with open(message, "rb") as f:
                         pdf_data = f.read()
                     st.download_button(
-                        label="Скачать PDF отчет",
+                        label="Download PDF report",
                         data=pdf_data,
                         file_name=f"{report_id}.pdf",
                         mime="application/pdf",
                         type="secondary",
                         width='stretch'
                     )
-                    # Удаляем файл из папки exports после предоставления для скачивания
+                    # Remove file from exports folder after download
                     os.remove(message)
                 except Exception as e:
-                    st.error(f"Ошибка при чтении PDF файла: {str(e)}")
+                    st.error(f"Error reading PDF file: {str(e)}")
             else:
                 if "reportlab" in message:
                     st.error(f"{message}")
-                    st.info("Установите reportlab для PDF экспорта: `pip install reportlab`")
+                    st.info("Install reportlab for PDF export: `pip install reportlab`")
                 else:
                     st.error(f"{message}")
 
-    st.markdown("#### Удаление")
+    st.markdown("#### Deletion")
     col1, col2 = st.columns([3, 1])
 
     with col1:
-        st.caption("Удаление необратимо, будьте осторожны")
+        st.caption("Deletion is irreversible, be careful")
 
     with col2:
         confirm_key = f"confirm_delete_{report_id}"
         if st.session_state.get(confirm_key, False):
-            if st.button("Подтвердить удаление", type="primary", width='stretch'):
+            if st.button("Confirm deletion", type="primary", width='stretch'):
                 try:
                     delete_report(report_id)
-                    st.success(f"Отчёт {report_id} удалён")
+                    st.success(f"Report {report_id} deleted")
                     if confirm_key in st.session_state:
                         del st.session_state[confirm_key]
                     st.session_state.view_mode = "list"
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Ошибка при удалении: {str(e)}")
+                    st.error(f"Error during deletion: {str(e)}")
         else:
-            if st.button("Удалить", width='stretch'):
+            if st.button("Delete", width='stretch'):
                 st.session_state[confirm_key] = True
                 st.rerun()
 
     if st.session_state.get(confirm_key, False):
-        st.warning("Нажмите подтверждение для удаления отчёта")
+        st.warning("Click confirmation to delete the report")
 
 
 def display_report_detail(report_id):
-    """Отобразить детали отчёта"""
-    if st.button("Вернуться к операциям"):
+    """Display report details"""
+    if st.button("Back to operations"):
         st.session_state.view_mode = "operations"
         st.rerun()
 
     report_data = load_result(report_id)
     if not report_data:
-        st.error("Не удалось загрузить данные отчёта")
+        st.error("Failed to load report data")
         return
 
-    st.markdown(f"## Детали отчёта")
+    st.markdown(f"## Report details")
 
     col1, col2 = st.columns([2, 1])
     with col1:
         st.markdown(f"""
-        **ID отчёта:** `{report_id}`
-        **Кластер:** {report_data['cluster_name']}
-        **Время:** {datetime.fromisoformat(report_data['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}
-        **Тип:** {'Немедленная проверка' if report_data['inspection_type'] == 'immediate' else 'Плановая проверка'}
+        **Report ID:** `{report_id}`
+        **Cluster:** {report_data['cluster_name']}
+        **Time:** {datetime.fromisoformat(report_data['timestamp']).strftime('%Y-%m-%d %H:%M:%S')}
+        **Type:** {'Immediate inspection' if report_data['inspection_type'] == 'immediate' else 'Scheduled inspection'}
         """)
 
     with col2:
@@ -565,9 +565,9 @@ def display_report_detail(report_id):
                 exception_count += 1
 
         if exception_count > 0:
-            st.error(f"Найдено {exception_count} критических ошибок")
+            st.error(f"Found {exception_count} critical errors")
         else:
-            st.success(f"Все пройдено ({passed_count} позиций)")
+            st.success(f"All passed ({passed_count} items)")
 
     st.divider()
 
@@ -575,16 +575,16 @@ def display_report_detail(report_id):
 
 
 def display_report_preview(report_id):
-    """Показать быструю предпросмотр отчёта - версия с упрощённой системой статусов"""
-    if st.button("Назад"):
+    """Show quick report preview - version with simplified status system"""
+    if st.button("Back"):
         st.session_state.view_mode = "list"
         st.rerun()
 
-    st.markdown(f"## Предпросмотр отчёта - {report_id}")
+    st.markdown(f"## Report preview - {report_id}")
 
     report_data = load_result(report_id)
     if not report_data:
-        st.error("Не удалось загрузить данные отчёта")
+        st.error("Failed to load report data")
         return
 
     if 'inspection_results' in report_data:
@@ -623,36 +623,36 @@ def display_report_preview(report_id):
     col1, col2 = st.columns(2)
     with col1:
         if exception_critical:
-            st.error(f"Критические ошибки: {len(exception_critical)}")
+            st.error(f"Critical errors: {len(exception_critical)}")
         if exception_warning:
-            st.warning(f"Предупреждения: {len(exception_warning)}")
+            st.warning(f"Warnings: {len(exception_warning)}")
         if exception_other:
-            st.info(f"Другие ошибки: {len(exception_other)}")
+            st.info(f"Other errors: {len(exception_other)}")
 
     with col2:
-        st.success(f"Успешно: {len(passed_items)}")
-        st.info(f"Всего: {len(all_items)}")
+        st.success(f"Passed: {len(passed_items)}")
+        st.info(f"Total: {len(all_items)}")
 
     if exception_critical:
-        st.markdown("### Критические ошибки")
+        st.markdown("### Critical errors")
         for item in exception_critical[:5]:
-            st.error(f"**{item.get('name', 'Неизвестный пункт')}:** {item.get('description', '')}")
+            st.error(f"**{item.get('name', 'Unknown item')}:** {item.get('description', '')}")
         if len(exception_critical) > 5:
-            st.info(f"И ещё {len(exception_critical) - 5} критических ошибок, смотрите полный отчёт для подробностей")
+            st.info(f"And {len(exception_critical) - 5} more critical errors, see full report for details")
     elif exception_warning:
-        st.markdown("### Предупреждения")
+        st.markdown("### Warnings")
         for item in exception_warning[:3]:
-            st.warning(f"**{item.get('name', 'Неизвестный пункт')}:** {item.get('description', '')}")
+            st.warning(f"**{item.get('name', 'Unknown item')}:** {item.get('description', '')}")
         if len(exception_warning) > 3:
-            st.info(f"И ещё {len(exception_warning) - 3} предупреждений, смотрите полный отчёт для подробностей")
+            st.info(f"And {len(exception_warning) - 3} more warnings, see full report for details")
 
-    if st.button("Посмотреть полный отчёт", type="primary"):
+    if st.button("View full report", type="primary"):
         st.session_state.view_mode = "detail"
         st.rerun()
 
 def display_inspection_items(items, report_id=None):
-    """Отобразить детали проверок - версия с упрощённой системой статусов"""
-    # Классификация по новому статусу: пройдено vs ошибки (с разделением по степени серьёзности)
+    """Display inspection details - version with simplified status system"""
+    # Classification by new status: passed vs errors (with severity separation)
     passed_items = [item for item in items if item.get('status') == 'passed']
     exception_critical = [item for item in items
                          if item.get('status') == 'exception' and item.get('severity') == 'critical']
@@ -662,121 +662,121 @@ def display_inspection_items(items, report_id=None):
                      if item.get('status') == 'exception' and item.get('severity') in ['info', 'error'] or
                      (item.get('status') == 'exception' and item.get('severity') not in ['critical', 'warning'])]
 
-    # Создание вкладок
+    # Create tabs
     tab_names = []
     tab_data = []
 
-    # Предпочтительно отображать критические ошибки
+    # Prefer to display critical errors
     if exception_critical:
-        tab_names.append(f"Критические ошибки ({len(exception_critical)})")
+        tab_names.append(f"Critical errors ({len(exception_critical)})")
         tab_data.append(exception_critical)
 
     if exception_warning:
-        tab_names.append(f"Предупреждения ({len(exception_warning)})")
+        tab_names.append(f"Warnings ({len(exception_warning)})")
         tab_data.append(exception_warning)
 
     if exception_info:
-        tab_names.append(f"Прочие ошибки ({len(exception_info)})")
+        tab_names.append(f"Other errors ({len(exception_info)})")
         tab_data.append(exception_info)
 
-    # В конце отображать пройденные проверки
+    # Display passed checks at the end
     if passed_items:
-        tab_names.append(f"Пройдено ({len(passed_items)})")
+        tab_names.append(f"Passed ({len(passed_items)})")
         tab_data.append(passed_items)
 
     if tab_names:
         tabs = st.tabs(tab_names)
         for i, (tab, data) in enumerate(zip(tabs, tab_data)):
             with tab:
-                display_items_list(data, tab_names[i].startswith("Пройдено"), report_id=report_id, tab_name=tab_names[i])
+                display_items_list(data, tab_names[i].startswith("Passed"), report_id=report_id, tab_name=tab_names[i])
 
 
 def display_items_list(items, is_passed=False, report_id=None, tab_name=None):
-    """Отобразить список проверок - версия с упрощённой системой статусов"""
+    """Display list of checks - version with simplified status system"""
     if not items:
-        st.info("В этой категории пока нет элементов")
+        st.info("No items in this category yet")
         return
 
-    # Для пройденных элементов свёрнутое отображение по умолчанию
+    # For passed items, collapsed display by default
     for idx, item in enumerate(items):
-        title = f"{item.get('name', 'Неизвестный пункт проверки')}"
+        title = f"{item.get('name', 'Unknown check item')}"
         expanded = not is_passed and item.get('severity') == 'critical'
         with st.expander(title, expanded=expanded):
             col1, col2 = st.columns([3, 1])
             with col1:
-                st.markdown(f"**Описание:** {item.get('description', 'нет')}")
+                st.markdown(f"**Description:** {item.get('description', 'none')}")
                 details = item.get('details', '')
                 if details:
                     if 'violations' in item and isinstance(item['violations'], list):
-                        st.markdown("**Нарушения ресурсов:**")
+                        st.markdown("**Resource violations:**")
                         import hashlib
                         base = f"{item.get('name','')}_{item.get('description','')[:50]}_{report_id or ''}_{tab_name or ''}_{idx}"
                         item_key = hashlib.md5(base.encode()).hexdigest()[:12]
                         safe_display_opa_violations_table(item['violations'], show_expander=False, table_key=item_key)
                     else:
-                        st.markdown("**Детали:**")
+                        st.markdown("**Details:**")
                         st.text(details)
             with col2:
                 status = item.get('status', 'unknown')
                 severity = item.get('severity', 'info')
                 if status == 'exception':
                     if severity == 'critical':
-                        st.error("Критическая ошибка")
+                        st.error("Critical error")
                     elif severity == 'warning':
-                        st.warning("Обычная ошибка")
+                        st.warning("Regular error")
                     else:
-                        st.info("Прочая ошибка")
+                        st.info("Other error")
                 elif status == 'passed':
-                    st.success("Пройдено")
+                    st.success("Passed")
                 else:
-                    st.info("Неизвестное состояние")
+                    st.info("Unknown status")
             solution = item.get('solution', '')
             if solution:
-                st.markdown("**Рекомендации по решению:**")
+                st.markdown("**Solution recommendations:**")
                 st.info(solution)
 
 
 def display_export_page(report_id):
-    """Показать страницу экспорта - оптимизированная версия"""
-    if st.button("Назад"):
+    """Show export page - optimized version"""
+    if st.button("Back"):
         st.session_state.view_mode = "list"
         st.rerun()
 
-    st.markdown(f"### Экспорт отчёта - {report_id}")
+    st.markdown(f"### Report export - {report_id}")
 
-    # Быстрый экспорт
-    st.markdown("#### Быстрый экспорт")
+    # Quick export
+    st.markdown("#### Quick export")
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("Экспорт в JSON", width='stretch'):
+        if st.button("Export to JSON", width='stretch'):
             export_and_download(report_id, "json", "JSON")
 
     with col2:
-        if st.button("Экспорт в Excel", width='stretch'):
+        if st.button("Export to Excel", width='stretch'):
             export_and_download(report_id, "excel", "Excel")
 
     st.divider()
 
-    # Пользовательские опции экспорта
-    st.markdown("#### Настройки экспорта")
+    # Custom export options
+    st.markdown("#### Export settings")
     col1, col2 = st.columns([2, 1])
 
     with col1:
         export_format = st.selectbox(
-            "Выберите формат экспорта",
+            "Select export format",
             ["JSON", "Excel"],
-            help="Выберите формат для экспорта отчёта"
+            help="Select format for report export"
         )
 
-        include_passed = st.checkbox("Включить пройденные проверки", value=False,
-                                    help="По умолчанию экспортируются только ошибки, отметьте для включения всех проверок")
+        include_passed = st.checkbox("Include passed checks", value=False,
+                                    help="By default only errors are exported, check to include all checks")
 
-        include_details = st.checkbox("Включить детали", value=True,
-                                     help="Включать подробную информацию об ошибках и рекомендации")
+        include_details = st.checkbox("Include details", value=True,
+                                     help="Include detailed information about errors and recommendations")
 
     with col2:
-        st.markdown("**Предварительный просмотр содержимого экспорта**")
+        st.markdown("**Export content preview**")
         report_data = load_result(report_id)
         if report_data:
             total_items = 0
@@ -788,28 +788,28 @@ def display_export_page(report_id):
                     total_items += len(items)
                     exception_items += len([item for item in items if item.get('status') != 'passed'])
 
-            st.metric("Всего проверок", total_items)
-            st.metric("Ошибок", exception_items)
+            st.metric("Total checks", total_items)
+            st.metric("Errors", exception_items)
 
             if include_passed:
-                st.info(f"Будут экспортированы {total_items} записей")
+                st.info(f"{total_items} records will be exported")
             else:
-                st.info(f"Будут экспортированы {exception_items} ошибок")
+                st.info(f"{exception_items} errors will be exported")
 
-    if st.button("Начать экспорт", type="primary"):
+    if st.button("Start export", type="primary"):
         export_and_download(report_id, export_format.lower(), export_format,
                             include_passed, include_details)
 
 
 def export_and_download(report_id, format_type, format_name, include_passed=False, include_details=True):
-    """Выполнить экспорт и предоставить файл для скачивания"""
+    """Perform export and provide file for download"""
     try:
         from utils.inspection_result import export_report
 
         success, file_path = export_report(report_id, format_type)
 
         if success:
-            st.success(f"Экспорт в {format_name} выполнен успешно!")
+            st.success(f"Export to {format_name} completed successfully!")
 
             try:
                 with open(file_path, "rb") as f:
@@ -819,31 +819,31 @@ def export_and_download(report_id, format_type, format_name, include_passed=Fals
                     "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 }
                 st.download_button(
-                    label=f"Скачать файл {format_name}",
+                    label=f"Download {format_name} file",
                     data=file_data,
                     file_name=os.path.basename(file_path),
                     mime=mime_types.get(format_type, "application/octet-stream"),
                     type="secondary",
                     width='stretch'
                 )
-                # Удаляем файл из папки exports после предоставления для скачивания
+                # Remove file from exports folder after download
                 os.remove(file_path)
                 file_size = len(file_data) / 1024
-                st.caption(f"Размер файла: {file_size:.1f} КБ")
+                st.caption(f"File size: {file_size:.1f} KB")
             except Exception as e:
-                st.error(f"Ошибка при чтении файла: {str(e)}")
+                st.error(f"Error reading file: {str(e)}")
         else:
-            st.error(f"Экспорт не удался: {file_path}")
+            st.error(f"Export failed: {file_path}")
     except Exception as e:
-        st.error(f"Ошибка при экспорте: {str(e)}")
+        st.error(f"Export error: {str(e)}")
 
 
 def main():
-    """Главная функция"""
+    """Main function"""
     initialize_page(
-        title="Отчёты проверки",
-        page_title="Отчёты проверки",
-        page_subtitle="Обзор состояния кластеров"
+        title="Inspection reports",
+        page_title="Inspection reports",
+        page_subtitle="Cluster status overview"
     )
 
     if 'view_mode' not in st.session_state:
@@ -857,21 +857,21 @@ def main():
         if st.session_state.selected_report_id:
             display_report_operations(st.session_state.selected_report_id)
         else:
-            st.error("Отчёт не выбран")
+            st.error("Report not selected")
             st.session_state.view_mode = "list"
             st.rerun()
     elif st.session_state.view_mode == "detail":
         if st.session_state.selected_report_id:
             display_report_detail(st.session_state.selected_report_id)
         else:
-            st.error("Отчёт не выбран")
+            st.error("Report not selected")
             st.session_state.view_mode = "list"
             st.rerun()
     elif st.session_state.view_mode == "preview":
         if st.session_state.selected_report_id:
             display_report_preview(st.session_state.selected_report_id)
         else:
-            st.error("Отчёт не выбран")
+            st.error("Report not selected")
             st.session_state.view_mode = "list"
             st.rerun()
     elif st.session_state.view_mode == "export":

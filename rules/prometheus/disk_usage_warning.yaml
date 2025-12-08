@@ -1,42 +1,42 @@
 ---
-# Правило проверки использования диска
+# Disk usage check rule
 id: prom_disk_usage_warning
-name: Проверка использования диска узла
-description: Проверить использование диска корневого раздела узла
+name: Node disk usage check
+description: Check disk usage of node root partition
 type: prometheus
 category: storage
 severity: warning
 enabled: true
 tier: basic
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация запроса Prometheus - использование диска
+  # Prometheus query configuration - disk usage
   query: "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"})"
 
-  # Конфигурация временного диапазона
+  # Time range configuration
   time_range:
-    start: "now-10m"  # 10 минут назад
-    end: "now"        # Текущее время
-    step: "1m"        # Интервал 1 минута
+    start: "now-10m"  # 10 minutes ago
+    end: "now"        # Current time
+    step: "1m"        # 1 minute interval
 
-  # Конфигурация утверждений - упрощено до одной проверки
+  # Assertions configuration - simplified to one check
   assertions:
-    - name: "Нормальное использование диска"
+    - name: "Normal disk usage"
       condition: "max_value < 85"
       severity: warning
-      description: "Использование диска: {{ max_value | round(2) }}%"
+      description: "Disk usage: {{ max_value | round(2) }}%"
 
-# Рекомендации по решению проблем
+# Problem resolution recommendations
 solution: |
-  Обработка высокого использования диска:
-  1. Просмотр использования диска: df -h
-  2. Очистка логов: kubectl logs <pod> --previous | head
-  3. Очистка неиспользуемых образов: docker system prune -f
-  4. Очистка временных файлов и кэша
-  5. Расширение диска или добавление хранилища
+  Handling high disk usage:
+  1. View disk usage: df -h
+  2. Clean logs: kubectl logs <pod> --previous | head
+  3. Clean unused images: docker system prune -f
+  4. Clean temporary files and cache
+  5. Expand disk or add storage
 
-# Теги
+# Tags
 tags:
   - disk
   - storage

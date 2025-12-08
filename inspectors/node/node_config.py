@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Управление конфигурацией параллелизма инспекции узлов
+Node inspection parallelism configuration management
 """
 
 import os
@@ -10,29 +10,29 @@ from dataclasses import dataclass
 
 @dataclass
 class NodeInspectorConfig:
-    """Конфигурация инспектора узлов"""
+    """Node inspector configuration"""
 
-    # Управление параллелизмом
-    max_workers: int = 5           # Максимальное количество параллельных потоков
-    timeout: int = 30              # Время ожидания выполнения команды для одного узла (секунды)
+    # Parallelism management
+    max_workers: int = 5           # Maximum number of parallel threads
+    timeout: int = 30              # Command execution timeout for one node (seconds)
 
-    # Конфигурация подключения
-    connection_timeout: int = 10   # Время ожидания подключения SSH (секунды)
-    retry_attempts: int = 2        # Количество повторных попыток при неудачном подключении
-    retry_delay: int = 1           # Интервал между повторными попытками (секунды)
+    # Connection configuration
+    connection_timeout: int = 10   # SSH connection timeout (seconds)
+    retry_attempts: int = 2        # Number of retry attempts on failed connection
+    retry_delay: int = 1           # Interval between retry attempts (seconds)
 
-    # Оптимизация производительности
-    enable_connection_pool: bool = True   # Включить пул подключений
-    pool_size: int = 10            # Размер пула подключений
-    keep_alive: bool = True        # Поддерживать подключение активным
+    # Performance optimization
+    enable_connection_pool: bool = True   # Enable connection pool
+    pool_size: int = 10            # Connection pool size
+    keep_alive: bool = True        # Keep connection alive
 
-    # Конфигурация логирования
-    verbose_logging: bool = False  # Подробное логирование
-    log_command_output: bool = False  # Записывать вывод команд
+    # Logging configuration
+    verbose_logging: bool = False  # Verbose logging
+    log_command_output: bool = False  # Log command output
 
     @classmethod
     def from_env(cls) -> 'NodeInspectorConfig':
-        """Создать конфигурацию из переменных среды"""
+        """Create configuration from environment variables"""
         return cls(
             max_workers=int(os.getenv('NODE_INSPECTOR_MAX_WORKERS', '5')),
             timeout=int(os.getenv('NODE_INSPECTOR_TIMEOUT', '30')),
@@ -48,7 +48,7 @@ class NodeInspectorConfig:
 
     @classmethod
     def adaptive(cls, node_count: int) -> 'NodeInspectorConfig':
-        """Адаптивная конфигурация на основе количества узлов"""
+        """Adaptive configuration based on node count"""
         if node_count <= 3:
             max_workers = node_count
             timeout = 30
@@ -67,11 +67,11 @@ class NodeInspectorConfig:
             timeout=timeout,
             connection_timeout=min(10, timeout // 3),
             retry_attempts=2 if node_count <= 10 else 1,
-            verbose_logging=node_count <= 5  # Включить подробное логирование при небольшом количестве узлов
+            verbose_logging=node_count <= 5  # Enable verbose logging for small node counts
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Преобразовать в словарь"""
+        """Convert to dictionary"""
         return {
             'max_workers': self.max_workers,
             'timeout': self.timeout,
@@ -86,25 +86,25 @@ class NodeInspectorConfig:
         }
 
     def validate(self) -> List[str]:
-        """Проверить валидность конфигурации"""
+        """Validate configuration"""
         issues = []
 
         if self.max_workers < 1:
-            issues.append("max_workers должен быть больше 0")
+            issues.append("max_workers must be greater than 0")
         if self.max_workers > 20:
-            issues.append("max_workers не рекомендуется превышать 20, может привести к перегрузке ресурсов")
+            issues.append("max_workers should not exceed 20, may cause resource overload")
 
         if self.timeout < 5:
-            issues.append("timeout не рекомендуется меньше 5 секунд")
+            issues.append("timeout should not be less than 5 seconds")
         if self.timeout > 300:
-            issues.append("timeout не рекомендуется превышать 5 минут")
+            issues.append("timeout should not exceed 5 minutes")
 
         if self.connection_timeout < 1:
-            issues.append("connection_timeout должен быть больше 0")
+            issues.append("connection_timeout must be greater than 0")
 
         if self.retry_attempts < 0:
-            issues.append("retry_attempts не может быть меньше 0")
+            issues.append("retry_attempts cannot be less than 0")
         if self.retry_attempts > 5:
-            issues.append("retry_attempts не рекомендуется превышать 5 раз")
+            issues.append("retry_attempts should not exceed 5 times")
 
         return issues

@@ -1,2 +1,2 @@
-# Модуль инспекции узлов
-# Файл инициализации
+# Node inspection module
+# Initialization file

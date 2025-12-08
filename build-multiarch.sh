@@ -1,46 +1,46 @@
 #!/bin/bash
 
-# Скрипт сборки мультиархитектурного образа KubeEye
-# Поддержка архитектур amd64, arm64, arm/v7
+# KubeEye multi-architecture image build script
+# Support for amd64, arm64, arm/v7 architectures
 
 set -e
 
-# Настройка переменных
+# Variable setup
 IMAGE_NAME="${IMAGE_NAME:-kubeeye}"
 TAG="${TAG:-latest}"
 REGISTRY="${REGISTRY:-}"
 
-# Если переменная REGISTRY установлена, добавить префикс
+# If REGISTRY variable is set, add prefix
 if [ -n "$REGISTRY" ]; then
     FULL_IMAGE_NAME="${REGISTRY}/${IMAGE_NAME}"
 else
     FULL_IMAGE_NAME="${IMAGE_NAME}"
 fi
 
-echo "Начинается сборка мультиархитектурного образа: ${FULL_IMAGE_NAME}:${TAG}"
+echo "Starting multi-architecture image build: ${FULL_IMAGE_NAME}:${TAG}"
 
-# Проверка доступности Docker buildx
+# Check Docker buildx availability
 if ! docker buildx version > /dev/null 2>&1; then
-    echo "Docker buildx недоступен, убедитесь, что версия Docker поддерживает buildx"
+    echo "Docker buildx is not available, ensure Docker version supports buildx"
     exit 1
 fi
 
-# Создание buildx билдера, если он не существует
+# Create buildx builder if it doesn't exist
 BUILDER_NAME="kubeeye-multiarch"
 if ! docker buildx ls | grep -q $BUILDER_NAME; then
-    echo "Создание мультиархитектурного билдера..."
+    echo "Creating multi-architecture builder..."
     docker buildx create --name $BUILDER_NAME --use
 else
-    echo "Использование существующего билдера: $BUILDER_NAME"
+    echo "Using existing builder: $BUILDER_NAME"
     docker buildx use $BUILDER_NAME
 fi
 
-# Включение поддержки binfmt_misc для кросс-компиляции
+# Enable binfmt_misc support for cross-compilation
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-echo "Сборка для поддерживаемых архитектур: linux/amd64, linux/arm64"
+echo "Building for supported architectures: linux/amd64, linux/arm64"
 
-# Сборка и публикация мультиархитектурного образа
+# Build and publish multi-architecture image
 docker buildx build \
     --platform linux/amd64,linux/arm64 \
     --tag "${FULL_IMAGE_NAME}:${TAG}" \
@@ -48,11 +48,11 @@ docker buildx build \
     --push \
     .
 
-echo "Сборка мультиархитектурного образа завершена!"
-echo "Тег образа: ${FULL_IMAGE_NAME}:${TAG}"
-echo "Тег образа: ${FULL_IMAGE_NAME}:latest"
+echo "Multi-architecture image build completed!"
+echo "Image tag: ${FULL_IMAGE_NAME}:${TAG}"
+echo "Image tag: ${FULL_IMAGE_NAME}:latest"
 
-# Показать информацию об образе
+# Show image information
 echo ""
-echo "Подробная информация об образе:"
+echo "Detailed image information:"
 docker buildx imagetools inspect "${FULL_IMAGE_NAME}:${TAG}"

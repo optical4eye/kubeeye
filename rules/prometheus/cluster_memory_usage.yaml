@@ -1,33 +1,33 @@
 ---
-# Проверка использования памяти кластера
+# Cluster memory usage check
 id: prom_cluster_memory_usage
-name: Проверка использования памяти кластера
-description: Проверить использование памяти всего кластера
+name: Cluster memory usage check
+description: Check memory usage of the entire cluster
 type: prometheus
 category: cluster
 severity: warning
 enabled: true
 tier: cluster
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация запроса Prometheus - общее использование памяти кластера
+  # Prometheus query configuration - total cluster memory usage
   query: "(1 - (sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))) * 100"
 
-  # Конфигурация временного диапазона
+  # Time range configuration
   time_range:
     start: "now-10m"
     end: "now"
     step: "1m"
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Нормальное использование памяти кластера"
+    - name: "Normal cluster memory usage"
       condition: "max_value < 80"
       severity: warning
-      description: "Использование памяти кластера: {{ max_value | round(2) }}%"
+      description: "Cluster memory usage: {{ max_value | round(2) }}%"
 
-# Теги
+# Tags
 tags:
   - cluster
   - memory

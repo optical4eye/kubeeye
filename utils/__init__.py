@@ -1,5 +1,5 @@
 """
-Утилиты модуля
+Module utilities
 """
 from .rule_loader import load_rules, Rule
 from .rule_manager import RuleManager

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Модуль управления правилами - предоставляет единый интерфейс для обработки правил для различных компонентов
-Обновленная версия, поддерживает систему утверждений и отображение правил в виде таблицы
+Rule management module - provides unified interface for processing rules for various components
+Updated version, supports assertion system and rule display in table format
 """
 from typing import Dict, List, Any, Optional, Tuple
 import streamlit as st
@@ -12,44 +12,44 @@ from utils.rule_loader import load_rules, Rule
 
 
 class RuleManager:
-    """Класс управления правилами, предоставляющий единый интерфейс для операций с правилами"""
+    """Rule management class providing unified interface for rule operations"""
 
     @staticmethod
     def get_rule_type_display_names() -> Dict[str, str]:
-        """Получить отображаемые имена типов правил"""
+        """Get display names for rule types"""
         return {
-            'node': 'Правила проверки состояния узлов',
-            'prometheus': 'Правила метрик Prometheus',
-            'opa': 'Правила проверки соответствия OPA'
+            'node': 'Node status check rules',
+            'prometheus': 'Prometheus metrics rules',
+            'opa': 'OPA compliance check rules'
         }
 
     @staticmethod
     def get_enabled_rules(rule_type: str, use_gitops: bool = False) -> List[Rule]:
-        """Получить включённые правила указанного типа"""
+        """Get enabled rules of specified type"""
         all_rules = load_rules(rule_type, use_gitops=use_gitops)
         enabled_rules = [rule for rule in all_rules if rule.enabled]
 
-        # Отладочная информация
+        # Debug information
         if use_gitops:
-            print(f"GitOps правила для {rule_type}: найдено {len(all_rules)} всего, {len(enabled_rules)} включено")
+            print(f"GitOps rules for {rule_type}: found {len(all_rules)} total, {len(enabled_rules)} enabled")
             for rule in enabled_rules:
-                print(f"  - {rule.id}: {rule.name} (включено: {rule.enabled})")
+                print(f"  - {rule.id}: {rule.name} (enabled: {rule.enabled})")
 
         return enabled_rules
 
     @staticmethod
     def get_rule_display_names(rules: List[Rule]) -> Dict[str, str]:
-        """Получить отображаемые имена правил по их ID"""
+        """Get display names for rules by their ID"""
         return {rule.id: rule.name for rule in rules}
 
     @staticmethod
     def get_rule_options(rules: List[Rule]) -> List[str]:
-        """Получить список ID правил"""
+        """Get list of rule IDs"""
         return [rule.id for rule in rules]
 
     @classmethod
     def get_rule_selection_data(cls, rule_type: str, use_gitops: bool = False) -> Tuple[List[Rule], List[str], Dict[str, str]]:
-        """Получить данные, необходимые для выбора правил"""
+        """Get data necessary for rule selection"""
         rules = cls.get_enabled_rules(rule_type, use_gitops)
         options = cls.get_rule_options(rules)
         display_names = cls.get_rule_display_names(rules)
@@ -57,7 +57,7 @@ class RuleManager:
 
     @classmethod
     def rule_to_dataframe(cls, rules: List[Rule]) -> pd.DataFrame:
-        """Преобразовать список правил в DataFrame для отображения в таблице"""
+        """Convert list of rules to DataFrame for table display"""
         if not rules:
             return pd.DataFrame()
 
@@ -65,54 +65,54 @@ class RuleManager:
         for rule in rules:
             data.append({
                 "ID": rule.id,
-                "Название": rule.name,
-                "Категория": rule.category,
-                "Серьезность": rule.severity,
-                "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
-                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
-                "Источник": " Git" if rule.source == 'git' else " Локальный"
+                "Name": rule.name,
+                "Category": rule.category,
+                "Severity": rule.severity,
+                "Description": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
+                "Assertions count": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
+                "Source": " Git" if rule.source == 'git' else " Local"
             })
         return pd.DataFrame(data)
 
     @classmethod
     def create_rule_selection(cls, rule_type: str, key_suffix: str = "", use_gitops: bool = False) -> List[str]:
         """
-        Упрощённый вариант: выбор правил через data_editor без дополнительной связки таблицы
-        Обновление session_state на основе результатов редактирования data_editor
+        Simplified version: rule selection via data_editor without additional table binding
+        Update session_state based on data_editor editing results
         """
         rules, options, display_names = cls.get_rule_selection_data(rule_type, use_gitops)
         if not rules:
-            source_type = "GitOps" if use_gitops else "локальных"
-            st.info(f"Не найдено включённых правил для {cls.get_rule_type_display_names()[rule_type]} в {source_type} правилах.")
+            source_type = "GitOps" if use_gitops else "local"
+            st.info(f"No enabled rules found for {cls.get_rule_type_display_names()[rule_type]} in {source_type} rules.")
 
-            # Показать дополнительную отладочную информацию
+            # Show additional debug information
             all_rules = load_rules(rule_type, include_disabled=True, use_gitops=use_gitops)
             if all_rules:
-                st.warning(f"Найдено {len(all_rules)} правил, но все они отключены или имеют проблемы с загрузкой")
+                st.warning(f"Found {len(all_rules)} rules, but all are disabled or have loading issues")
                 for rule in all_rules:
-                    st.write(f"- {rule.id}: {rule.name} (включено: {rule.enabled})")
+                    st.write(f"- {rule.id}: {rule.name} (enabled: {rule.enabled})")
 
             return []
 
         form_key = f"rule_selection_{rule_type}{key_suffix}"
         table_key = f"rule_table_{rule_type}{key_suffix}"
 
-        # Инициализация session state, если ещё не инициализирован
+        # Initialize session state if not yet initialized
         if form_key not in st.session_state:
-            st.session_state[form_key] = options.copy()  # По умолчанию все выбраны
+            st.session_state[form_key] = options.copy()  # All selected by default
 
         data = []
         for rule in rules:
             selected = rule.id in st.session_state[form_key]
             data.append({
-                "Выбор": selected,
+                "Selection": selected,
                 "ID": rule.id,
-                "Название": rule.name,
-                "Категория": rule.category,
-                "Серьезность": rule.severity,
-                "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
-                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
-                "Источник": " Git" if rule.source == 'git' else " Локальный"
+                "Name": rule.name,
+                "Category": rule.category,
+                "Severity": rule.severity,
+                "Description": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
+                "Assertions count": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
+                "Source": " Git" if rule.source == 'git' else " Local"
             })
         rules_df = pd.DataFrame(data)
 
@@ -121,38 +121,38 @@ class RuleManager:
             width='stretch',
             hide_index=True,
             column_config={
-                "Выбор": st.column_config.CheckboxColumn("Выбор", help="Выберите правила для выполнения", width="small"),
-                "ID": st.column_config.TextColumn("ID правила", width="medium"),
-                "Название": st.column_config.TextColumn("Название правила", width="medium"),
-                "Категория": st.column_config.TextColumn("Категория", width="small"),
-                "Серьезность": st.column_config.TextColumn("Серьезность", width="small"),
-                "Описание": st.column_config.TextColumn("Описание", width="large"),
-                "Количество утверждений": st.column_config.NumberColumn("Количество утверждений", width="small"),
-                "Источник": st.column_config.TextColumn("Источник", width="small"),
+                "Selection": st.column_config.CheckboxColumn("Selection", help="Select rules for execution", width="small"),
+                "ID": st.column_config.TextColumn("Rule ID", width="medium"),
+                "Name": st.column_config.TextColumn("Rule name", width="medium"),
+                "Category": st.column_config.TextColumn("Category", width="small"),
+                "Severity": st.column_config.TextColumn("Severity", width="small"),
+                "Description": st.column_config.TextColumn("Description", width="large"),
+                "Assertions count": st.column_config.NumberColumn("Assertions count", width="small"),
+                "Source": st.column_config.TextColumn("Source", width="small"),
             },
-            disabled=["ID", "Название", "Категория", "Серьезность", "Описание", "Количество утверждений", "Источник"],
+            disabled=["ID", "Name", "Category", "Severity", "Description", "Assertions count", "Source"],
             key=table_key,
             on_change=None
         )
 
-        selected_rules = [row["ID"] for _, row in edited_df.iterrows() if row["Выбор"]]
+        selected_rules = [row["ID"] for _, row in edited_df.iterrows() if row["Selection"]]
 
-        # Обновить session_state без перезагрузки страницы
+        # Update session_state without page reload
         st.session_state[form_key] = selected_rules
 
-        source_type = "GitOps" if use_gitops else "локальных"
-        st.caption(f"Выбрано: {len(selected_rules)}/{len(options)} {source_type} правил")
+        source_type = "GitOps" if use_gitops else "local"
+        st.caption(f"Selected: {len(selected_rules)}/{len(options)} {source_type} rules")
         return selected_rules
 
     @classmethod
     def create_rule_selection_in_form(cls, rule_type: str, key_suffix: str = "", use_gitops: bool = False) -> List[str]:
         """
-        Выбор правил в форме через data_editor с оптимизацией для уменьшения количества обновлений
+        Rule selection in form via data_editor with optimization to reduce number of updates
         """
         rules, options, display_names = cls.get_rule_selection_data(rule_type, use_gitops)
         if not rules:
-            source_type = "GitOps" if use_gitops else "локальных"
-            st.info(f"Не найдено включённых правил для {cls.get_rule_type_display_names()[rule_type]} в {source_type} правилах.")
+            source_type = "GitOps" if use_gitops else "local"
+            st.info(f"No enabled rules found for {cls.get_rule_type_display_names()[rule_type]} in {source_type} rules.")
             return []
 
         form_key = f"rule_selection_form_{rule_type}{key_suffix}"
@@ -165,14 +165,14 @@ class RuleManager:
         for rule in rules:
             selected = rule.id in st.session_state[form_key]
             data.append({
-                "Выбор": selected,
+                "Selection": selected,
                 "ID": rule.id,
-                "Название": rule.name,
-                "Категория": rule.category,
-                "Серьезность": rule.severity,
-                "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
-                "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
-                "Источник": " Git" if rule.source == 'git' else " Локальный"
+                "Name": rule.name,
+                "Category": rule.category,
+                "Severity": rule.severity,
+                "Description": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
+                "Assertions count": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
+                "Source": " Git" if rule.source == 'git' else " Local"
             })
         rules_df = pd.DataFrame(data)
 
@@ -181,26 +181,26 @@ class RuleManager:
             width='stretch',
             hide_index=True,
             column_config={
-                "Выбор": st.column_config.CheckboxColumn("Выбор", help="Выберите правила для выполнения", width="small"),
-                "ID": st.column_config.TextColumn("ID правила", width="medium"),
-                "Название": st.column_config.TextColumn("Название правила", width="medium"),
-                "Категория": st.column_config.TextColumn("Категория", width="small"),
-                "Серьезность": st.column_config.TextColumn("Серьезность", width="small"),
-                "Описание": st.column_config.TextColumn("Описание", width="large"),
-                "Количество утверждений": st.column_config.NumberColumn("Количество утверждений", width="small"),
-                "Источник": st.column_config.TextColumn("Источник", width="small"),
+                "Selection": st.column_config.CheckboxColumn("Selection", help="Select rules for execution", width="small"),
+                "ID": st.column_config.TextColumn("Rule ID", width="medium"),
+                "Name": st.column_config.TextColumn("Rule name", width="medium"),
+                "Category": st.column_config.TextColumn("Category", width="small"),
+                "Severity": st.column_config.TextColumn("Severity", width="small"),
+                "Description": st.column_config.TextColumn("Description", width="large"),
+                "Assertions count": st.column_config.NumberColumn("Assertions count", width="small"),
+                "Source": st.column_config.TextColumn("Source", width="small"),
             },
-            disabled=["ID", "Название", "Категория", "Серьезность", "Описание", "Количество утверждений", "Источник"],
+            disabled=["ID", "Name", "Category", "Severity", "Description", "Assertions count", "Source"],
             key=table_key,
         )
 
-        selected_rules = [row["ID"] for _, row in edited_df.iterrows() if row["Выбор"]]
+        selected_rules = [row["ID"] for _, row in edited_df.iterrows() if row["Selection"]]
 
         if st.session_state[form_key] != selected_rules:
             st.session_state[form_key] = selected_rules
 
-        source_type = "GitOps" if use_gitops else "локальных"
-        st.caption(f"Выбрано: {len(selected_rules)}/{len(options)} {source_type} правил")
+        source_type = "GitOps" if use_gitops else "local"
+        st.caption(f"Selected: {len(selected_rules)}/{len(options)} {source_type} rules")
         return selected_rules
 
     @classmethod
@@ -209,8 +209,8 @@ class RuleManager:
         in_form: bool = False, use_gitops: bool = False
     ) -> Tuple[List[str], List[str], List[str]]:
         """
-        Создание вкладок выбора правил, показывая только доступные типы правил,
-        позволяя пользователю выбирать правила в каждой вкладке.
+        Create rule selection tabs, showing only available rule types,
+        allowing user to select rules in each tab.
         """
         selected_node_rules = []
         selected_prometheus_rules = []
@@ -220,19 +220,19 @@ class RuleManager:
             {
                 "available": node_check,
                 "type": "node",
-                "tab_label": "Правила проверки узлов",
+                "tab_label": "Node check rules",
                 "result_var": "selected_node_rules"
             },
             {
                 "available": prometheus_check,
                 "type": "prometheus",
-                "tab_label": "Правила проверки Prometheus",
+                "tab_label": "Prometheus check rules",
                 "result_var": "selected_prometheus_rules"
             },
             {
                 "available": opa_check,
                 "type": "opa",
-                "tab_label": "Правила проверки OPA",
+                "tab_label": "OPA check rules",
                 "result_var": "selected_opa_rules"
             }
         ]
@@ -240,7 +240,7 @@ class RuleManager:
         available_configs = [cfg for cfg in rule_configs if cfg["available"]]
 
         if not available_configs:
-            st.warning("Нет доступных типов проверок, пожалуйста, проверьте конфигурацию кластера.")
+            st.warning("No available inspection types, please check cluster configuration.")
             return selected_node_rules, selected_prometheus_rules, selected_opa_rules
 
         for cfg in available_configs:
@@ -284,21 +284,21 @@ class RuleManager:
 
     @classmethod
     def should_use_gitops(cls) -> bool:
-        """Определить, следует ли использовать правила GitOps"""
+        """Determine whether to use GitOps rules"""
         try:
             from utils.gitops_manager import GitOpsRuleManager
             gitops_manager = GitOpsRuleManager()
             config = gitops_manager.load_config()
 
-            # Если есть конфигурация из ENV переменных, используем GitOps
+            # If there is configuration from ENV variables, use GitOps
             if config.get("from_env"):
                 return True
 
-            # Если нет ENV переменных, но в конфиге сохранен GitOps режим
+            # If no ENV variables, but GitOps mode is saved in config
             if config.get("mode") == "gitops" and config.get("repository") is not None:
-                # Проверяем, заданы ли обязательные ENV переменные
+                # Check if required ENV variables are set
                 if not gitops_manager.has_env_config():
-                    print("GitOps настроен в конфиге, но ENV переменные не заданы - используем локальный режим")
+                    print("GitOps configured in config, but ENV variables not set - using local mode")
                     return False
                 return True
 

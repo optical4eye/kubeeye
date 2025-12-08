@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Модуль управления подключениями к узлам, используется для подключения к узлам кластера через SSH и выполнения команд
+Node connection management module, used for connecting to cluster nodes via SSH and executing commands
 """
 
 
@@ -14,22 +14,22 @@ from pathlib import Path
 
 
 class NodeConnection:
-    """Класс SSH-подключения к узлу"""
+    """SSH connection class to node"""
 
 
     def __init__(self, node_info: Dict):
         """
-        Инициализация подключения к узлу
+        Node connection initialization
 
 
         Args:
-            node_info: словарь с информацией об узле, содержит:
-                - ip: IP-адрес узла
-                - port: SSH-порт
-                - username: SSH имя пользователя
-                - auth_type: тип аутентификации ('password' или 'key')
-                - password: пароль (если auth_type равен 'password')
-                - key_path: путь до ключа (если auth_type равен 'key')
+            node_info: dictionary with node information, contains:
+                - ip: node IP address
+                - port: SSH port
+                - username: SSH username
+                - auth_type: authentication type ('password' or 'key')
+                - password: password (if auth_type is 'password')
+                - key_path: key path (if auth_type is 'key')
         """
         self.node_info = node_info
         self.client = paramiko.SSHClient()
@@ -38,33 +38,33 @@ class NodeConnection:
 
 
     def __enter__(self):
-        """Вход контекстного менеджера, подключение к узлу и возврат себя"""
+        """Context manager entry, connect to node and return self"""
         self.connect()
         return self
 
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Выход из контекстного менеджера, закрытие подключения"""
+        """Context manager exit, close connection"""
         self.close()
-        return False  # Передать исключение дальше
+        return False  # Pass exception further
 
 
     def connect(self) -> Tuple[bool, str]:
         """
-        Подключение к узлу
+        Connect to node
 
 
         Returns:
-            При успешном подключении возвращает (True, ""), при ошибке — (False, сообщение_об_ошибке)
+            On successful connection returns (True, ""), on error — (False, error_message)
         """
         try:
-            # Логируем информацию о подключении
-            logging.info(f"Подключение к узлу: {self.node_info['ip']}:{self.node_info['port']} пользователь: {self.node_info['username']}")
+            # Log connection information
+            logging.info(f"Connecting to node: {self.node_info['ip']}:{self.node_info['port']} user: {self.node_info['username']}")
 
 
-            # Гарантируем, что не будет запроса на ввод пароля интерактивно
-            # look_for_keys=False предотвращает попытки Paramiko использовать SSH-агент или искать файлы ключей
-            # allow_agent=False предотвращает использование SSH-агента
+            # Ensure no interactive password prompt
+            # look_for_keys=False prevents Paramiko from trying to use SSH agent or search for key files
+            # allow_agent=False prevents SSH agent usage
             if self.node_info['auth_type'] == 'password':
                 self.client.connect(
                     hostname=self.node_info['ip'],
@@ -75,20 +75,20 @@ class NodeConnection:
                     look_for_keys=False,
                     allow_agent=False
                 )
-            else:  # аутентификация по ключу
+            else:  # key authentication
                 key_path = self.node_info['key_path']
                 if not os.path.isfile(key_path):
-                    return False, f"Файл ключа {key_path} не существует"
+                    return False, f"Key file {key_path} does not exist"
 
 
-                # Проверяем права доступа к файлу ключа
+                # Check key file permissions
                 self._check_key_permissions(key_path)
 
 
-                # Пытаемся загрузить SSH ключ разными методами
+                # Try to load SSH key in different ways
                 key = self._load_ssh_key(key_path)
                 if not key:
-                    return False, "Не удалось загрузить SSH ключ. Проверьте формат ключа."
+                    return False, "Failed to load SSH key. Check key format."
 
 
                 self.client.connect(
@@ -105,70 +105,70 @@ class NodeConnection:
             self.connected = True
             return True, ""
         except socket.timeout:
-            error_msg = f"Превышено время ожидания подключения (порт {self.node_info['port']})"
-            logging.error(f"Узел {self.node_info['ip']}: {error_msg}")
+            error_msg = f"Connection timeout exceeded (port {self.node_info['port']})"
+            logging.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
         except socket.gaierror as e:
-            error_msg = f"Ошибка DNS разрешения: {str(e)}"
-            logging.error(f"Узел {self.node_info['ip']}: {error_msg}")
+            error_msg = f"DNS resolution error: {str(e)}"
+            logging.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
         except ConnectionRefusedError:
-            error_msg = f"Подключение отклонено (возможно SSH-сервис на порту {self.node_info['port']} не открыт)"
-            logging.error(f"Узел {self.node_info['ip']}: {error_msg}")
+            error_msg = f"Connection refused (possibly SSH service on port {self.node_info['port']} is not open)"
+            logging.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
         except paramiko.AuthenticationException:
-            error_msg = "Ошибка аутентификации (неверное имя пользователя, пароль или SSH ключ)"
-            logging.error(f"Узел {self.node_info['ip']}: {error_msg}")
+            error_msg = "Authentication error (incorrect username, password or SSH key)"
+            logging.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
         except paramiko.SSHException as e:
-            # Обработка ошибки "[Errno None] Unable to connect to port"
+            # Handle "[Errno None] Unable to connect to port" error
             error_str = str(e)
             if "Unable to connect to port" in error_str:
-                error_msg = f"Невозможно подключиться к порту {self.node_info['port']} (возможно хост недоступен или соединение блокирует фаервол)"
+                error_msg = f"Unable to connect to port {self.node_info['port']} (possibly host unreachable or connection blocked by firewall)"
             else:
-                error_msg = f"SSH ошибка: {error_str}"
-            logging.error(f"Узел {self.node_info['ip']}: {error_msg}")
+                error_msg = f"SSH error: {error_str}"
+            logging.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
         except Exception as e:
-            error_msg = f"Ошибка подключения: {str(e)}"
-            logging.error(f"Узел {self.node_info['ip']}: {error_msg}")
+            error_msg = f"Connection error: {str(e)}"
+            logging.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
 
 
     def _check_key_permissions(self, key_path: str) -> None:
-        """Проверка прав доступа к файлу ключа"""
+        """Check key file permissions"""
         try:
             stat_info = os.stat(key_path)
             permissions = stat_info.st_mode & 0o777
             if permissions != 0o600:
-                logging.warning(f"Права доступа к файлу ключа {oct(permissions)} небезопасны, рекомендуется 600")
-                # Только предупреждение, выполнение не блокируется
+                logging.warning(f"Key file permissions {oct(permissions)} are insecure, 600 recommended")
+                # Only warning, execution not blocked
         except Exception as e:
-            logging.warning(f"Не удалось проверить права доступа к файлу ключа: {str(e)}")
+            logging.warning(f"Failed to check key file permissions: {str(e)}")
 
 
     def _load_ssh_key(self, key_path: str) -> Optional[paramiko.PKey]:
         """
-        Пытается загрузить SSH ключ разными способами
+        Tries to load SSH key in different ways
 
 
         Args:
-            key_path: путь к файлу ключа
+            key_path: key file path
 
 
         Returns:
-            Загруженный объект ключа или None
+            Loaded key object or None
         """
-        # Сначала пытаемся автообнаружение
+        # First try auto-detection
         try:
             key = paramiko.PKey.from_private_key_file(key_path)
-            logging.info("SSH ключ автоматически обнаружен")
+            logging.info("SSH key auto-detected")
             return key
         except Exception as e:
-            logging.info(f"Автовыявление ключа не удалось: {str(e)}")
+            logging.info(f"Key auto-detection failed: {str(e)}")
 
 
-        # Пытаемся загрузить ключи определенных типов
+        # Try to load specific key types
         key_methods = [
             ("RSA", paramiko.RSAKey.from_private_key_file),
             ("ECDSA", paramiko.ECDSAKey.from_private_key_file),
@@ -179,40 +179,40 @@ class NodeConnection:
         for key_type, key_loader in key_methods:
             try:
                 key = key_loader(key_path)
-                logging.info(f"Успешно загружен ключ типа {key_type}")
+                logging.info(f"Successfully loaded {key_type} key")
                 return key
             except paramiko.SSHException as e:
-                logging.info(f"Ключ {key_type} не подходит: {str(e)}")
+                logging.info(f"{key_type} key does not fit: {str(e)}")
                 continue
             except Exception as e:
-                logging.warning(f"Ошибка при загрузке ключа {key_type}: {str(e)}")
+                logging.warning(f"Error loading {key_type} key: {str(e)}")
                 continue
 
 
-        # В конце пытаемся загрузить RSA ключ без пароля (для зашифрованных ключей)
+        # Finally try to load RSA key without password (for encrypted keys)
         try:
             key = paramiko.RSAKey.from_private_key_file(key_path, password=None)
-            logging.info("Успешно загружен RSA ключ (без пароля)")
+            logging.info("Successfully loaded RSA key (without password)")
             return key
         except:
             pass
 
 
-        logging.error("Все способы загрузки ключа завершились неудачей")
+        logging.error("All key loading methods failed")
         return None
 
 
     def execute_command(self, command: str) -> Tuple[bool, str, str]:
         """
-        Выполнение команды на узле
+        Execute command on node
 
 
         Args:
-            command: команда для выполнения
+            command: command to execute
 
 
         Returns:
-            Кортеж (успех, stdout, stderr)
+            Tuple (success, stdout, stderr)
         """
         if not self.connected:
             success, message = self.connect()
@@ -221,24 +221,24 @@ class NodeConnection:
 
 
         try:
-            # Выполняем команду и ожидаем завершения
+            # Execute command and wait for completion
             stdin, stdout, stderr = self.client.exec_command(command, timeout=60)
 
 
-            # Закрываем стандартный ввод
+            # Close standard input
             stdin.close()
 
 
-            # Читаем стандартный вывод и стандартный поток ошибок
+            # Read standard output and standard error stream
             stdout_data = stdout.read().decode('utf-8')
             stderr_data = stderr.read().decode('utf-8')
 
 
-            # Ожидаем завершения команды и получаем код возврата
+            # Wait for command completion and get exit code
             exit_status = stdout.channel.recv_exit_status()
 
 
-            # Закрываем все каналы
+            # Close all channels
             stdout.close()
             stderr.close()
 
@@ -250,7 +250,7 @@ class NodeConnection:
 
 
     def close(self) -> None:
-        """Закрыть подключение"""
+        """Close connection"""
         if self.connected:
             self.client.close()
             self.connected = False
@@ -259,15 +259,15 @@ class NodeConnection:
 
 def test_node_connection(node_info: Dict) -> Tuple[bool, str]:
     """
-    Тест подключения к узлу
+    Test node connection
 
 
     Args:
-        node_info: конфигурационная информация узла
+        node_info: node configuration information
 
 
     Returns:
-        Кортеж (успех, сообщение)
+        Tuple (success, message)
     """
     conn = NodeConnection(node_info)
     success, message = conn.connect()
@@ -279,24 +279,24 @@ def test_node_connection(node_info: Dict) -> Tuple[bool, str]:
 
 def validate_ssh_key(key_path: str) -> Tuple[bool, str]:
     """
-    Проверка файла SSH ключа
+    Validate SSH key file
 
 
     Args:
-        key_path: путь к файлу ключа
+        key_path: key file path
 
 
     Returns:
-        Кортеж (успех, сообщение)
+        Tuple (success, message)
     """
     if not os.path.isfile(key_path):
-        return False, f"Файл ключа {key_path} не существует"
+        return False, f"Key file {key_path} does not exist"
 
 
     try:
-        # Создаем временный объект подключения для теста загрузки ключа
+        # Create temporary connection object to test key loading
         temp_node_info = {
-            'ip': '127.0.0.1',  # фиктивный IP, только для проверки ключа
+            'ip': '127.0.0.1',  # dummy IP, only for key validation
             'port': 22,
             'username': 'test',
             'auth_type': 'key',
@@ -307,10 +307,10 @@ def validate_ssh_key(key_path: str) -> Tuple[bool, str]:
         conn = NodeConnection(temp_node_info)
         key = conn._load_ssh_key(key_path)
         if key:
-            return True, "Формат SSH ключа корректен"
+            return True, "SSH key format is correct"
         else:
-            return False, "Не удалось загрузить SSH ключ. Проверьте формат ключа."
+            return False, "Failed to load SSH key. Check key format."
 
 
     except Exception as e:
-        return False, f"Ошибка проверки ключа: {str(e)}"
+        return False, f"Key validation error: {str(e)}"

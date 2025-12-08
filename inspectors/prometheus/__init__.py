@@ -1,2 +1,2 @@
-# Модуль инспекции Prometheus
-# Файл инициализации
+# Prometheus inspection module
+# Initialization file

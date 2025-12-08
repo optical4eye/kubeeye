@@ -1,41 +1,41 @@
 ---
-# Правило проверки использования памяти - порог предупреждения
+# Memory usage check rule - warning threshold
 id: prom_memory_usage_warning
-name: Проверка использования памяти узла
-description: Проверить, превышает ли использование памяти узла порог предупреждения
+name: Node memory usage check
+description: Check if node memory usage exceeds warning threshold
 type: prometheus
 category: resource
 severity: warning
 enabled: true
 tier: basic
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация запроса Prometheus - расчет процента использования памяти
+  # Prometheus query configuration - memory usage percentage calculation
   query: "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100"
 
-  # Конфигурация временного диапазона
+  # Time range configuration
   time_range:
-    start: "now-10m"  # 10 минут назад
-    end: "now"        # Текущее время
-    step: "1m"        # Интервал 1 минута
+    start: "now-10m"  # 10 minutes ago
+    end: "now"        # Current time
+    step: "1m"        # 1 minute interval
 
-  # Конфигурация утверждений - упрощено до одной проверки
+  # Assertions configuration - simplified to one check
   assertions:
-    - name: "Нормальное использование памяти"
+    - name: "Normal memory usage"
       condition: "max_value < 85"
       severity: warning
-      description: "Использование памяти: {{ max_value | round(2) }}%"
+      description: "Memory usage: {{ max_value | round(2) }}%"
 
-# Рекомендации по решению проблем
+# Problem resolution recommendations
 solution: |
-  Обработка высокого использования памяти:
-  1. Просмотр потребления памяти: kubectl top nodes && kubectl top pods --sort-by=memory
-  2. Проверка утечек памяти: kubectl describe pod <pod-name>
-  3. Настройка ограничений памяти или добавление памяти узла
-  4. Перезапуск Pod с утечкой памяти
+  Handling high memory usage:
+  1. View memory consumption: kubectl top nodes && kubectl top pods --sort-by=memory
+  2. Check memory leaks: kubectl describe pod <pod-name>
+  3. Configure memory limits or add node memory
+  4. Restart Pod with memory leak
 
-# Теги
+# Tags
 tags:
   - memory
   - performance

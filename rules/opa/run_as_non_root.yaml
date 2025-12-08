@@ -1,8 +1,8 @@
 ---
-# OPA правило - проверка запуска контейнеров не от root пользователя (упрощённая версия)
+# OPA rule - container non-root user run check (simplified version)
 id: opa_run_as_non_root
-name: Проверка запуска контейнеров не от root пользователя
-description: Проверяет, что контейнеры запускаются не от root пользователя; каждое правило — отдельная проверка
+name: Container non-root user run check
+description: Checks that containers are not run as root user; each rule is a separate check
 type: opa
 category: security
 severity: warning
@@ -10,9 +10,9 @@ enabled: true
 tier: basic
 
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация ресурсов
+  # Resources configuration
   resources:
     - kind: Pod
       apiVersion: v1
@@ -27,12 +27,12 @@ config:
       apiVersion: apps/v1
       namespaced: true
 
-  # Конфигурация rego-правила
+  # Rego rule configuration
   rego:
     inline: |
       package kubernetes
 
-      # Получение спецификации Pod
+      # Get Pod specification
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
@@ -43,17 +43,17 @@ config:
           spec := resource.spec.template.spec
       }
 
-      # Поиск контейнеров без явного запуска не от root
+      # Search for containers without explicit non-root run
       non_root_violations(containers, pod_security_context) = violations if {
           violations := [container |
               container := containers[_]
-              # Нет настройки runAsNonRoot в контейнере и в Pod
+              # No runAsNonRoot setting in container and Pod
               not container.securityContext.runAsNonRoot
               not pod_security_context.runAsNonRoot
           ]
       }
 
-      # Определение нарушений
+      # Define violations
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -69,7 +69,7 @@ config:
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов), не запускаемых явно как non-root: %s", [
+              "message": sprintf("%s '%s' in namespace '%s' contains %d container(s) not explicitly run as non-root: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -79,7 +79,7 @@ config:
           }
       }
 
-      # Вспомогательные функции
+      # Helper functions
       default_array(val) = result if {
           val != null
           result = val
@@ -98,23 +98,23 @@ config:
           val == null
       }
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Проверка запуска контейнеров не от root"
+    - name: "Container non-root run check"
       condition: "violation_count == 0"
       severity: warning
-      description: "Обнаружено {{ violation_count }} контейнеров без явного запуска non-root пользователем"
+      description: "Found {{ violation_count }} containers without explicit non-root user run"
 
 
-# Рекомендации по устранению проблемы
+# Problem resolution recommendations
 solution: |
-  Настройка безопасности пользователей контейнеров:
-  1. Установите runAsNonRoot: true в securityContext
-  2. Укажите runAsUser с ID пользователя, не равным 0
-  3. Создайте в образе контейнера выделенного пользователя с минимальными привилегиями
+  Container user security configuration:
+  1. Set runAsNonRoot: true in securityContext
+  2. Specify runAsUser with user ID not equal to 0
+  3. Create a dedicated user with minimal privileges in the container image
 
 
-# Метки
+# Tags
 tags:
   - security
   - runAsNonRoot

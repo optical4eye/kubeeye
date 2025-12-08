@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Модуль унифицированного форматирования результатов
-Предоставляет унифицированные функции форматирования результатов, устраняя дублирование методов _pass_result, _fail_result, _error_result в различных инспекторах
+Unified result formatting module
+Provides unified result formatting functions, eliminating duplication of _pass_result, _fail_result, _error_result methods in various inspectors
 """
 
 import logging
 from typing import Dict, List, Optional, Any
 from utils.rule_loader import Rule
 
-# Настройка логирования
+# Logging setup
 logger = logging.getLogger(__name__)
 
 class ResultFormatter:
     """
-    Унифицированный форматировщик результатов
-    Объединяет дублирующиеся методы форматирования результатов из различных инспекторов
+    Unified result formatter
+    Combines duplicate result formatting methods from various inspectors
     """
 
     @staticmethod
@@ -24,20 +24,20 @@ class ResultFormatter:
                      violations: Optional[List[Dict]] = None,
                      **kwargs) -> Dict:
         """
-        Форматирование результата проверки (унифицированная версия)
+        Formatting inspection result (unified version)
 
         Args:
-            rule: объект правила
-            status: статус (passed, failed, error, warning, skipped и др.)
-            description: краткое описание результата
-            severity: уровень серьезности
-            details: детальная информация
-            solution: опциональное решение проблемы
-            violations: опциональный список нарушений
-            **kwargs: другие дополнительные поля (например node, variables, assertions и др.)
+            rule: rule object
+            status: status (passed, failed, error, warning, skipped, etc.)
+            description: brief description of result
+            severity: severity level
+            details: detailed information
+            solution: optional problem solution
+            violations: optional list of violations
+            **kwargs: other additional fields (e.g. node, variables, assertions, etc.)
 
         Returns:
-            отформатированный словарь результата
+            formatted result dictionary
         """
         if solution is None:
             solution = rule.solution if hasattr(rule, 'solution') else ""
@@ -52,11 +52,11 @@ class ResultFormatter:
             'rule_id': rule.id
         }
 
-        # Если есть violations, добавляем в результат
+        # If there are violations, add to result
         if violations is not None:
             result['violations'] = violations
 
-        # Добавление других дополнительных полей
+        # Adding other additional fields
         result.update(kwargs)
 
         return result
@@ -64,16 +64,16 @@ class ResultFormatter:
     @staticmethod
     def pass_result(rule: Rule, description: str, details: str = "", **kwargs) -> Dict:
         """
-        Генерация результата "Пройдено"
+        Generate "Passed" result
 
         Args:
-            rule: объект правила
-            description: информация описания
-            details: детальная информация
-            **kwargs: другие дополнительные поля
+            rule: rule object
+            description: description information
+            details: detailed information
+            **kwargs: other additional fields
 
         Returns:
-            отформатированный результат "Пройдено"
+            formatted "Passed" result
         """
         return ResultFormatter.format_result(
             rule=rule,
@@ -87,21 +87,21 @@ class ResultFormatter:
 
     @staticmethod
     def fail_result(rule: Rule, description: str, details: str,
-                   severity: str = "warning", violations: List[Dict] = None,
+                   severity: str = "warning", violations: Optional[List[Dict]] = None,
                    **kwargs) -> Dict:
         """
-        Генерация результата "Не пройдено"
+        Generate "Failed" result
 
         Args:
-            rule: объект правила
-            description: информация описания
-            details: детальная информация
-            severity: уровень серьезности
-            violations: список нарушений
-            **kwargs: другие дополнительные поля
+            rule: rule object
+            description: description information
+            details: detailed information
+            severity: severity level
+            violations: list of violations
+            **kwargs: other additional fields
 
         Returns:
-            отформатированный результат "Не пройдено"
+            formatted "Failed" result
         """
         solution = rule.solution if hasattr(rule, 'solution') else ""
         return ResultFormatter.format_result(
@@ -116,21 +116,21 @@ class ResultFormatter:
         )
 
     @staticmethod
-    def error_result(rule: Rule, error_msg: str, description: str = None, **kwargs) -> Dict:
+    def error_result(rule: Rule, error_msg: str, description: Optional[str] = None, **kwargs) -> Dict:
         """
-        Генерация результата "Ошибка"
+        Generate "Error" result
 
         Args:
-            rule: объект правила
-            error_msg: сообщение об ошибке
-            description: пользовательское описание, по умолчанию "Выполнение правила не удалось"
-            **kwargs: другие дополнительные поля
+            rule: rule object
+            error_msg: error message
+            description: custom description, default "Rule execution failed"
+            **kwargs: other additional fields
 
         Returns:
-            отформатированный результат "Ошибка"
+            formatted "Error" result
         """
         if description is None:
-            description = "Выполнение правила не удалось"
+            description = "Rule execution failed"
 
         return ResultFormatter.format_result(
             rule=rule,
@@ -145,16 +145,16 @@ class ResultFormatter:
     @staticmethod
     def warning_result(rule: Rule, description: str, details: str, **kwargs) -> Dict:
         """
-        Генерация результата "Предупреждение"
+        Generate "Warning" result
 
         Args:
-            rule: объект правила
-            description: информация описания
-            details: детальная информация
-            **kwargs: другие дополнительные поля
+            rule: rule object
+            description: description information
+            details: detailed information
+            **kwargs: other additional fields
 
         Returns:
-            отформатированный результат "Предупреждение"
+            formatted "Warning" result
         """
         return ResultFormatter.format_result(
             rule=rule,
@@ -169,20 +169,20 @@ class ResultFormatter:
     @staticmethod
     def skipped_result(rule: Rule, reason: str, **kwargs) -> Dict:
         """
-        Генерация результата "Пропущено"
+        Generate "Skipped" result
 
         Args:
-            rule: объект правила
-            reason: причина пропуска
-            **kwargs: другие дополнительные поля
+            rule: rule object
+            reason: skip reason
+            **kwargs: other additional fields
 
         Returns:
-            отформатированный результат "Пропущено"
+            formatted "Skipped" result
         """
         return ResultFormatter.format_result(
             rule=rule,
             status="skipped",
-            description=f"{rule.name} пропущено: {reason}",
+            description=f"{rule.name} skipped: {reason}",
             severity="info",
             details=reason,
             solution="",
@@ -192,22 +192,22 @@ class ResultFormatter:
     @staticmethod
     def not_applicable_result(rule: Rule, reason: str, **kwargs) -> Dict:
         """
-        Генерация результата "Не применимо"
+        Generate "Not Applicable" result
 
         Args:
-            rule: объект правила
-            reason: причина неприменимости
-            **kwargs: другие дополнительные поля
+            rule: rule object
+            reason: inapplicability reason
+            **kwargs: other additional fields
 
         Returns:
-            отформатированный результат "Не применимо"
+            formatted "Not Applicable" result
         """
         return ResultFormatter.format_result(
             rule=rule,
             status="not_applicable",
-            description=f"Правило не применимо: {reason}",
+            description=f"Rule not applicable: {reason}",
             severity="info",
-            details=f"Правило {rule.name} не применимо к текущему окружению: {reason}",
+            details=f"Rule {rule.name} not applicable to current environment: {reason}",
             solution="",
             **kwargs
         )
@@ -215,16 +215,16 @@ class ResultFormatter:
     @staticmethod
     def invalid_result(rule: Rule, description: str, details: str, **kwargs) -> Dict:
         """
-        Генерация результата "Конфигурация недействительна"
+        Generate "Invalid Configuration" result
 
         Args:
-            rule: объект правила
-            description: краткое описание
-            details: детальная информация
-            **kwargs: другие дополнительные поля
+            rule: rule object
+            description: brief description
+            details: detailed information
+            **kwargs: other additional fields
 
         Returns:
-            отформатированный результат "Конфигурация недействительна"
+            formatted "Invalid Configuration" result
         """
         return ResultFormatter.format_result(
             rule=rule,
@@ -232,23 +232,23 @@ class ResultFormatter:
             description=description,
             severity="warning",
             details=details,
-            solution="Пожалуйста, проверьте конфигурацию правила и исправьте проблемы",
+            solution="Please check rule configuration and fix issues",
             **kwargs
         )
 
     @staticmethod
     def critical_result(rule: Rule, description: str, details: str, **kwargs) -> Dict:
         """
-        Генерация результата "Критическая проблема"
+        Generate "Critical Issue" result
 
         Args:
-            rule: объект правила
-            description: информация описания
-            details: детальная информация
-            **kwargs: другие дополнительные поля
+            rule: rule object
+            description: description information
+            details: detailed information
+            **kwargs: other additional fields
 
         Returns:
-            отформатированный результат "Критическая проблема"
+            formatted "Critical Issue" result
         """
         return ResultFormatter.format_result(
             rule=rule,

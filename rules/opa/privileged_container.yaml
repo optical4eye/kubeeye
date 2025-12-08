@@ -1,8 +1,8 @@
 ---
-# OPA правило - проверка привилегированных контейнеров (упрощённая версия)
+# OPA rule - privileged containers check (simplified version)
 id: opa_privileged_container
-name: Проверка безопасности привилегированных контейнеров
-description: Проверяет наличие привилегированных контейнеров; каждое правило — отдельная проверка
+name: Privileged containers security check
+description: Checks for privileged containers; each rule is a separate check
 type: opa
 category: security
 severity: critical
@@ -10,9 +10,9 @@ enabled: true
 tier: basic
 
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация ресурсов
+  # Resources configuration
   resources:
     - kind: Pod
       apiVersion: v1
@@ -28,12 +28,12 @@ config:
       namespaced: true
 
 
-  # Конфигурация rego-правила
+  # Rego rule configuration
   rego:
     inline: |
       package kubernetes
 
-      # Получить спецификацию Pod
+      # Get Pod specification
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
@@ -44,7 +44,7 @@ config:
           spec := resource.spec.template.spec
       }
 
-      # Поиск привилегированных контейнеров
+      # Search for privileged containers
       privileged_containers(containers) = privileged if {
           privileged := [container |
               container := containers[_]
@@ -52,7 +52,7 @@ config:
           ]
       }
 
-      # Определение нарушений
+      # Define violations
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -67,7 +67,7 @@ config:
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d привилегированных контейнеров: %s", [
+              "message": sprintf("%s '%s' in namespace '%s' contains %d privileged containers: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -77,7 +77,7 @@ config:
           }
       }
 
-      # Вспомогательные функции
+      # Helper functions
       default_array(val) = result if {
           val != null
           result = val
@@ -87,23 +87,23 @@ config:
           val == null
       }
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Проверка привилегированных контейнеров"
+    - name: "Privileged containers check"
       condition: "violation_count == 0"
       severity: critical
-      description: "Обнаружено {{ violation_count }} привилегированных контейнеров"
+      description: "Found {{ violation_count }} privileged containers"
 
 
-# Рекомендации по устранению проблемы
+# Problem resolution recommendations
 solution: |
-  Риски безопасности привилегированных контейнеров:
-  1. Избегайте использования privileged: true
-  2. Применяйте принцип минимальных привилегий, давая только необходимые права
-  3. Используйте securityContext для настройки конкретных разрешений
+  Privileged containers security risks:
+  1. Avoid using privileged: true
+  2. Apply principle of least privilege, granting only necessary permissions
+  3. Use securityContext to configure specific permissions
 
 
-# Метки
+# Tags
 tags:
   - security
   - privileged

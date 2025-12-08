@@ -1,34 +1,34 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-KubeEye - Инструмент для инспекции кластера Kubernetes
+KubeEye - Kubernetes cluster inspection tool
 
 
-Этот файл является точкой входа приложения, инициализирует интерфейс и отображает содержимое главной страницы.
+This file is the application entry point, initializes the interface and displays the main page content.
 """
 
 
-# Импорт стандартных библиотек
+# Import standard libraries
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# Импорт сторонних библиотек
+# Import third-party libraries
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
 
-# Настройка конфигурации страницы - должна быть первой командой Streamlit
+# Page configuration setup - must be the first Streamlit command
 st.set_page_config(
-    page_title="KubeEye - Инструмент для инспекции кластера Kubernetes",
+    page_title="KubeEye - Kubernetes cluster inspection tool",
     layout="wide"
 )
 
 
-# Импорт модулей проекта
+# Import project modules
 from utils.common import initialize_page
 from utils.cluster_config import list_clusters, get_cluster, list_clusters_cached, get_cluster_status_counts_fast, get_cluster_quick_status
 from utils.inspection_result import list_results, get_latest_result_by_cluster, load_result_minimal
@@ -40,41 +40,41 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# Инициализация страницы
+# Page initialization
 initialize_page(
     title="KubeEye",
-    page_title="Обзор кластеров",
-    page_subtitle="Мониторинг и инспекция Kubernetes кластеров"
+    page_title="Cluster overview",
+    page_subtitle="Monitoring and inspection of Kubernetes clusters"
 )
 
 
-# Оптимизированная загрузка dashboard с ограниченными данными
-@st.cache_data(ttl=60)  # Кэш на 1 минуту для быстрого обновления
+# Optimized dashboard loading with limited data
+@st.cache_data(ttl=60)  # Cache for 1 minute for fast updates
 def get_dashboard_data() -> Dict:
-    """Быстрая загрузка dashboard с ограниченными данными"""
+    """Fast dashboard loading with limited data"""
 
-    # Быстрая загрузка кластеров
+    # Fast cluster loading
     clusters = list_clusters()
     total_clusters = len(clusters)
 
-    # Отладка внутри функции
+    # Debug inside function
     print(f"DEBUG: get_dashboard_data - clusters loaded: {len(clusters)}")
     if clusters:
         print(f"DEBUG: clusters: {clusters}")
 
-    # Загрузка правил
+    # Load rules
     node_rules = load_rules('node')
     prometheus_rules = load_rules('prometheus')
     opa_rules = load_rules('opa')
     total_rules = len(node_rules) + len(prometheus_rules) + len(opa_rules)
 
-    # Быстрый подсчёт статусов без загрузки всех результатов
+    # Fast status counting without loading all results
     status_counts = get_cluster_status_counts_fast()
 
-    # Загрузка результатов для dashboard (увеличено для трендов)
+    # Load results for dashboard (increased for trends)
     recent_results = list_results(limit=100, order_by='timestamp DESC')
 
-    # Статистика недавних сканирований (24 часа)
+    # Recent scans statistics (24 hours)
     now = datetime.now()
     cutoff_time = now.timestamp() - (24 * 3600)
 
@@ -87,21 +87,21 @@ def get_dashboard_data() -> Dict:
             recent_scans += 1
             recent_issues += result.get('critical', 0) + result.get('warning', 0)
 
-    # Время последней инспекции
-    latest_scan_time = "Нет данных"
+    # Last inspection time
+    latest_scan_time = "No data"
     if recent_results:
         latest_time = datetime.fromisoformat(recent_results[0]['timestamp'])
         latest_scan_time = latest_time.strftime("%m-%d %H:%M")
 
-    # Создание упрощённых статусов кластеров (только необходимые поля)
+    # Create simplified cluster statuses (only necessary fields)
     cluster_statuses = []
     for cluster_name in clusters:
         try:
-            # Быстрая проверка статуса
+            # Fast status check
             status = get_cluster_quick_status(cluster_name)
             latest_result = get_latest_result_by_cluster(cluster_name)
 
-            # Получение информации о узлах и сертификатах
+            # Get node and certificate information
             node_count = 0
             cert_status = 'unknown'
             cert_days_remaining = None
@@ -116,7 +116,7 @@ def get_dashboard_data() -> Dict:
                     cert_status = cert_info.get('status', 'unknown')
                     cert_days_remaining = cert_info.get('days_remaining')
             except Exception as e:
-                logger.warning(f"Не удалось получить информацию для кластера {cluster_name}: {e}")
+                logger.warning(f"Failed to get information for cluster {cluster_name}: {e}")
                 cert_status = 'unknown'
                 cert_days_remaining = None
 
@@ -134,8 +134,8 @@ def get_dashboard_data() -> Dict:
 
             cluster_statuses.append(cluster_status_dict)
         except Exception as e:
-            # В случае ошибки - минимальная информация
-            logger.warning(f"Ошибка при обработке кластера {cluster_name}: {e}")
+            # In case of error - minimal information
+            logger.warning(f"Error processing cluster {cluster_name}: {e}")
             cluster_statuses.append({
                 'name': cluster_name,
                 'status': 'unknown',
@@ -161,21 +161,21 @@ def get_dashboard_data() -> Dict:
     }
 
 
-# Кэширование отключено для dashboard
+# Caching disabled for dashboard
 
-# Очистка кэша при первой загрузке страницы (если есть параметр)
+# Clear cache on first page load (if parameter exists)
 if st.query_params.get("clear_cache") == "true":
     get_dashboard_data.clear()
     st.query_params.clear()
 
-# Восстанавливаем вызов get_dashboard_data() с обработкой ошибок
+# Restore get_dashboard_data() call with error handling
 try:
     dashboard_data = get_dashboard_data()
 
 
 except Exception as e:
-    st.error(f"Ошибка загрузки данных dashboard: {str(e)}")
-    # Загружаем минимальные данные для работы
+    st.error(f"Dashboard data loading error: {str(e)}")
+    # Load minimal data for operation
     from utils.cluster_config import list_clusters
     clusters = list_clusters()
     dashboard_data = {
@@ -184,15 +184,15 @@ except Exception as e:
         'total_clusters': len(clusters),
         'recent_scans': 0,
         'recent_issues': 0,
-        'latest_scan_time': "Ошибка загрузки",
+        'latest_scan_time': "Loading error",
         'total_rules': 0,
         'status_counts': {'healthy': 0, 'warning': 0, 'critical': 0, 'unknown': len(clusters) if clusters else 0},
         'recent_results': []
     }
 
-# Вспомогательные функции для подсчёта ошибок
+# Helper functions for error counting
 def count_errors_from_items(items):
-    """Централизованная функция подсчёта ошибок по элементам"""
+    """Centralized function for counting errors by items"""
     critical = 0
     warning = 0
     passed = 0
@@ -209,36 +209,36 @@ def count_errors_from_items(items):
                     critical += 1
                 elif severity == 'warning':
                     warning += 1
-                # 'info' и другие severity не учитываются в основных счётчиках
+                # 'info' and other severity not counted in main counters
 
     return {'critical': critical, 'warning': warning, 'passed': passed}
 
 def count_errors_from_result(result_data):
-    """Подсчёт ошибок из сохранённых данных результата"""
-    # Для dashboard: все не-критические ошибки считаем как предупреждения
+    """Count errors from saved result data"""
+    # For dashboard: count all non-critical errors as warnings
     critical = result_data.get('critical', 0)
     warning = result_data.get('warning', 0)
     passed = result_data.get('passed', 0)
 
-    # В dashboard "предупреждения" включают все не-критические ошибки
+    # In dashboard "warnings" include all non-critical errors
     # (warning + info + error severity)
-    # Но поскольку мы храним только critical/warning/passed,
-    # предполагаем что все не-critical и не-warning - это другие типы ошибок
-    # Пока оставляем как есть - только 'warning' severity
+    # But since we only store critical/warning/passed,
+    # assume that all non-critical and non-warning are other error types
+    # For now leave as is - only 'warning' severity
     return {
         'critical': critical,
         'warning': warning,
         'passed': passed
     }
 
-# Минималистичные стили
+# Minimalist styles
 st.markdown("""
 <style>
-/* Только необходимые стили для читаемости */
+/* Only necessary styles for readability */
 .stDataFrame { font-size: 14px; }
 .stMetric { font-size: 16px; }
 
-/* Responsive для мобильных */
+/* Responsive for mobile */
 @media (max-width: 768px) {
     .stDataFrame { font-size: 12px; }
     .stMetric { font-size: 14px; }
@@ -246,7 +246,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Toast уведомления для успешных операций
+# Toast notifications for successful operations
 def show_toast(message, type="success"):
     toast_js = f"""
     <script>
@@ -258,7 +258,7 @@ def show_toast(message, type="success"):
     st.markdown(toast_js, unsafe_allow_html=True)
 
 
-# Развертывание данных из оптимизированной структуры
+# Unpacking data from optimized structure
 clusters = dashboard_data['clusters']
 cluster_statuses = {cs['name']: cs for cs in dashboard_data['cluster_statuses']}
 
@@ -270,42 +270,42 @@ total_rules = dashboard_data['total_rules']
 status_counts = dashboard_data['status_counts']
 recent_results = dashboard_data['recent_results']
 
-# Улучшенная диаграмма статусов кластеров (связанная с отчетами)
+# Enhanced cluster status diagram (linked to reports)
 status_labels = {
-    'healthy': 'Пройдено',
-    'warning': 'Предупреждения',
-    'critical': 'Критические ошибки',
-    'unknown': 'Неизвестно'
+    'healthy': 'Passed',
+    'warning': 'Warnings',
+    'critical': 'Critical errors',
+    'unknown': 'Unknown'
 }
 status_colors = {
-    'healthy': '#10B981',    # Зеленый для пройденных (как в отчетах)
-    'warning': '#F59E0B',    # Оранжевый для обычных ошибок (как в отчетах)
-    'critical': '#EF4444',   # Красный для критических ошибок (как в отчетах)
-    'unknown': '#6B7280'     # Серый для неизвестных
+    'healthy': '#10B981',    # Green for passed (as in reports)
+    'warning': '#F59E0B',    # Orange for regular errors (as in reports)
+    'critical': '#EF4444',   # Red for critical errors (as in reports)
+    'unknown': '#6B7280'     # Gray for unknown
 }
 
-# Создаём кольцевую диаграмму с числами
+# Create a donut chart with numbers
 fig_pie = px.pie(
     values=list(status_counts.values()),
     names=[f"{status_labels[k]} ({count})" for k, count in status_counts.items()],
-    title="Распределение статусов кластеров",
+    title="Cluster status distribution",
     color=[status_labels[k] for k in status_counts.keys()],
     color_discrete_map=status_colors,
-    hole=0.4  # Кольцевая диаграмма
+    hole=0.4  # Donut chart
 )
 
-# Улучшенные настройки отображения
+# Enhanced display settings
 fig_pie.update_traces(
     textposition='inside',
     textinfo='percent+value',
-    hovertemplate='<b>%{label}</b><br>Количество: %{value}<br>Процент: %{percent}<extra></extra>',
+    hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percent: %{percent}<extra></extra>',
     marker=dict(line=dict(color='white', width=2))
 )
 
-# Добавляем общее количество в центр
+# Add total count in the center
 total_clusters = sum(status_counts.values())
 fig_pie.add_annotation(
-    text=f"<b>{total_clusters}</b><br>кластеров",
+    text=f"<b>{total_clusters}</b><br>clusters",
     x=0.5, y=0.5, showarrow=False,
     font=dict(size=16, color='#1f2937'),
     bgcolor='rgba(255,255,255,0.9)',
@@ -314,7 +314,7 @@ fig_pie.add_annotation(
     borderpad=4
 )
 
-# Улучшенная легенда
+# Enhanced legend
 fig_pie.update_layout(
     legend=dict(
         orientation="h",
@@ -328,22 +328,22 @@ fig_pie.update_layout(
 )
 
 
-# Основные метрики
-st.markdown("## Обзор")
+# Main metrics
+st.markdown("## Overview")
 
-# Кнопка обновления данных dashboard
+# Dashboard data refresh button
 col_refresh, col_spacer = st.columns([1, 5])
 with col_refresh:
-    if st.button("🔄 Обновить данные", help="Обновить данные dashboard"):
-        get_dashboard_data.clear()  # Очистить кэш перед обновлением
+    if st.button("🔄 Refresh data", help="Refresh dashboard data"):
+        get_dashboard_data.clear()  # Clear cache before refresh
         st.rerun()
 
-# Подготовка данных для метрик
-latest_scan_display = dashboard_data['latest_scan_time'] if dashboard_data['latest_scan_time'] != "Никогда не запускалась" else "Нет"
+# Preparing data for metrics
+latest_scan_display = dashboard_data['latest_scan_time'] if dashboard_data['latest_scan_time'] != "Never started" else "No"
 
-# Расчёт недавних проблем по типам (как в деталях отчётов)
+# Calculation of recent issues by types (as in report details)
 now = datetime.now()
-cutoff_time = now.timestamp() - (24 * 3600)  # 24 часа назад
+cutoff_time = now.timestamp() - (24 * 3600)  # 24 hours ago
 
 recent_critical = 0
 recent_warnings = 0
@@ -353,37 +353,37 @@ for result in recent_results:
     if timestamp > cutoff_time:
         recent_critical += result.get('critical', 0)
         recent_warnings += result.get('warning', 0)
-        recent_info += result.get('info', 0)  # Добавить подсчёт info ошибок
+        recent_info += result.get('info', 0)  # Add info error count
 
-# Простые метрики в колонках (расширить до 7 колонок)
+# Simple metrics in columns (expand to 7 columns)
 col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 with col1:
     cluster_count = dashboard_data['total_clusters']
-    st.metric("Кластеры", cluster_count)
+    st.metric("Clusters", cluster_count)
 with col2:
-    st.metric("Инспекции", dashboard_data['recent_scans'])
+    st.metric("Inspections", dashboard_data['recent_scans'])
 with col3:
-    st.metric("Критично", recent_critical)
+    st.metric("Critical", recent_critical)
 with col4:
-    st.metric("Предупреждения", recent_warnings)
+    st.metric("Warnings", recent_warnings)
 with col5:
-    st.metric("Прочее", recent_info)
+    st.metric("Other", recent_info)
 with col6:
-    st.metric("Последняя", latest_scan_display)
+    st.metric("Latest", latest_scan_display)
 with col7:
-    st.metric("Правила", dashboard_data['total_rules'])
+    st.metric("Rules", dashboard_data['total_rules'])
 
 
-# Тренды ошибок за последние 7 дней
-st.markdown("### Тренды ошибок (7 дней)")
+# Error trends over the last 7 days
+st.markdown("### Error trends (7 days)")
 
-# Подготовка данных для временного ряда
+# Preparing data for time series
 if recent_results:
-    # Группировка данных по дням
+    # Grouping data by days
     from collections import defaultdict
     daily_errors = defaultdict(lambda: {'critical': 0, 'warning': 0, 'info': 0, 'total': 0})
 
-    cutoff_7d = now.timestamp() - (7 * 24 * 3600)  # 7 дней назад
+    cutoff_7d = now.timestamp() - (7 * 24 * 3600)  # 7 days ago
 
     for result in recent_results:
         timestamp = datetime.fromisoformat(result['timestamp']).timestamp()
@@ -394,97 +394,97 @@ if recent_results:
             daily_errors[date_key]['info'] += result.get('info', 0)
             daily_errors[date_key]['total'] += (result.get('critical', 0) + result.get('warning', 0) + result.get('info', 0))
 
-    # Создание DataFrame для графика
+    # Creating DataFrame for chart
     if daily_errors:
         dates = sorted(daily_errors.keys())
         critical_vals = [daily_errors[d]['critical'] for d in dates]
         warning_vals = [daily_errors[d]['warning'] for d in dates]
         info_vals = [daily_errors[d]['info'] for d in dates]
 
-        # Создание DataFrame для лучшего отображения
+        # Creating DataFrame for better display
         trend_data = []
         for i, date in enumerate(dates):
             trend_data.extend([
-                {'date': date, 'errors': critical_vals[i], 'type': 'Критические'},
-                {'date': date, 'errors': warning_vals[i], 'type': 'Предупреждения'},
-                {'date': date, 'errors': info_vals[i], 'type': 'Прочее'}
+                {'date': date, 'errors': critical_vals[i], 'type': 'Critical'},
+                {'date': date, 'errors': warning_vals[i], 'type': 'Warnings'},
+                {'date': date, 'errors': info_vals[i], 'type': 'Other'}
             ])
 
         df_trend = pd.DataFrame(trend_data)
 
-        # Линейный график трендов
+        # Line chart for trends
         fig_trend = px.line(
             df_trend,
             x='date',
             y='errors',
             color='type',
-            title="Динамика ошибок по дням",
+            title="Error dynamics by day",
             markers=True,
             color_discrete_map={
-                'Критические': '#EF4444',    # Красный
-                'Предупреждения': '#F59E0B', # Оранжевый
-                'Прочее': '#6B7280'          # Серый
+                'Critical': '#EF4444',    # Red
+                'Warnings': '#F59E0B', # Orange
+                'Other': '#6B7280'          # Gray
             }
         )
 
         fig_trend.update_layout(
-            xaxis_title="Дата",
-            yaxis_title="Количество ошибок",
-            legend_title="Тип ошибки",
+            xaxis_title="Date",
+            yaxis_title="Error count",
+            legend_title="Error type",
             hovermode="x unified"
         )
 
         st.plotly_chart(fig_trend, use_container_width=True)
     else:
-        st.info("Недостаточно данных для отображения трендов (нужны результаты проверок за последние 7 дней)")
+        st.info("Insufficient data to display trends (need inspection results for the last 7 days)")
 else:
-    st.info("Нет данных для отображения трендов")
+    st.info("No data to display trends")
 
 
-# Отображение столбчатой диаграммы с боковой панелью статистики
+# Display bar chart with side statistics panel
 col1, col2 = st.columns([2, 1])
 
 with col1:
-        # Столбчатая диаграмма - отображаем общее количество проверок по типам
-        # Подсчитываем общее количество проверок по типам из всех кластеров
+        # Bar chart - display total number of checks by types
+        # Count total number of checks by types from all clusters
         total_critical = sum(cs.get('critical_count', 0) for cs in dashboard_data['cluster_statuses'])
         total_warnings = sum(cs.get('warning_count', 0) for cs in dashboard_data['cluster_statuses'])
         total_passed = sum(cs.get('passed_count', 0) for cs in dashboard_data['cluster_statuses'])
 
-        # Упорядочиваем: критические ошибки, предупреждения, пройдено
-        issue_labels = ['Критические ошибки', 'Предупреждения', 'Пройдено']
+        # Order: critical errors, warnings, passed
+        issue_labels = ['Critical errors', 'Warnings', 'Passed']
         issue_values = [total_critical, total_warnings, total_passed]
-        issue_colors = ['#EF4444', '#F59E0B', '#10B981']  # Красный, оранжевый, зеленый
+        issue_colors = ['#EF4444', '#F59E0B', '#10B981']  # Red, orange, green
 
         fig_bar = px.bar(
             x=issue_labels,
             y=issue_values,
-            title="Распределение результатов проверок",
+            title="Inspection results distribution",
             color=issue_labels,
             color_discrete_map=dict(zip(issue_labels, issue_colors)),
             text_auto=True
         )
         fig_bar.update_layout(
-            xaxis_title="Тип результата",
-            yaxis_title="Количество проверок",
+            xaxis_title="Result type",
+            yaxis_title="Check count",
             showlegend=False
         )
-        # Улучшенные hover для столбчатой диаграммы
+        # Enhanced hover for bar chart
         fig_bar.update_traces(
-            hovertemplate='<b>%{x}</b><br>Количество: %{y}<extra></extra>'
+            hovertemplate='<b>%{x}</b><br>Count: %{y}<extra></extra>'
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
 with col2:
-        st.markdown("### Статистика")
+        st.markdown("### Statistics")
 
-        # Подсчёт общего количества ошибок из всех кластеров (используем централизованную функцию)
+        # Count total number of errors from all clusters (use centralized function)
         total_critical_issues = 0
         total_warning_issues = 0
         total_passed_issues = 0
 
         for cs in dashboard_data['cluster_statuses']:
-            # Используем централизованную функцию подсчёта
+            # Use centralized counting function
             counts = count_errors_from_result({
                 'critical': cs.get('critical_count', 0),
                 'warning': cs.get('warning_count', 0),
@@ -494,16 +494,16 @@ with col2:
             total_warning_issues += counts['warning']
             total_passed_issues += counts['passed']
 
-        # Ключевые метрики - общее количество ошибок (всегда отображаем)
-        st.error(f"Критические ошибки: {total_critical_issues}")
-        st.warning(f"Предупреждения: {total_warning_issues}")
-        st.success(f"Пройдено: {total_passed_issues}")
+        # Key metrics - total number of errors (always display)
+        st.error(f"Critical errors: {total_critical_issues}")
+        st.warning(f"Warnings: {total_warning_issues}")
+        st.success(f"Passed: {total_passed_issues}")
 
-        # Кластеры по статусам с именами
+        # Clusters by statuses with names
         if dashboard_data['cluster_statuses']:
-            st.markdown("**Кластеры по статусам:**")
+            st.markdown("**Clusters by status:**")
 
-            # Группируем кластеры по статусам
+            # Group clusters by statuses
             clusters_by_status = {
                 'critical': [],
                 'warning': [],
@@ -516,12 +516,12 @@ with col2:
                 if status in clusters_by_status:
                     clusters_by_status[status].append(cs['name'])
 
-            # Отображаем кластеры по статусам
+            # Display clusters by statuses
             status_display = {
-                'critical': ('Критические ошибки', '#EF4444'),
-                'warning': ('Предупреждения', '#F59E0B'),
-                'healthy': ('Пройдено', '#10B981'),
-                'unknown': ('Неизвестно', '#6B7280')
+                'critical': ('Critical errors', '#EF4444'),
+                'warning': ('Warnings', '#F59E0B'),
+                'healthy': ('Passed', '#10B981'),
+                'unknown': ('Unknown', '#6B7280')
             }
 
             for status_key, (label, color) in status_display.items():
@@ -531,79 +531,79 @@ with col2:
                         for cluster_name in sorted(clusters):
                             st.write(f"• {cluster_name}")
 
-            # Дополнительно показываем кластеры с предупреждениями
+            # Additionally show clusters with warnings
             clusters_with_warnings = []
             for cs in dashboard_data['cluster_statuses']:
                 if cs.get('warning_count', 0) > 0:
                     clusters_with_warnings.append(cs['name'])
 
             if clusters_with_warnings:
-                with st.expander(f"Предупреждения ({len(clusters_with_warnings)})", expanded=False):
+                with st.expander(f"Warnings ({len(clusters_with_warnings)})", expanded=False):
                     for cluster_name in sorted(clusters_with_warnings):
                         st.write(f"• {cluster_name}")
 
 
-        # Дополнительная информация
+        # Additional information
         st.markdown("---")
-        st.caption(f"Всего кластеров: {total_clusters}")
-        st.caption(f"Обновлено: {datetime.now().strftime('%H:%M')}")
+        st.caption(f"Total clusters: {total_clusters}")
+        st.caption(f"Updated: {datetime.now().strftime('%H:%M')}")
 
 st.markdown("---")
 
 
-# Детали кластеров
-st.markdown("## Детали кластеров")
+# Cluster details
+st.markdown("## Cluster details")
 
-# Поиск по кластерам
-search_term = st.text_input("Поиск кластеров", placeholder="Введите имя кластера...")
+# Search for clusters
+search_term = st.text_input("Search clusters", placeholder="Enter cluster name...")
 
 if not dashboard_data.get('clusters', []):
-    st.warning("Конфигурация кластеров отсутствует. Добавьте кластеры на странице информации о кластере.")
-    if st.button("Добавить кластер", type="primary"):
+    st.warning("Cluster configuration is missing. Add clusters on the cluster info page.")
+    if st.button("Add cluster", type="primary"):
         st.switch_page("pages/1_cluster_info.py")
 else:
-    # Упрощенная таблица кластеров
+    # Simplified cluster table
     cluster_data = []
     for cluster_status in dashboard_data['cluster_statuses']:
-        # Упрощенные статусы без emoji
+        # Simplified statuses without emoji
         status_map = {
-            'healthy': 'Здоров',
-            'warning': 'Предупреждение',
-            'critical': 'Критично',
-            'unknown': 'Неизвестно'
+            'healthy': 'Healthy',
+            'warning': 'Warning',
+            'critical': 'Critical',
+            'unknown': 'Unknown'
         }
 
         cert_status_map = {
-            'valid': 'В порядке',
-            'warning': 'Скоро истечет',
-            'critical': 'Близко к истечению',
-            'expired': 'Просрочен',
-            'unknown': 'Неизвестно'
+            'valid': 'Valid',
+            'warning': 'Expires soon',
+            'critical': 'Close to expiration',
+            'expired': 'Expired',
+            'unknown': 'Unknown'
         }
 
-        cert_display = cert_status_map.get(cluster_status['cert_status'], 'Неизвестно')
+        cert_display = cert_status_map.get(cluster_status['cert_status'], 'Unknown')
         if cluster_status['cert_days_remaining'] is not None:
-            cert_display += f" ({cluster_status['cert_days_remaining']} д.)"
+            cert_display += f" ({cluster_status['cert_days_remaining']} d.)"
 
-        last_scan = "Не проверялся"
+        last_scan = "Not checked"
         if cluster_status['last_scan']:
-            # Конвертируем строку timestamp обратно в datetime для форматирования
+            # Convert timestamp string back to datetime for formatting
             last_scan_dt = datetime.fromisoformat(cluster_status['last_scan'])
             last_scan = last_scan_dt.strftime("%m-%d %H:%M")
 
         cluster_data.append({
-            "Кластер": cluster_status['name'],
-            "Статус": status_map[cluster_status['status']],
-            "Узлы": cluster_status['node_count'],
-            "Сертификат": cert_display,
-            "Последняя проверка": last_scan,
-            "Критично": cluster_status['critical_count'],
-            "Предупреждения": cluster_status['warning_count']
+            "Cluster": cluster_status['name'],
+            "Status": status_map[cluster_status['status']],
+            "Nodes": cluster_status['node_count'],
+            "Certificate": cert_display,
+            "Last check": last_scan,
+            "Critical": cluster_status['critical_count'],
+            "Warnings": cluster_status['warning_count']
         })
 
-    # Фильтрация
+    # Filtering
     if search_term:
-        cluster_data = [row for row in cluster_data if search_term.lower() in row["Кластер"].lower()]
+        cluster_data = [row for row in cluster_data if search_term.lower() in row["Cluster"].lower()]
 
     if cluster_data:
         cluster_df = pd.DataFrame(cluster_data)
@@ -612,37 +612,37 @@ else:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Кластер": st.column_config.TextColumn("Кластер", width="medium"),
-                "Статус": st.column_config.TextColumn("Статус", width="small"),
-                "Узлы": st.column_config.NumberColumn("Узлы", width="small"),
-                "Сертификат": st.column_config.TextColumn("Сертификат", width="medium"),
-                "Последняя проверка": st.column_config.TextColumn("Последняя проверка", width="medium"),
-                "Критично": st.column_config.NumberColumn("Критично", width="small"),
-                "Предупреждения": st.column_config.NumberColumn("Предупреждения", width="small")
+                "Cluster": st.column_config.TextColumn("Cluster", width="medium"),
+                "Status": st.column_config.TextColumn("Status", width="small"),
+                "Nodes": st.column_config.NumberColumn("Nodes", width="small"),
+                "Certificate": st.column_config.TextColumn("Certificate", width="medium"),
+                "Last check": st.column_config.TextColumn("Last check", width="medium"),
+                "Critical": st.column_config.NumberColumn("Critical", width="small"),
+                "Warnings": st.column_config.NumberColumn("Warnings", width="small")
             }
         )
     else:
-        st.info("Кластеры не найдены")
+        st.info("Clusters not found")
 
-    # Быстрые действия
-    st.markdown("### Действия")
+    # Quick actions
+    st.markdown("### Actions")
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("Запустить инспекцию", type="primary"):
+        if st.button("Run inspection", type="primary"):
             st.switch_page("pages/2_cluster_inspect.py")
 
     with col2:
-        if st.button("Просмотр отчёта"):
+        if st.button("View report"):
             st.switch_page("pages/3_inspect_report.py")
 
     with col3:
-        if st.button("Управление кластером"):
+        if st.button("Cluster management"):
             st.switch_page("pages/1_cluster_info.py")
 
 
-# Последние проверки
-st.markdown("## Последние проверки")
+# Recent checks
+st.markdown("## Recent checks")
 
 if recent_results:
     scan_records = []
@@ -654,27 +654,27 @@ if recent_results:
         warning = result.get('warning', 0)
 
         if critical > 0:
-            status = 'Критично'
+            status = 'Critical'
         elif warning > 0:
-            status = 'Предупреждение'
+            status = 'Warning'
         else:
             status = 'OK'
 
         scan_records.append({
-            "Время": time_str,
-            "Кластер": result['cluster_name'],
-            "Тип": result['inspection_type'],
-            "Статус": status,
-            "Критично": critical,
-            "Предупреждения": warning
+            "Time": time_str,
+            "Cluster": result['cluster_name'],
+            "Type": result['inspection_type'],
+            "Status": status,
+            "Critical": critical,
+            "Warnings": warning
         })
 
     scan_df = pd.DataFrame(scan_records)
     st.dataframe(scan_df, use_container_width=True, hide_index=True)
 else:
-    st.info("Записи об инспекциях отсутствуют")
+    st.info("Inspection records are missing")
 
 
-# Нижний колонтитул
+# Footer
 st.markdown("---")
-st.caption(f"KubeEye {VERSION} | Обновлено: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+st.caption(f"KubeEye {VERSION} | Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")

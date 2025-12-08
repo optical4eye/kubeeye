@@ -1,74 +1,74 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Модуль экстрактора результатов, для извлечения переменных из вывода команд
+Result extractor module for extracting variables from command output
 """
 
 import re
 import logging
 from typing import Dict, List, Any
 
-# Настроить логирование
+# Configure logging
 logger = logging.getLogger(__name__)
 
 class ResultExtractor:
-    """Извлечение переменных из вывода команд"""
+    """Extracting variables from command output"""
 
     def extract(self, output: str, extractors: List[Dict], context: Dict = None) -> Dict[str, Any]:
         """
-        Извлечение переменных из вывода на основе конфигурации экстракторов
+        Extract variables from output based on extractor configurations
 
         Args:
-            output: Текст вывода команды
-            extractors: Список конфигураций экстракторов
-            context: Существующие контекстные переменные
+            output: Command output text
+            extractors: List of extractor configurations
+            context: Existing context variables
 
         Returns:
-            Словарь извлеченных переменных
+            Dictionary of extracted variables
         """
         result = context.copy() if context else {}
 
         for extractor in extractors:
             name = extractor.get("name")
             if not name:
-                logger.warning("У экстрактора отсутствует поле name")
+                logger.warning("Extractor is missing the name field")
                 continue
 
             pattern = extractor.get("pattern")
             value_type = extractor.get("type", "str")
 
             if pattern:
-                # Использовать регулярные выражения для извлечения
+                # Use regular expressions for extraction
                 try:
                     match = re.search(pattern, output)
                     if match:
-                        # Проверить, есть ли группы захвата
+                        # Check if there are capture groups
                         if match.groups():
-                            # Есть группы захвата, использовать первую группу захвата
+                            # There are capture groups, use the first capture group
                             value = match.group(1)
                         else:
-                            # Нет групп захвата, использовать все совпадение
+                            # No capture groups, use the entire match
                             value = match.group(0)
                         result[name] = self._convert_value(value, value_type)
                     else:
-                        logger.warning(f"Паттерн экстрактора '{name}' '{pattern}' не нашел совпадений")
+                        logger.warning(f"Extractor pattern '{name}' '{pattern}' found no matches")
                         result[name] = None
                 except (re.error, IndexError) as e:
-                    logger.error(f"Ошибка регулярного выражения экстрактора '{name}': {str(e)}")
+                    logger.error(f"Regex error for extractor '{name}': {str(e)}")
                     result[name] = None
 
         return result
 
     def _convert_value(self, value: str, value_type: str) -> Any:
         """
-        Преобразовать тип значения
+        Convert value type
 
         Args:
-            value: Строковое значение
-            value_type: Целевой тип
+            value: String value
+            value_type: Target type
 
         Returns:
-            Преобразованное значение
+            Converted value
         """
         try:
             if value_type == "int":
@@ -80,5 +80,5 @@ class ResultExtractor:
             else:
                 return value
         except (ValueError, TypeError) as e:
-            logger.error(f"Не удалось преобразовать тип: {str(e)}, вернуть исходное значение")
+            logger.error(f"Failed to convert type: {str(e)}, returning original value")
             return value

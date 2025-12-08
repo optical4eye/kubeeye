@@ -1,8 +1,8 @@
 ---
-# Правило проверки зомби-процессов
+# Zombie processes check rule
 id: node_zombie_processes
-name: Проверка зомби-процессов
-description: Проверяет наличие зомби-процессов на узле
+name: Zombie processes check
+description: Checks for zombie processes on the node
 type: node
 category: process
 severity: warning
@@ -10,31 +10,31 @@ enabled: true
 tier: basic
 
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация выполнения - напрямую возвращает число
+  # Execution configuration - directly returns the count
   execution:
     command: "ps aux | awk '$8 ~ /^Z/ { count++ } END { print count+0 }'"
     timeout: 10
 
 
-  # Конфигурация утверждений - напрямую использует вывод команды
+  # Assertions configuration - directly uses command output
   assertions:
-    - name: "Нет зомби-процессов"
+    - name: "No zombie processes"
       condition: "output == '0'"
       severity: warning
-      description: "Обнаружено {{ output }} зомби-процессов"
+      description: "Found {{ output }} zombie processes"
 
 
-# Рекомендации по устранению проблемы
+# Problem resolution recommendations
 solution: |
-  Обработка зомби-процессов:
-  1. Просмотр зомби-процессов: ps aux | awk '$8 ~ /^Z/'
-  2. Найти родительский процесс и перезапустить
-  3. При необходимости перезагрузить систему
+  Handling zombie processes:
+  1. View zombie processes: ps aux | awk '$8 ~ /^Z/'
+  2. Find parent process and restart it
+  3. Reboot system if necessary
 
 
-# Метки
+# Tags
 tags:
   - process
   - zombie

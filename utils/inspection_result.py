@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-巡检结果管理模块，用于保存和加载巡检结果
+Inspection result management module for saving and loading inspection results
 """
 
 import json
@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union, Tuple
 
-# Попытка импорта для PDF генерации
+# Attempt import for PDF generation
 try:
     from reportlab.lib.pagesizes import letter, A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -28,23 +28,23 @@ try:
 except ImportError:
     PDF_SUPPORT = False
 
-# 数据目录定义
+# Data directory definition
 DATA_DIR = Path(__file__).parent.parent / "data"
 RESULTS_DIR = DATA_DIR / "results"
 
-# 确保目录存在
+# Ensure directory exists
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 class InspectionResult:
-    """巡检结果类"""
+    """Inspection result class"""
 
     def __init__(self, cluster_name: str, inspection_type: str):
         """
-        初始化巡检结果
+        Initialize inspection results
 
         Args:
-            cluster_name: 集群名称
-            inspection_type: 巡检类型
+            cluster_name: cluster name
+            inspection_type: inspection type
         """
         self.cluster_name = cluster_name
         self.inspection_type = inspection_type
@@ -54,39 +54,39 @@ class InspectionResult:
 
     def add_item(self, item: Dict) -> None:
         """
-        添加巡检项
+        Add inspection item
 
         Args:
-            item: 巡检项字典，需包含：
-                - name: 巡检项名称
-                - status: 'passed' 或 'exception' (简化后的状态体系)
-                - description: 描述
-                - severity: 严重程度 ('critical', 'warning', 'info') - 仅用于异常项的细分级别
-                - details: 详细内容
-                - solution: 解决方案 (可选)
+            item: inspection item dictionary, must contain:
+                - name: inspection item name
+                - status: 'passed' or 'exception' (simplified status system)
+                - description: description
+                - severity: severity level ('critical', 'warning', 'info') - only for exception item details
+                - details: detailed content
+                - solution: solution (optional)
         """
         if 'solution' not in item:
             item['solution'] = ''
 
-        # 状态标准化：统一将 failed、warning、error 转换为 exception
+        # Status normalization: uniformly convert failed, warning, error to exception
         if item.get('status') in ['failed', 'warning', 'error']:
             item['status'] = 'exception'
 
         self.items.append(item)
 
     def get_items(self) -> List[Dict]:
-        """获取所有巡检项"""
+        """Get all inspection items"""
         return self.items
 
     def get_summary(self) -> Dict:
-        """获取巡检摘要"""
+        """Get inspection summary"""
         passed = 0
         exception_critical = 0
         exception_warning = 0
         exception_info = 0
 
         for item in self.items:
-            # 安全地获取status和severity，处理不同类型的item
+            # Safely get status and severity, handle different item types
             if isinstance(item, dict):
                 status = item.get('status', 'unknown')
                 severity = item.get('severity', 'unknown')
@@ -97,11 +97,11 @@ class InspectionResult:
                 status = 'unknown'
                 severity = 'unknown'
 
-            # 简化的状态体系：只有 passed 和 exception
+            # Simplified status system: only passed and exception
             if status == 'passed':
                 passed += 1
             else:
-                # 所有非通过的状态都视为异常，按严重程度细分
+                # All non-passing statuses are considered exceptions, detailed by severity
                 if severity == 'critical':
                     exception_critical += 1
                 elif severity == 'warning':
@@ -122,7 +122,7 @@ class InspectionResult:
             'exception_critical': exception_critical,
             'exception_warning': exception_warning,
             'exception_info': exception_info,
-            # 为兼容性保留旧字段
+            # Keep old fields for compatibility
             'critical': exception_critical,
             'warning': exception_warning,
             'info': exception_info
@@ -130,12 +130,12 @@ class InspectionResult:
 
     def save(self) -> str:
         """
-        保存巡检结果
+        Save inspection results
 
         Returns:
-            结果文件路径
+            path to results file
         """
-        # 创建集群结果目录
+        # Create cluster results directory
         cluster_dir = RESULTS_DIR / self.cluster_name
         os.makedirs(cluster_dir, exist_ok=True)
 
@@ -156,53 +156,53 @@ class InspectionResult:
 
 def load_result(result_id: str) -> Optional[Dict]:
     """
-    加载巡检结果
+    Load inspection results
 
     Args:
-        result_id: 巡检结果 ID
+        result_id: inspection results ID
 
     Returns:
-        巡检结果字典，如果不存在则返回 None
+        inspection results dictionary, return None if not exists
     """
-    # 搜索results目录下所有json文件，找到匹配的result_id
+    # Search all json files in results directory, find matching result_id
     for file_path in RESULTS_DIR.rglob('*.json'):
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 result_data = json.load(f)
 
-            # 检查result_id是否匹配
+            # Check if result_id matches
             if result_data.get('result_id') == result_id:
                 return result_data
         except Exception as e:
-            # 记录读取失败的文件但继续搜索
+            # Log file that failed to read, but continue search
             print(f"Warning: Failed to read {file_path}: {e}")
             continue
 
-    # 如果通过result_id没找到，尝试通过文件名模式匹配
-    # 处理不同的文件名格式
+    # If not found by result_id, try by filename pattern
+    # Handle different filename formats
     possible_patterns = [
         f"inspection_result_{result_id}.json",
         f"{result_id}.json",
-        # 尝试从result_id中提取集群名和时间戳
+        # Try to extract cluster name and timestamp from result_id
     ]
 
-    # 如果result_id包含时间戳，尝试构建标准文件名
+    # If result_id contains timestamp, try to build standard filename
     if '_' in result_id:
         parts = result_id.split('_')
         if len(parts) >= 3:
-            # 假设格式是 type_date_time，尝试找到对应的文件
+            # Assume format type_date_time, try to find corresponding file
             for file_path in RESULTS_DIR.glob(f'inspection_result_*_{parts[-2]}_{parts[-1]}.json'):
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         result_data = json.load(f)
-                    # 如果文件内容匹配，返回结果
+                    # If file content matches, return result
                     if result_data.get('result_id') == result_id:
                         return result_data
                 except Exception as e:
                     print(f"Warning: Failed to read {file_path}: {e}")
                     continue
 
-    # 尝试直接的文件名匹配
+    # Try direct filename match
     for pattern in possible_patterns:
         result_file = RESULTS_DIR / pattern
         if result_file.exists():
@@ -218,29 +218,29 @@ def load_result(result_id: str) -> Optional[Dict]:
 
 def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]:
     """
-    导出巡检报告为不同格式
+    Export inspection report in different formats
 
     Args:
-        result_id: 巡检结果ID
-        format_type: 导出格式，支持 "json", "excel"
+        result_id: inspection results ID
+        format_type: export format, supports "json", "excel"
 
     Returns:
-        (成功, 文件路径) 元组，成功为 True 时返回导出文件路径
+        tuple (success, file path), return exported file path on success
     """
-    # 加载巡检结果
+    # Load inspection results
     result_data = load_result(result_id)
     if not result_data:
-        return False, "找不到指定巡检结果"
+        return False, "Specified inspection results not found"
 
-    # 从 result_data 获取集群名
+    # Get cluster name from result_data
     cluster_name = result_data.get('cluster_name', 'unknown')
     export_dir = RESULTS_DIR / cluster_name / "exports"
     import os
     os.makedirs(export_dir, exist_ok=True)
 
-    # 根据格式类型导出
+    # Export by format type
     if format_type == "json":
-        # 找到原始结果文件
+        # Find original results file
         source_path = None
         for file_path in RESULTS_DIR.rglob('*.json'):
             try:
@@ -258,7 +258,7 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
             shutil.copy(source_path, export_path)
             return True, str(export_path)
         else:
-            return False, "找不到源文件"
+            return False, "Original file not found"
 
     elif format_type == "excel":
         export_path = export_dir / f"{result_id}.xlsx"
@@ -266,31 +266,31 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
         try:
             wb = openpyxl.Workbook()
             ws = wb.active
-            ws.title = "巡检结果"
+            ws.title = "Inspection Results"
 
-            # 添加标题信息
-            ws['A1'] = "集群巡检报告"
-            ws['A2'] = f"集群名称: {result_data.get('cluster_name', '')}"
-            ws['A3'] = f"巡检时间: {result_data.get('timestamp', '')}"
-            ws['A4'] = f"报告ID: {result_data.get('result_id', '')}"
+            # Add header information
+            ws['A1'] = "Cluster inspection report"
+            ws['A2'] = f"Cluster name: {result_data.get('cluster_name', '')}"
+            ws['A3'] = f"Inspection time: {result_data.get('timestamp', '')}"
+            ws['A4'] = f"Report ID: {result_data.get('result_id', '')}"
 
-            # 添加表头
-            headers = ['名称', '状态', '严重程度', '描述', '详细信息', '解决方案']
+            # Add headers
+            headers = ['Name', 'Status', 'Severity Level', 'Description', 'Details', 'Solution']
             for col, header in enumerate(headers, start=1):
                 ws.cell(row=6, column=col, value=header)
 
-            # 获取所有检查项 - 兼容新旧数据结构
+            # Get all inspection items - compatibility with new and old data structures
             all_items = []
             if 'inspection_results' in result_data:
-                # 新数据结构：从inspection_results中获取所有项目
+                # New data structure: get all items from inspection_results
                 for inspector_type, inspector_result in result_data['inspection_results'].items():
                     items = inspector_result.get('items', [])
                     all_items.extend(items)
             else:
-                # 旧数据结构：直接从items字段获取
+                # Old data structure: get directly from items field
                 all_items = result_data.get('items', [])
 
-            # 添加数据
+            # Add data
             for row_idx, item in enumerate(all_items, start=7):
                 ws.cell(row=row_idx, column=1, value=item.get('name', ''))
                 ws.cell(row=row_idx, column=2, value=item.get('status', ''))
@@ -299,29 +299,29 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                 ws.cell(row=row_idx, column=5, value=item.get('details', ''))
                 ws.cell(row=row_idx, column=6, value=item.get('solution', ''))
 
-            # 保存工作簿
+            # Save workbook
             wb.save(export_path)
             return True, str(export_path)
         except Exception as e:
-            return False, f"导出Excel失败: {str(e)}"
+            return False, f"Excel export failed: {str(e)}"
     elif format_type == "pdf":
         if not PDF_SUPPORT:
-            return False, "PDF экспорт недоступен. Установите reportlab: pip install reportlab"
+            return False, "PDF export not available. Install reportlab: pip install reportlab"
 
         export_path = export_dir / f"{result_id}.pdf"
 
         try:
-            # Улучшенный поиск шрифтов для кириллицы
-            font_name = 'DejaVuSans'  # По умолчанию используем DejaVuSans
+            # Enhanced font search for Cyrillic
+            font_name = 'DejaVuSans'  # Use DejaVuSans by default
 
-            # Проверяем доступные системные шрифты (в порядке приоритета)
+            # Check available system fonts (in priority order)
             possible_fonts = [
-                # DejaVu Sans (часто есть в Linux)
+                # DejaVu Sans (often available in Linux)
                 ('/usr/share/fonts/dejavu/DejaVuSans.ttf', 'DejaVuSans'),
                 ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 'DejaVuSans'),
                 ('/usr/share/fonts/TTF/DejaVuSans.ttf', 'DejaVuSans'),
 
-                # Liberation Sans (альтернатива в Linux)
+                # Liberation Sans (Linux alternative)
                 ('/usr/share/fonts/liberation/LiberationSans-Regular.ttf', 'LiberationSans'),
 
                 # Arial (Windows/Linux)
@@ -335,7 +335,7 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                 ('/usr/share/fonts/TTF/Times.ttf', 'TimesNewRoman'),
                 ('C:/Windows/Fonts/times.ttf', 'TimesNewRoman'),
 
-                # FreeSans (может быть в системах с ghostscript)
+                # FreeSans (may be in systems with ghostscript)
                 ('/usr/share/fonts/type1/gsfonts/FreeSans.pfb', 'FreeSans'),
             ]
 
@@ -346,24 +346,24 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                         pdfmetrics.registerFont(TTFont(font_alias, font_path))
                         font_name = font_alias
                         font_found = True
-                        print(f"Используется шрифт: {font_alias} из {font_path}")
+                        print(f"Using font: {font_alias} from {font_path}")
                         break
                     except Exception as e:
-                        print(f"Не удалось загрузить шрифт {font_path}: {e}")
+                        print(f"Failed to load font {font_path}: {e}")
                         continue
 
-            # Если не нашли подходящий шрифт, используем Times-Roman (лучше поддерживает Unicode)
+            # If no suitable font found, use Times-Roman (better Unicode support)
             if not font_found:
                 font_name = 'Times-Roman'
-                print(f"Используется встроенный шрифт: {font_name}")
+                print(f"Using built-in font: {font_name}")
 
-            # Создаем PDF документ с альбомной ориентацией
+            # Create PDF document with landscape orientation
             doc = SimpleDocTemplate(str(export_path), pagesize=landscape(A4),
                                     topMargin=1*cm, bottomMargin=1*cm,
                                     leftMargin=1*cm, rightMargin=1*cm)
             styles = getSampleStyleSheet()
 
-            # Создаем стили для кириллицы
+            # Create styles for Cyrillic
             title_style = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
@@ -389,24 +389,24 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                 fontSize=9,
                 spaceAfter=6,
                 fontName=font_name,
-                leading=11  # межстрочный интервал
+                leading=11  # line spacing
             )
 
-            # Стиль для ячеек таблицы с переносом текста
+            # Style for table cells with text wrapping
             cell_style = ParagraphStyle(
                 'TableCell',
                 parent=styles['Normal'],
                 fontSize=8,
                 fontName=font_name,
                 leading=10,
-                wordWrap='CJK'  # Включаем перенос текста
+                wordWrap='CJK'  # Enable text wrapping
             )
 
-            # Функция для очистки текста от эмодзи
+            # Function to clean text from emojis
             def clean_text(text):
                 if not isinstance(text, str):
                     text = str(text)
-                # Удаляем эмодзи и специальные символы
+                # Remove emojis and special symbols
                 emoji_pattern = re.compile(
                     "["
                     "\U0001F600-\U0001F64F"  # emoticons
@@ -429,35 +429,35 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                 )
                 return emoji_pattern.sub('', text).strip()
 
-            # Функция для создания Paragraph с переносом текста
+            # Function to create Paragraph with text wrapping
             def create_cell_paragraph(text, max_length=150):
-                """Создает Paragraph с обрезанным текстом при необходимости"""
+                """Creates Paragraph with truncated text if necessary"""
                 clean = clean_text(text)
                 if len(clean) > max_length:
                     clean = clean[:max_length] + "..."
                 return Paragraph(clean, cell_style)
 
-            # Собираем содержимое PDF
+            # Assemble PDF content
             story = []
 
-            # Заголовок
-            title = clean_text("Отчет о проверке кластера Kubernetes")
+            # Title
+            title = clean_text("Kubernetes cluster inspection report")
             story.append(Paragraph(title, title_style))
             story.append(Spacer(1, 10))
 
-            # Информация о кластере
+            # Cluster information
             cluster_info = [
-                f"<b>Название кластера:</b> {clean_text(result_data.get('cluster_name', 'Неизвестно'))}",
-                f"<b>Время проверки:</b> {result_data.get('timestamp', 'Неизвестно')}",
-                f"<b>ID отчета:</b> {clean_text(result_data.get('result_id', 'Неизвестно'))}",
-                f"<b>Тип проверки:</b> {clean_text(result_data.get('inspection_type', 'Неизвестно'))}"
+                f"<b>Cluster name:</b> {clean_text(result_data.get('cluster_name', 'Unknown'))}",
+                f"<b>Inspection time:</b> {result_data.get('timestamp', 'Unknown')}",
+                f"<b>Report ID:</b> {clean_text(result_data.get('result_id', 'Unknown'))}",
+                f"<b>Inspection type:</b> {clean_text(result_data.get('inspection_type', 'Unknown'))}"
             ]
 
             for info in cluster_info:
                 story.append(Paragraph(info, normal_style))
             story.append(Spacer(1, 15))
 
-            # Получаем все элементы проверки
+            # Get all inspection items
             all_items = []
             if 'inspection_results' in result_data:
                 for inspector_type, inspector_result in result_data['inspection_results'].items():
@@ -466,47 +466,47 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
             else:
                 all_items = result_data.get('items', [])
 
-            # Статистика
+            # Statistics
             passed_count = sum(1 for item in all_items if item.get('status') == 'passed')
             exception_count = len(all_items) - passed_count
 
-            stats_text = f"<b>Всего проверок:</b> {len(all_items)}, <b>Пройдено:</b> {passed_count}, <b>Ошибок:</b> {exception_count}"
+            stats_text = f"<b>Total checks:</b> {len(all_items)}, <b>Passed:</b> {passed_count}, <b>Errors:</b> {exception_count}"
             story.append(Paragraph(stats_text, normal_style))
             story.append(Spacer(1, 15))
 
-            # Таблица результатов
+            # Results table
             if all_items:
-                # Определяем максимальное количество строк на странице
-                max_rows_per_page = 30  # Ограничиваем для читаемости
+                # Define maximum rows per page
+                max_rows_per_page = 30  # Limit for readability
 
-                # Разбиваем данные на части для пагинации
+                # Split data into chunks for pagination
                 for page_num, start_idx in enumerate(range(0, len(all_items), max_rows_per_page)):
                     end_idx = min(start_idx + max_rows_per_page, len(all_items))
                     page_items = all_items[start_idx:end_idx]
 
                     if page_num > 0:
-                        story.append(Paragraph(f"<i>Продолжение таблицы...</i>", normal_style))
+                        story.append(Paragraph(f"<i>Table continuation...</i>", normal_style))
                         story.append(Spacer(1, 10))
 
-                    # Создаем данные для таблицы
+                    # Create table data
                     table_data = []
 
-                    # Заголовки таблицы
+                    # Table headers
                     header_row = [
-                        create_cell_paragraph('Название проверки'),
-                        create_cell_paragraph('Статус'),
-                        create_cell_paragraph('Уровень важности'),
-                        create_cell_paragraph('Описание'),
-                        create_cell_paragraph('Решение')
+                        create_cell_paragraph('Check name'),
+                        create_cell_paragraph('Status'),
+                        create_cell_paragraph('Severity level'),
+                        create_cell_paragraph('Description'),
+                        create_cell_paragraph('Solution')
                     ]
                     table_data.append(header_row)
 
-                    # Добавляем данные
+                    # Add data
                     for item in page_items:
                         name = create_cell_paragraph(item.get('name', ''))
                         status = create_cell_paragraph(item.get('status', ''))
 
-                        # Определяем цвет для статуса
+                        # Determine color for status
                         status_color = colors.green
                         if item.get('status') != 'passed':
                             status_color = colors.red
@@ -518,23 +518,23 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                         row = [name, status, severity, description, solution]
                         table_data.append(row)
 
-                    # Автоматическое определение ширины колонок
-                    # Используем пропорциональное распределение с учетом содержимого
-                    page_width = landscape(A4)[0] - 2*cm  # Ширина страницы минус отступы
+                    # Automatic column width determination
+                    # Use proportional distribution based on content
+                    page_width = landscape(A4)[0] - 2*cm  # Page width minus margins
 
-                    # Определяем примерные пропорции колонок на основе их содержимого
-                    col_proportions = [3.0, 1.0, 1.5, 4.0, 3.0]  # Примерные пропорции
+                    # Define approximate column proportions based on content
+                    col_proportions = [3.0, 1.0, 1.5, 4.0, 3.0]  # Approximate proportions
                     total_proportion = sum(col_proportions)
 
-                    # Рассчитываем ширину каждой колонки
+                    # Calculate width of each column
                     col_widths = [(page_width / total_proportion) * prop for prop in col_proportions]
 
-                    # Создаем таблицу
+                    # Create table
                     table = Table(table_data, colWidths=col_widths, repeatRows=1)
 
-                    # Применяем стили к таблице
+                    # Apply styles to table
                     table_style = TableStyle([
-                        # Заголовок таблицы
+                        # Table header
                         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F81BD')),
                         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
@@ -543,25 +543,25 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
                         ('TOPPADDING', (0, 0), (-1, 0), 8),
 
-                        # Чередование цветов строк для читаемости
+                        # Alternating row colors for readability
                         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F2F2F2')]),
 
-                        # Границы таблицы
+                        # Table borders
                         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
 
-                        # Выравнивание содержимого
-                        ('ALIGN', (0, 1), (1, -1), 'CENTER'),  # Статус и важность по центру
+                        # Content alignment
+                        ('ALIGN', (0, 1), (1, -1), 'CENTER'),  # Status and severity centered
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                         ('LEFTPADDING', (0, 0), (-1, -1), 4),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 4),
                         ('TOPPADDING', (0, 0), (-1, -1), 4),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
 
-                        # Автоматический перенос текста
+                        # Automatic text wrapping
                         ('WORDWRAP', (0, 0), (-1, -1), True),
                     ])
 
-                    # Динамическое окрашивание ячеек статуса
+                    # Dynamic status cell coloring
                     for i in range(1, len(table_data)):
                         status_text = all_items[start_idx + i - 1].get('status', '')
                         if status_text == 'passed':
@@ -573,42 +573,42 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
 
                     table.setStyle(table_style)
 
-                    # Добавляем таблицу в историю
+                    # Add table to story
                     story.append(table)
 
-                    # Добавляем разрыв страницы если это не последняя часть
+                    # Add page break if this is not the last part
                     if end_idx < len(all_items):
                         story.append(Spacer(1, 10))
-                        story.append(Paragraph(f"Страница {page_num + 1}", normal_style))
+                        story.append(Paragraph(f"Page {page_num + 1}", normal_style))
                         story.append(Spacer(1, 20))
 
-            # Добавляем итоговую статистику
+            # Add final statistics
             story.append(Spacer(1, 20))
-            summary_text = f"<b>Итог:</b> Отчет сгенерирован {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            summary_text = f"<b>Summary:</b> Report generated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             story.append(Paragraph(summary_text, normal_style))
 
-            # Генерируем PDF
+            # Generate PDF
             doc.build(story)
             return True, str(export_path)
 
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
-            return False, f"Ошибка экспорта PDF: {str(e)}\nДетали: {error_details}"
+            return False, f"PDF export error: {str(e)}\nDetails: {error_details}"
 
     else:
-        return False, f"不支持的导出格式: {format_type}"
+        return False, f"Unsupported export format: {format_type}"
 
 
-# Кэширование отключено
+# Caching disabled
 
 
 def _calculate_result_summary(result_data: Dict) -> Dict:
-    """Вычисление сводки результатов для одного файла"""
-    # Всегда пересчитываем заново для точности, игнорируя старые summary поля
-    # 处理新的数据结构
+    """Calculation of result summary for one file"""
+    # Always recalculate for accuracy, ignoring old summary fields
+    # Handle new data structure
     if 'inspection_results' in result_data:
-        # 新格式：但没有summary，需要计算
+        # New format: but no summary, need to calculate
         critical = 0
         warning = 0
         info = 0
@@ -620,7 +620,7 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
             total += len(items)
 
             for item in items:
-                # 安全地获取status和severity，处理不同类型的item
+                # Safely get status and severity, handle different item types
                 if isinstance(item, dict):
                     status = item.get('status', 'unknown')
                     severity = item.get('severity', 'unknown')
@@ -634,7 +634,7 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
                 if status == 'passed':
                     passed += 1
                 elif status == 'exception':
-                    # Подсчёт по severity как в старом формате
+                    # Count by severity as in old format
                     if severity == 'critical':
                         critical += 1
                     elif severity == 'warning':
@@ -642,17 +642,17 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
                     else:
                         info += 1
                 else:
-                    # Неизвестный статус - считаем как info
+                    # Unknown status - count as info
                     info += 1
     else:
-        # 旧格式：直接items字段
+        # Old format: direct items field
         critical = 0
         warning = 0
         info = 0
         passed = 0
 
         for item in result_data.get('items', []):
-            # 安全地获取status和severity，处理不同类型的item
+            # Safely get status and severity, handle different item types
             if isinstance(item, dict):
                 status = item.get('status', 'unknown')
                 severity = item.get('severity', 'unknown')
@@ -673,7 +673,7 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
                 else:
                     info += 1
             else:
-                # Неизвестный статус - считаем как info
+                # Unknown status - count as info
                 info += 1
 
         total = len(result_data.get('items', []))
@@ -693,38 +693,38 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
 
 def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
     """
-    Загрузка результатов без кэширования
+    Loading results without caching
 
     Args:
-        cluster_name: 可选的集群名称过滤
+        cluster_name: optional filtering by cluster name
 
     Returns:
-        巡检结果摘要列表
+        list of inspection result summaries
     """
     results = []
 
-    # Загрузка: фильтрация по содержимому файла
+    # Loading: filtering by file content
     for file_path in RESULTS_DIR.rglob('*.json'):
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 result_data = json.load(f)
 
-            # Фильтрация по имени кластера
+            # Filtering by cluster name
             if cluster_name and result_data.get('cluster_name') != cluster_name:
                 continue
 
-            # Вычисление сводки
+            # Calculation of summary
             summary = _calculate_result_summary(result_data)
             results.append(summary)
 
         except (json.JSONDecodeError, IOError, UnicodeDecodeError) as e:
-            # Игнорируем поврежденные файлы
+            # Ignore corrupted files
             continue
         except Exception as e:
-            # Для других ошибок также пропускаем файл
+            # For other errors also skip the file
             continue
 
-    # Сортировка по времени (новые сначала)
+    # Sorting by time (newest first)
     results.sort(key=lambda x: x['timestamp'], reverse=True)
 
     return results
@@ -732,24 +732,24 @@ def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
 
 def list_results(cluster_name: Optional[str] = None, limit: Optional[int] = None, offset: int = 0, order_by: Optional[str] = None) -> List[Dict]:
     """
-    列出巡检结果 с поддержкой пагинации и сортировки
+    List inspection results with pagination and sorting support
 
     Args:
-        cluster_name: 可选的集群名称过滤
-        limit: максимальное количество результатов (None для всех)
-        offset: смещение для пагинации
-        order_by: поле для сортировки ('timestamp DESC' для сортировки по времени)
+        cluster_name: optional filtering by cluster name
+        limit: maximum number of results (None for all)
+        offset: offset for pagination
+        order_by: field for sorting ('timestamp DESC' for sorting by time)
 
     Returns:
-        巡检结果摘要列表
+        list of inspection result summaries
     """
     results = list_results_cached(cluster_name)
 
-    # Применяем сортировку
+    # Apply sorting
     if order_by == 'timestamp DESC':
         results.sort(key=lambda x: x['timestamp'], reverse=True)
 
-    # Применяем пагинацию
+    # Apply pagination
     if limit is not None:
         start_idx = offset
         end_idx = offset + limit
@@ -759,12 +759,12 @@ def list_results(cluster_name: Optional[str] = None, limit: Optional[int] = None
 
 
 def load_result_minimal(file_path: Path) -> Optional[Dict]:
-    """Загрузка только необходимых полей результата для списков"""
+    """Loading only necessary fields of result for lists"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        # Вернуть только необходимые поля для списка
+        # Return only necessary fields for list
         return {
             'result_id': data.get('result_id'),
             'cluster_name': data.get('cluster_name'),
@@ -779,13 +779,13 @@ def load_result_minimal(file_path: Path) -> Optional[Dict]:
 
 def get_latest_result_by_cluster(cluster_name: str) -> Optional[Dict[str, Any]]:
     """
-    获取指定集群的最新巡检结果
+    Get latest inspection results for specified cluster
 
     Args:
-        cluster_name (str): 集群名称
+        cluster_name (str): cluster name
 
     Returns:
-        Optional[Dict[str, Any]]: 最新的巡检结果，如果没有则返回 None
+        Optional[Dict[str, Any]]: latest inspection results, return None if none
     """
     results = list_results(cluster_name=cluster_name, limit=1)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Prometheus 查询工具，用于从 Prometheus 获取指标数据
+Prometheus query tool for obtaining metric data from Prometheus
 """
 
 import requests
@@ -12,117 +12,117 @@ import time
 import base64
 
 class PrometheusClient:
-    """Prometheus 客户端类"""
-    
+    """Prometheus client class"""
+
     def __init__(self, config: Dict):
         """
-        初始化 Prometheus 客户端
-        
+        Initialize Prometheus client
+
         Args:
-            config: 包含以下字段的配置字典:
+            config: configuration dictionary containing the following fields:
                 - url: Prometheus URL
-                - username: 可选的用户名
-                - password: 可选的密码
-                - token: 可选的访问令牌
-                - enabled: 是否启用
+                - username: optional username
+                - password: optional password
+                - token: optional access token
+                - enabled: whether enabled
         """
         self.url = config['url'].rstrip('/')
         self.username = config.get('username', '')
         self.password = config.get('password', '')
         self.token = config.get('token', '')
         self.enabled = config.get('enabled', False)
-    
+
     def _get_headers(self) -> Dict:
-        """获取请求头"""
+        """Get request headers"""
         headers = {'Accept': 'application/json'}
-        
+
         if self.token:
             headers['Authorization'] = f"Bearer {self.token}"
         elif self.username and self.password:
             auth = base64.b64encode(f"{self.username}:{self.password}".encode()).decode()
             headers['Authorization'] = f"Basic {auth}"
-            
+
         return headers
-    
+
     def query(self, query_expr: str, time_param: Optional[str] = None) -> Dict:
         """
-        执行 Prometheus 查询
-        
+        Execute Prometheus query
+
         Args:
-            query_expr: Prometheus 查询表达式
-            time_param: 可选的时间参数
-            
+            query_expr: Prometheus query expression
+            time_param: optional time parameter
+
         Returns:
-            查询结果字典
+            query results dictionary
         """
         if not self.enabled or not self.url:
-            return {'status': 'error', 'error': 'Prometheus 未配置或未启用'}
-        
+            return {'status': 'error', 'error': 'Prometheus is not configured or not enabled'}
+
         params = {'query': query_expr}
         if time_param:
             params['time'] = time_param
-            
-        # 使用带重试的请求
+
+        # Use request with retries
         return self._request_with_retry(f"{self.url}/api/v1/query", params)
-    
-    def query_range(self, query_expr: str, start_time: datetime, 
+
+    def query_range(self, query_expr: str, start_time: datetime,
                    end_time: datetime, step: str = "15s") -> Dict:
         """
-        执行范围查询
-        
+        Execute range query
+
         Args:
-            query_expr: Prometheus 查询表达式
-            start_time: 开始时间
-            end_time: 结束时间
-            step: 步长
-            
+            query_expr: Prometheus query expression
+            start_time: start time
+            end_time: end time
+            step: step
+
         Returns:
-            查询结果字典
+            query results dictionary
         """
         if not self.enabled or not self.url:
-            return {'status': 'error', 'error': 'Prometheus 未配置或未启用'}
-        
+            return {'status': 'error', 'error': 'Prometheus is not configured or not enabled'}
+
         params = {
             'query': query_expr,
             'start': start_time.timestamp(),
             'end': end_time.timestamp(),
             'step': step
         }
-        
-        # 使用带重试的请求
+
+        # Use request with retries
         return self._request_with_retry(f"{self.url}/api/v1/query_range", params)
-    
+
     def alerts(self) -> Dict:
-        """获取当前触发的告警"""
+        """Get current triggered alerts"""
         if not self.enabled or not self.url:
-            return {'status': 'error', 'error': 'Prometheus 未配置或未启用'}
-        
-        # 使用带重试的请求
+            return {'status': 'error', 'error': 'Prometheus is not configured or not enabled'}
+
+        # Use request with retries
         return self._request_with_retry(f"{self.url}/api/v1/alerts")
-            
+
     def _request_with_retry(self, url: str, params: Dict = None, max_retries: int = 3) -> Dict:
         """
-        执行带重试的 Prometheus API 请求
-        
+        Execute Prometheus API request with retries
+
         Args:
             url: API URL
-            params: 请求参数
-            max_retries: 最大重试次数
-            
+            params: request parameters
+            max_retries: maximum number of retries
+
         Returns:
-            响应结果
+            response result
         """
         retries = 0
         last_error = None
-        
-        # 根据URL协议决定是否验证SSL
+
+        # Determine whether to verify SSL based on URL protocol
         verify_ssl = url.lower().startswith('https://')
-        
-        # 如果是HTTP请求，禁用不安全请求的警告
+
+        # If this is an HTTP request, disable warnings about insecure requests
         if not verify_ssl:
             import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
+
         while retries < max_retries:
             try:
                 response = requests.get(
@@ -130,37 +130,37 @@ class PrometheusClient:
                     headers=self._get_headers(),
                     params=params,
                     timeout=30,
-                    verify=verify_ssl  # 根据协议决定是否验证SSL
+                    verify=verify_ssl  # Determine whether to verify SSL based on protocol
                 )
-                
+
                 if response.status_code == 200:
                     return response.json()
                 elif response.status_code == 503 or response.status_code >= 500:
-                    # 服务不可用，尝试重试
+                    # Service unavailable, try to retry
                     retries += 1
                     if retries < max_retries:
-                        time.sleep(1)  # 重试前等待1秒
+                        time.sleep(1)  # Wait 1 second before retry
                         continue
                     else:
                         return {
                             'status': 'error',
-                            'error': f"多次重试后仍连接失败: HTTP {response.status_code}",
+                            'error': f"After several retries connection still failed: HTTP {response.status_code}",
                             'detail': response.text
                         }
                 else:
                     return {
                         'status': 'error',
-                        'error': f"查询失败: HTTP {response.status_code}",
+                        'error': f"Request failed: HTTP {response.status_code}",
                         'detail': response.text
                     }
             except requests.exceptions.Timeout:
-                # 超时重试
+                # Retry on timeout
                 retries += 1
                 if retries < max_retries:
                     time.sleep(1)
                     continue
                 else:
-                    return {'status': 'error', 'error': "请求超时，多次重试无效"}
+                    return {'status': 'error', 'error': "Request timeout, several retries failed"}
             except requests.exceptions.RequestException as e:
                 last_error = str(e)
                 retries += 1
@@ -168,36 +168,36 @@ class PrometheusClient:
                     time.sleep(1)
                     continue
                 else:
-                    return {'status': 'error', 'error': f"请求异常: {last_error}"}
-                    
+                    return {'status': 'error', 'error': f"Request exception: {last_error}"}
+
     def test_connection(self) -> Dict:
-        """测试与 Prometheus 的连接"""
+        """Test connection to Prometheus"""
         if not self.enabled or not self.url:
-            return {'status': 'error', 'error': 'Prometheus 未配置或未启用'}
-        
-        # 根据URL协议决定是否验证SSL
+            return {'status': 'error', 'error': 'Prometheus is not configured or not enabled'}
+
+        # Determine whether to verify SSL based on URL protocol
         verify_ssl = self.url.lower().startswith('https://')
-        
-        # 如果是HTTP请求，禁用不安全请求的警告
+
+        # If this is an HTTP request, disable warnings about insecure requests
         if not verify_ssl:
             import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
+
         try:
             response = requests.get(
                 f"{self.url}/api/v1/status/config",
                 headers=self._get_headers(),
                 timeout=10,
-                verify=verify_ssl  # 根据协议决定是否验证SSL
+                verify=verify_ssl  # Determine whether to verify SSL based on protocol
             )
-            
+
             if response.status_code == 200:
-                return {'status': 'success', 'message': 'Prometheus 连接成功'}
+                return {'status': 'success', 'message': 'Connection to Prometheus successful'}
             else:
                 return {
                     'status': 'error',
-                    'error': f"连接失败: HTTP {response.status_code}",
+                    'error': f"Connection failed: HTTP {response.status_code}",
                     'detail': response.text
                 }
         except requests.exceptions.RequestException as e:
-            return {'status': 'error', 'error': f"请求异常: {str(e)}"}
+            return {'status': 'error', 'error': f"Request exception: {str(e)}"}

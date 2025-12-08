@@ -1,8 +1,8 @@
 ---
-# OPA правило - проверка монтирования путей хоста (упрощённая версия)
+# OPA rule - host path mounting check (simplified version)
 id: opa_host_path
-name: Проверка монтирования путей хоста для Pod
-description: Проверяет, монтирует ли Pod пути хоста; каждое правило — отдельная проверка
+name: Pod host path mounting check
+description: Checks if Pod mounts host paths; each rule is a separate check
 type: opa
 category: security
 severity: critical
@@ -10,9 +10,9 @@ enabled: true
 tier: basic
 
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация ресурсов
+  # Resources configuration
   resources:
     - kind: Pod
       apiVersion: v1
@@ -28,12 +28,12 @@ config:
       namespaced: true
 
 
-  # Конфигурация rego-правила
+  # Rego rule configuration
   rego:
     inline: |
       package kubernetes
 
-      # Получить спецификацию Pod
+      # Get Pod specification
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
@@ -44,7 +44,7 @@ config:
           spec := resource.spec.template.spec
       }
 
-      # Проверка монтирования путей хоста
+      # Check host path mounting
       host_path_volumes(volumes) = host_paths if {
           host_paths := [volume |
               volume := volumes[_]
@@ -52,7 +52,7 @@ config:
           ]
       }
 
-      # Определение нарушений
+      # Define violations
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -64,7 +64,7 @@ config:
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' в пространстве имен '%s' монтирует %d том(ов) путем хоста: %s", [
+              "message": sprintf("%s '%s' in namespace '%s' mounts %d host path volume(s): %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -74,7 +74,7 @@ config:
           }
       }
 
-      # Вспомогательные функции
+      # Helper functions
       default_array(val) = result if {
           val != null
           result = val
@@ -84,23 +84,23 @@ config:
           val == null
       }
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Проверка монтирования путей хоста"
+    - name: "Host path mounting check"
       condition: "violation_count == 0"
       severity: critical
-      description: "Обнаружено {{ violation_count }} монтирований путей хоста"
+      description: "Found {{ violation_count }} host path mountings"
 
 
-# Рекомендации по устранению проблемы
+# Problem resolution recommendations
 solution: |
-  Обработка рисков монтирования путей хоста:
-  1. Избегайте монтирования путей хоста, особенно чувствительных директорий, таких как /, /etc, /var
-  2. Используйте PersistentVolume и PersistentVolumeClaim
-  3. Если монтирование необходимо, ограничьте путь и установите режим только для чтения
+  Handling host path mounting risks:
+  1. Avoid mounting host paths, especially sensitive directories like /, /etc, /var
+  2. Use PersistentVolume and PersistentVolumeClaim
+  3. If mounting is necessary, restrict the path and set read-only mode
 
 
-# Метки
+# Tags
 tags:
   - security
   - volumes

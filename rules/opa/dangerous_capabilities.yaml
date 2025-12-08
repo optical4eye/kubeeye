@@ -1,8 +1,8 @@
 ---
-# OPA правило - проверка опасных возможностей Linux
+# OPA rule - Linux dangerous capabilities check
 id: opa_dangerous_capabilities
-name: Проверка опасных возможностей контейнера Linux
-description: Проверяет, настроены ли в контейнере опасные возможности Linux, такие как CAP_SYS_ADMIN, которые могут представлять риск безопасности
+name: Linux container dangerous capabilities check
+description: Checks if dangerous Linux capabilities are configured in containers, such as CAP_SYS_ADMIN, which may pose security risks
 type: opa
 category: security
 severity: high
@@ -10,9 +10,9 @@ enabled: true
 tier: standard
 
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация ресурсов
+  # Resources configuration
   resources:
     - kind: Pod
       apiVersion: v1
@@ -28,21 +28,21 @@ config:
       namespaced: true
 
 
-  # Конфигурация охвата
+  # Scope configuration
   scope:
     namespaces:
-      include: []  # все пространства имен
+      include: []  # all namespaces
       exclude:
         - kube-system
         - kube-public
 
 
-  # Конфигурация rego-правила
+  # Rego rule configuration
   rego:
     inline: |
       package kubernetes
 
-      # Получение спецификации Pod
+      # Get Pod specification
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
@@ -53,7 +53,7 @@ config:
           spec := resource.spec.template.spec
       }
 
-      # Список опасных возможностей Linux
+      # List of dangerous Linux capabilities
       dangerous_caps := {
           "SYS_ADMIN",
           "SYS_TIME",
@@ -66,7 +66,7 @@ config:
           "SETGID"
       }
 
-      # Проверка опасных возможностей в контейнерах
+      # Check dangerous capabilities in containers
       dangerous_capabilities(containers) = dangerous if {
           dangerous := [container |
               container := containers[_]
@@ -81,7 +81,7 @@ config:
           ]
       }
 
-      # Правило нарушений - опасные возможности
+      # Violation rule - dangerous capabilities
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -96,7 +96,7 @@ config:
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) с опасными возможностями: %s", [
+              "message": sprintf("%s '%s' in namespace '%s' contains %d container(s) with dangerous capabilities: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -106,7 +106,7 @@ config:
           }
       }
 
-      # Вспомогательные функции
+      # Helper functions
       default_array(val) = result if {
           val != null
           result = val
@@ -126,26 +126,26 @@ config:
       }
 
 
-# Конфигурация утверждений
+# Assertions configuration
 assertions:
-  - name: "Проверка опасных возможностей"
+  - name: "Dangerous capabilities check"
     condition: "violation_count == 0"
     severity: high
-    description: "Обнаружено {{ violation_count }} контейнеров с опасными возможностями"
+    description: "Found {{ violation_count }} containers with dangerous capabilities"
 
 
-# Рекомендации по устранению проблемы
+# Problem resolution recommendations
 solution: |
 
-  Удалите ненужные возможности Linux, применяя принцип минимальных прав:
+  Remove unnecessary Linux capabilities by applying the principle of least privilege:
   ```yaml
   securityContext:
     capabilities:
-      drop: ["ALL"]  # Сначала удалить все возможности
-      add: []        # Добавить только абсолютно необходимые возможности
+      drop: ["ALL"]  # First drop all capabilities
+      add: []        # Add only absolutely necessary capabilities
   ```
 
-# Метки
+# Tags
 tags:
   - security
   - linux-capabilities

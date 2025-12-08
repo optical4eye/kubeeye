@@ -1,2 +1,2 @@
-# Модуль инспекции OPA
-# Файл инициализации
+# OPA inspection module
+# Initialization file

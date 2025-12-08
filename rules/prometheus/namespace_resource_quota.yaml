@@ -1,33 +1,33 @@
 ---
-# Проверка использования квоты ресурсов пространства имен
+# Namespace resource quota usage check
 id: prom_namespace_resource_quota
-name: Проверка использования квоты ресурсов пространства имен
-description: Проверить использование квоты ресурсов пространства имен
+name: Namespace resource quota usage check
+description: Check namespace resource quota usage
 type: prometheus
 category: quota
 severity: warning
 enabled: true
 tier: basic
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация запроса Prometheus - использование квоты CPU пространства имен
+  # Prometheus query configuration - namespace CPU quota usage
   query: "(sum by(namespace) (kube_resourcequota{resource=\"requests.cpu\", type=\"used\"}) / sum by(namespace) (kube_resourcequota{resource=\"requests.cpu\", type=\"hard\"})) * 100"
 
-  # Конфигурация временного диапазона
+  # Time range configuration
   time_range:
     start: "now-5m"
     end: "now"
     step: "1m"
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Проверка использования квоты ресурсов пространства имен"
+    - name: "Namespace resource quota usage check"
       condition: "max_value < 90"
       severity: warning
-      description: "Использование квоты CPU пространства имен: {{ max_value | round(2) }}%"
+      description: "Namespace CPU quota usage: {{ max_value | round(2) }}%"
 
-# Теги
+# Tags
 tags:
   - namespace
   - quota

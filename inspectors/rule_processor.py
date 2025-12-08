@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Модуль обработчика правил, предоставляющий функциональность обработки правил на основе утверждений
+Rule processor module providing assertion-based rule processing functionality
 """
 
 import logging
@@ -12,45 +12,45 @@ from utils.assertion_manager import AssertionManager
 from utils.result_formatter import ResultFormatter
 from utils.result_extractor import ResultExtractor
 
-# 设置日志
+# Set up logging
 logger = logging.getLogger(__name__)
 
 class RuleProcessor:
     """
-    Обработчик правил, предоставляющий общую функциональность обработки правил
+    Rule processor providing common rule processing functionality
     """
 
     def __init__(self):
-        """Инициализировать обработчик правил"""
+        """Initialize the rule processor"""
         self.assertion_manager = AssertionManager()
         self.result_formatter = ResultFormatter()
         self.result_extractor = ResultExtractor()
 
-        # Для обратной совместимости сохранить старые имена атрибутов
+        # For backward compatibility, preserve old attribute names
         self.assertion_evaluator = self.assertion_manager
 
     @staticmethod
     def get_rule_config(rule: Rule, path: str, default_value: Any = None) -> Any:
         """
-        Безопасно получить значение из конфигурации правила, поддерживает пути с точечной нотацией
+        Safely get value from rule configuration, supports dot notation paths
 
         Args:
-            rule: Объект правила
-            path: Путь конфигурации, используя точечную нотацию, например "execution.command"
-            default_value: Значение по умолчанию, если путь не существует
+            rule: Rule object
+            path: Configuration path using dot notation, e.g. "execution.command"
+            default_value: Default value if path does not exist
 
         Returns:
-            Значение, на которое указывает путь, или значение по умолчанию, если путь не существует
+            Value pointed to by the path, or default value if path does not exist
         """
         parts = path.split('.')
         current = getattr(rule, 'config', {})
 
-        # Обработать случай без config, напрямую получить атрибут верхнего уровня из rule
+        # Handle case without config, directly get top-level attribute from rule
         if not current and hasattr(rule, parts[0]):
             if len(parts) == 1:
                 return getattr(rule, parts[0])
             else:
-                # Если значение атрибута является словарем, продолжить обработку подпути
+                # If attribute value is a dictionary, continue processing subpath
                 current = getattr(rule, parts[0])
                 if not isinstance(current, dict):
                     return default_value
@@ -68,20 +68,20 @@ class RuleProcessor:
                           details: str, solution: Optional[str] = None,
                           violations: Optional[List[Dict]] = None, **kwargs) -> Dict:
         """
-        Форматировать результат проверки правила (делегировано ResultFormatter)
+        Format rule check result (delegated to ResultFormatter)
 
         Args:
-            rule: Объект правила
-            status: Статус (passed, failed, error, warning, skipped, unknown)
-            description: Краткое описание результата
-            severity: Уровень серьезности
-            details: Подробная информация
-            solution: Опциональное решение
-            violations: Опциональный список нарушений
-            **kwargs: Другие дополнительные поля
+            rule: Rule object
+            status: Status (passed, failed, error, warning, skipped, unknown)
+            description: Brief result description
+            severity: Severity level
+            details: Detailed information
+            solution: Optional solution
+            violations: Optional list of violations
+            **kwargs: Other additional fields
 
         Returns:
-            Форматированный словарь результата
+            Formatted result dictionary
         """
         return self.result_formatter.format_result(
             rule=rule,
@@ -97,13 +97,13 @@ class RuleProcessor:
     @staticmethod
     def get_severity_order(severity: str) -> int:
         """
-        Получить порядковое значение уровня серьезности для сортировки
+        Get ordinal value of severity level for sorting
 
         Args:
-            severity: Название уровня серьезности
+            severity: Severity level name
 
         Returns:
-            Целое порядковое значение уровня серьезности
+            Integer ordinal value of severity level
         """
         severity_order = {
             'critical': 4,
@@ -118,13 +118,13 @@ class RuleProcessor:
     @staticmethod
     def get_highest_severity(severities: List[str]) -> str:
         """
-        Получить самый высокий уровень серьезности
+        Get the highest severity level
 
         Args:
-            severities: Список уровней серьезности
+            severities: List of severity levels
 
         Returns:
-            Самый высокий уровень серьезности
+            Highest severity level
         """
         if not severities:
             return 'unknown'
@@ -142,27 +142,27 @@ class RuleProcessor:
 
     def evaluate_assertions(self, assertions: List[Dict], context: Dict[str, Any]) -> Dict:
         """
-        Оценить набор утверждений (делегировано AssertionManager)
+        Evaluate set of assertions (delegated to AssertionManager)
 
         Args:
-            assertions: Список утверждений
-            context: Словарь контекстных переменных
+            assertions: List of assertions
+            context: Dictionary of context variables
 
         Returns:
-            Словарь результатов оценки, содержащий пройденные, неудачные утверждения и т.д.
+            Dictionary of evaluation results containing passed, failed assertions, etc.
         """
         return self.assertion_manager.evaluate_assertions(assertions, context, mode="detailed")
 
     def extract_variables(self, output: str, extractors: List[Dict], context: Dict = None) -> Dict[str, Any]:
         """
-        Извлечь переменные из вывода
+        Extract variables from output
 
         Args:
-            output: Вывод команды
-            extractors: Список конфигураций экстракторов
-            context: Контекстные переменные
+            output: Command output
+            extractors: List of extractor configurations
+            context: Context variables
 
         Returns:
-            Словарь извлеченных переменных
+            Dictionary of extracted variables
         """
         return self.result_extractor.extract(output, extractors, context)

@@ -1,22 +1,22 @@
-# KubeEye 安全配置文件
-# 注意：所有安全设置均为强制配置，不可更改
+# KubeEye security configuration file
+# Note: All security settings are mandatory and cannot be changed
 
-# ==================== 强制安全原则 ====================
-# KubeEye 是纯观察型巡检工具，遵循以下不可更改的安全原则：
+# ==================== Mandatory Security Principles ====================
+# KubeEye is a pure observation-type inspection tool that follows these unchangeable security principles:
 #
-# 1. 只读原则：所有巡检命令只能读取信息，不能修改任何内容
-# 2. 白名单模式：只允许明确安全的命令执行
-# 3. 强制安全检查：所有命令都必须通过安全验证
-# 4. 禁止高风险操作：rm、chmod、systemctl restart 等命令一律禁止
+# 1. Read-only principle: All inspection commands can only read information, cannot modify any content
+# 2. Whitelist mode: Only explicitly safe commands are allowed to execute
+# 3. Mandatory security checks: All commands must pass security validation
+# 4. Prohibit high-risk operations: Commands like rm, chmod, systemctl restart are strictly prohibited
 #
-# 巡检工具的使命是观察和报告，绝不是修改和操作！
+# The mission of inspection tools is to observe and report, absolutely not to modify and operate!
 
-# ==================== 基本设置 ====================
-# 命令执行超时时间（秒）
+# ==================== Basic Settings ====================
+# Command execution timeout (seconds)
 command_timeout: 30
 
-# 单个命令的最大长度限制
+# Maximum length limit for single command
 max_command_length: 1000
 
-# 审计日志保留天数
+# Audit log retention days
 audit_retention_days: 90

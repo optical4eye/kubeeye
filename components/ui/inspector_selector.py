@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Компонент выбора инспектора
+Inspector selection component
 """
 import streamlit as st
 
 def select_inspectors(nodes, prometheus_config, kubeconfig):
-    """Определить доступные типы инспекторов"""
+    """Determine available inspector types"""
     run_node_check = bool(nodes)
     run_prometheus_check = bool(prometheus_config and prometheus_config.get('enabled', False))
     run_opa_check = bool(kubeconfig)

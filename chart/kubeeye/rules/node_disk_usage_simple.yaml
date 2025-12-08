@@ -1,8 +1,8 @@
 ---
-# Правило проверки использования диска
+# Disk usage check rule
 id: node-disk-usage-simple
-name: Проверка использования диска
-description: Проверяет использование диска на корневом разделе
+name: Disk usage check
+description: Checks disk usage on root partition
 type: node
 category: storage
 severity: warning
@@ -10,32 +10,32 @@ enabled: true
 tier: basic
 
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация выполнения - напрямую возвращает процент использования
+  # Execution configuration - directly returns usage percentage
   execution:
     command: "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'"
     timeout: 5
 
 
-  # Конфигурация утверждений - напрямую использует вывод команды
+  # Assertions configuration - directly uses command output
   assertions:
-    - name: "Использование диска в норме"
+    - name: "Disk usage is normal"
       condition: "int(output) < 70"
       severity: warning
-      description: "Использование корневого раздела: {{ output }}%"
+      description: "Root partition usage: {{ output }}%"
 
 
-# Рекомендации по устранению проблемы
+# Problem resolution recommendations
 solution: |
-  Обработка высокого использования диска:
-  1. Проверить использование диска: df -h
-  2. Найти крупные файлы: find / -type f -size +100M 2>/dev/null
-  3. Проверить использование журналов: journalctl --disk-usage
-  4. Обратиться к администратору для очистки временных файлов и журналов (если нужно)
+  Handling high disk usage:
+  1. Check disk usage: df -h
+  2. Find large files: find / -type f -size +100M 2>/dev/null
+  3. Check journal usage: journalctl --disk-usage
+  4. Contact administrator to clean temporary files and logs (if needed)
 
 
-# Метки
+# Tags
 tags:
   - storage
   - disk

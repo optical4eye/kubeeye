@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Компонент навигационной панели — используется для создания единообразного навигационного меню на всех страницах
+Navigation bar component - used to create a consistent navigation menu on all pages
 """
 
 import streamlit as st
@@ -10,29 +10,29 @@ from utils.version import VERSION
 
 def set_app_styles():
     """
-    Установить базовые стили приложения (темная тема)
+    Set basic application styles (dark theme)
 
-    Возвращает:
+    Returns:
         None
     """
-    # Темная тема по умолчанию
+    # Dark theme by default
     base_bg = "#1e1e1e"
     base_color = "#ffffff"
     sidebar_bg = "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%)"
     card_bg = "#2d2d2d"
 
-    # CSS стили с переменными
+    # CSS styles with variables
     css_styles = f"""
     <style>
-    /* Скрыть стандартный заголовок страницы и футер */
+    /* Hide standard page title and footer */
     .main .block-container h1:first-child {{ display: none; }}
     footer {{ visibility: hidden; }}
     #MainMenu {{ visibility: hidden; }}
 
-    /* Улучшение общего интерфейса и отступов */
+    /* Improvement of general interface and indents */
     .main .block-container {{ padding-top: 1.5rem; }}
 
-    /* Основные стили боковой панели */
+    /* Main sidebar styles */
     [data-testid="stSidebar"] {{
         background: {sidebar_bg};
         border-right: 1px solid rgba(0,0,0,0.05);
@@ -42,7 +42,7 @@ def set_app_styles():
         width: 244px !important;
     }}
 
-    /* Темная тема */
+    /* Dark theme */
     .main {{
         background-color: {base_bg};
         color: {base_color};
@@ -52,12 +52,12 @@ def set_app_styles():
         background-color: {card_bg};
     }}
 
-    /* Заголовки */
+    /* Headers */
     h1, h2, h3 {{
         color: {base_color};
     }}
 
-    /* Темная тема для footer */
+    /* Dark theme for footer */
     .sidebar-footer {{
         background: {sidebar_bg} !important;
         color: {base_color} !important;
@@ -269,9 +269,9 @@ def set_app_styles():
     st.markdown(f"""
     <script>
 
-    // Toast уведомления система
+    // Toast notification system
     window.showToast = function(message, type = 'info', duration = 4000) {{
-        // Создаем контейнер если его нет
+        // Create container if it doesn't exist
         let container = document.querySelector('.toast-container');
         if (!container) {{
             container = document.createElement('div');
@@ -279,7 +279,7 @@ def set_app_styles():
             document.body.appendChild(container);
         }}
 
-        // Создаем toast
+        // Create toast
         const toast = document.createElement('div');
         toast.className = `toast ${{type}} fade-in`;
         toast.innerHTML = `
@@ -295,7 +295,7 @@ def set_app_styles():
 
         container.appendChild(toast);
 
-        // Автоматическое удаление
+        // Automatic removal
         setTimeout(() => {{
             toast.classList.add('fade-out');
             setTimeout(() => {{
@@ -308,12 +308,12 @@ def set_app_styles():
         return toast;
     }};
 
-    // Переопределяем Streamlit success/error/info функции для использования toast
+    // Override Streamlit success/error/info functions to use toast
     const originalSuccess = window.parent.streamlitSuccess || (() => {{}});
     const originalError = window.parent.streamlitError || (() => {{}});
     const originalInfo = window.parent.streamlitInfo || (() => {{}});
 
-    // Добавляем анимации к метрикам при загрузке
+    // Add animations to metrics on load
     function animateMetrics() {{
         const metrics = document.querySelectorAll('[data-testid="stMetricValue"]');
         metrics.forEach((metric, index) => {{
@@ -322,10 +322,10 @@ def set_app_styles():
         }});
     }}
 
-    // Вызываем анимации метрик при загрузке страницы
+    // Call metric animations on page load
     setTimeout(animateMetrics, 100);
 
-    // Добавляем fade-in ко всем основным элементам
+    // Add fade-in to all main elements
     function addFadeInAnimations() {{
         const elements = document.querySelectorAll('h1, h2, h3, .stDataFrame, .stColumns, [data-testid="stExpander"]');
         elements.forEach((el, index) => {{
@@ -336,8 +336,8 @@ def set_app_styles():
 
     setTimeout(addFadeInAnimations, 200);
 
-    // Улучшенные loading состояния
-    window.showLoading = function(element, text = 'Загрузка...') {{
+    // Enhanced loading states
+    window.showLoading = function(element, text = 'Loading...') {{
         if (typeof element === 'string') {{
             element = document.querySelector(element);
         }}
@@ -357,7 +357,7 @@ def set_app_styles():
         }}
         if (!element) return;
 
-        // Восстанавливаем оригинальное содержимое или просто очищаем
+        // Restore original content or just clear
         element.innerHTML = '';
     }};
     </script>
@@ -365,9 +365,9 @@ def set_app_styles():
 
 def show_app_logo():
     """
-    Отобразить логотип приложения — эту функцию следует вызывать после st.set_page_config
+    Display application logo - this function should be called after st.set_page_config
 
-    Возвращает:
+    Returns:
         None
     """
     try:
@@ -383,24 +383,24 @@ def show_app_logo():
         )
         st.markdown('<div style="height: 10px"></div>', unsafe_allow_html=True)
     except Exception as e:
-        st.warning(f"Ошибка загрузки логотипа: {str(e)}")
-        st.title("KubeEye - инструмент проверки кластера Kubernetes")
+        st.warning(f"Error loading logo: {str(e)}")
+        st.title("KubeEye - Kubernetes cluster inspection tool")
 
-def create_sidebar_header(active_page="Главная"):
+def create_sidebar_header(active_page="Home"):
     """
-    Создать навигационное меню в верхней части боковой панели с информацией об авторских правах внизу
+    Create navigation menu at the top of the sidebar with copyright information at the bottom
 
     Args:
-        active_page: название текущей активной страницы
+        active_page: name of the current active page
 
-    Возвращает:
+    Returns:
         None
     """
     menu_items = [
-        {"title": "Главная", "path": "app.py", "label": "Главная", "icon": ""},
-        {"title": "Инфо о кластере", "path": "pages/1_cluster_info.py", "label": "Информация", "icon": ""},
-        {"title": "Проверка кластера", "path": "pages/2_cluster_inspect.py", "label": "Проверка", "icon": ""},
-        {"title": "Отчёты проверки", "path": "pages/3_inspect_report.py", "label": "Отчёты", "icon": ""},
+        {"title": "Home", "path": "app.py", "label": "Home", "icon": ""},
+        {"title": "Cluster Info", "path": "pages/1_cluster_info.py", "label": "Information", "icon": ""},
+        {"title": "Cluster Inspection", "path": "pages/2_cluster_inspect.py", "label": "Inspection", "icon": ""},
+        {"title": "Inspection Reports", "path": "pages/3_inspect_report.py", "label": "Reports", "icon": ""},
     ]
 
     with st.sidebar:
@@ -411,14 +411,14 @@ def create_sidebar_header(active_page="Главная"):
             button_type = "primary" if is_active else "secondary"
 
             if st.button(item['title'],
-                          type=button_type,
-                          width='stretch',
-                          key=f"nav_{item['label']}"):
+                           type=button_type,
+                           width='stretch',
+                           key=f"nav_{item['label']}"):
                 try:
                     st.switch_page(item["path"])
                 except Exception as e:
-                    st.error(f"Ошибка перехода на страницу: {str(e)}")
-                    st.info(f"Пытался перейти на: {item['path']}")
+                    st.error(f"Error navigating to page: {str(e)}")
+                    st.info(f"Tried to navigate to: {item['path']}")
 
         st.markdown("""
         <style>
@@ -470,18 +470,18 @@ def create_sidebar_header(active_page="Главная"):
 
 def create_page_header(title, subtitle="", icon="", breadcrumbs=None):
     """
-    Создать заголовок страницы с breadcrumbs
+    Create page header with breadcrumbs
 
     Args:
-        title: заголовок страницы
-        subtitle: подзаголовок страницы
-        icon: иконка (необязательно)
-        breadcrumbs: список словарей [{"title": "Главная", "path": "app.py"}, ...]
+        title: page title
+        subtitle: page subtitle
+        icon: icon (optional)
+        breadcrumbs: list of dictionaries [{"title": "Home", "path": "app.py"}, ...]
 
-    Возвращает:
+    Returns:
         None
     """
-    # Цвета для темной темы
+    # Colors for dark theme
     base_color = "#ffffff"
     subtitle_color = "#cccccc"
     # Breadcrumbs

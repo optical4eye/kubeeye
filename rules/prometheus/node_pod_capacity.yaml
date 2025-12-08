@@ -1,33 +1,33 @@
 ---
-# Проверка использования емкости Pod узла
+# Node Pod capacity usage check
 id: prom_node_pod_capacity
-name: Проверка использования емкости Pod узла
-description: Проверить, приближается ли количество Pod на узле к ограничению емкости узла
+name: Node Pod capacity usage check
+description: Check if number of Pods on node is approaching node capacity limit
 type: prometheus
 category: capacity
 severity: warning
 enabled: true
 tier: basic
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация запроса Prometheus - использование Pod узла
+  # Prometheus query configuration - node Pod usage
   query: "(sum by(node) (kube_pod_info{host_network=\"false\"}) / sum by(node) (kube_node_status_capacity{resource=\"pods\"})) * 100"
 
-  # Конфигурация временного диапазона
+  # Time range configuration
   time_range:
     start: "now-5m"
     end: "now"
     step: "1m"
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Проверка использования емкости Pod узла"
+    - name: "Node Pod capacity usage check"
       condition: "max_value < 85"
       severity: warning
-      description: "Использование емкости Pod узла: {{ max_value | round(2) }}%"
+      description: "Node Pod capacity usage: {{ max_value | round(2) }}%"
 
-# Теги
+# Tags
 tags:
   - node
   - pod

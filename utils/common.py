@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Общие компоненты и вспомогательные функции - уменьшение повторяющегося кода между страницами
+Common components and helper functions - reducing duplicate code between pages
 """
 
 import streamlit as st
 import sys
 from pathlib import Path
 
-# Импорт модулей проекта
+# Import project modules
 from utils.navbar import set_app_styles, show_app_logo, create_sidebar_header, create_page_header
 
-# Глобальная переменная, обеспечение инициализации только один раз
+# Global variable, ensure initialization only once
 _background_services_initialized = False
 
 def _initialize_background_services():
     """
-    Инициализировать фоновые службы (запланированные задачи, очистка данных и т.д.)
-    Использовать глобальную переменную для обеспечения инициализации только один раз
+    Initialize background services (scheduled tasks, data cleanup, etc.)
+    Use global variable to ensure initialization only once
     """
     global _background_services_initialized
 
@@ -25,77 +25,77 @@ def _initialize_background_services():
         return
 
     try:
-        # Импорт и запуск модуля очистки данных
+        # Import and start data cleanup module
         import utils.data_cleanup
 
-        # Импорт и запуск планировщика задач
+        # Import and start task scheduler
         import utils.schedule_manager
 
         _background_services_initialized = True
 
     except ImportError as e:
-        # Если модуль не существует, записать ошибку но не влиять на загрузку страницы
+        # If module does not exist, log error but do not affect page loading
         pass
     except Exception as e:
-        # Другие ошибки также не влияют на загрузку страницы
+        # Other errors also do not affect page loading
         pass
 
 def initialize_page(title, icon="", sidebar_name="", page_title="", page_subtitle="", page_icon="", breadcrumbs=None):
     """
-    Инициализировать настройки страницы, включая стили и навигационную панель
-    Примечание: эта функция предполагает, что st.set_page_config() уже был вызван перед вызовом этой функции
+    Initialize page settings, including styles and navigation panel
+    Note: this function assumes that st.set_page_config() has already been called before calling this function
 
     Args:
-        title: Заголовок страницы
-        icon: Иконка страницы
-        sidebar_name: Название боковой панели
-        page_title: Заголовок страницы (если отличается от title)
-        page_subtitle: Подзаголовок страницы
-        page_icon: Иконка страницы (если отличается от icon)
-        breadcrumbs: Список breadcrumbs [{"title": "Главная", "path": "app.py"}, ...]
+        title: Page title
+        icon: Page icon
+        sidebar_name: Sidebar name
+        page_title: Page title (if different from title)
+        page_subtitle: Page subtitle
+        page_icon: Page icon (if different from icon)
+        breadcrumbs: List of breadcrumbs [{"title": "Home", "path": "app.py"}, ...]
 
     Returns:
         None
     """
-    # Инициализировать фоновые службы (выполняется только при первом вызове)
+    # Initialize background services (executed only on first call)
     _initialize_background_services()
 
-    # Больше не вызывать st.set_page_config() - должен быть вызван перед использованием этой функции
+    # No longer call st.set_page_config() - should be called before using this function
 
-    # Обеспечить, что корневой каталог проекта находится в пути Python
+    # Ensure project root directory is in Python path
     ROOT_DIR = Path(__file__).resolve().parent.parent
     if str(ROOT_DIR) not in sys.path:
         sys.path.insert(0, str(ROOT_DIR))
 
-    # Установить стили приложения
+    # Set application styles
     set_app_styles()
 
-    # Показать логотип приложения
+    # Show application logo
     show_app_logo()
 
-    # Создать боковую панель и заголовок страницы
+    # Create sidebar and page header
     create_sidebar_header(sidebar_name or title)
     create_page_header(page_title or title, page_subtitle, icon=page_icon or icon, breadcrumbs=breadcrumbs)
 
 def create_status_badge(status, text=None):
     """
-    Создать значок статуса
+    Create status badge
 
     Args:
-        status: Тип статуса ('success', 'warning', 'error', 'info')
-        text: Отображаемый текст, если None то использовать сам статус
+        status: Status type ('success', 'warning', 'error', 'info')
+        text: Display text, if None then use status itself
 
     Returns:
-        str: HTML код значка
+        str: HTML code for badge
     """
     if text is None:
         text = status.title()
 
     colors = {
-        'success': ('#E7F9ED', '#1E8E3E'),  # Светло-зеленый фон, темно-зеленый текст
-        'warning': ('#FEF7E0', '#E67700'),  # Светло-желтый фон, оранжевый текст
-        'error': ('#FFE5E5', '#D93025'),    # Светло-красный фон, красный текст
-        'info': ('#E8F0FE', '#1A73E8')      # Светло-синий фон, синий текст
+        'success': ('#E7F9ED', '#1E8E3E'),  # Light green background, dark green text
+        'warning': ('#FEF7E0', '#E67700'),  # Light yellow background, orange text
+        'error': ('#FFE5E5', '#D93025'),    # Light red background, red text
+        'info': ('#E8F0FE', '#1A73E8')      # Light blue background, blue text
     }
 
     bg_color, text_color = colors.get(status.lower(), colors['info'])

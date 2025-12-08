@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Упрощенная конфигурация безопасности KubeEye - чтение только основных параметров конфигурации
+Simplified KubeEye security configuration - reading only basic configuration parameters
 """
 
 import os
@@ -13,30 +13,30 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 class SimpleSecurityConfig:
-    """Упрощенный класс конфигурации безопасности - обработка только настраиваемых параметров"""
+    """Simplified security configuration class - processing only configurable parameters"""
 
     def __init__(self, config_file: str = "config/security.yaml"):
         """
-        Инициализировать упрощенную конфигурацию безопасности
+        Initialize simplified security configuration
 
         Args:
-            config_file: Путь к файлу конфигурации
+            config_file: Path to configuration file
         """
         self.config_file = config_file
         self.config = self._load_config()
 
     def _load_config(self) -> Dict:
-        """Загрузить файл конфигурации"""
+        """Load configuration file"""
         try:
             config_path = Path(self.config_file)
             if config_path.exists():
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = yaml.safe_load(f) or {}
             else:
-                logger.warning(f"Файл конфигурации не существует: {config_path}，использовать конфигурацию по умолчанию")
+                logger.warning(f"Configuration file does not exist: {config_path}, using default configuration")
                 config = {}
 
-            # Установить значения по умолчанию
+            # Set default values
             return {
                 'max_command_length': config.get('max_command_length', 1000),
                 'command_timeout': config.get('command_timeout', 30),
@@ -48,11 +48,11 @@ class SimpleSecurityConfig:
                 'require_key_auth': config.get('require_key_auth', False)
             }
         except Exception as e:
-            logger.error(f"Не удалось загрузить конфигурацию безопасности: {e}")
+            logger.error(f"Failed to load security configuration: {e}")
             return self._get_default_config()
 
     def _get_default_config(self) -> Dict:
-        """Получить конфигурацию по умолчанию"""
+        """Get default configuration"""
         return {
             'max_command_length': 1000,
             'command_timeout': 30,
@@ -65,54 +65,54 @@ class SimpleSecurityConfig:
         }
 
     def get(self, key: str, default=None):
-        """Получить значение конфигурации"""
+        """Get configuration value"""
         return self.config.get(key, default)
 
     @property
     def max_command_length(self) -> int:
-        """Максимальная длина команды"""
+        """Maximum command length"""
         return self.config['max_command_length']
 
     @property
     def command_timeout(self) -> int:
-        """Время ожидания команды"""
+        """Command timeout"""
         return self.config['command_timeout']
 
     @property
     def audit_log_path(self) -> str:
-        """Путь к журналу аудита"""
+        """Path to audit log"""
         return self.config['audit_log_path']
 
     @property
     def audit_retention_days(self) -> int:
-        """Количество дней хранения журнала аудита"""
+        """Number of days to retain audit log"""
         return self.config['audit_retention_days']
 
     @property
     def enable_detailed_logging(self) -> bool:
-        """Включить ли подробное логирование"""
+        """Whether to enable detailed logging"""
         return self.config['enable_detailed_logging']
 
     @property
     def allowed_ports(self) -> List[int]:
-        """Список разрешенных портов"""
+        """List of allowed ports"""
         return self.config['allowed_ports']
 
     @property
     def blocked_ips(self) -> List[str]:
-        """Список заблокированных IP"""
+        """List of blocked IPs"""
         return self.config['blocked_ips']
 
     @property
     def require_key_auth(self) -> bool:
-        """Требовать ли аутентификацию по ключу"""
+        """Whether to require key authentication"""
         return self.config['require_key_auth']
 
-# Глобальный экземпляр конфигурации
+# Global configuration instance
 _global_security_config = None
 
 def get_security_config() -> SimpleSecurityConfig:
-    """Получить глобальный экземпляр конфигурации безопасности"""
+    """Get global security configuration instance"""
     global _global_security_config
     if _global_security_config is None:
         _global_security_config = SimpleSecurityConfig()

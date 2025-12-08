@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Контроллер проверки, отвечает за планирование и координацию различных типов проверок
+Inspection controller, responsible for planning and coordinating different types of inspections
 """
 
 import logging
@@ -12,19 +12,19 @@ from inspectors.opa.opa_inspector import OpaInspector
 from inspectors.prometheus.prometheus_inspector import PrometheusInspector
 from utils.inspection_result import InspectionResult
 
-# Настройка логирования
+# Logging setup
 logger = logging.getLogger(__name__)
 
 class InspectionController:
-    """Контроллер проверки, отвечает за координацию процесса проверки"""
+    """Inspection controller, responsible for coordinating the inspection process"""
 
     def __init__(self, config: Dict[str, Any], use_gitops: bool = False):
         """
-        Инициализация контроллера проверки
+        Initialize inspection controller
 
         Args:
-            config: конфигурация контроллера
-            use_gitops: использовать ли правила GitOps
+            config: controller configuration
+            use_gitops: whether to use GitOps rules
         """
         self.config = config
         self.use_gitops = use_gitops
@@ -32,120 +32,120 @@ class InspectionController:
         self._initialize_inspectors()
 
     def _initialize_inspectors(self):
-        """Инициализация всех инспекторов"""
-        # Вывод информации о конфигурации для отладки
-        logger.info(f"Конфигурация контроллера: {list(self.config.keys())}")
-        logger.info(f"Режим GitOps: {self.use_gitops}")
+        """Initialize all inspectors"""
+        # Output configuration information for debugging
+        logger.info(f"Controller configuration: {list(self.config.keys())}")
+        logger.info(f"GitOps mode: {self.use_gitops}")
 
-        # Инициализация инспектора узлов
+        # Initialize node inspector
         if 'nodes' in self.config and self.config['nodes']:
-            logger.info(f"Обнаружена конфигурация узлов, количество узлов: {len(self.config['nodes'])}")
+            logger.info(f"Node configuration detected, number of nodes: {len(self.config['nodes'])}")
             self.inspectors['node'] = NodeInspector(self.config['nodes'], use_gitops=self.use_gitops)
-            logger.info("Инициализирован инспектор узлов")
+            logger.info("Node inspector initialized")
         else:
-            logger.warning(f"Конфигурация узлов не найдена: nodes={'nodes' in self.config}, count={len(self.config.get('nodes', []))}")
+            logger.warning(f"Node configuration not found: nodes={'nodes' in self.config}, count={len(self.config.get('nodes', []))}")
 
-        # Инициализация OPA инспектора
+        # Initialize OPA inspector
         if 'opa' in self.config:
             self.inspectors['opa'] = OpaInspector(self.config['opa'], use_gitops=self.use_gitops)
-            logger.info("Инициализирован OPA инспектор")
+            logger.info("OPA inspector initialized")
 
-        # Инициализация Prometheus инспектора
+        # Initialize Prometheus inspector
         if 'prometheus' in self.config:
             self.inspectors['prometheus'] = PrometheusInspector(self.config['prometheus'], use_gitops=self.use_gitops)
-            logger.info("Инициализирован Prometheus инспектор")
+            logger.info("Prometheus inspector initialized")
 
-        logger.info(f"Инициализировано {len(self.inspectors)} инспекторов: {list(self.inspectors.keys())}")
+        logger.info(f"Initialized {len(self.inspectors)} inspectors: {list(self.inspectors.keys())}")
 
     def get_available_inspectors(self) -> List[str]:
         """
-        Получить доступные типы инспекторов
+        Get available inspector types
 
         Returns:
-            Список типов инспекторов
+            List of inspector types
         """
         return list(self.inspectors.keys())
 
     def run_inspection(self, cluster_name: str, inspector_types: List[str] = None,
                       rule_ids: Dict[str, List[str]] = None) -> Dict[str, InspectionResult]:
         """
-        Выполнить проверку
+        Execute inspection
 
         Args:
-            cluster_name: имя кластера
-            inspector_types: список типов инспекторов для выполнения, если None, выполнить все инспекторы
-            rule_ids: словарь ID правил для каждого инспектора, формат {inspector_type: [rule_id1, rule_id2]}
+            cluster_name: cluster name
+            inspector_types: list of inspector types to execute, if None, execute all inspectors
+            rule_ids: dictionary of rule IDs for each inspector, format {inspector_type: [rule_id1, rule_id2]}
 
         Returns:
-            Словарь результатов проверки, формат {inspector_type: inspection_result}
+            Dictionary of inspection results, format {inspector_type: inspection_result}
         """
         results = {}
 
-        # Определить инспекторы для выполнения
+        # Determine inspectors to execute
         if inspector_types:
             active_inspectors = {k: v for k, v in self.inspectors.items() if k in inspector_types}
         else:
             active_inspectors = self.inspectors
 
         if not active_inspectors:
-            logger.warning("Нет доступных инспекторов")
+            logger.warning("No available inspectors")
             return results
 
-        # Выполнение проверки
+        # Execute inspection
         for inspector_type, inspector in active_inspectors.items():
             try:
-                # Получить ID правил для этого инспектора
+                # Get rule IDs for this inspector
                 inspector_rule_ids = None
                 if rule_ids and inspector_type in rule_ids:
                     inspector_rule_ids = rule_ids[inspector_type]
 
-                logger.info(f"Выполнение {inspector_type} проверки...")
+                logger.info(f"Executing {inspector_type} inspection...")
                 result = inspector.run_inspection(cluster_name, inspector_rule_ids)
                 results[inspector_type] = result
-                logger.info(f"{inspector_type} проверка завершена, найдено {len(result.items)} результатов")
+                logger.info(f"{inspector_type} inspection completed, found {len(result.items)} results")
 
             except Exception as e:
-                logger.exception(f"Ошибка выполнения {inspector_type} проверки: {str(e)}")
+                logger.exception(f"Error executing {inspector_type} inspection: {str(e)}")
 
         return results
 
     def save_inspection_result(self, all_results: Dict[str, InspectionResult],
                              cluster_name: str, inspection_type: str = "immediate") -> str:
         """
-        Сохранить результаты проверки в файл
+        Save inspection results to file
 
         Args:
-            all_results: словарь результатов проверки
-            cluster_name: имя кластера
-            inspection_type: тип проверки ('immediate' или 'scheduled')
+            all_results: dictionary of inspection results
+            cluster_name: cluster name
+            inspection_type: inspection type ('immediate' or 'scheduled')
 
         Returns:
-            Путь к сохраненному файлу
+            Path to saved file
         """
         import os
         import json
         from datetime import datetime
         from pathlib import Path
 
-        # Убедиться, что каталог results существует
+        # Ensure results directory exists
         from utils.inspection_result import RESULTS_DIR
         results_dir = RESULTS_DIR
         results_dir.mkdir(parents=True, exist_ok=True)
 
-        # Генерация ID результата и имени файла
+        # Generate result ID and filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         result_id = f"{inspection_type}_{timestamp}"
         filename = f"inspection_result_{cluster_name}_{timestamp}.json"
         result_path = results_dir / filename
 
-        # Вычисление статистики
+        # Calculate statistics
         total_items = 0
         total_passed = 0
         total_failed = 0
         total_warning = 0
         total_error = 0
 
-        # Сериализация результатов проверки
+        # Serialize inspection results
         serialized_results = {}
         for inspector_type, result in all_results.items():
             if hasattr(result, 'items'):
@@ -153,10 +153,10 @@ class InspectionController:
             else:
                 items = []
 
-            # Вычисление статистики - безопасный доступ к свойствам элемента
+            # Calculate statistics - safe access to item properties
             total_items += len(items)
             for item in items:
-                # Безопасное получение статуса
+                # Safe status retrieval
                 if hasattr(item, '__dict__'):
                     status = getattr(item, 'status', 'unknown')
                 elif isinstance(item, dict):
@@ -166,15 +166,15 @@ class InspectionController:
                 else:
                     status = 'unknown'
 
-                # Нормализация статуса (как в InspectionResult.add_item)
+                # Normalize status (as in InspectionResult.add_item)
                 if status in ['failed', 'warning', 'error']:
                     status = 'exception'
 
-                # Статистика по статусам - использование упрощенной системы статусов
+                # Status statistics - using simplified status system
                 if status == 'passed':
                     total_passed += 1
                 elif status == 'exception':
-                    # Получение severity для классификации исключений
+                    # Get severity for exception classification
                     severity = 'unknown'
                     if hasattr(item, '__dict__'):
                         severity = getattr(item, 'severity', 'unknown')
@@ -182,26 +182,26 @@ class InspectionController:
                         severity = item.get('severity', 'unknown')
 
                     if severity == 'critical':
-                        total_failed += 1  # critical считается как failed
+                        total_failed += 1  # critical is considered as failed
                     elif severity == 'warning':
                         total_warning += 1
                     else:
-                        total_error += 1  # остальные severity считаются как error
+                        total_error += 1  # other severity levels are considered as error
                 else:
-                    # Неизвестный статус обрабатывается как ошибка
+                    # Unknown status is treated as error
                     total_error += 1
 
-            # Сериализация items - обеспечение, что все items имеют формат словаря и нормализованный статус
+            # Serialize items - ensure all items have dictionary format and normalized status
             serialized_items = []
             for item in items:
                 if hasattr(item, '__dict__'):
-                    # Если это объект, преобразовать в словарь
+                    # If it's an object, convert to dictionary
                     item_dict = item.__dict__.copy()
                 elif isinstance(item, dict):
-                    # Если уже словарь, создать копию
+                    # If already a dictionary, create a copy
                     item_dict = item.copy()
                 elif isinstance(item, (tuple, list)) and len(item) >= 2:
-                    # Если это кортеж или список, попытаться преобразовать в базовый формат словаря
+                    # If it's a tuple or list, try to convert to basic dictionary format
                     item_dict = {
                         'name': str(item[0]) if len(item) > 0 else 'Unknown',
                         'status': str(item[1]) if len(item) > 1 else 'unknown',
@@ -211,17 +211,17 @@ class InspectionController:
                         'solution': ''
                     }
                 else:
-                    # Другие случаи, создать базовый словарь
+                    # Other cases, create basic dictionary
                     item_dict = {
                         'name': str(item),
                         'status': 'unknown',
-                        'description': f'Преобразовано из {type(item).__name__}',
+                        'description': f'Converted from {type(item).__name__}',
                         'severity': 'info',
                         'details': str(item),
                         'solution': ''
                     }
 
-                # Нормализация статуса (как в InspectionResult.add_item)
+                # Normalize status (as in InspectionResult.add_item)
                 if item_dict.get('status') in ['failed', 'warning', 'error']:
                     item_dict['status'] = 'exception'
 
@@ -232,16 +232,16 @@ class InspectionController:
                 "items": serialized_items
             }
 
-        # Построение полной структуры результата
+        # Build complete result structure
         result_data = {
             "result_id": result_id,
             "cluster_name": cluster_name,
             "timestamp": datetime.now().isoformat(),
-            "inspection_type": inspection_type,  # immediate или scheduled
+            "inspection_type": inspection_type,  # immediate or scheduled
             "execution_info": {
                 "triggered_by": "user" if inspection_type == "immediate" else "scheduler",
                 "inspectors_used": list(all_results.keys()),
-                "execution_duration": "N/A"  # Можно добавить функциональность таймера позже
+                "execution_duration": "N/A"  # Timer functionality can be added later
             },
             "inspection_results": serialized_results,
             "summary": {
@@ -251,25 +251,25 @@ class InspectionController:
                 "warning": total_warning,
                 "error": total_error
             },
-            # Совместимость со старыми полями
-            "critical": total_failed,  # Отображение failed как critical для совместимости с существующим кодом
+            # Compatibility with old fields
+            "critical": total_failed,  # Display failed as critical for compatibility with existing code
             "warning": total_warning,
             "passed": total_passed
         }
 
-        # Сохранение в файл
+        # Save to file
         with open(result_path, 'w', encoding='utf-8') as f:
             json.dump(result_data, f, ensure_ascii=False, indent=2)
 
-        # Кэширование отключено
+        # Caching disabled
 
-        # Запуск очистки данных - очистка старых отчетов после создания нового
+        # Start data cleanup - cleanup old reports after creating new one
         try:
             from utils.data_cleanup import get_cleanup_manager
             cleanup_manager = get_cleanup_manager()
             cleanup_manager.cleanup_inspection_results()
         except Exception as e:
-            logger.warning(f"Ошибка очистки старых отчетов: {e}")
+            logger.warning(f"Error cleaning up old reports: {e}")
 
-        logger.info(f"Результаты проверки сохранены в: {result_path}")
+        logger.info(f"Inspection results saved to: {result_path}")
         return str(result_path)

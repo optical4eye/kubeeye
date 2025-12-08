@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Скрипт инициализации KubeEye
-Для инициализационной работы при запуске Docker-контейнера
+KubeEye initialization script
+For initialization work when starting the Docker container
 """
 
 import os
@@ -10,10 +10,10 @@ import sys
 from pathlib import Path
 
 def ensure_data_directories():
-    """Обеспечить существование каталогов данных"""
+    """Ensure data directories exist"""
     data_dir = Path(os.environ.get('KUBEEYE_DATA_DIR', '/app/data'))
 
-    # Создать необходимые каталоги
+    # Create necessary directories
     directories = [
         data_dir / 'clusters',
         data_dir / 'results',
@@ -24,10 +24,10 @@ def ensure_data_directories():
 
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
-        print(f"Обеспечить существование каталога: {directory}")
+        print(f"Ensure directory exists: {directory}")
 
 def validate_environment():
-    """Проверить конфигурацию среды"""
+    """Validate environment configuration"""
     required_env_vars = [
         'PYTHONPATH',
         'KUBEEYE_DATA_DIR'
@@ -39,28 +39,28 @@ def validate_environment():
             missing_vars.append(var)
 
     if missing_vars:
-        print(f"Отсутствуют переменные среды: {', '.join(missing_vars)}")
+        print(f"Missing environment variables: {', '.join(missing_vars)}")
         return False
 
-    print("Проверка переменных среды пройдена")
+    print("Environment variables validation passed")
     return True
 
 def main():
-    """Главная функция инициализации"""
-    print("Инициализация KubeEye начата...")
+    """Main initialization function"""
+    print("KubeEye initialization started...")
 
     try:
-        # Проверить среду
+        # Validate environment
         if not validate_environment():
             sys.exit(1)
 
-        # Обеспечить каталоги данных
+        # Ensure data directories
         ensure_data_directories()
 
-        print("Инициализация KubeEye завершена!")
+        print("KubeEye initialization completed!")
 
     except Exception as e:
-        print(f"Инициализация не удалась: {e}")
+        print(f"Initialization failed: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

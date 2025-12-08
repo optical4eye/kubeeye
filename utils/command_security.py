@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Командный безопасный чекер - предотвращает выполнение опасных команд
+Command security checker - prevents execution of dangerous commands
 """
 
 import re
@@ -12,7 +12,7 @@ from enum import Enum
 logger = logging.getLogger(__name__)
 
 class RiskLevel(Enum):
-    """Уровень риска"""
+    """Risk level"""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -20,208 +20,208 @@ class RiskLevel(Enum):
 
 class CommandSecurityChecker:
     """
-    Командный безопасный чекер - принудительный режим белого списка, разрешает только операции чтения
+    Command security checker - forced whitelist mode, allows only read operations
 
-    Важные принципы безопасности:
-    - Инструмент инспекции может только наблюдать, не изменять
-    - Все высокорисковые команды строго запрещены, без исключений
-    - Не предоставляет никаких опций для снижения уровня безопасности
+    Important security principles:
+    - Inspection tool can only observe, not modify
+    - All high-risk commands are strictly prohibited, no exceptions
+    - Does not provide any options to reduce security level
     """
 
     def __init__(self):
         """
-        Инициализация командного безопасного чекера
+        Initialize command security checker
 
-        Примечание: Этот класс принудительно использует самый строгий режим безопасности, не принимает никаких параметров
+        Note: This class forcibly uses the strictest security mode, accepts no parameters
         """
-        # Принципы безопасности инструмента инспекции: только чтение, только наблюдение, не изменение
-        self.strict_mode = True      # Принудительный строгий режим, нельзя изменить
-        self.whitelist_only = True   # Принудительный режим белого списка, нельзя изменить
+        # Security principles of inspection tool: read-only, observation only, no modification
+        self.strict_mode = True      # Forced strict mode, cannot be changed
+        self.whitelist_only = True   # Forced whitelist mode, cannot be changed
         self._init_security_rules()
 
     def _init_security_rules(self):
-        """Инициализация правил безопасности - фокус на белом списке команд только для чтения"""
+        """Initialize security rules - focus on whitelist of read-only commands"""
 
-        # Абсолютно запрещенные команды (уровень CRITICAL) - любые операции изменения
+        # Absolutely prohibited commands (CRITICAL level) - any modification operations
         self.critical_commands = [
-            # Удаление/перемещение/изменение файлов и директорий
-            r'\brm\s+',                                     # Любая команда rm
-            r'\bmv\s+',                                     # Любая команда mv
-            r'\bcp\s+.*>\s*/',                             # Копирование с перезаписью системных файлов
-            r'\bmkdir\s+',                                  # Создание директории
-            r'\brmdir\s+',                                  # Удаление директории
-            r'\btouch\s+',                                  # Создание/изменение временной метки файла
+            # File and directory deletion/movement/modification
+            r'\brm\s+',                                     # Any rm command
+            r'\bmv\s+',                                     # Any mv command
+            r'\bcp\s+.*>\s*/',                             # Copying with overwriting system files
+            r'\bmkdir\s+',                                  # Directory creation
+            r'\brmdir\s+',                                  # Directory deletion
+            r'\btouch\s+',                                  # File creation/modification timestamp
 
-            # Изменение прав и владельца
-            r'\bchmod\s+',                                  # Любое изменение прав
-            r'\bchown\s+',                                  # Изменение владельца
-            r'\bchgrp\s+',                                  # Изменение группы
+            # Permission and ownership changes
+            r'\bchmod\s+',                                  # Any permission change
+            r'\bchown\s+',                                  # Ownership change
+            r'\bchgrp\s+',                                  # Group change
 
-            # Управление системными сервисами (запрещены только операции изменения, разрешены is-active/status/show и т.д. только чтение)
-            r'\bsystemctl\s+(start|stop|restart|reload|enable|disable|mask|unmask|kill|reset-failed)\b', # Управление сервисами
-            r'\bservice\s+\w+\s+(start|stop|restart|reload)\b',           # Команда service
-            r'\binit\s+[0-6]',                             # Изменение уровня запуска системы
-            r'\bshutdown\s+',                              # Выключение системы
-            r'\breboot\s*',                                # Перезагрузка системы
-            r'\bhalt\s*',                                  # Остановка системы
+            # System service management (only modification operations prohibited, read-only like is-active/status/show allowed)
+            r'\bsystemctl\s+(start|stop|restart|reload|enable|disable|mask|unmask|kill|reset-failed)\b', # Service management
+            r'\bservice\s+\w+\s+(start|stop|restart|reload)\b',           # service command
+            r'\binit\s+[0-6]',                             # System runlevel change
+            r'\bshutdown\s+',                              # System shutdown
+            r'\breboot\s*',                                # System reboot
+            r'\bhalt\s*',                                  # System halt
 
-            # Управление процессами
-            r'\bkill\s+(-[0-9]+|\w+)',                     # Убийство процесса
-            r'\bkillall\s+',                               # Массовое убийство процессов
-            r'\bpkill\s+',                                 # Убийство процессов по шаблону
+            # Process management
+            r'\bkill\s+(-[0-9]+|\w+)',                     # Process killing
+            r'\bkillall\s+',                               # Mass process killing
+            r'\bpkill\s+',                                 # Process killing by pattern
 
-            # Опасные системные команды
-            r'\bdd\s+.*of=',                               # Операция записи dd
-            r'\bmkfs\.',                                   # Форматирование файловой системы
-            r'\bmount\s+',                                 # Операция монтирования
-            r'\bumount\s+',                                # Операция размонтирования
-            r'\bfsck\s+',                                  # Проверка и ремонт файловой системы
+            # Dangerous system commands
+            r'\bdd\s+.*of=',                               # dd write operation
+            r'\bmkfs\.',                                   # Filesystem formatting
+            r'\bmount\s+',                                 # Mount operation
+            r'\bumount\s+',                                # Unmount operation
+            r'\bfsck\s+',                                  # Filesystem check and repair
 
-            # Управление пакетами
-            r'\bapt\s+(install|remove|purge|upgrade)',     # Управление пакетами Debian
-            r'\bapt-get\s+(install|remove|purge|upgrade)', # Операции apt-get
-            r'\byum\s+(install|remove|erase|update)',      # Управление пакетами RedHat
-            r'\bdnf\s+(install|remove|erase|update)',      # Управление пакетами Fedora
-            r'\bpip\s+install',                            # Установка пакетов Python
-            r'\bnpm\s+install',                            # Установка пакетов Node.js
+            # Package management
+            r'\bapt\s+(install|remove|purge|upgrade)',     # Debian package management
+            r'\bapt-get\s+(install|remove|purge|upgrade)', # apt-get operations
+            r'\byum\s+(install|remove|erase|update)',      # RedHat package management
+            r'\bdnf\s+(install|remove|erase|update)',      # Fedora package management
+            r'\bpip\s+install',                            # Python package installation
+            r'\bnpm\s+install',                            # Node.js package installation
 
-            # Изменение сетевой конфигурации
-            r'\bifconfig\s+\w+\s+(up|down)',               # Включение/выключение сетевого интерфейса
-            r'\bip\s+(addr|link|route)\s+(add|del|set)',   # Изменение IP-конфигурации
-            r'\biptables\s+(-A|-D|-I|-R|-F|-X)',          # Изменение правил firewall
-            r'\bnetplan\s+apply',                          # Применение сетевой конфигурации
+            # Network configuration changes
+            r'\bifconfig\s+\w+\s+(up|down)',               # Network interface enable/disable
+            r'\bip\s+(addr|link|route)\s+(add|del|set)',   # IP configuration changes
+            r'\biptables\s+(-A|-D|-I|-R|-F|-X)',          # Firewall rule changes
+            r'\bnetplan\s+apply',                          # Network configuration application
 
-            # Управление запланированными задачами
-            r'\bcrontab\s+(-e|-r)',                        # Редактирование/удаление cron
-            r'\bat\s+',                                    # Запланированная задача
+            # Scheduled task management
+            r'\bcrontab\s+(-e|-r)',                        # Cron editing/deletion
+            r'\bat\s+',                                    # Scheduled task
 
-            # Перенаправление файлов и пайпы (могут изменять файлы)
-            r'>\s*[^/]*/',                                 # Перенаправление в файл
-            r'>>\s*[^/]*/',                                # Добавление перенаправления в файл
+            # File redirection and pipes (may modify files)
+            r'>\s*[^/]*/',                                 # Redirection to file
+            r'>>\s*[^/]*/',                                # Append redirection to file
 
-            # Удаленное выполнение и загрузка
-            r'(wget|curl).*\|\s*(sh|bash|python|perl)',   # Загрузка и выполнение
-            r'(wget|curl).*\|.*sh',                        # Загрузка и выполнение (упрощенная версия)
-            r'\bscp\s+.*:',                                # Удаленное копирование
-            r'\brsync\s+.*:',                              # Удаленная синхронизация
+            # Remote execution and download
+            r'(wget|curl).*\|\s*(sh|bash|python|perl)',   # Download and execute
+            r'(wget|curl).*\|.*sh',                        # Download and execute (simplified version)
+            r'\bscp\s+.*:',                                # Remote copying
+            r'\brsync\s+.*:',                              # Remote synchronization
 
-            # Компиляция и сборка
-            r'\bmake\s+(install|clean)',                   # Компиляция и установка
-            r'\b\./configure\s+',                          # Скрипт конфигурации
+            # Compilation and building
+            r'\bmake\s+(install|clean)',                   # Compilation and installation
+            r'\b\./configure\s+',                          # Configuration script
 
-            # Изменение параметров ядра и системы
-            r'\bsysctl\s+-w',                              # Изменение параметров ядра
-            r'\becho\s+.*>\s*/proc/',                      # Изменение параметров proc
-            r'\bmodprobe\s+',                              # Загрузка модуля ядра
-            r'\brmmod\s+',                                 # Выгрузка модуля ядра
+            # Kernel and system parameter changes
+            r'\bsysctl\s+-w',                              # Kernel parameter changes
+            r'\becho\s+.*>\s*/proc/',                      # proc parameter changes
+            r'\bmodprobe\s+',                              # Kernel module loading
+            r'\brmmod\s+',                                 # Kernel module unloading
         ]
 
-        # Безопасные команды только для чтения белый список (явно разрешенные команды)
+        # Safe read-only commands whitelist (explicitly allowed commands)
         self.safe_readonly_patterns = [
-            # Просмотр системной информации
-            r'^\s*cat\s+(/proc/|/sys/|/etc/hostname|/etc/os-release)',  # Просмотр системных файлов
-            r'^\s*less\s+(/var/log/|/proc/|/sys/)',        # Просмотр логов и системной информации
-            r'^\s*more\s+(/var/log/|/proc/|/sys/)',        # Просмотр содержимого файлов
-            r'^\s*head\s+(-\d+\s+)?(/var/log/|/proc/|/sys/|/etc/)', # Просмотр начала файла
-            r'^\s*tail\s+(-\d+\s+)?(/var/log/|/proc/|/sys/)',        # Просмотр конца файла
-            r'^\s*(grep|awk|sed)\s+.*(/var/log/|/proc/|/sys/)',      # Обработка текста только чтение
+            # System information viewing
+            r'^\s*cat\s+(/proc/|/sys/|/etc/hostname|/etc/os-release)',  # System file viewing
+            r'^\s*less\s+(/var/log/|/proc/|/sys/)',        # Log and system information viewing
+            r'^\s*more\s+(/var/log/|/proc/|/sys/)',        # File content viewing
+            r'^\s*head\s+(-\d+\s+)?(/var/log/|/proc/|/sys/|/etc/)', # File beginning viewing
+            r'^\s*tail\s+(-\d+\s+)?(/var/log/|/proc/|/sys/)',        # File end viewing
+            r'^\s*(grep|awk|sed)\s+.*(/var/log/|/proc/|/sys/)',      # Text processing read-only
 
-            # Просмотр состояния системы
-            r'^\s*(uname|hostname|whoami|id|date|uptime)\s*',         # Основная системная информация
-            r'^\s*(w|who|last|lastlog)\s*',                           # Информация о пользователях
-            r'^\s*(ps|top|htop|pstree|pgrep)\s+',                     # Информация о процессах
-            r'^\s*(free|vmstat|iostat|sar)\s+',                       # Системные ресурсы
-            r'^\s*(df|du|lsblk|lsof|fuser)\s+',                       # Информация о дисках и файлах
+            # System state viewing
+            r'^\s*(uname|hostname|whoami|id|date|uptime)\s*',         # Basic system information
+            r'^\s*(w|who|last|lastlog)\s*',                           # User information
+            r'^\s*(ps|top|htop|pstree|pgrep)\s+',                     # Process information
+            r'^\s*(free|vmstat|iostat|sar)\s+',                       # System resources
+            r'^\s*(df|du|lsblk|lsof|fuser)\s+',                       # Disk and file information
 
-            # Просмотр сетевого состояния
-            r'^\s*(netstat|ss)\s+',                                   # Состояние сетевых соединений
-            r'^\s*lsof\s+-i',                                         # Открытые сетевые файлы
-            r'^\s*iptables\s+-L',                                     # Просмотр правил firewall
-            r'^\s*ip\s+(addr|link|route)\s*(show|list)?',             # Просмотр IP-конфигурации
-            r'^\s*ifconfig\s*$',                                      # Просмотр сетевых интерфейсов (без параметров)
+            # Network state viewing
+            r'^\s*(netstat|ss)\s+',                                   # Network connection status
+            r'^\s*lsof\s+-i',                                         # Open network files
+            r'^\s*iptables\s+-L',                                     # Firewall rule viewing
+            r'^\s*ip\s+(addr|link|route)\s*(show|list)?',             # IP configuration viewing
+            r'^\s*ifconfig\s*$',                                      # Network interface viewing (no parameters)
 
-            # Просмотр файловой системы
-            r'^\s*ls\s+',                                             # Список файлов
-            r'^\s*find\s+.*-type\s+f.*-name',                        # Поиск файлов
-            r'^\s*locate\s+',                                         # Локация файлов
-            r'^\s*which\s+',                                          # Поиск пути команды
-            r'^\s*whereis\s+',                                        # Поиск связанных с командой файлов
+            # Filesystem viewing
+            r'^\s*ls\s+',                                             # File listing
+            r'^\s*find\s+.*-type\s+f.*-name',                        # File search
+            r'^\s*locate\s+',                                         # File location
+            r'^\s*which\s+',                                          # Command path search
+            r'^\s*whereis\s+',                                        # Command-related file search
 
-            # Команды Kubernetes только для чтения
-            r'^\s*kubectl\s+(get|describe|logs|explain|api-resources|api-versions|version|cluster-info)\s+', # Команды просмотра K8s
-            r'^\s*docker\s+(ps|images|version|info|logs)\s+',         # Команды просмотра Docker
+            # Kubernetes read-only commands
+            r'^\s*kubectl\s+(get|describe|logs|explain|api-resources|api-versions|version|cluster-info)\s+', # K8s viewing commands
+            r'^\s*docker\s+(ps|images|version|info|logs)\s+',         # Docker viewing commands
 
-            # Просмотр логов
-            r'^\s*journalctl\s+(-u\s+\w+\s+)?(-f\s+)?(-n\s+\d+\s+)?(-S\s+.*)?$', # Просмотр логов systemd
-            r'^\s*dmesg\s*$',                                         # Сообщения ядра
+            # Log viewing
+            r'^\s*journalctl\s+(-u\s+\w+\s+)?(-f\s+)?(-n\s+\d+\s+)?(-S\s+.*)?$', # systemd log viewing
+            r'^\s*dmesg\s*$',                                         # Kernel messages
 
-            # Другие команды только для чтения
-            r'^\s*history\s*$',                                       # История команд
-            r'^\s*env\s*$',                                           # Переменные окружения
-            r'^\s*printenv\s*',                                       # Печать переменных окружения
-            r'^\s*echo\s+\$\w+',                                      # Печать значения переменной
-            r'^\s*printf\s+',                                         # Форматированный вывод
+            # Other read-only commands
+            r'^\s*history\s*$',                                       # Command history
+            r'^\s*env\s*$',                                           # Environment variables
+            r'^\s*printenv\s*',                                       # Environment variable printing
+            r'^\s*echo\s+\$\w+',                                      # Variable value printing
+            r'^\s*printf\s+',                                         # Formatted output
         ]
         self.safe_readonly_patterns.extend([
             r'^\s*(awk|wc|tail|head|xargs|grep|sed)\b.*',
             r'^\s*systemctl\s+(is-active|status|show)\b.*',
             r'^\s*service\s+\w+\s+(status)\b.*',
-            r'^\s*echo\b.*',  # Разрешить echo любое содержимое
+            r'^\s*echo\b.*',  # Allow echo any content
         ])
 
     def check_command_security(self, command: str) -> Tuple[bool, RiskLevel, str]:
         """
-        Проверка безопасности команды - режим приоритета белого списка
+        Command security check - whitelist priority mode
 
         Args:
-            command: Команда для проверки
+            command: Command to check
 
         Returns:
-            (безопасна ли, уровень риска, описание риска)
+            (is safe, risk level, risk description)
         """
         command = command.strip()
 
-        logger.info(f" Начинается проверка безопасности - Команда: {command[:100]}{'...' if len(command) > 100 else ''}")
+        logger.info(f" Security check begins - Command: {command[:100]}{'...' if len(command) > 100 else ''}")
 
         if not command:
-            logger.info("Пустая команда, считается безопасной")
-            return True, RiskLevel.LOW, "Пустая команда"
+            logger.info("Empty command, considered safe")
+            return True, RiskLevel.LOW, "Empty command"
 
-        # Шаг первый: Проверка, является ли команда явно безопасной только для чтения (белый список)
+        # Step one: Check if command is explicitly safe read-only (whitelist)
         if self._is_safe_readonly_command(command):
-            logger.info("Команда прошла проверку белого списка")
-            return True, RiskLevel.LOW, "Безопасная команда только для чтения"
+            logger.info("Command passed whitelist check")
+            return True, RiskLevel.LOW, "Safe read-only command"
 
-        # Шаг второй: Проверка, содержит ли команда абсолютно запрещенные операции (черный список)
+        # Step two: Check if command contains absolutely prohibited operations (blacklist)
         if self._contains_critical_operations(command):
             risk_level, risk_desc = self._analyze_command_risk(command)
-            logger.error(f"Обнаружена запрещенная операция изменения: {command[:100]}... Риск: {risk_desc}")
+            logger.error(f"Prohibited modification operation detected: {command[:100]}... Risk: {risk_desc}")
             return False, risk_level, risk_desc
 
-        # Шаг третий: Если включен режим только белого списка, отклонить все не явно разрешенные команды
+        # Step three: If whitelist-only mode is enabled, reject all non-explicitly allowed commands
         if self.whitelist_only:
-            logger.warning(f" Режим только белого списка: Команда не в безопасном белом списке: {command[:100]}...")
-            return False, RiskLevel.HIGH, "Команда не в безопасном белом списке, инструмент инспекции разрешает только команды просмотра только для чтения"
+            logger.warning(f" Whitelist-only mode: Command not in safe whitelist: {command[:100]}...")
+            return False, RiskLevel.HIGH, "Command not in safe whitelist, inspection tool allows only read-only viewing commands"
 
-        # Шаг четвертый: Традиционный анализ риска (для режима совместимости)
+        # Step four: Traditional risk analysis (for compatibility mode)
         risk_level, risk_desc = self._analyze_command_risk(command)
 
         if risk_level == RiskLevel.CRITICAL:
-            logger.error(f"Обнаружена команда критического риска: {command[:100]}... Риск: {risk_desc}")
+            logger.error(f"Critical risk command detected: {command[:100]}... Risk: {risk_desc}")
             return False, risk_level, risk_desc
 
         if self.strict_mode and risk_level == RiskLevel.HIGH:
-            logger.warning(f"В строгом режиме отклонена команда высокого риска: {command[:100]}... Риск: {risk_desc}")
+            logger.warning(f"High risk command rejected in strict mode: {command[:100]}... Risk: {risk_desc}")
             return False, risk_level, risk_desc
 
         if risk_level in [RiskLevel.MEDIUM, RiskLevel.HIGH]:
-            logger.warning(f"Обнаружена рискованная команда: {command[:100]}... Уровень риска: {risk_level.value}, Описание: {risk_desc}")
+            logger.warning(f"Risky command detected: {command[:100]}... Risk level: {risk_level.value}, Description: {risk_desc}")
             return not self.strict_mode, risk_level, risk_desc
 
-        return True, RiskLevel.LOW, "Команда прошла проверку безопасности"
+        return True, RiskLevel.LOW, "Command passed security check"
 
     def _contains_critical_operations(self, command: str) -> bool:
-        """Проверка, содержит ли команда абсолютно запрещенные операции изменения (разделение каждого подкоманды для суждения, избежание ошибочного суждения комбинаций только чтения)"""
+        """Check if command contains absolutely prohibited modification operations (split each subcommand for judgment, avoid misjudging read-only combinations)"""
         cmd = command.strip()
         sep_pattern = r'(\|\||&&)'
         def strip_redirect(s):
@@ -241,65 +241,65 @@ class CommandSecurityChecker:
         return False
 
     def _is_safe_readonly_command(self, command: str) -> bool:
-        """Проверка, является ли команда безопасной только для чтения, поддерживает префикс sudo, комбинации пайп/логических, удаление перенаправления"""
+        """Check if command is safe read-only, supports sudo prefix, pipe/logical combinations, redirection removal"""
         cmd = command.strip()
         sep_pattern = r'(\|\||&&)'
 
-        logger.info(f" Проверка белого списка - Исходная команда: {cmd}")
+        logger.info(f" Whitelist check - Original command: {cmd}")
 
         def strip_redirect(s):
             s = re.split(r'>+.*', s)[0].strip()
             return s
 
         sub_cmds = re.split(sep_pattern, cmd)
-        logger.info(f"Разделенные подкоманды: {sub_cmds}")
+        logger.info(f"Split subcommands: {sub_cmds}")
 
         for i, sub in enumerate(sub_cmds):
             sub = sub.strip()
             if not sub or sub in {'|', '||', '&&'}:
-                logger.debug(f"Подкоманда {i}: '{sub}' (разделитель, пропустить)")
+                logger.debug(f"Subcommand {i}: '{sub}' (separator, skip)")
                 continue
 
             if sub.startswith('sudo '):
                 sub = sub[5:].lstrip()
-                logger.info(f"Подкоманда {i}: После удаления префикса sudo: '{sub}'")
+                logger.info(f"Subcommand {i}: After sudo prefix removal: '{sub}'")
 
             sub = strip_redirect(sub)
-            logger.info(f"Подкоманда {i}: После удаления перенаправления: '{sub}'")
+            logger.info(f"Subcommand {i}: After redirection removal: '{sub}'")
 
             matched = False
             for pattern in self.safe_readonly_patterns:
                 if re.match(pattern, sub, re.IGNORECASE):
-                    logger.info(f"Подкоманда {i} соответствует шаблону белого списка: {pattern}")
+                    logger.info(f"Subcommand {i} matches whitelist pattern: {pattern}")
                     matched = True
                     break
 
             if not matched:
-                logger.warning(f"Подкоманда {i} не соответствует ни одному шаблону белого списка: '{sub}'")
+                logger.warning(f"Subcommand {i} does not match any whitelist pattern: '{sub}'")
                 return False
 
-        logger.info("Все подкоманды прошли проверку белого списка")
+        logger.info("All subcommands passed whitelist check")
         return True
 
     def _analyze_command_risk(self, command: str) -> Tuple[RiskLevel, str]:
         """
-        Анализ риска команды - идентификация рисковых шаблонов и уровней в команде
+        Command risk analysis - identification of risky patterns and levels in command
 
         Args:
-            command: Команда для анализа
+            command: Command to analyze
 
         Returns:
-            (уровень риска, описание риска)
+            (risk level, risk description)
         """
         command = command.strip()
 
         if not command:
-            return RiskLevel.LOW, "Пустая команда"
+            return RiskLevel.LOW, "Empty command"
 
         risk_level = RiskLevel.LOW
-        risk_desc = "Команда низкого риска"
+        risk_desc = "Low risk command"
 
-        # Проверка риска каждой подкоманды
+        # Check risk of each subcommand
         sep_pattern = r'(\|\||&&)'
         sub_cmds = re.split(sep_pattern, command)
         for sub in sub_cmds:
@@ -310,7 +310,7 @@ class CommandSecurityChecker:
                 sub = sub[5:].lstrip()
             sub_risk_level, sub_risk_desc = self._analyze_single_command_risk(sub)
 
-            # Слияние уровней риска
+            # Merge risk levels
             if sub_risk_level.value > risk_level.value:
                 risk_level = sub_risk_level
                 risk_desc = sub_risk_desc
@@ -319,40 +319,40 @@ class CommandSecurityChecker:
 
     def _analyze_single_command_risk(self, command: str) -> Tuple[RiskLevel, str]:
         """
-        Анализ риска отдельной команды - идентификация рисковых шаблонов и уровней в отдельной команде
+        Single command risk analysis - identification of risky patterns and levels in single command
 
         Args:
-            command: Команда для анализа
+            command: Command to analyze
 
         Returns:
-            (уровень риска, описание риска)
+            (risk level, risk description)
         """
         command = command.strip()
 
         if not command:
-            return RiskLevel.LOW, "Пустая команда"
+            return RiskLevel.LOW, "Empty command"
 
-        # Проверка, является ли команда абсолютно запрещенной
+        # Check if command is absolutely prohibited
         for pattern in self.critical_commands:
             if re.search(pattern, command, re.IGNORECASE):
-                return RiskLevel.CRITICAL, "Содержит абсолютно запрещенные операции изменения"
+                return RiskLevel.CRITICAL, "Contains absolutely prohibited modification operations"
 
-        # Проверка, является ли команда высокого риска
+        # Check if command is high risk
         high_risk_patterns = [
             r'\b(dd|mkfs|mount|umount|chmod|chown|chgrp|systemctl|service|kill|killall|pkill|reboot|shutdown|halt|apt-get|yum|dnf|pip|npm)\b',
-            r'\b(find|locate|grep|awk|sed|xargs|wc|sort|uniq|tee|cut|tr|head|tail)\s+.*[|&]', # Комбинации пайп/логических
+            r'\b(find|locate|grep|awk|sed|xargs|wc|sort|uniq|tee|cut|tr|head|tail)\s+.*[|&]', # Pipe/logical combinations
         ]
         for pattern in high_risk_patterns:
             if re.search(pattern, command, re.IGNORECASE):
-                return RiskLevel.HIGH, "Содержит команды или операции высокого риска"
+                return RiskLevel.HIGH, "Contains high-risk commands or operations"
 
-        # Проверка, является ли команда среднего риска
+        # Check if command is medium risk
         medium_risk_patterns = [
-            r'\b(less|more|cat|echo|printf|env|printenv|history|journalctl|dmesg)\b', # Только для части параметров
-            r'\b(systemctl|service)\s+\w+\s+(status|show|is-active)\b',           # Просмотр состояния только чтение
+            r'\b(less|more|cat|echo|printf|env|printenv|history|journalctl|dmesg)\b', # Only for some parameters
+            r'\b(systemctl|service)\s+\w+\s+(status|show|is-active)\b',           # Read-only state viewing
         ]
         for pattern in medium_risk_patterns:
             if re.search(pattern, command, re.IGNORECASE):
-                return RiskLevel.MEDIUM, "Содержит команды или операции среднего риска"
+                return RiskLevel.MEDIUM, "Contains medium-risk commands or operations"
 
-        return RiskLevel.LOW, "Команда низкого риска"
+        return RiskLevel.LOW, "Low risk command"

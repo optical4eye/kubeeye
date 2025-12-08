@@ -1,59 +1,59 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Страница исполнения проверки кластера Kubernetes
+Kubernetes cluster inspection execution page
 """
 
 
-# Импорт необходимых библиотек
+# Import necessary libraries
 import streamlit as st
 import sys
 from pathlib import Path
 
 
-# Настройка параметров страницы — должна быть первой командой Streamlit
+# Page parameter setup - must be the first Streamlit command
 st.set_page_config(
-    page_title="Проверка кластера - kubeeye",
+    page_title="Cluster inspection - kubeeye",
     layout="wide"
 )
 
 
-# Добавление корневой директории проекта в пути Python
+# Add project root directory to Python paths
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 
-# Импорт модуля с общими утилитами
+# Import module with common utilities
 from utils.common import initialize_page
-# Импорт модулей компонентов
+# Import component modules
 from components.immediate_scan import render_immediate_scan_tab
 from components.scheduled_scan import render_scheduled_scan_tab
 from components.rule_management import render_rule_management_tab
 
 
-# Инициализация страницы
+# Page initialization
 initialize_page(
-    title="Проверка кластера",
-    page_title="Центр проверки кластера",
-    page_subtitle="Выполнение немедленной или плановой проверки, управление правилами проверки"
+    title="Cluster inspection",
+    page_title="Cluster inspection center",
+    page_subtitle="Execute immediate or scheduled inspection, manage inspection rules"
 )
 
 
-# Создание трёх вкладок
-tab1, tab2, tab3 = st.tabs(["Немедленная проверка", "Плановая проверка", "Управление правилами"])
+# Create three tabs
+tab1, tab2, tab3 = st.tabs(["Immediate inspection", "Scheduled inspection", "Rule management"])
 
 
-# Отрисовка вкладки немедленной проверки
+# Render immediate inspection tab
 with tab1:
     render_immediate_scan_tab()
 
 
-# Отрисовка вкладки плановой проверки
+# Render scheduled inspection tab
 with tab2:
     render_scheduled_scan_tab()
 
 
-# Отрисовка вкладки управления правилами
+# Render rule management tab
 with tab3:
     render_rule_management_tab()

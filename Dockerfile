@@ -5,16 +5,16 @@ LABEL maintainer="KubeSphere Team"
 LABEL description="KubeEye Kubernetes Cluster Inspection Tool"
 LABEL version="2.0.0"
 
-# [translate:设置构建参数以支持多架构]  # Установить параметры сборки для поддержки нескольких архитектур
+# Set build parameters to support multi-architecture
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
-# [translate:设置工作目录]  # Установить рабочую директорию
+# Set working directory
 WORKDIR /app
 
-# [translate:安装系统依赖]  # Установить системные зависимости
+# Install system dependencies
 RUN apk add --no-cache \
     gcc \
     musl-dev \
@@ -27,21 +27,21 @@ RUN apk add --no-cache \
     font-liberation \
     && apk upgrade --no-cache
 
-# [translate:首先复制requirements.txt以利用Docker缓存]  # Сначала скопировать requirements.txt, чтобы использовать кэш Docker
+# First copy requirements.txt to utilize Docker cache
 COPY requirements.txt /app/
 
-# [translate:安装Python依赖]  # Установить зависимости Python
+# Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# [translate:设置环境变量]  # Установить переменные окружения
+# Set environment variables
 ENV PYTHONPATH=/app
 ENV KUBEEYE_DATA_DIR=/app/data
 ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_SERVER_ENABLE_CORS=false
 ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
 
-# [translate:根据目标架构下载对应的OPA二进制文件]  # Скачать подходящий бинарник OPA в зависимости от целевой архитектуры
+# Download corresponding OPA binary file based on target architecture
 RUN set -eux; \
     OPA_VERSION="v1.11.0"; \
     case "${TARGETARCH}" in \
@@ -63,13 +63,13 @@ RUN set -eux; \
     chmod +x opa && \
     mv opa /usr/local/bin/opa
 
-# [translate:复制项目文件]  # Копировать файлы проекта
+# Copy project files
 COPY . /app/
 
-# [translate:创建数据目录并设置权限]  # Создать каталоги данных и установить права доступа
+# Create data directories and set permissions
 RUN mkdir -p /app/data/clusters /app/data/results /app/data/logs /app/data/schedules /app/data/git_rules
 
-# [translate:初始化应用（在切换用户前执行）]  # Инициализировать приложение (выполнить до смены пользователя)
+# Initialize application (execute before switching user)
 RUN python init.py
 
 # Add user
@@ -79,12 +79,12 @@ RUN chown -R kubeeye:kubeeye /app
 
 USER kubeeye
 
-# [translate:暴露服务端口]  # Открыть порт сервиса
+# Expose service port
 EXPOSE 8501
 
-# [translate:健康检查]  # Проверка состояния
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8501/_stcore/health || exit 1
 
-# [translate:启动应用]  # Запустить приложение
+# Start application
 ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

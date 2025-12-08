@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Базовый класс инспектора, определяет общие интерфейсы и базовые функции для всех инспекторов
+Base inspector class, defines common interfaces and basic functions for all inspectors
 """
 
 from abc import ABC, abstractmethod
@@ -12,19 +12,19 @@ from utils.inspection_result import InspectionResult
 from utils.rule_loader import Rule, load_rules
 from inspectors.rule_processor import RuleProcessor
 
-# Настройка логирования
+# Logging setup
 logger = logging.getLogger(__name__)
 
 class BaseInspector(ABC):
-    """Базовый класс инспектора, все типы инспекторов должны наследовать этот класс"""
+    """Base inspector class, all inspector types must inherit from this class"""
 
     def __init__(self, config: Dict[str, Any], use_gitops: bool = False):
         """
-        Инициализация инспектора
+        Inspector initialization
 
         Args:
-            config: конфигурация инспектора
-            use_gitops: использовать ли правила GitOps
+            config: inspector configuration
+            use_gitops: whether to use GitOps rules
         """
         self.config = config
         self.use_gitops = use_gitops
@@ -35,39 +35,39 @@ class BaseInspector(ABC):
     @property
     @abstractmethod
     def inspector_type(self) -> str:
-        """Возвращает тип инспектора, например 'node', 'opa', 'prometheus'"""
+        """Returns inspector type, e.g. 'node', 'opa', 'prometheus'"""
         pass
 
     def _load_rules(self):
-        """Загрузить правила, применимые к этому инспектору"""
+        """Load rules applicable to this inspector"""
         yaml_rules = load_rules(rule_type=self.inspector_type, use_gitops=self.use_gitops)
         self.rules = [rule for rule in yaml_rules if rule.enabled]
-        source_type = "GitOps" if self.use_gitops else "локальных"
-        logger.info(f"Загружено {len(self.rules)} {source_type} правил {self.inspector_type} проверки")
+        source_type = "GitOps" if self.use_gitops else "local"
+        logger.info(f"Loaded {len(self.rules)} {source_type} rules for {self.inspector_type} inspection")
 
     @abstractmethod
     def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
         """
-        Применить одно правило для проверки
+        Apply a single rule for inspection
 
         Args:
-            rule: применяемое правило
-            context: контекст проверки
+            rule: rule to apply
+            context: inspection context
 
         Returns:
-            Результат проверки, может быть одним словарем результата, списком результатов или None (означает, что правило неприменимо)
+            Inspection result, can be a single result dict, list of results, or None (means rule is not applicable)
         """
         pass
 
     def get_rule_by_id(self, rule_id: str) -> Optional[Rule]:
         """
-        Получить правило по ID
+        Get rule by ID
 
         Args:
-            rule_id: ID правила
+            rule_id: rule ID
 
         Returns:
-            Объект правила, если не найден, возвращает None
+            Rule object, returns None if not found
         """
         for rule in self.rules:
             if rule.id == rule_id:
@@ -76,207 +76,207 @@ class BaseInspector(ABC):
 
     def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
         """
-        Выполнить проверку
+        Run inspection
 
         Args:
-            cluster_name: имя кластера
-            rule_ids: список ID правил для выполнения, если None, выполнить все правила
+            cluster_name: cluster name
+            rule_ids: list of rule IDs to execute, if None, execute all rules
 
         Returns:
-            Объект результата проверки
+            Inspection result object
         """
-        source_type = "GitOps" if self.use_gitops else "локальных"
-        logger.info(f"BaseInspector.run_inspection начато - тип инспектора: {self.inspector_type}, кластер: {cluster_name}, источник: {source_type}")
-        logger.info(f"Доступных правил всего: {len(self.rules)}, указанные ID правил: {rule_ids}")
+        source_type = "GitOps" if self.use_gitops else "local"
+        logger.info(f"BaseInspector.run_inspection started - inspector type: {self.inspector_type}, cluster: {cluster_name}, source: {source_type}")
+        logger.info(f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}")
 
         result = InspectionResult(cluster_name, self.inspector_type)
 
-        # Определить правила для выполнения
+        # Determine rules to execute
         if rule_ids:
             active_rules = [rule for rule in self.rules if rule.id in rule_ids]
-            logger.info(f"Количество правил после фильтрации по указанным ID: {len(active_rules)}")
+            logger.info(f"Number of rules after filtering by specified IDs: {len(active_rules)}")
         else:
             active_rules = self.rules
-            logger.info(f"Использование всех доступных правил: {len(active_rules)}")
+            logger.info(f"Using all available rules: {len(active_rules)}")
 
         if not active_rules:
-            logger.warning(f"Нет выполняемых правил, проверка завершена")
+            logger.warning(f"No executable rules, inspection completed")
             return result
 
-        logger.info(f"Подготовка к выполнению {len(active_rules)} правил:")
+        logger.info(f"Preparing to execute {len(active_rules)} rules:")
         for rule in active_rules:
             logger.info(f"  - {rule.id}: {rule.name}")
 
-        # Выполнение правил
+        # Execute rules
         context = self._prepare_context(cluster_name)
-        logger.info(f"Контекст подготовлен: {context}")
+        logger.info(f"Context prepared: {context}")
 
         executed_count = 0
         for rule in active_rules:
             try:
-                logger.info(f"Начало выполнения правила {rule.id}: {rule.name}")
+                logger.info(f"Starting execution of rule {rule.id}: {rule.name}")
 
-                # Проверка конфигурации правила
+                # Validate rule configuration
                 validation_issues = self._validate_rule_config(rule)
                 if validation_issues:
-                    logger.error(f"Правило {rule.id} имеет неверную конфигурацию: {validation_issues}")
-                    # Конфигурация правила недействительна
+                    logger.error(f"Rule {rule.id} has invalid configuration: {validation_issues}")
+                    # Rule configuration is invalid
                     result.add_item(self._format_invalid_result(
                         rule,
-                        "Конфигурация правила недействительна",
-                        f"Следующие проблемы конфигурации препятствуют выполнению правила: {', '.join(validation_issues)}"
+                        "Rule configuration is invalid",
+                        f"The following configuration issues prevent rule execution: {', '.join(validation_issues)}"
                     ))
                     continue
-                else:
-                    logger.info(f"Правило {rule.id} прошло проверку конфигурации")
 
-                # Проверить, применимо ли правило к текущей среде
+                else:
+                    logger.info(f"Rule {rule.id} passed configuration validation")
+                # Check if rule is applicable to current environment
                 should_apply = self._should_apply_rule(rule, context)
-                logger.info(f"Правило {rule.id} проверка применимости: {should_apply}")
+                logger.info(f"Rule {rule.id} applicability check: {should_apply}")
 
                 if should_apply:
-                    logger.info(f"Применение правила {rule.id}")
+                    logger.info(f"Applying rule {rule.id}")
                     inspection_result = self._apply_rule(rule, context)
-                    logger.info(f"Правило {rule.id} применено, тип результата: {type(inspection_result)}")
+                    logger.info(f"Rule {rule.id} applied, result type: {type(inspection_result)}")
 
                     if inspection_result:
-                        # Обработка одного результата или списка результатов
+                        # Handle single result or list of results
                         if isinstance(inspection_result, list):
-                            logger.info(f"Правило {rule.id} вернуло список результатов, длина: {len(inspection_result)}")
+                            logger.info(f"Rule {rule.id} returned list of results, length: {len(inspection_result)}")
                             for item in inspection_result:
                                 result.add_item(item)
                         else:
-                            logger.info(f"Правило {rule.id} вернуло одиночный результат")
+                            logger.info(f"Rule {rule.id} returned single result")
                             result.add_item(inspection_result)
                     else:
-                        logger.warning(f"Правило {rule.id} вернуло пустой результат")
+                        logger.warning(f"Rule {rule.id} returned empty result")
                 else:
-                    logger.info(f"Правило {rule.id} не применимо к текущей среде")
-                    # Правило не применимо к текущей среде
+                    logger.info(f"Rule {rule.id} is not applicable to current environment")
+                    # Rule is not applicable to current environment
                     result.add_item(self._format_not_applicable_result(
                         rule,
-                        "Правило не применимо к текущей среде"
+                        "Rule is not applicable to current environment"
                     ))
 
                 executed_count += 1
-                logger.info(f"Правило {rule.id} выполнено ({executed_count}/{len(active_rules)})")
+                logger.info(f"Rule {rule.id} executed ({executed_count}/{len(active_rules)})")
 
             except Exception as e:
-                logger.exception(f"Ошибка выполнения правила {rule.id}: {str(e)}")
+                logger.exception(f"Error executing rule {rule.id}: {str(e)}")
                 error_result = self._format_error_result(
                     rule,
-                    f"Ошибка выполнения правила: {str(e)}",
+                    f"Rule execution error: {str(e)}",
                     str(e)
                 )
                 result.add_item(error_result)
 
-        logger.info(f"BaseInspector.run_inspection завершено - инспектор: {self.inspector_type}, выполнено правил: {executed_count}, результатов: {len(result.items)}")
+        logger.info(f"BaseInspector.run_inspection completed - inspector: {self.inspector_type}, rules executed: {executed_count}, results: {len(result.items)}")
         return result
 
     def _prepare_context(self, cluster_name: str) -> Dict:
         """
-        Подготовить контекст проверки
+        Prepare inspection context
 
         Args:
-            cluster_name: имя кластера
+            cluster_name: cluster name
 
         Returns:
-            Контекст проверки
+            Inspection context
         """
         return {'cluster_name': cluster_name}
 
     def _should_apply_rule(self, rule: Rule, context: Dict) -> bool:
         """
-        Определить, следует ли применять правило к текущему контексту
+        Determine if rule should be applied to current context
 
         Args:
-            rule: правило
-            context: контекст
+            rule: rule
+            context: context
 
         Returns:
-            Применять ли правило
+            Whether to apply the rule
         """
-        # Реализация по умолчанию всегда возвращает True
-        # Подклассы могут переопределить этот метод для реализации более сложной фильтрации правил
+        # Default implementation always returns True
+        # Subclasses can override this method to implement more complex rule filtering
         return True
 
     def _validate_rule_config(self, rule: Rule) -> List[str]:
         """
-        Проверить, действительна ли конфигурация правила
+        Check if rule configuration is valid
 
         Args:
-            rule: объект правила
+            rule: rule object
 
         Returns:
-            Список проблем конфигурации, если проблем нет, возвращает пустой список
+            List of configuration issues, returns empty list if no issues
         """
-        # Подклассы должны переопределить этот метод для реализации логики проверки конкретного типа правил
+        # Subclasses should override this method to implement validation logic for specific rule types
         return []
 
     def get_rule_config(self, rule: Rule, path: str, default_value: Any = None) -> Any:
         """
-        Получить значение конфигурации из правила, поддерживает вложенные пути
+        Get configuration value from rule, supports nested paths
 
         Args:
-            rule: объект правила
-            path: путь конфигурации, использует точечную нотацию, например "execution.command"
-            default_value: значение по умолчанию, возвращаемое, если путь не существует
+            rule: rule object
+            path: configuration path, uses dot notation, e.g. "execution.command"
+            default_value: default value returned if path doesn't exist
 
         Returns:
-            Значение конфигурации или значение по умолчанию
+            Configuration value or default value
         """
         return self.rule_processor.get_rule_config(rule, path, default_value)
 
     def _format_invalid_result(self, rule: Rule, description: str, details: str) -> Dict:
         """
-        Форматировать результат правила с недействительной конфигурацией (делегировано ResultFormatter)
+        Format result for rule with invalid configuration (delegated to ResultFormatter)
 
         Args:
-            rule: объект правила
-            description: краткое описание
-            details: подробная информация
+            rule: rule object
+            description: brief description
+            details: detailed information
 
         Returns:
-            Форматированный словарь результата
+            Formatted result dictionary
         """
         return self.rule_processor.result_formatter.invalid_result(rule, description, details)
 
     def _format_not_applicable_result(self, rule: Rule, reason: str) -> Dict:
         """
-        Форматировать результат неприменимого правила (делегировано ResultFormatter)
+        Format result for inapplicable rule (delegated to ResultFormatter)
 
         Args:
-            rule: объект правила
-            reason: причина неприменимости
+            rule: rule object
+            reason: reason for inapplicability
 
         Returns:
-            Форматированный словарь результата
+            Formatted result dictionary
         """
         return self.rule_processor.result_formatter.not_applicable_result(rule, reason)
 
     def _format_skipped_result(self, rule: Rule, reason: str) -> Dict:
         """
-        Форматировать результат пропущенного правила (делегировано ResultFormatter)
+        Format result for skipped rule (delegated to ResultFormatter)
 
         Args:
-            rule: объект правила
-            reason: причина пропуска
+            rule: rule object
+            reason: reason for skipping
 
         Returns:
-            Форматированный словарь результата
+            Formatted result dictionary
         """
         return self.rule_processor.result_formatter.skipped_result(rule, reason)
 
     def _format_error_result(self, rule: Rule, description: str, error: str) -> Dict:
         """
-        Форматировать результат правила с ошибкой (делегировано ResultFormatter)
+        Format result for rule with error (delegated to ResultFormatter)
 
         Args:
-            rule: объект правила
-            description: описание ошибки
-            error: детали ошибки
+            rule: rule object
+            description: error description
+            error: error details
 
         Returns:
-            Форматированный словарь результата
+            Formatted result dictionary
         """
         return self.rule_processor.result_formatter.error_result(rule, error, description)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Менеджер расписания — для управления задачами плановой проверки
+Schedule manager — for managing scheduled inspection tasks
 """
 
 import json
@@ -14,40 +14,40 @@ import schedule
 from croniter import croniter
 import logging
 
-# Импорт модулей проверки
+# Import inspection modules
 from utils.cluster_config import get_cluster
 from utils.inspection_result import InspectionResult
 from inspectors.node.node_inspector import NodeInspector
 from inspectors.prometheus.prometheus_inspector import PrometheusInspector
 from inspectors.opa.opa_inspector import OpaInspector
 
-# Настройка логов
+# Log setup
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("ScheduleManager")
 
-# Каталог для хранения задач расписания
+# Directory for storing schedule tasks
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 SCHEDULE_DIR = DATA_DIR / "schedules"
 SCHEDULE_FILE = SCHEDULE_DIR / "schedules.json"
 
-# Убедиться, что каталог существует
+# Ensure directory exists
 SCHEDULE_DIR.mkdir(parents=True, exist_ok=True)
 
-# Глобальные объекты для потока и события остановки
+# Global objects for thread and stop event
 _scheduler_thread = None
 _stop_event = threading.Event()
 
 class ScheduleTask:
-    """Класс задачи расписания"""
+    """Schedule task class"""
     def __init__(self, task_id=None, cluster=None, name=None, description=None,
                  cron_expr=None, enabled=True, rules=None, task_type="cron",
                  last_run=None, last_status=None, created_at=None, run_datetime=None):
         self.task_id = task_id or f"task_{int(time.time())}"
         self.cluster = cluster
-        self.name = name or f"Задача проверки {self.task_id}"
+        self.name = name or f"Inspection task {self.task_id}"
         self.description = description or ""
         self.cron_expr = cron_expr
         self.enabled = enabled
@@ -56,10 +56,10 @@ class ScheduleTask:
         self.last_run = last_run
         self.last_status = last_status
         self.created_at = created_at or dt.now().isoformat()
-        self.run_datetime = run_datetime  # Для одноразовых задач
+        self.run_datetime = run_datetime  # For one-time tasks
 
     def to_dict(self):
-        """Преобразование задачи в словарь"""
+        """Convert task to dictionary"""
         return {
             "task_id": self.task_id,
             "cluster": self.cluster,
@@ -77,7 +77,7 @@ class ScheduleTask:
 
     @classmethod
     def from_dict(cls, data):
-        """Создание задачи из словаря"""
+        """Create task from dictionary"""
         return cls(
             task_id=data.get("task_id"),
             cluster=data.get("cluster"),
@@ -94,7 +94,7 @@ class ScheduleTask:
         )
 
     def is_valid_cron(self):
-        """Проверка валидности cron выражения"""
+        """Check cron expression validity"""
         try:
             if self.cron_expr:
                 croniter(self.cron_expr)
@@ -104,7 +104,7 @@ class ScheduleTask:
         return False
 
     def get_next_run(self):
-        """Получить время следующего запуска"""
+        """Get next run time"""
         if self.cron_expr and self.is_valid_cron():
             base = dt.now()
             itr = croniter(self.cron_expr, base)
@@ -112,23 +112,23 @@ class ScheduleTask:
         return None
 
     def get_pretty_schedule(self):
-        """Получить человекочитаемое описание расписания"""
+        """Get human-readable schedule description"""
         if self.task_type == "cron":
-            return f"Пользовательское: {self.cron_expr}"
+            return f"Custom: {self.cron_expr}"
         elif self.task_type == "once":
-            return f"Одноразовое: {self.run_datetime}"
+            return f"One-time: {self.run_datetime}"
         elif self.task_type == "hourly":
-            return "Каждый час"
+            return "Every hour"
         elif self.task_type == "daily":
-            return "Каждый день"
+            return "Every day"
         elif self.task_type == "weekly":
-            return "Каждую неделю"
+            return "Every week"
         elif self.task_type == "monthly":
-            return "Каждый месяц"
-        return "Неизвестный тип расписания"
+            return "Every month"
+        return "Unknown schedule type"
 
 def load_schedules():
-    """Загрузка всех задач расписания"""
+    """Load all schedule tasks"""
     if not SCHEDULE_FILE.exists():
         save_schedules([])
         return []
@@ -138,21 +138,21 @@ def load_schedules():
             data = json.load(f)
             return [ScheduleTask.from_dict(task) for task in data]
     except Exception as e:
-        logger.error(f"Ошибка загрузки расписания: {e}")
+        logger.error(f"Error loading schedule: {e}")
         return []
 
 def save_schedules(tasks):
-    """Сохранение всех задач расписания"""
+    """Save all schedule tasks"""
     try:
         with open(SCHEDULE_FILE, 'w') as f:
             json.dump([task.to_dict() for task in tasks], f, indent=2, ensure_ascii=False)
         return True
     except Exception as e:
-        logger.error(f"Ошибка сохранения расписания: {e}")
+        logger.error(f"Error saving schedule: {e}")
         return False
 
 def add_schedule(task):
-    """Добавление или обновление задачи расписания"""
+    """Add or update schedule task"""
     tasks = load_schedules()
     for i, t in enumerate(tasks):
         if t.task_id == task.task_id:
@@ -162,13 +162,13 @@ def add_schedule(task):
     return save_schedules(tasks)
 
 def delete_schedule(task_id):
-    """Удаление задачи расписания по ID"""
+    """Delete schedule task by ID"""
     tasks = load_schedules()
     tasks = [t for t in tasks if t.task_id != task_id]
     return save_schedules(tasks)
 
 def get_schedule(task_id):
-    """Получить задачу по ID"""
+    """Get task by ID"""
     tasks = load_schedules()
     for task in tasks:
         if task.task_id == task_id:
@@ -176,7 +176,7 @@ def get_schedule(task_id):
     return None
 
 def update_task_status(task_id, last_run=None, last_status=None):
-    """Обновление статуса задачи"""
+    """Update task status"""
     task = get_schedule(task_id)
     if task:
         task.last_run = last_run or dt.now().isoformat()
@@ -185,32 +185,32 @@ def update_task_status(task_id, last_run=None, last_status=None):
     return False
 
 def run_inspection_bg(task):
-    """Выполнить проверку в фоне"""
+    """Execute inspection in background"""
     try:
-        logger.info(f"Запуск проверки задачи: {task.name} ({task.task_id})")
+        logger.info(f"Starting inspection task: {task.name} ({task.task_id})")
         update_task_status(task.task_id, last_status="running")
         from components.ui.task_execution import execute_inspection_task
         success, message, _ = execute_inspection_task(task, show_progress=False)
         if success:
             update_task_status(task.task_id, last_status="success")
-            logger.info(f"Задача выполнена: {task.name} ({task.task_id})")
+            logger.info(f"Task completed: {task.name} ({task.task_id})")
         else:
             update_task_status(task.task_id, last_status="failed")
-            logger.error(f"Ошибка выполнения задачи: {task.name} ({task.task_id}) - {message}")
+            logger.error(f"Task execution error: {task.name} ({task.task_id}) - {message}")
         return success
     except Exception as e:
-        logger.error(f"Ошибка выполнения задачи: {e}", exc_info=True)
+        logger.error(f"Task execution error: {e}", exc_info=True)
         update_task_status(task.task_id, last_status="failed")
         return False
 
 def run_inspection(task_id, return_results=False):
-    """Запустить проверку по ID задачи
-    Если return_results=True, вернуть результаты вместо запуска в фоне
+    """Start inspection by task ID
+    If return_results=True, return results instead of running in background
     """
     task = get_schedule(task_id)
     if not task:
-        logger.error(f"Задача не найдена: {task_id}")
-        return (False, "Задача не найдена", None) if return_results else (False, "Задача не найдена")
+        logger.error(f"Task not found: {task_id}")
+        return (False, "Task not found", None) if return_results else (False, "Task not found")
     try:
         if return_results:
             from components.ui.task_execution import execute_inspection_task
@@ -218,13 +218,13 @@ def run_inspection(task_id, return_results=False):
             return success, message, results
         else:
             threading.Thread(target=lambda: run_inspection_bg(task)).start()
-            return True, "Задача запущена"
+            return True, "Task started"
     except Exception as e:
-        logger.error(f"Ошибка запуска задачи: {e}")
+        logger.error(f"Task start error: {e}")
         return (False, str(e), None) if return_results else (False, str(e))
 
 def _scheduler_loop():
-    """Цикл запуска планировщика, запускается в отдельном потоке"""
+    """Scheduler run loop, runs in separate thread"""
     while not _stop_event.is_set():
         schedule.run_pending()
         tasks = load_schedules()
@@ -236,7 +236,7 @@ def _scheduler_loop():
                 except Exception:
                     continue
                 if now >= run_dt:
-                    logger.info(f"Исполнение одноразовой задачи: {task.name} ({task.task_id})")
+                    logger.info(f"Executing one-time task: {task.name} ({task.task_id})")
                     success = run_inspection_bg(task)
                     task.enabled = False
                     add_schedule(task)
@@ -244,7 +244,7 @@ def _scheduler_loop():
         time.sleep(30)
 
 def schedule_tasks():
-    """Настроить все включённые задачи расписания"""
+    """Configure all enabled schedule tasks"""
     schedule.clear()
     tasks = load_schedules()
     for task in tasks:
@@ -265,7 +265,7 @@ def schedule_tasks():
                 next_run = cron.get_next(dt)
                 delta_seconds = (next_run - base).total_seconds()
             schedule.every(int(delta_seconds)).seconds.do(create_cron_job(task)).tag(task.task_id)
-            logger.info(f"Запланирована Cron задача: {task.name} ({task.task_id}) на {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"Scheduled Cron task: {task.name} ({task.task_id}) at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
         elif task.task_type == "hourly":
             schedule.every().hour.do(lambda t=task: run_inspection_bg(t)).tag(task.task_id)
         elif task.task_type == "daily":
@@ -280,12 +280,12 @@ def schedule_tasks():
             if run_time > now:
                 delta_seconds = (run_time - now).total_seconds()
                 schedule.every(int(delta_seconds)).seconds.do(lambda t=task: run_inspection_bg(t)).tag(task.task_id)
-                logger.info(f"Запланирована одноразовая задача: {task.name} ({task.task_id}) на {run_time}")
+                logger.info(f"Scheduled one-time task: {task.name} ({task.task_id}) at {run_time}")
 
-    logger.info(f"Запланировано {len([t for t in tasks if t.enabled])} активных задач")
+    logger.info(f"Scheduled {len([t for t in tasks if t.enabled])} active tasks")
 
 def reschedule_cron_task(task):
-    """Перезапланировать следующую реализацию cron задачи"""
+    """Reschedule next cron task execution"""
     try:
         schedule.clear(task.task_id)
         from croniter import croniter
@@ -299,42 +299,42 @@ def reschedule_cron_task(task):
                 reschedule_cron_task(task_obj)
             return cron_job
         schedule.every(int(delta_seconds)).seconds.do(create_cron_job(task)).tag(task.task_id)
-        logger.info(f"Перезапланирован Cron задача: {task.name} ({task.task_id}) на {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"Rescheduled Cron task: {task.name} ({task.task_id}) at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
     except Exception as e:
-        logger.error(f"Ошибка перезапланирования задачи {task.name} ({task.task_id}): {e}")
+        logger.error(f"Error rescheduling task {task.name} ({task.task_id}): {e}")
 
 def start_scheduler():
-    """Запуск планировщика"""
+    """Start scheduler"""
     global _scheduler_thread, _stop_event
     if _scheduler_thread and _scheduler_thread.is_alive():
-        logger.info("Планировщик уже запущен")
+        logger.info("Scheduler already running")
         return
     schedule_tasks()
     _stop_event.clear()
     _scheduler_thread = threading.Thread(target=_scheduler_loop)
     _scheduler_thread.daemon = True
     _scheduler_thread.start()
-    logger.info("Планировщик запущен")
+    logger.info("Scheduler started")
     return True
 
 def stop_scheduler():
-    """Остановка планировщика"""
+    """Stop scheduler"""
     global _scheduler_thread, _stop_event
     if not _scheduler_thread or not _scheduler_thread.is_alive():
-        logger.info("Планировщик не запущен")
+        logger.info("Scheduler not running")
         return
     _stop_event.set()
     _scheduler_thread.join(timeout=5)
     _scheduler_thread = None
-    logger.info("Планировщик остановлен")
+    logger.info("Scheduler stopped")
     return True
 
 def restart_scheduler():
-    """Перезапуск планировщика"""
+    """Restart scheduler"""
     stop_scheduler()
     return start_scheduler()
 
 try:
     start_scheduler()
 except Exception as e:
-    logger.error(f"Ошибка запуска планировщика: {e}")
+    logger.error(f"Error starting scheduler: {e}")

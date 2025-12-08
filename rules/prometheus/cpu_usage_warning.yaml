@@ -1,41 +1,41 @@
 ---
-# Правило проверки использования CPU - порог предупреждения
+# CPU usage check rule - warning threshold
 id: prom_cpu_usage_warning
-name: Проверка использования CPU узла
-description: Проверить, превышает ли использование CPU узла порог предупреждения
+name: Node CPU usage check
+description: Check if node CPU usage exceeds warning threshold
 type: prometheus
 category: resource
 severity: warning
 enabled: true
 tier: basic
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация запроса Prometheus - прямой возврат использования CPU
+  # Prometheus query configuration - direct CPU usage return
   query: "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
 
-  # Конфигурация временного диапазона
+  # Time range configuration
   time_range:
-    start: "now-10m"  # 10 минут назад
-    end: "now"        # Текущее время
-    step: "1m"        # Интервал 1 минута
+    start: "now-10m"  # 10 minutes ago
+    end: "now"        # Current time
+    step: "1m"        # 1 minute interval
 
-  # Конфигурация утверждений - упрощено до одной проверки
+  # Assertions configuration - simplified to one check
   assertions:
-    - name: "Нормальное использование CPU"
+    - name: "Normal CPU usage"
       condition: "max_value < 80"
       severity: warning
-      description: "Использование CPU: {{ max_value | round(2) }}%"
+      description: "CPU usage: {{ max_value | round(2) }}%"
 
-# Рекомендации по решению проблем
+# Problem resolution recommendations
 solution: |
-  Обработка высокого использования CPU:
-  1. Просмотр процессов с высоким потреблением CPU: kubectl top nodes && kubectl top pods
-  2. Проверка ограничений ресурсов Pod: kubectl describe pod <pod-name>
-  3. Оптимизация приложений с высоким потреблением CPU или добавление ресурсов узла
-  4. Использование HPA для автоматического масштабирования нагрузки
+  Handling high CPU usage:
+  1. View processes with high CPU consumption: kubectl top nodes && kubectl top pods
+  2. Check Pod resource limits: kubectl describe pod <pod-name>
+  3. Optimize applications with high CPU consumption or add node resources
+  4. Use HPA for automatic load scaling
 
-# Теги
+# Tags
 tags:
   - cpu
   - performance

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Единый движок выполнения проверки — устраняет дублирование кода, предоставляет единый интерфейс выполнения проверки
+Unified inspection execution engine — eliminates code duplication, provides unified inspection execution interface
 """
 import streamlit as st
 import logging
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 from components.ui.progress import InspectionProgress
 
 class InspectionEngine:
-    """Единый движок выполнения проверки"""
+    """Unified inspection execution engine"""
     def __init__(self):
         self.progress = None
 
@@ -31,23 +31,23 @@ class InspectionEngine:
         inspection_type: str = "immediate",
         show_progress: bool = True,
         show_ui_feedback: bool = True,
-        use_gitops: bool = False  # Добавляем параметр для определения источника правил
+        use_gitops: bool = False  # Add parameter to determine rules source
     ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """
-        Выполнить универсальную проверку
+        Execute universal inspection
 
         Args:
-            cluster_name: имя кластера
-            selected_rules: выбранные правила {"node": [...], "prometheus": [...], "opa": [...]}
-            inspection_type: тип проверки ("immediate" или "scheduled")
-            show_progress: показывать ли прогресс бар
-            show_ui_feedback: показывать ли UI обратную связь
-            use_gitops: использовать ли правила GitOps
+            cluster_name: cluster name
+            selected_rules: selected rules {"node": [...], "prometheus": [...], "opa": [...]}
+            inspection_type: inspection type ("immediate" or "scheduled")
+            show_progress: whether to show progress bar
+            show_ui_feedback: whether to show UI feedback
+            use_gitops: whether to use GitOps rules
 
         Returns:
-            (успех, сообщение, результаты)
+            (success, message, results)
         """
-        self.use_gitops = use_gitops  # Сохраняем информацию об источнике правил
+        self.use_gitops = use_gitops  # Save rules source information
 
         if show_progress:
             total_rules = 0
@@ -62,11 +62,11 @@ class InspectionEngine:
 
         try:
             if show_progress:
-                self.progress.update("Получение конфигурации кластера...")
+                self.progress.update("Getting cluster configuration...")
 
             cluster_config = get_cluster(cluster_name)
             if not cluster_config:
-                error_msg = f"Конфигурация кластера не найдена: {cluster_name}"
+                error_msg = f"Cluster configuration not found: {cluster_name}"
                 if show_progress:
                     self.progress.error(error_msg)
                 return False, error_msg, None
@@ -79,13 +79,13 @@ class InspectionEngine:
             run_prometheus_check = bool(prometheus_config and prometheus_config.get('enabled', False)) and (selected_rules and selected_rules.get("prometheus"))
             run_opa_check = bool(kubeconfig) and (selected_rules and selected_rules.get("opa"))
 
-            logger.info(f"Проверка типов инспекций - количество узлов: {len(nodes)}, Prometheus включен: {prometheus_config.get('enabled', False) if prometheus_config else False}, kubeconfig: {'есть' if kubeconfig else 'нет'}")
-            logger.info(f"Выбранные правила: {selected_rules}")
-            logger.info(f"Решение проверок - узлы: {run_node_check}, Prometheus: {run_prometheus_check}, OPA: {run_opa_check}")
-            logger.info(f"Режим GitOps: {use_gitops}")
+            logger.info(f"Inspection types check - node count: {len(nodes)}, Prometheus enabled: {prometheus_config.get('enabled', False) if prometheus_config else False}, kubeconfig: {'present' if kubeconfig else 'absent'}")
+            logger.info(f"Selected rules: {selected_rules}")
+            logger.info(f"Inspection decisions - nodes: {run_node_check}, Prometheus: {run_prometheus_check}, OPA: {run_opa_check}")
+            logger.info(f"GitOps mode: {use_gitops}")
 
             if not (run_node_check or run_prometheus_check or run_opa_check):
-                error_msg = "Нет доступных типов проверки. Проверьте конфигурацию кластера и выбор правил."
+                error_msg = "No available inspection types. Check cluster configuration and rule selection."
                 if show_progress:
                     self.progress.error(error_msg)
                 return False, error_msg, None
@@ -97,42 +97,42 @@ class InspectionEngine:
                 if success:
                     all_results['node'] = result
                 else:
-                    return False, f"Проверка узлов не удалась: {result}", None
+                    return False, f"Node inspection failed: {result}", None
             else:
                 if show_progress:
                     if self.progress.by_rules and "node" in selected_rules:
                         for rule_id in selected_rules["node"]:
-                            self.progress.update(f"Пропущено правило узла: {rule_id} (проверка узлов отключена)", step_complete=True)
+                            self.progress.update(f"Skipped node rule: {rule_id} (node inspection disabled)", step_complete=True)
                     else:
-                        self.progress.update("Пропущена проверка узлов", step_complete=True)
+                        self.progress.update("Node inspection skipped", step_complete=True)
 
             if run_prometheus_check:
                 success, result = self._execute_prometheus_inspection(cluster_name, prometheus_config, selected_rules["prometheus"], show_progress)
                 if success:
                     all_results['prometheus'] = result
                 else:
-                    return False, f"Проверка Prometheus не удалась: {result}", None
+                    return False, f"Prometheus inspection failed: {result}", None
             else:
                 if show_progress:
                     if self.progress.by_rules and "prometheus" in selected_rules:
                         for rule_id in selected_rules["prometheus"]:
-                            self.progress.update(f"Пропущено правило Prometheus: {rule_id} (проверка отключена)", step_complete=True)
+                            self.progress.update(f"Skipped Prometheus rule: {rule_id} (inspection disabled)", step_complete=True)
                     else:
-                        self.progress.update("Пропущена проверка метрик Prometheus", step_complete=True)
+                        self.progress.update("Prometheus metrics inspection skipped", step_complete=True)
 
             if run_opa_check:
                 success, result = self._execute_opa_inspection(cluster_name, kubeconfig, selected_rules["opa"], show_progress)
                 if success:
                     all_results['opa'] = result
                 else:
-                    return False, f"Проверка OPA не удалась: {result}", None
+                    return False, f"OPA inspection failed: {result}", None
             else:
                 if show_progress:
                     if self.progress.by_rules and "opa" in selected_rules:
                         for rule_id in selected_rules["opa"]:
-                            self.progress.update(f"Пропущено правило OPA: {rule_id} (проверка отключена)", step_complete=True)
+                            self.progress.update(f"Skipped OPA rule: {rule_id} (inspection disabled)", step_complete=True)
                     else:
-                        self.progress.update("Пропущена проверка соответствия OPA", step_complete=True)
+                        self.progress.update("OPA compliance inspection skipped", step_complete=True)
 
             if show_progress:
                 self.progress.complete()
@@ -143,82 +143,82 @@ class InspectionEngine:
                 if show_ui_feedback:
                     self._show_inspection_completion_ui(all_results, result_path, cluster_name)
 
-                return True, f"Проверка завершена, результаты сохранены: {result_path}", all_results
+                return True, f"Inspection completed, results saved: {result_path}", all_results
             else:
-                error_msg = "Не получено результатов проверки."
+                error_msg = "No inspection results obtained."
                 if show_progress:
                     self.progress.warning(error_msg)
                 return False, error_msg, None
         except Exception as e:
-            error_msg = f"Ошибка выполнения проверки: {str(e)}"
+            error_msg = f"Inspection execution error: {str(e)}"
             if show_progress:
                 self.progress.error(error_msg)
             return False, error_msg, None
 
     def _execute_node_inspection(self, cluster_name: str, nodes: List[Dict], selected_rules: List[str], show_progress: bool) -> Tuple[bool, Any]:
-        """Выполнить проверку узлов"""
+        """Execute node inspection"""
         try:
             node_inspector = NodeInspector(nodes, use_gitops=self.use_gitops)
 
             if show_progress and self.progress.by_rules:
                 combined_result = InspectionResult(cluster_name, "node")
                 for rule_id in selected_rules:
-                    self.progress.update(f"Выполняется правило узла: {rule_id}", rule_name=rule_id)
+                    self.progress.update(f"Executing node rule: {rule_id}", rule_name=rule_id)
                     rule_result = node_inspector.run_inspection(cluster_name, [rule_id])
                     if rule_result and hasattr(rule_result, 'items'):
                         for item in rule_result.items:
                             combined_result.add_item(item)
-                    self.progress.update(f"Правило узла {rule_id} выполнено", step_complete=True)
+                    self.progress.update(f"Node rule {rule_id} completed", step_complete=True)
                 return True, combined_result
             else:
                 if show_progress:
-                    self.progress.update("Выполнение проверки узлов...")
+                    self.progress.update("Executing node inspection...")
                 result = node_inspector.run_inspection(cluster_name, selected_rules)
                 if show_progress:
-                    self.progress.update("Проверка узлов завершена", step_complete=True)
+                    self.progress.update("Node inspection completed", step_complete=True)
                 return True, result
         except Exception as e:
             if show_progress:
-                self.progress.error(f"Ошибка проверки узлов: {e}")
+                self.progress.error(f"Node inspection error: {e}")
             return False, str(e)
 
     def _execute_prometheus_inspection(self, cluster_name: str, prometheus_config: Dict, selected_rules: List[str], show_progress: bool) -> Tuple[bool, Any]:
-        """Выполнить проверку Prometheus"""
+        """Execute Prometheus inspection"""
         try:
             if prometheus_config and prometheus_config.get("enabled", False):
                 prometheus_inspector = PrometheusInspector(prometheus_config, use_gitops=self.use_gitops)
                 if show_progress and self.progress.by_rules:
                     combined_result = InspectionResult(cluster_name, "prometheus")
                     for rule_id in selected_rules:
-                        self.progress.update(f"Выполняется правило Prometheus: {rule_id}", rule_name=rule_id)
+                        self.progress.update(f"Executing Prometheus rule: {rule_id}", rule_name=rule_id)
                         rule_result = prometheus_inspector.run_inspection(cluster_name, [rule_id])
                         if rule_result and hasattr(rule_result, 'items'):
                             for item in rule_result.items:
                                 combined_result.add_item(item)
-                        self.progress.update(f"Правило Prometheus {rule_id} выполнено", step_complete=True)
+                        self.progress.update(f"Prometheus rule {rule_id} completed", step_complete=True)
                     return True, combined_result
                 else:
                     if show_progress:
-                        self.progress.update("Выполнение проверки метрик Prometheus...")
+                        self.progress.update("Executing Prometheus metrics inspection...")
                     result = prometheus_inspector.run_inspection(cluster_name, selected_rules)
                     if show_progress:
-                        self.progress.update("Проверка метрик Prometheus завершена", step_complete=True)
+                        self.progress.update("Prometheus metrics inspection completed", step_complete=True)
                     return True, result
             else:
                 if show_progress:
                     if self.progress.by_rules:
                         for rule_id in selected_rules:
-                            self.progress.update(f"Пропущено правило Prometheus: {rule_id} (нет конфигурации)", step_complete=True)
+                            self.progress.update(f"Skipped Prometheus rule: {rule_id} (no configuration)", step_complete=True)
                     else:
-                        self.progress.update("Пропущена проверка Prometheus (нет конфигурации)", step_complete=True)
+                        self.progress.update("Prometheus inspection skipped (no configuration)", step_complete=True)
                 return True, None
         except Exception as e:
             if show_progress:
-                self.progress.error(f"Ошибка проверки метрик Prometheus: {e}")
+                self.progress.error(f"Prometheus metrics inspection error: {e}")
             return False, str(e)
 
     def _execute_opa_inspection(self, cluster_name: str, kubeconfig: str, selected_rules: List[str], show_progress: bool) -> Tuple[bool, Any]:
-        """Выполнить проверку OPA"""
+        """Execute OPA inspection"""
         try:
             if kubeconfig:
                 opa_config = {'kubeconfig': kubeconfig, 'opa_path': 'opa'}
@@ -226,35 +226,35 @@ class InspectionEngine:
                 if show_progress and self.progress.by_rules:
                     combined_result = InspectionResult(cluster_name, "opa")
                     for rule_id in selected_rules:
-                        self.progress.update(f"Выполняется правило OPA: {rule_id}", rule_name=rule_id)
+                        self.progress.update(f"Executing OPA rule: {rule_id}", rule_name=rule_id)
                         rule_result = opa_inspector.run_inspection(cluster_name, [rule_id])
                         if rule_result and hasattr(rule_result, 'items'):
                             for item in rule_result.items:
                                 combined_result.add_item(item)
-                        self.progress.update(f"Правило OPA {rule_id} выполнено", step_complete=True)
+                        self.progress.update(f"OPA rule {rule_id} completed", step_complete=True)
                     return True, combined_result
                 else:
                     if show_progress:
-                        self.progress.update("Выполнение проверки соответствия OPA...")
+                        self.progress.update("Executing OPA compliance inspection...")
                     result = opa_inspector.run_inspection(cluster_name, selected_rules)
                     if show_progress:
-                        self.progress.update("Проверка соответствия OPA завершена", step_complete=True)
+                        self.progress.update("OPA compliance inspection completed", step_complete=True)
                     return True, result
             else:
                 if show_progress:
                     if self.progress.by_rules:
                         for rule_id in selected_rules:
-                            self.progress.update(f"Пропущено правило OPA: {rule_id} (нет конфигурации)", step_complete=True)
+                            self.progress.update(f"Skipped OPA rule: {rule_id} (no configuration)", step_complete=True)
                     else:
-                        self.progress.update("Пропущена проверка соответствия OPA (нет конфигурации)", step_complete=True)
+                        self.progress.update("OPA compliance inspection skipped (no configuration)", step_complete=True)
                 return True, None
         except Exception as e:
             if show_progress:
-                self.progress.error(f"Ошибка проверки соответствия OPA: {e}")
+                self.progress.error(f"OPA compliance inspection error: {e}")
             return False, str(e)
 
     def _save_inspection_results(self, all_results: Dict, cluster_name: str, cluster_config: Any, inspection_type: str) -> str:
-        """Сохранить результаты проверки"""
+        """Save inspection results"""
         try:
             if hasattr(cluster_config, 'get_dict'):
                 config_dict = cluster_config.get_dict()
@@ -271,11 +271,11 @@ class InspectionEngine:
         return controller.save_inspection_result(all_results, cluster_name, inspection_type)
 
     def _show_inspection_completion_ui(self, all_results: Dict, result_path: str, cluster_name: str):
-        """Показать UI обратной связи после завершения проверки"""
-        # Определяем источник правил для отображения
-        rules_source = "GitOps" if self.use_gitops else "Локальные"
+        """Show UI feedback after inspection completion"""
+        # Determine rules source for display
+        rules_source = "GitOps" if self.use_gitops else "Local"
 
-        st.success(f"Проверка завершена с использованием {rules_source} правил!")
+        st.success(f"Inspection completed using {rules_source} rules!")
 
         total_items = sum(len(result.items) if hasattr(result, 'items') else 0 for result in all_results.values() if result)
         passed_count = 0
@@ -288,11 +288,11 @@ class InspectionEngine:
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Всего проверок", total_items)
+            st.metric("Total checks", total_items)
         with col2:
-            st.metric("Пройдено", passed_count)
+            st.metric("Passed", passed_count)
         with col3:
-            st.metric("Ошибок", exception_count)
+            st.metric("Errors", exception_count)
 
         st.session_state.last_result_path = result_path
         st.session_state.last_cluster_name = cluster_name
@@ -313,33 +313,33 @@ class InspectionEngine:
             if result_id:
                 st.session_state.selected_report_id = result_id
                 st.session_state.view_mode = "detail"
-            st.success("Проверка завершена! Отчёт готов к просмотру.")
-            st.info("Пожалуйста, перейдите на страницу «Отчёты проверки» в левой навигации для просмотра деталей.")
+            st.success("Inspection completed! Report ready for viewing.")
+            st.info("Please go to the 'Inspection Reports' page in the left navigation to view details.")
 
         with col2:
-            if st.button("Повторить проверку", width='stretch'):
+            if st.button("Repeat inspection", width='stretch'):
                 st.rerun()
 
 
 inspection_engine = InspectionEngine()
 
 def execute_inspection_unified(cluster_name: str, selected_rules: Dict[str, List[str]] = None,
-                             inspection_type: str = "immediate", show_progress: bool = True,
-                             show_ui_feedback: bool = True, use_gitops: bool = False) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
-    """Единый интерфейс запуска проверки для всех компонентов"""
+                              inspection_type: str = "immediate", show_progress: bool = True,
+                              show_ui_feedback: bool = True, use_gitops: bool = False) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+    """Unified inspection launch interface for all components"""
     return inspection_engine.execute_inspection(
         cluster_name, selected_rules, inspection_type, show_progress, show_ui_feedback, use_gitops
     )
 
 def execute_inspection_task(task, show_progress=True):
-    """Совместимость старого интерфейса для плановых задач"""
+    """Compatibility with old interface for scheduled tasks"""
     selected_rules = {}
     if hasattr(task, 'rules') and task.rules:
         for rule_type in ['node', 'prometheus', 'opa']:
             if rule_type in task.rules and task.rules[rule_type].get("enabled", False):
                 selected_rules[rule_type] = task.rules[rule_type].get("rules", [])
 
-    # Определяем, использовать ли GitOps для плановых задач
+    # Determine whether to use GitOps for scheduled tasks
     from utils.rule_manager import RuleManager
     use_gitops = RuleManager.should_use_gitops()
 

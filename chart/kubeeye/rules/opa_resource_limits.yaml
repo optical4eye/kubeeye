@@ -1,8 +1,8 @@
 ---
-# OPA правило - проверка ограничений ресурсов для контейнеров - с использованием формата утверждений
+# OPA rule - container resource limits check - using assertions format
 id: opa-resource-limits
-name: Проверка ограничений ресурсов контейнеров
-description: Проверяет, что у всех контейнеров установлены запросы и лимиты ресурсов для предотвращения конкуренции за ресурсы и перегрузки узлов
+name: Container resource limits check
+description: Checks that all containers have resource requests and limits set to prevent resource competition and node overload
 type: opa
 category: resource
 severity: warning
@@ -10,9 +10,9 @@ enabled: true
 tier: basic
 
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация ресурсов
+  # Resources configuration
   resources:
     - kind: Pod
       apiVersion: v1
@@ -28,20 +28,20 @@ config:
       namespaced: true
 
 
-  # Конфигурация области действия
+  # Scope configuration
   scope:
     namespaces:
-      include: []  # пустой список означает все непредусмотренные пространства имен
+      include: []  # empty list means all non-excluded namespaces
       exclude:
         - kube-system
         - kube-public
 
-  # Конфигурация inline rego правила
+  # Inline rego rule configuration
   rego:
     inline: |
       package kubernetes
 
-      # Получение спецификации Pod
+      # Get Pod specification
       get_pod_spec(resource) = spec if {
           resource.kind == "Pod"
           spec := resource.spec
@@ -52,7 +52,7 @@ config:
           spec := resource.spec.template.spec
       }
 
-      # Определение контейнеров без указания заданного поля ресурсов (requests или limits)
+      # Definition of containers without specified resource field (requests or limits)
       missing_resources_containers(containers, field) = missing if {
           missing := [container |
               container := containers[_]
@@ -61,7 +61,7 @@ config:
           ]
       }
 
-      # Определение нарушений - отсутствие запросов ресурсов
+      # Violation definition - missing resource requests
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -76,7 +76,7 @@ config:
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) без запросов ресурсов: %s", [
+              "message": sprintf("%s '%s' in namespace '%s' contains %d container(s) without resource requests: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -86,7 +86,7 @@ config:
           }
       }
 
-      # Определение нарушений - отсутствие лимитов ресурсов
+      # Violation definition - missing resource limits
       violations contains result if {
           resource := input.resources[_]
           spec := get_pod_spec(resource)
@@ -101,7 +101,7 @@ config:
               "kind": resource.kind,
               "name": resource.metadata.name,
               "namespace": resource.metadata.namespace,
-              "message": sprintf("%s '%s' в пространстве имен '%s' содержит %d контейнер(ов) без лимитов ресурсов: %s", [
+              "message": sprintf("%s '%s' in namespace '%s' contains %d container(s) without resource limits: %s", [
                   resource.kind,
                   resource.metadata.name,
                   resource.metadata.namespace,
@@ -111,7 +111,7 @@ config:
           }
       }
 
-      # Вспомогательные функции - возвращают пустой массив если значение равно null
+      # Helper functions - return empty array if value is null
       default_array(val) = result if {
           val != null
           result = val
@@ -121,24 +121,24 @@ config:
           val == null
       }
 
-  # Конфигурация утверждений
+  # Assertions configuration
   assertions:
-    - name: "Проверка отсутствия ресурсов у контейнеров"
+    - name: "Check for missing resources in containers"
       condition: "violation_count == 0"
       severity: warning
-      description: "Обнаружено {{ violation_count }} ресурсов без правильно настроенных запросов и/или лимитов ресурсов"
+      description: "Found {{ violation_count }} resources without properly configured requests and/or resource limits"
 
-    - name: "Проверка значительного количества контейнеров без ресурсов"
+    - name: "Check for significant number of containers without resources"
       condition: "violation_count < 10"
       severity: critical
-      description: "Обнаружено большое количество {{ violation_count }} ресурсов без правильно настроенных запросов и/или лимитов ресурсов"
+      description: "Found large number of {{ violation_count }} resources without properly configured requests and/or resource limits"
 
 
-# Рекомендации по решению проблемы
+# Problem resolution recommendations
 solution: |
-  Устанавливайте запросы и лимиты ресурсов для всех контейнеров, чтобы избежать конкуренции за ресурсы и перегрузки узлов:
+  Set resource requests and limits for all containers to avoid resource competition and node overload:
 
-  1. Задавайте разумные значения запросов ресурсов для каждого контейнера:
+  1. Set reasonable resource request values for each container:
     ```
     resources:
       requests:
@@ -146,7 +146,7 @@ solution: |
         cpu: "100m"
     ```
 
-  2. Задавайте адекватные значения лимитов ресурсов для каждого контейнера:
+  2. Set adequate resource limit values for each container:
     ```
     resources:
       limits:
@@ -154,12 +154,12 @@ solution: |
         cpu: "500m"
     ```
 
-  3. Отслеживайте реальное потребление ресурсов приложениями и корректируйте значения запросов и лимитов соответственно
-  4. Используйте LimitRange или ResourceQuota для управления распределением ресурсов в пространстве имен
-  5. Для разных сред (разработка, тестирование, продакшен) задавайте различные конфигурации ресурсов
+  3. Monitor actual resource consumption by applications and adjust request and limit values accordingly
+  4. Use LimitRange or ResourceQuota to manage resource allocation in namespaces
+  5. For different environments (development, testing, production) set different resource configurations
 
 
-# Метки
+# Tags
 tags:
   - resources
   - best-practice

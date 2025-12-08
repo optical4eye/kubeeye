@@ -1,33 +1,33 @@
 ---
-# Правило проверки использования CPU - критический порог
+# CPU usage check rule - critical threshold
 id: prom_cpu_usage_critical
-name: Критическое предупреждение об использовании CPU узла
-description: Проверить, превышает ли использование CPU узла критический порог
+name: Critical node CPU usage warning
+description: Check if node CPU usage exceeds critical threshold
 type: prometheus
 category: resource
 severity: critical
 enabled: true
 tier: basic
 
-# Конфигурация правила
+# Rule configuration
 config:
-  # Конфигурация запроса Prometheus - прямой возврат использования CPU
+  # Prometheus query configuration - direct CPU usage return
   query: "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
 
-  # Конфигурация временного диапазона
+  # Time range configuration
   time_range:
-    start: "now-10m"  # 10 минут назад
-    end: "now"        # Текущее время
-    step: "1m"        # Интервал 1 минута
+    start: "now-10m"  # 10 minutes ago
+    end: "now"        # Current time
+    step: "1m"        # 1 minute interval
 
-  # Конфигурация утверждений - одна проверка на правило
+  # Assertions configuration - one check per rule
   assertions:
-    - name: "Критическое предупреждение об использовании CPU узла"
+    - name: "Critical node CPU usage warning"
       condition: "max_value < 90"
       severity: critical
-      description: "Использование CPU узла: {{ max_value | round(2) }}%"
+      description: "Node CPU usage: {{ max_value | round(2) }}%"
 
-# Теги
+# Tags
 tags:
   - cpu
   - performance

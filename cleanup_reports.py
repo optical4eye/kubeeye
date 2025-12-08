@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Скрипт автоматической очистки старых отчётов KubeEye
-Может выполняться по расписанию через cron
+KubeEye automatic cleanup script for old reports
+Can be executed on schedule via cron
 """
 
 import os
@@ -11,12 +11,12 @@ import json
 from pathlib import Path
 from datetime import datetime, timedelta
 
-# Добавление корневой директории в путь
+# Add root directory to path
 ROOT_DIR = Path(__file__).parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-# Функции очистки (скопированы для автономности)
+# Cleanup functions (copied for autonomy)
 import json
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -29,7 +29,7 @@ DEFAULT_AUTO_CLEANUP = False
 ENV_RETENTION_DAYS = "KUBEYE_REPORT_RETENTION_DAYS"
 
 def load_cleanup_config() -> dict:
-    """Загрузить конфигурацию очистки"""
+    """Load cleanup configuration"""
     # Check environment variable first
     env_retention = os.getenv(ENV_RETENTION_DAYS)
     if env_retention:
@@ -59,16 +59,16 @@ def load_cleanup_config() -> dict:
     }
 
 def save_cleanup_config(config: dict):
-    """Сохранить конфигурацию очистки"""
+    """Save cleanup configuration"""
     CONFIG_FILE.parent.mkdir(exist_ok=True)
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
 
 def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
-    """Очистить старые отчёты старше retention_days дней
+    """Clean up old reports older than retention_days days
 
     Returns:
-        tuple: (удалено_файлов, освобождено_места_в_байтах)
+        tuple: (deleted_files, freed_space_in_bytes)
     """
     if retention_days <= 0:
         return 0, 0
@@ -84,7 +84,7 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
 
     for file_path in results_dir.glob("*.json"):
         try:
-            # Проверяем дату изменения файла
+            # Check file modification date
             file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
             if file_mtime < cutoff_date:
                 file_size = file_path.stat().st_size
@@ -98,42 +98,42 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
 
 
 def run_cleanup():
-    """Выполнить очистку отчётов согласно настройкам"""
-    print("Запуск очистки отчётов KubeEye...")
+    """Execute cleanup of reports according to settings"""
+    print("Starting KubeEye reports cleanup...")
 
     try:
-        # Загрузить конфигурацию
+        # Load configuration
         config = load_cleanup_config()
         retention_days = config.get('retention_days', DEFAULT_RETENTION_DAYS)
-        print(f"Период хранения: {retention_days} дней")
+        print(f"Retention period: {retention_days} days")
 
-        # Выполнить очистку
+        # Execute cleanup
         deleted_count, freed_space = cleanup_old_reports(retention_days)
 
-        # Вывести результаты
+        # Display results
         if deleted_count > 0:
             freed_mb = freed_space / (1024 * 1024)
-            print(f"Удалено {deleted_count} файлов, освобождено {freed_mb:.1f} MB")
+            print(f"Deleted {deleted_count} files, freed {freed_mb:.1f} MB")
         else:
-            print("Не найдено файлов для удаления")
+            print("No files found for deletion")
 
     except Exception as e:
-        print(f"Ошибка при очистке: {e}")
+        print(f"Error during cleanup: {e}")
         sys.exit(1)
 
 
 def main():
-    """Основная функция для запуска из командной строки"""
+    """Main function for running from command line"""
     if len(sys.argv) > 1:
         if sys.argv[1] == '--help' or sys.argv[1] == '-h':
             print("""
-KubeEye - очистка старых отчётов
+KubeEye - cleanup of old reports
 
-Использование:
-    python3 cleanup_reports.py          # Запустить очистку
-    python3 cleanup_reports.py --help    # Показать эту справку
+Usage:
+    python3 cleanup_reports.py          # Run cleanup
+    python3 cleanup_reports.py --help    # Show this help
 
-Пример:
+Example:
     cd /path/to/kubeeye
     python3 cleanup_reports.py
             """)

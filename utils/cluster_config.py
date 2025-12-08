@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-集群配置管理模块，用于管理集群连接配置信息
+Cluster configuration management module for managing cluster connection configuration information
 """
 
 import os
@@ -16,17 +16,17 @@ from utils.inspection_result import get_latest_result_by_cluster
 
 logger = logging.getLogger(__name__)
 
-# 数据目录定义
+# Definition of data directories
 DATA_DIR = Path(__file__).parent.parent / "data"
 CLUSTERS_DIR = DATA_DIR / "clusters"
 RESULTS_DIR = DATA_DIR / "results"
 
-# 确保目录存在
+# Ensure that directories exist
 os.makedirs(CLUSTERS_DIR, exist_ok=True)
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 class ClusterConfig:
-    """集群配置管理类"""
+    """Cluster configuration management class"""
 
     def __init__(self, cluster_name: str):
         self.cluster_name = cluster_name
@@ -34,7 +34,7 @@ class ClusterConfig:
         self.config = self._load_config()
 
     def _load_config(self) -> Dict:
-        """加载集群配置"""
+        """Load cluster configuration"""
         if self.config_path.exists():
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
@@ -54,32 +54,32 @@ class ClusterConfig:
         }
 
     def save_config(self) -> None:
-        """保存集群配置"""
+        """Save cluster configuration"""
         with open(self.config_path, 'w', encoding='utf-8') as f:
             json.dump(self.config, f, ensure_ascii=False, indent=2)
 
     def update_node(self, node_info: Dict) -> None:
-        """添加或更新节点信息"""
-        # 创建一个节点信息的副本
+        """Add or update node information"""
+        # Create a copy of node information
         node_copy = node_info.copy()
 
-        # 确保密码以明文方式存储
+        # Ensure password is stored in plain text
         if node_copy.get('auth_type') == 'password' and node_copy.get('password'):
             node_copy['password_encrypted'] = False
 
-        # 更新节点信息
+        # Update node information
         for i, node in enumerate(self.config['nodes']):
             if node['ip'] == node_info['ip']:
                 self.config['nodes'][i] = node_copy
                 self.save_config()
                 return
 
-        # 如果不存在则添加新节点
+        # If not exists, add new node
         self.config['nodes'].append(node_copy)
         self.save_config()
 
     def remove_node(self, node_ip: str) -> bool:
-        """删除节点信息"""
+        """Remove node information"""
         for i, node in enumerate(self.config['nodes']):
             if node['ip'] == node_ip:
                 del self.config['nodes'][i]
@@ -88,11 +88,11 @@ class ClusterConfig:
         return False
 
     def update_prometheus(self, prometheus_info: Dict) -> None:
-        """更新 Prometheus 配置"""
-        # 创建配置的副本
+        """Update Prometheus configuration"""
+        # Create a copy of the configuration
         prometheus_copy = prometheus_info.copy()
 
-        # 确保密码和令牌以明文方式存储
+        # Ensure password and token are stored in plain text
         if prometheus_copy.get('password'):
             prometheus_copy['password_encrypted'] = False
 
@@ -103,59 +103,59 @@ class ClusterConfig:
         self.save_config()
 
     def update_kubeconfig(self, kubeconfig: str) -> None:
-        """更新 Kubeconfig 配置"""
+        """Update Kubeconfig configuration"""
         self.config['kubeconfig'] = kubeconfig
         self.save_config()
 
     def get_nodes(self) -> List[Dict]:
-        """获取集群节点列表"""
+        """Get cluster node list"""
         nodes = []
         for node in self.config['nodes']:
             node_copy = node.copy()
-            # 明确删除密码加密标记，确保所有密码都被视为明文
+            # Explicitly remove password encryption flag, ensure all passwords are treated as plain text
             if node_copy.get('password_encrypted'):
-                logger.info(f"节点 {node_copy.get('ip')} 的密码标记为加密，但将以明文方式使用")
+                logger.info(f"Password for node {node_copy.get('ip')} is marked as encrypted, but will be used in plain text")
                 node_copy['password_encrypted'] = False
             nodes.append(node_copy)
         return nodes
 
     def get_prometheus_config(self) -> Dict:
-        """获取 Prometheus 配置"""
+        """Get Prometheus configuration"""
         prometheus_config = self.config['prometheus'].copy()
 
-        # 删除密码加密标记
+        # Remove password encryption flag
         if prometheus_config.get('password_encrypted'):
-            logger.info("Prometheus密码标记为加密，但将以明文方式使用")
+            logger.info("Prometheus password is marked as encrypted, but will be used in plain text")
             prometheus_config['password_encrypted'] = False
 
-        # 删除令牌加密标记
+        # Remove token encryption flag
         if prometheus_config.get('token_encrypted'):
-            logger.info("Prometheus令牌标记为加密，但将以明文方式使用")
+            logger.info("Prometheus token is marked as encrypted, but will be used in plain text")
             prometheus_config['token_encrypted'] = False
 
         return prometheus_config
 
     def get_kubeconfig(self) -> str:
-        """获取 Kubeconfig"""
+        """Get Kubeconfig"""
         return self.config['kubeconfig']
 
     def get_dict(self) -> Dict:
-        """获取集群配置的字典表示"""
+        """Get dictionary representation of cluster configuration"""
         config_dict = self.config.copy()
 
-        # 添加便于巡检器使用的结构化数据
+        # Add structured data for easy use by inspectors
         config_dict.update({
             'nodes': self.get_nodes(),
             'prometheus': self.get_prometheus_config(),
-            'kubeconfig': {'kubeconfig': self.get_kubeconfig()},  # 包装成字典
-            'opa': {'kubeconfig': self.get_kubeconfig()}  # OPA巡检器需要的格式
+            'kubeconfig': {'kubeconfig': self.get_kubeconfig()},  # Wrap as dictionary
+            'opa': {'kubeconfig': self.get_kubeconfig()}  # Format required by OPA inspector
         })
 
         return config_dict
 
 
 def list_clusters() -> List[str]:
-    """列出所有集群名称"""
+    """List all cluster names"""
     clusters = []
     for file_path in CLUSTERS_DIR.glob('*.json'):
         clusters.append(file_path.stem)
@@ -163,12 +163,12 @@ def list_clusters() -> List[str]:
 
 
 def get_cluster(cluster_name: str) -> ClusterConfig:
-    """获取集群配置对象"""
+    """Get cluster configuration object"""
     return ClusterConfig(cluster_name)
 
 
 def delete_cluster(cluster_name: str) -> bool:
-    """删除集群配置"""
+    """Delete cluster configuration"""
     config_path = CLUSTERS_DIR / f"{cluster_name}.json"
     if config_path.exists():
         config_path.unlink()
@@ -177,19 +177,19 @@ def delete_cluster(cluster_name: str) -> bool:
 
 
 def load_kubeconfig(kubeconfig_str: str) -> Dict:
-    """加载 kubeconfig 内容为字典"""
+    """Load kubeconfig content as dictionary"""
     try:
         return yaml.safe_load(kubeconfig_str)
     except yaml.YAMLError:
         return {}
 
-@st.cache_data(ttl=600)  # Кэш на 10 минут
+@st.cache_data(ttl=600)  # Cache for 10 minutes
 def list_clusters_cached() -> List[str]:
-    """Кэшированная загрузка списка кластеров"""
+    """Cached loading of cluster list"""
     return list_clusters()
 
 def get_cluster_status_counts_fast() -> Dict[str, int]:
-    """Быстрый подсчёт статусов кластеров без загрузки всех результатов"""
+    """Fast counting of cluster statuses without loading all results"""
     clusters = list_clusters_cached()
     counts = {'healthy': 0, 'warning': 0, 'critical': 0, 'unknown': 0}
 
@@ -203,11 +203,11 @@ def get_cluster_status_counts_fast() -> Dict[str, int]:
     return counts
 
 def get_cluster_quick_status(cluster_name: str) -> str:
-    """Быстрая проверка статуса кластера"""
+    """Quick cluster status check"""
     latest_result = get_latest_result_by_cluster(cluster_name)
 
     if not latest_result:
-        # Если нет результатов инспекции, считаем кластер здоровым по умолчанию
+        # If no inspection results, consider cluster healthy by default
         return 'healthy'
 
     critical = latest_result.get('critical', 0)
