@@ -5,17 +5,14 @@ LABEL maintainer="KubeSphere Team"
 LABEL description="KubeEye Kubernetes Cluster Inspection Tool"
 LABEL version="2.0.0"
 
-
 # [translate:设置构建参数以支持多架构]  # Установить параметры сборки для поддержки нескольких архитектур
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
-
 # [translate:设置工作目录]  # Установить рабочую директорию
 WORKDIR /app
-
 
 # [translate:安装系统依赖]  # Установить системные зависимости
 RUN apk add --no-cache \
@@ -30,10 +27,8 @@ RUN apk add --no-cache \
     font-liberation \
     && apk upgrade --no-cache
 
-
 # [translate:首先复制requirements.txt以利用Docker缓存]  # Сначала скопировать requirements.txt, чтобы использовать кэш Docker
 COPY requirements.txt /app/
-
 
 # [translate:安装Python依赖]  # Установить зависимости Python
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -46,10 +41,9 @@ ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_SERVER_ENABLE_CORS=false
 ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
 
-
 # [translate:根据目标架构下载对应的OPA二进制文件]  # Скачать подходящий бинарник OPA в зависимости от целевой архитектуры
 RUN set -eux; \
-    OPA_VERSION="v1.10.1"; \
+    OPA_VERSION="v1.11.0"; \
     case "${TARGETARCH}" in \
         amd64) \
             OPA_ARCH="amd64"; \
@@ -88,11 +82,9 @@ USER kubeeye
 # [translate:暴露服务端口]  # Открыть порт сервиса
 EXPOSE 8501
 
-
 # [translate:健康检查]  # Проверка состояния
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8501/_stcore/health || exit 1
-
 
 # [translate:启动应用]  # Запустить приложение
 ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

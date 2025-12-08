@@ -49,8 +49,7 @@ initialize_page(
 
 
 # Оптимизированная загрузка dashboard с ограниченными данными
-# Временно отключаем кэширование для диагностики
-# @st.cache_data(ttl=300)  # Кэш на 5 минут
+@st.cache_data(ttl=60)  # Кэш на 1 минуту для быстрого обновления
 def get_dashboard_data() -> Dict:
     """Быстрая загрузка dashboard с ограниченными данными"""
 
@@ -72,8 +71,8 @@ def get_dashboard_data() -> Dict:
     # Быстрый подсчёт статусов без загрузки всех результатов
     status_counts = get_cluster_status_counts_fast()
 
-    # Загрузка только последних 20 результатов для таблицы
-    recent_results = list_results(limit=20, order_by='timestamp DESC')
+    # Загрузка результатов для dashboard (увеличено для трендов)
+    recent_results = list_results(limit=100, order_by='timestamp DESC')
 
     # Статистика недавних сканирований (24 часа)
     now = datetime.now()
@@ -332,6 +331,13 @@ fig_pie.update_layout(
 # Основные метрики
 st.markdown("## Обзор")
 
+# Кнопка обновления данных dashboard
+col_refresh, col_spacer = st.columns([1, 5])
+with col_refresh:
+    if st.button("🔄 Обновить данные", help="Обновить данные dashboard"):
+        get_dashboard_data.clear()  # Очистить кэш перед обновлением
+        st.rerun()
+
 # Подготовка данных для метрик
 latest_scan_display = dashboard_data['latest_scan_time'] if dashboard_data['latest_scan_time'] != "Никогда не запускалась" else "Нет"
 
@@ -368,11 +374,77 @@ with col7:
     st.metric("Правила", dashboard_data['total_rules'])
 
 
-# Отображение столбчатой диаграммы с боковой панелью статистики
-if total_clusters > 0:
-    col1, col2 = st.columns([2, 1])
+# Тренды ошибок за последние 7 дней
+st.markdown("### Тренды ошибок (7 дней)")
 
-    with col1:
+# Подготовка данных для временного ряда
+if recent_results:
+    # Группировка данных по дням
+    from collections import defaultdict
+    daily_errors = defaultdict(lambda: {'critical': 0, 'warning': 0, 'info': 0, 'total': 0})
+
+    cutoff_7d = now.timestamp() - (7 * 24 * 3600)  # 7 дней назад
+
+    for result in recent_results:
+        timestamp = datetime.fromisoformat(result['timestamp']).timestamp()
+        if timestamp > cutoff_7d:
+            date_key = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
+            daily_errors[date_key]['critical'] += result.get('critical', 0)
+            daily_errors[date_key]['warning'] += result.get('warning', 0)
+            daily_errors[date_key]['info'] += result.get('info', 0)
+            daily_errors[date_key]['total'] += (result.get('critical', 0) + result.get('warning', 0) + result.get('info', 0))
+
+    # Создание DataFrame для графика
+    if daily_errors:
+        dates = sorted(daily_errors.keys())
+        critical_vals = [daily_errors[d]['critical'] for d in dates]
+        warning_vals = [daily_errors[d]['warning'] for d in dates]
+        info_vals = [daily_errors[d]['info'] for d in dates]
+
+        # Создание DataFrame для лучшего отображения
+        trend_data = []
+        for i, date in enumerate(dates):
+            trend_data.extend([
+                {'date': date, 'errors': critical_vals[i], 'type': 'Критические'},
+                {'date': date, 'errors': warning_vals[i], 'type': 'Предупреждения'},
+                {'date': date, 'errors': info_vals[i], 'type': 'Прочее'}
+            ])
+
+        df_trend = pd.DataFrame(trend_data)
+
+        # Линейный график трендов
+        fig_trend = px.line(
+            df_trend,
+            x='date',
+            y='errors',
+            color='type',
+            title="Динамика ошибок по дням",
+            markers=True,
+            color_discrete_map={
+                'Критические': '#EF4444',    # Красный
+                'Предупреждения': '#F59E0B', # Оранжевый
+                'Прочее': '#6B7280'          # Серый
+            }
+        )
+
+        fig_trend.update_layout(
+            xaxis_title="Дата",
+            yaxis_title="Количество ошибок",
+            legend_title="Тип ошибки",
+            hovermode="x unified"
+        )
+
+        st.plotly_chart(fig_trend, use_container_width=True)
+    else:
+        st.info("Недостаточно данных для отображения трендов (нужны результаты проверок за последние 7 дней)")
+else:
+    st.info("Нет данных для отображения трендов")
+
+
+# Отображение столбчатой диаграммы с боковой панелью статистики
+col1, col2 = st.columns([2, 1])
+
+with col1:
         # Столбчатая диаграмма - отображаем общее количество проверок по типам
         # Подсчитываем общее количество проверок по типам из всех кластеров
         total_critical = sum(cs.get('critical_count', 0) for cs in dashboard_data['cluster_statuses'])
@@ -403,7 +475,7 @@ if total_clusters > 0:
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
-    with col2:
+with col2:
         st.markdown("### Статистика")
 
         # Подсчёт общего количества ошибок из всех кластеров (используем централизованную функцию)
