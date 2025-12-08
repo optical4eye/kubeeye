@@ -8,7 +8,7 @@ Reducing code duplication between k8s_client.py and k8s_dynamic_client.py
 import tempfile
 import os
 import logging
-from typing import Optional, Tuple
+from typing import Tuple
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 

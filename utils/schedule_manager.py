@@ -5,7 +5,6 @@ Schedule manager — for managing scheduled inspection tasks
 """
 
 import json
-import os
 import time
 from datetime import datetime as dt
 from pathlib import Path
@@ -15,11 +14,6 @@ from croniter import croniter
 import logging
 
 # Import inspection modules
-from utils.cluster_config import get_cluster
-from utils.inspection_result import InspectionResult
-from inspectors.node.node_inspector import NodeInspector
-from inspectors.prometheus.prometheus_inspector import PrometheusInspector
-from inspectors.opa.opa_inspector import OpaInspector
 
 # Log setup
 logging.basicConfig(

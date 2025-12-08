@@ -8,9 +8,8 @@ Node connection management module, used for connecting to cluster nodes via SSH 
 import paramiko
 import socket
 import logging
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, Tuple, Optional
 import os
-from pathlib import Path
 
 
 class NodeConnection:

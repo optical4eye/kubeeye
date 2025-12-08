@@ -6,7 +6,7 @@ Provides unified assertion evaluation and template rendering functionality, elim
 """
 
 import logging
-from typing import Dict, List, Any, Union
+from typing import Dict, List, Any
 import jinja2
 from simpleeval import simple_eval
 

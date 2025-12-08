@@ -10,7 +10,7 @@ import git
 import shutil
 import yaml
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 # GitOps configuration
 GITOPS_CONFIG_FILE = Path(__file__).parent.parent / "data" / "gitops_config.json"

@@ -11,7 +11,7 @@ from utils.schedule_manager import (
     run_inspection, restart_scheduler, start_scheduler, stop_scheduler
 )
 
-from components.ui import display_cluster_info, InspectionProgress
+from components.ui import display_cluster_info
 from utils.rule_manager import RuleManager
 
 def render_scheduled_scan_tab():
@@ -132,7 +132,6 @@ def render_task_list_tab(tasks):
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         if st.button("Run now", key=f"run_{selected_task_id}"):
-                            from components.ui import execute_inspection_task
                             success, message, results = run_inspection(selected_task_id, return_results=True)
                             if success:
                                 st.success(f"Task {selected_task.name} completed successfully")
@@ -176,7 +175,6 @@ def render_task_list_tab(tasks):
 def render_create_task_tab():
     """Display task creation tab"""
     import time
-    import yaml
 
     st.subheader("Create new scheduled task")
     clusters = list_clusters()

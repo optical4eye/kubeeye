@@ -4,18 +4,10 @@
 Modern rule management component — GitOps mode support
 """
 import streamlit as st
-import yaml
-import json
+from typing import Dict
 import pandas as pd
-import os
-import shutil
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple
-
-from utils.rule_loader import load_rules, Rule, RULES_DIR
 from utils.gitops_manager import GitOpsRuleManager
-from utils.rule_manager import RuleManager
+from utils.rule_loader import load_rules
 
 def render_rule_management_tab():
     """Display rule management tab"""
@@ -200,7 +192,7 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
             col1, col2, col3 = st.columns([3, 1, 1])
 
             with col1:
-                st.markdown(f"** {current_repo['name']}**")
+                st.markdown(f"**Rules name:** `{current_repo['name']}`")
                 st.markdown(f"**URL:** `{current_repo['url']}`")
                 st.markdown(f"**Branch:** `{current_repo.get('branch', 'main')}`")
                 if current_repo.get('username'):
@@ -244,7 +236,7 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
             col1, col2 = st.columns([3, 1])
 
             with col1:
-                st.markdown(f"** {current_repo['name']}**")
+                st.markdown(f"**Rules name:** `{current_repo['name']}`")
                 st.markdown(f"**URL:** `{current_repo['url']}`")
                 st.markdown(f"**Branch:** `{current_repo.get('branch', 'main')}`")
                 if current_repo.get('username'):

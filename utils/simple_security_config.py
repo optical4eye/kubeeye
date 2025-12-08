@@ -4,10 +4,9 @@
 Simplified KubeEye security configuration - reading only basic configuration parameters
 """
 
-import os
 import yaml
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 from pathlib import Path
 
 logger = logging.getLogger(__name__)

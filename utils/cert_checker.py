@@ -7,9 +7,8 @@ Kubernetes certificate checking module for checking cluster certificate expirati
 import yaml
 import base64
 import logging
-import tempfile
 from datetime import datetime, timezone
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 from pathlib import Path
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend

@@ -32,7 +32,7 @@ from utils.cluster_config import list_clusters, get_cluster, delete_cluster
 from utils.node_connection import test_node_connection, validate_ssh_key
 from utils.prometheus_client import PrometheusClient
 from utils.k8s_client import K8sClient
-from utils.node_parser import parse_nodes_from_text, generate_nodes_template
+from utils.node_parser import parse_nodes_from_text
 
 
 # Page initialization

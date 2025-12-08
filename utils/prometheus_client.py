@@ -5,9 +5,8 @@ Prometheus query tool for obtaining metric data from Prometheus
 """
 
 import requests
-from typing import Dict, List, Any, Optional
-import json
-from datetime import datetime, timedelta
+from typing import Dict, Optional
+from datetime import datetime
 import time
 import base64
 

@@ -5,25 +5,23 @@ Inspection result management module for saving and loading inspection results
 """
 
 import json
-import yaml
 import os
 import re
-import time
 
 import openpyxl
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Union, Tuple
+from typing import Dict, List, Any, Optional, Tuple
 
 # Attempt import for PDF generation
 try:
-    from reportlab.lib.pagesizes import letter, A4, landscape
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib import colors
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.lib.units import cm, inch
+    from reportlab.lib.units import cm
     PDF_SUPPORT = True
 except ImportError:
     PDF_SUPPORT = False
@@ -68,9 +66,11 @@ class InspectionResult:
         if 'solution' not in item:
             item['solution'] = ''
 
-        # Status normalization: uniformly convert failed, warning, error to exception
+        # Status normalization: uniformly convert failed, warning, error to exception, success to passed
         if item.get('status') in ['failed', 'warning', 'error']:
             item['status'] = 'exception'
+        elif item.get('status') in ['success']:
+            item['status'] = 'passed'
 
         self.items.append(item)
 
@@ -98,7 +98,7 @@ class InspectionResult:
                 severity = 'unknown'
 
             # Simplified status system: only passed and exception
-            if status == 'passed':
+            if status in ['passed', 'success']:
                 passed += 1
             else:
                 # All non-passing statuses are considered exceptions, detailed by severity
@@ -467,7 +467,7 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                 all_items = result_data.get('items', [])
 
             # Statistics
-            passed_count = sum(1 for item in all_items if item.get('status') == 'passed')
+            passed_count = sum(1 for item in all_items if item.get('status') in ['passed', 'success'])
             exception_count = len(all_items) - passed_count
 
             stats_text = f"<b>Total checks:</b> {len(all_items)}, <b>Passed:</b> {passed_count}, <b>Errors:</b> {exception_count}"
@@ -631,7 +631,7 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
                     status = 'unknown'
                     severity = 'unknown'
 
-                if status == 'passed':
+                if status in ['passed', 'success']:
                     passed += 1
                 elif status == 'exception':
                     # Count by severity as in old format
@@ -663,7 +663,7 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
                 status = 'unknown'
                 severity = 'unknown'
 
-            if status == 'passed':
+            if status in ['passed', 'success']:
                 passed += 1
             elif status == 'exception':
                 if severity == 'critical':

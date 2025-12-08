@@ -5,19 +5,15 @@ Kubernetes dynamic client tool - similar to Go's Dynamic Client
 Uses kubernetes.dynamic module and resource mapping table to simplify resource operations
 """
 
-import yaml
 import json
-import base64
 import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from kubernetes import client
-from kubernetes.client.rest import ApiException
 from kubernetes.dynamic import DynamicClient
 from kubernetes.dynamic.exceptions import ResourceNotFoundError
 import logging
 import tempfile
 import os
-import subprocess
 
 from .k8s_base_client import K8sBaseClient
 
@@ -582,7 +578,7 @@ class K8sDynamicClient(K8sBaseClient):
         Returns:
             strategy analysis result
         """
-        logger.debug(f"[_analyze_resource_strategy] Starting resource strategy analysis")
+        logger.debug("[_analyze_resource_strategy] Starting resource strategy analysis")
         logger.debug(f"[_analyze_resource_strategy] Input configuration count: {len(resource_config)}")
         logger.debug(f"[_analyze_resource_strategy] Input resource types: {[r.get('kind', 'unknown') for r in resource_config]}")
 
@@ -603,7 +599,7 @@ class K8sDynamicClient(K8sBaseClient):
         has_controllers = bool(configured_kinds & all_controllers)
         configured_controllers = configured_kinds & all_controllers
 
-        logger.debug(f"[_analyze_resource_strategy] Configuration analysis results:")
+        logger.debug("[_analyze_resource_strategy] Configuration analysis results:")
         logger.debug(f"    - Contains Pod: {has_pods}")
         logger.debug(f"    - Contains controllers: {has_controllers}")
         logger.debug(f"    - Configured controllers: {configured_controllers}")
@@ -651,7 +647,7 @@ class K8sDynamicClient(K8sBaseClient):
             logger.debug("[_analyze_resource_strategy] Use default strategy (no Pod+controller combination, or only single type)")
             logger.debug(f"[_analyze_resource_strategy] Reason: has_pods={has_pods}, has_controllers={has_controllers}")
 
-        logger.debug(f" [_analyze_resource_strategy] Final strategy analysis completed:")
+        logger.debug(" [_analyze_resource_strategy] Final strategy analysis completed:")
         logger.debug(f"    - Mode: {strategy['mode']}")
         logger.debug(f"    - Get Pods directly: {strategy['get_pods_directly']}")
         logger.debug(f"    - Get controllers: {strategy['get_controllers']}")
@@ -748,7 +744,7 @@ class K8sDynamicClient(K8sBaseClient):
         include_namespaces = namespace_config.get('include', [])
         exclude_namespaces = namespace_config.get('exclude', [])
 
-        logger.debug(f" [list_resources_from_config_optimized] Namespace filtering:")
+        logger.debug(" [list_resources_from_config_optimized] Namespace filtering:")
         logger.debug(f"    - Include namespaces: {include_namespaces}")
         logger.debug(f"    - Exclude namespaces: {exclude_namespaces}")
 
@@ -769,7 +765,7 @@ class K8sDynamicClient(K8sBaseClient):
 
                 if resource_type_lower in self.resource_mappings:
                     logger.debug(f" [list_resources_from_config_optimized] Found in resource mapping: {resource_type_lower}")
-                    logger.debug(f" [list_resources_from_config_optimized] Calling _get_namespaced_resources...")
+                    logger.debug(" [list_resources_from_config_optimized] Calling _get_namespaced_resources...")
                     controller_resources = self._get_namespaced_resources(
                         resource_type_lower, include_namespaces, exclude_namespaces
                     )
@@ -925,8 +921,8 @@ class K8sDynamicClient(K8sBaseClient):
         Returns:
             resource list
         """
-        logger.debug(f" [_get_namespaced_resources] Starting to get namespace resources")
-        logger.debug(f" [_get_namespaced_resources] Input parameters:")
+        logger.debug(" [_get_namespaced_resources] Starting to get namespace resources")
+        logger.debug(" [_get_namespaced_resources] Input parameters:")
         logger.debug(f"    - resource_type: {resource_type}")
         logger.debug(f"    - include_namespaces: {include_namespaces}")
         logger.debug(f"    - exclude_namespaces: {exclude_namespaces}")
@@ -941,13 +937,13 @@ class K8sDynamicClient(K8sBaseClient):
             mapping = self.resource_mappings[resource_type]
             is_namespaced = mapping.get('namespaced', True)
 
-            logger.debug(f" [_get_namespaced_resources] Resource mapping information:")
+            logger.debug(" [_get_namespaced_resources] Resource mapping information:")
             logger.debug(f"    - Mapping: {json.dumps(mapping, indent=2)}")
             logger.debug(f"    - Whether namespace-level: {is_namespaced}")
 
             if not is_namespaced:
                 # Cluster-level resources
-                logger.debug(f" [_get_namespaced_resources] Resource is cluster-level, get directly")
+                logger.debug(" [_get_namespaced_resources] Resource is cluster-level, get directly")
                 logger.debug(f" [_get_namespaced_resources] Calling list_resources({resource_type})...")
                 cluster_resources = self.list_resources(resource_type)
                 logger.debug(f" [_get_namespaced_resources] Cluster-level resources got: {len(cluster_resources)} items")
@@ -956,7 +952,7 @@ class K8sDynamicClient(K8sBaseClient):
             # Namespace-level resource processing
             if include_namespaces:
                 # Only get resources for specified namespaces
-                logger.debug(f" [_get_namespaced_resources] Strategy: Get resources for specified namespaces")
+                logger.debug(" [_get_namespaced_resources] Strategy: Get resources for specified namespaces")
                 logger.debug(f" [_get_namespaced_resources] Namespaces to process: {include_namespaces}")
                 all_resources = []
 
@@ -976,13 +972,13 @@ class K8sDynamicClient(K8sBaseClient):
                 return all_resources
             else:
                 # Get resources for all namespaces, then filter
-                logger.debug(f" [_get_namespaced_resources] Strategy: Get resources for all namespaces")
+                logger.debug(" [_get_namespaced_resources] Strategy: Get resources for all namespaces")
                 logger.debug(f" [_get_namespaced_resources] Calling list_resources({resource_type})...")
                 all_resources = self.list_resources(resource_type)
                 logger.debug(f" [_get_namespaced_resources] All namespaces resources got: {len(all_resources)} items")
 
                 if exclude_namespaces:
-                    logger.debug(f" [_get_namespaced_resources] Need to filter excluded namespaces: {exclude_namespaces}")
+                    logger.debug(" [_get_namespaced_resources] Need to filter excluded namespaces")
                     logger.debug(f" [_get_namespaced_resources] Starting filtering...")
 
                     # Count resources per namespace before filtering

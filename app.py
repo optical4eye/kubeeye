@@ -9,11 +9,8 @@ This file is the application entry point, initializes the interface and displays
 
 
 # Import standard libraries
-import os
-import sys
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict
 
 # Import third-party libraries
 import streamlit as st
@@ -30,10 +27,11 @@ st.set_page_config(
 
 # Import project modules
 from utils.common import initialize_page
-from utils.cluster_config import list_clusters, get_cluster, list_clusters_cached, get_cluster_status_counts_fast, get_cluster_quick_status
-from utils.inspection_result import list_results, get_latest_result_by_cluster, load_result_minimal
+from utils.cluster_config import list_clusters, get_cluster, get_cluster_status_counts_fast, get_cluster_quick_status
+from utils.inspection_result import list_results, get_latest_result_by_cluster
 from utils.rule_loader import load_rules
-from utils.version import VERSION, APP_NAME, APP_DESCRIPTION, RELEASE_DATE
+from utils.gitops_manager import GitOpsRuleManager
+from utils.version import VERSION
 from utils.cert_checker import get_cluster_cert_status
 import logging
 
@@ -67,6 +65,16 @@ def get_dashboard_data() -> Dict:
     prometheus_rules = load_rules('prometheus')
     opa_rules = load_rules('opa')
     total_rules = len(node_rules) + len(prometheus_rules) + len(opa_rules)
+
+    # Check if GitOps is configured and add GitOps rules
+    gitops_manager = GitOpsRuleManager()
+    gitops_config = gitops_manager.load_config()
+    if gitops_config.get('mode') == 'gitops' and gitops_config.get('repository'):
+        try:
+            gitops_rules = gitops_manager.get_repo_rules(gitops_config['repository']['name'])
+            total_rules += len(gitops_rules)
+        except Exception as e:
+            print(f"Warning: Failed to load GitOps rules: {e}")
 
     # Fast status counting without loading all results
     status_counts = get_cluster_status_counts_fast()

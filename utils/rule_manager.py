@@ -4,10 +4,9 @@
 Rule management module - provides unified interface for processing rules for various components
 Updated version, supports assertion system and rule display in table format
 """
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Tuple
 import streamlit as st
 import pandas as pd
-import yaml
 from utils.rule_loader import load_rules, Rule
 
 

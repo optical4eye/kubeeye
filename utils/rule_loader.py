@@ -6,9 +6,8 @@ Rule loading module - supports GitOps mode
 
 import yaml
 import logging
-import os
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Optional
 
 # Log setup
 logger = logging.getLogger(__name__)

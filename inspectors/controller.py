@@ -5,7 +5,7 @@ Inspection controller, responsible for planning and coordinating different types
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 from inspectors.node.node_inspector import NodeInspector
 from inspectors.opa.opa_inspector import OpaInspector
@@ -122,10 +122,8 @@ class InspectionController:
         Returns:
             Path to saved file
         """
-        import os
         import json
         from datetime import datetime
-        from pathlib import Path
 
         # Ensure results directory exists
         from utils.inspection_result import RESULTS_DIR

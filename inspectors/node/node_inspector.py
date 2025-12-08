@@ -5,7 +5,6 @@ Node inspector with centralized SSH connection error management
 """
 
 import logging
-import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Any, Optional, Tuple, Union
@@ -14,7 +13,7 @@ from inspectors.base_inspector import BaseInspector
 from utils.inspection_result import InspectionResult
 from utils.rule_loader import Rule
 from utils.node_connection import NodeConnection, test_node_connection
-from utils.command_security import CommandSecurityChecker, RiskLevel
+from utils.command_security import CommandSecurityChecker
 from utils.result_formatter import ResultFormatter
 
 # Logging setup

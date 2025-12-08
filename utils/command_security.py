@@ -6,7 +6,7 @@ Command security checker - prevents execution of dangerous commands
 
 import re
 import logging
-from typing import List, Dict, Tuple, Optional
+from typing import Tuple
 from enum import Enum
 
 logger = logging.getLogger(__name__)

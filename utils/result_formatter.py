@@ -6,7 +6,7 @@ Provides unified result formatting functions, eliminating duplication of _pass_r
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from utils.rule_loader import Rule
 
 # Logging setup

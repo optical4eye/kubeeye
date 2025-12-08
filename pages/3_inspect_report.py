@@ -13,7 +13,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict
 import time
 from functools import wraps
 
@@ -58,8 +57,7 @@ if str(ROOT_DIR) not in sys.path:
 from utils.common import initialize_page
 from utils.cluster_config import list_clusters
 from utils.inspection_result import list_results, load_result
-from components.ui.result_display import display_inspection_results
-from components.ui.result_display import parse_opa_violations_to_table, display_opa_violations_table
+from components.ui.result_display import display_opa_violations_table
 
 # Configuration for report cleanup
 CONFIG_FILE = Path(__file__).parent.parent / "data" / "cleanup_config.json"

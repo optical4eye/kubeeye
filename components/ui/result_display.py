@@ -5,8 +5,7 @@ Result display component
 """
 import streamlit as st
 import pandas as pd
-import re
-from typing import Dict, List, Any, Optional
+from typing import Dict, List
 
 def display_status(status):
     """Display status color label"""

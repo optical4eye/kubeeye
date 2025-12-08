@@ -4,7 +4,6 @@
 Common components and helper functions - reducing duplicate code between pages
 """
 
-import streamlit as st
 import sys
 from pathlib import Path
 
@@ -26,10 +25,8 @@ def _initialize_background_services():
 
     try:
         # Import and start data cleanup module
-        import utils.data_cleanup
 
         # Import and start task scheduler
-        import utils.schedule_manager
 
         _background_services_initialized = True
 

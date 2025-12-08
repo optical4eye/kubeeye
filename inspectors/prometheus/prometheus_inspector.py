@@ -5,8 +5,7 @@ Prometheus inspector - simplified version, supports "one rule = one query = one 
 """
 
 import logging
-import datetime
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any
 
 from inspectors.base_inspector import BaseInspector
 from utils.prometheus_client import PrometheusClient

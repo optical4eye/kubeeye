@@ -4,11 +4,8 @@
 Kubernetes client tool for interacting with Kubernetes clusters
 """
 
-import yaml
-import json
-import base64
 import datetime
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Tuple
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 import logging

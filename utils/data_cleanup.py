@@ -5,11 +5,10 @@ Data cleanup manager - automatic cleanup of outdated data to prevent storage ove
 """
 
 import os
-import json
 import logging
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 import threading
 import time
 
