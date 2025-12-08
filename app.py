@@ -439,7 +439,9 @@ if recent_results:
             xaxis_title="Date",
             yaxis_title="Error count",
             legend_title="Error type",
-            hovermode="x unified"
+            hovermode="x unified",
+            xaxis=dict(showgrid=True, gridcolor='#acacac'),
+            yaxis=dict(showgrid=True, gridcolor='#acacac')
         )
 
         st.plotly_chart(fig_trend, use_container_width=True)
@@ -475,7 +477,9 @@ with col1:
         fig_bar.update_layout(
             xaxis_title="Result type",
             yaxis_title="Check count",
-            showlegend=False
+            showlegend=False,
+            xaxis=dict(showgrid=True, gridcolor='#acacac'),
+            yaxis=dict(showgrid=True, gridcolor='#acacac')
         )
         # Enhanced hover for bar chart
         fig_bar.update_traces(

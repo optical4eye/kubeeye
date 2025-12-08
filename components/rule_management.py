@@ -214,7 +214,7 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     st.warning(" Repository not synchronized")
 
             with col2:
-                if st.button(" Synchronize", type="primary", use_container_width=True):
+                if st.button(" Synchronize", type="primary"):
                     sync_repository(gitops_manager, current_repo)
 
             with col3:
@@ -258,7 +258,7 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     st.warning(" Repository not synchronized")
 
             with col2:
-                if st.button(" Synchronize", type="primary", use_container_width=True):
+                if st.button(" Synchronize", type="primary"):
                     sync_repository(gitops_manager, current_repo)
 
     else:

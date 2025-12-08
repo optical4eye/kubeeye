@@ -275,7 +275,7 @@ help="Each line must contain: IP:User Identification Type Port [Password/Pathkey
             st.session_state.kubeconfig_content = kubeconfig_content
 
         # Persistent Kubernetes connection test button
-        test_k8s = st.form_submit_button("Test Kubernetes connection", type="primary")
+        test_k8s = st.form_submit_button("Check k8s", type="primary")
         if test_k8s:
             if not st.session_state.kubeconfig_content:
                 st.error("Enter kubeconfig content for connection test")
@@ -765,7 +765,7 @@ Examples:
                         st.session_state.edit_kubeconfig_content = edit_kubeconfig_content
 
                     # Persistent Kubernetes connection test button
-                    test_kube_button = st.form_submit_button("Test Kubernetes connection", type="primary")
+                    test_kube_button = st.form_submit_button("Check k8s", type="primary")
 
                     # Save configuration button
                     save_kube_button = st.form_submit_button("Save configuration", type="primary")
