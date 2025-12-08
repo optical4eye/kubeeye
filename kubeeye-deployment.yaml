@@ -16,14 +16,34 @@ spec:
       labels:
         app: kubeeye
     spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
       containers:
       - name: kubeeye
-        image: kubespheredev/kubeeye:v2.0.0-alpha.1
+        image: kubeeye:v2.0
         ports:
         - containerPort: 8501
         env:
         - name: KUBEEYE_DATA_DIR
           value: "/app/data"
+        - name: KUBEEYE_GITOPS_REPO_NAME
+          value: "kubeeye_rules"
+        - name: KUBEEYE_GITOPS_REPO_URL
+          value: "https://github.com/optical4eye/kubeeye-rules.git"
+        - name: KUBEEYE_GITOPS_REPO_BRANCH
+          value: "main"
+        - name: KUBEEYE_GITOPS_REPO_USERNAME
+          value: "optical4eye"
+        - name: KUBEEYE_GITOPS_REPO_TOKEN
+          value: ""
+        - name: KUBEEYE_GITOPS_REPO_INSECURE
+          value: "false"
+        - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
+          value: "kubeeye repo rules"
+        - name: KUBEYE_REPORT_RETENTION_DAYS
+          value: '1'
         volumeMounts:
         - name: data-volume
           mountPath: /app/data
@@ -72,4 +92,5 @@ spec:
     - protocol: TCP
       port: 8501
       targetPort: 8501
+      nodePort: 30693
   type: NodePort

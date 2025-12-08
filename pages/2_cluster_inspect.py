@@ -14,7 +14,6 @@ from pathlib import Path
 # Настройка параметров страницы — должна быть первой командой Streamlit
 st.set_page_config(
     page_title="Проверка кластера - kubeeye",
-    page_icon="🔍",
     layout="wide"
 )
 
@@ -36,7 +35,6 @@ from components.rule_management import render_rule_management_tab
 # Инициализация страницы
 initialize_page(
     title="Проверка кластера",
-    icon="🔍",
     page_title="Центр проверки кластера",
     page_subtitle="Выполнение немедленной или плановой проверки, управление правилами проверки"
 )

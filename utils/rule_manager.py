@@ -70,7 +70,7 @@ class RuleManager:
                 "Серьезность": rule.severity,
                 "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
                 "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
-                "Источник": "🔄 Git" if rule.source == 'git' else "📁 Локальный"
+                "Источник": " Git" if rule.source == 'git' else " Локальный"
             })
         return pd.DataFrame(data)
 
@@ -112,7 +112,7 @@ class RuleManager:
                 "Серьезность": rule.severity,
                 "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
                 "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
-                "Источник": "🔄 Git" if rule.source == 'git' else "📁 Локальный"
+                "Источник": " Git" if rule.source == 'git' else " Локальный"
             })
         rules_df = pd.DataFrame(data)
 
@@ -172,7 +172,7 @@ class RuleManager:
                 "Серьезность": rule.severity,
                 "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description,
                 "Количество утверждений": len(rule.assertions) if hasattr(rule, 'assertions') else 0,
-                "Источник": "🔄 Git" if rule.source == 'git' else "📁 Локальный"
+                "Источник": " Git" if rule.source == 'git' else " Локальный"
             })
         rules_df = pd.DataFrame(data)
 

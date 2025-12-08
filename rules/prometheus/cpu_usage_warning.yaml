@@ -1,41 +1,41 @@
 ---
-# CPU使用率检查规则 - 警告阈值
+# Правило проверки использования CPU - порог предупреждения
 id: prom_cpu_usage_warning
-name: 节点CPU使用率检查
-description: 检查节点CPU使用率是否超过警告阈值
+name: Проверка использования CPU узла
+description: Проверить, превышает ли использование CPU узла порог предупреждения
 type: prometheus
 category: resource
 severity: warning
 enabled: true
 tier: basic
 
-# 规则配置
+# Конфигурация правила
 config:
-  # Prometheus查询配置 - 直接返回CPU使用率
+  # Конфигурация запроса Prometheus - прямой возврат использования CPU
   query: "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
-  
-  # 时间范围配置
+
+  # Конфигурация временного диапазона
   time_range:
-    start: "now-10m"  # 10分钟前
-    end: "now"        # 当前时间
-    step: "1m"        # 1分钟间隔
-  
-  # 断言配置 - 简化为单个检查
+    start: "now-10m"  # 10 минут назад
+    end: "now"        # Текущее время
+    step: "1m"        # Интервал 1 минута
+
+  # Конфигурация утверждений - упрощено до одной проверки
   assertions:
-    - name: "CPU使用率正常"
+    - name: "Нормальное использование CPU"
       condition: "max_value < 80"
       severity: warning
-      description: "CPU使用率: {{ max_value | round(2) }}%"
+      description: "Использование CPU: {{ max_value | round(2) }}%"
 
-# 问题解决建议
+# Рекомендации по решению проблем
 solution: |
-  CPU使用率过高处理：
-  1. 查看高CPU消耗进程：kubectl top nodes && kubectl top pods
-  2. 检查Pod资源限制：kubectl describe pod <pod-name>
-  3. 优化高CPU应用或增加节点资源
-  4. 使用HPA自动扩展工作负载
+  Обработка высокого использования CPU:
+  1. Просмотр процессов с высоким потреблением CPU: kubectl top nodes && kubectl top pods
+  2. Проверка ограничений ресурсов Pod: kubectl describe pod <pod-name>
+  3. Оптимизация приложений с высоким потреблением CPU или добавление ресурсов узла
+  4. Использование HPA для автоматического масштабирования нагрузки
 
-# 标签
+# Теги
 tags:
   - cpu
   - performance

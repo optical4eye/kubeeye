@@ -7,9 +7,15 @@
 import re
 from typing import List, Dict, Any, Tuple
 
+# Предварительно скомпилированные регулярные выражения для производительности
+IP_PORT_PATTERN = re.compile(r'^([\d\.]+)(?::(\d+))?$')
+NODE_PATTERN = re.compile(
+    r'^(\d+\.\d+\.\d+\.\d+)(?::(\d+))?\s+(\w+)\s+(password|key)(?:\s+(.+))?$'
+)
+
 def parse_nodes_from_text(text: str) -> Tuple[List[Dict[str, Any]], List[str]]:
     """
-    Парсит текст с узлами и возвращает список узлов и список ошибок
+    Оптимизированный парсинг текста с узлами с использованием предварительно скомпилированных regex
 
     Args:
         text: Текст с узлами в формате "IP:Порт Пользователь ТипАутентификации [Пароль/ПутьККлючу]"
@@ -30,19 +36,14 @@ def parse_nodes_from_text(text: str) -> Tuple[List[Dict[str, Any]], List[str]]:
             continue
 
         try:
-            parts = line.split()
-            if len(parts) < 3:
-                errors.append(f"Строка {line_num}: недостаточно параметров")
+            # Используем предварительно скомпилированный паттерн для полной строки
+            match = NODE_PATTERN.match(line)
+            if not match:
+                errors.append(f"Строка {line_num}: неверный формат")
                 continue
 
-            # Парсинг IP и порта
-            ip_port_match = re.match(r'^([\d\.]+)(?::(\d+))?$', parts[0])
-            if not ip_port_match:
-                errors.append(f"Строка {line_num}: неверный формат IP:порта")
-                continue
-
-            ip = ip_port_match.group(1)
-            port = ip_port_match.group(2) or "22"
+            ip, port, username, auth_type, credential = match.groups()
+            port = port or "22"
 
             # Валидация IP
             if not is_valid_ip(ip):
@@ -54,13 +55,7 @@ def parse_nodes_from_text(text: str) -> Tuple[List[Dict[str, Any]], List[str]]:
                 errors.append(f"Строка {line_num}: неверный порт")
                 continue
 
-            username = parts[1]
-            auth_type = parts[2].lower()
-
-            if auth_type not in ['password', 'key']:
-                errors.append(f"Строка {line_num}: неверный тип аутентификации (должен быть 'password' или 'key')")
-                continue
-
+            auth_type = auth_type.lower()
             node_info = {
                 "ip": ip,
                 "port": port,
@@ -68,16 +63,16 @@ def parse_nodes_from_text(text: str) -> Tuple[List[Dict[str, Any]], List[str]]:
                 "auth_type": auth_type
             }
 
-            # Обработка пароля или ключа
+            # Обработка учетных данных
             if auth_type == 'password':
-                if len(parts) > 3:
-                    node_info["password"] = parts[3]
+                if credential:
+                    node_info["password"] = credential
                 else:
                     errors.append(f"Строка {line_num}: для типа 'password' требуется пароль")
                     continue
             else:  # key
-                if len(parts) > 3:
-                    node_info["key_path"] = parts[3]
+                if credential:
+                    node_info["key_path"] = credential
                 else:
                     errors.append(f"Строка {line_num}: для типа 'key' требуется путь к ключу")
                     continue

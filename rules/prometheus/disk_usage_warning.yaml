@@ -1,42 +1,42 @@
 ---
-# 磁盘使用率检查规则
+# Правило проверки использования диска
 id: prom_disk_usage_warning
-name: 节点磁盘使用率检查
-description: 检查节点根分区磁盘使用率
+name: Проверка использования диска узла
+description: Проверить использование диска корневого раздела узла
 type: prometheus
 category: storage
 severity: warning
 enabled: true
 tier: basic
 
-# 规则配置
+# Конфигурация правила
 config:
-  # Prometheus查询配置 - 磁盘使用率
+  # Конфигурация запроса Prometheus - использование диска
   query: "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"})"
-  
-  # 时间范围配置
+
+  # Конфигурация временного диапазона
   time_range:
-    start: "now-10m"  # 10分钟前
-    end: "now"        # 当前时间
-    step: "1m"        # 1分钟间隔
-  
-  # 断言配置 - 简化为单个检查
+    start: "now-10m"  # 10 минут назад
+    end: "now"        # Текущее время
+    step: "1m"        # Интервал 1 минута
+
+  # Конфигурация утверждений - упрощено до одной проверки
   assertions:
-    - name: "磁盘使用率正常"
+    - name: "Нормальное использование диска"
       condition: "max_value < 85"
       severity: warning
-      description: "磁盘使用率: {{ max_value | round(2) }}%"
+      description: "Использование диска: {{ max_value | round(2) }}%"
 
-# 问题解决建议
+# Рекомендации по решению проблем
 solution: |
-  磁盘使用率过高处理：
-  1. 查看磁盘使用：df -h
-  2. 清理日志：kubectl logs <pod> --previous | head
-  3. 清理未使用镜像：docker system prune -f
-  4. 清理临时文件和缓存
-  5. 扩容磁盘或添加存储
+  Обработка высокого использования диска:
+  1. Просмотр использования диска: df -h
+  2. Очистка логов: kubectl logs <pod> --previous | head
+  3. Очистка неиспользуемых образов: docker system prune -f
+  4. Очистка временных файлов и кэша
+  5. Расширение диска или добавление хранилища
 
-# 标签
+# Теги
 tags:
   - disk
   - storage

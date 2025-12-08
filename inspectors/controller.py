@@ -99,13 +99,13 @@ class InspectionController:
                 if rule_ids and inspector_type in rule_ids:
                     inspector_rule_ids = rule_ids[inspector_type]
 
-                logger.info(f"🚀 Выполнение {inspector_type} проверки...")
+                logger.info(f"Выполнение {inspector_type} проверки...")
                 result = inspector.run_inspection(cluster_name, inspector_rule_ids)
                 results[inspector_type] = result
-                logger.info(f"✅ {inspector_type} проверка завершена, найдено {len(result.items)} результатов")
+                logger.info(f"{inspector_type} проверка завершена, найдено {len(result.items)} результатов")
 
             except Exception as e:
-                logger.exception(f"❌ Ошибка выполнения {inspector_type} проверки: {str(e)}")
+                logger.exception(f"Ошибка выполнения {inspector_type} проверки: {str(e)}")
 
         return results
 
@@ -128,7 +128,8 @@ class InspectionController:
         from pathlib import Path
 
         # Убедиться, что каталог results существует
-        results_dir = Path("data/results")
+        from utils.inspection_result import RESULTS_DIR
+        results_dir = RESULTS_DIR
         results_dir.mkdir(parents=True, exist_ok=True)
 
         # Генерация ID результата и имени файла
@@ -165,49 +166,66 @@ class InspectionController:
                 else:
                     status = 'unknown'
 
+                # Нормализация статуса (как в InspectionResult.add_item)
+                if status in ['failed', 'warning', 'error']:
+                    status = 'exception'
+
                 # Статистика по статусам - использование упрощенной системы статусов
                 if status == 'passed':
                     total_passed += 1
-                else:
-                    # Все непройденные статусы считаются исключениями
-                    # Обработка совместимости со старыми статусами
-                    if status in ['failed', 'error']:
-                        total_failed += 1
-                    elif status == 'warning':
+                elif status == 'exception':
+                    # Получение severity для классификации исключений
+                    severity = 'unknown'
+                    if hasattr(item, '__dict__'):
+                        severity = getattr(item, 'severity', 'unknown')
+                    elif isinstance(item, dict):
+                        severity = item.get('severity', 'unknown')
+
+                    if severity == 'critical':
+                        total_failed += 1  # critical считается как failed
+                    elif severity == 'warning':
                         total_warning += 1
                     else:
-                        # Неизвестный статус обрабатывается как ошибка
-                        total_error += 1
+                        total_error += 1  # остальные severity считаются как error
+                else:
+                    # Неизвестный статус обрабатывается как ошибка
+                    total_error += 1
 
-            # Сериализация items - обеспечение, что все items имеют формат словаря
+            # Сериализация items - обеспечение, что все items имеют формат словаря и нормализованный статус
             serialized_items = []
             for item in items:
                 if hasattr(item, '__dict__'):
                     # Если это объект, преобразовать в словарь
-                    serialized_items.append(item.__dict__)
+                    item_dict = item.__dict__.copy()
                 elif isinstance(item, dict):
-                    # Если уже словарь, использовать напрямую
-                    serialized_items.append(item)
+                    # Если уже словарь, создать копию
+                    item_dict = item.copy()
                 elif isinstance(item, (tuple, list)) and len(item) >= 2:
                     # Если это кортеж или список, попытаться преобразовать в базовый формат словаря
-                    serialized_items.append({
+                    item_dict = {
                         'name': str(item[0]) if len(item) > 0 else 'Unknown',
                         'status': str(item[1]) if len(item) > 1 else 'unknown',
                         'description': str(item[2]) if len(item) > 2 else '',
                         'severity': 'info',
                         'details': str(item),
                         'solution': ''
-                    })
+                    }
                 else:
                     # Другие случаи, создать базовый словарь
-                    serialized_items.append({
+                    item_dict = {
                         'name': str(item),
                         'status': 'unknown',
                         'description': f'Преобразовано из {type(item).__name__}',
                         'severity': 'info',
                         'details': str(item),
                         'solution': ''
-                    })
+                    }
+
+                # Нормализация статуса (как в InspectionResult.add_item)
+                if item_dict.get('status') in ['failed', 'warning', 'error']:
+                    item_dict['status'] = 'exception'
+
+                serialized_items.append(item_dict)
 
             serialized_results[inspector_type] = {
                 "inspector_type": inspector_type,
@@ -242,6 +260,8 @@ class InspectionController:
         # Сохранение в файл
         with open(result_path, 'w', encoding='utf-8') as f:
             json.dump(result_data, f, ensure_ascii=False, indent=2)
+
+        # Кэширование отключено
 
         # Запуск очистки данных - очистка старых отчетов после создания нового
         try:

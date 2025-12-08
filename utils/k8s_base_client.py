@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Kubernetes 基础客户端 - 提供共同的初始化和配置逻辑
-减少 k8s_client.py 和 k8s_dynamic_client.py 之间的代码重复
+Базовый клиент Kubernetes - предоставление общей логики инициализации и конфигурации
+Уменьшение дублирования кода между k8s_client.py и k8s_dynamic_client.py
 """
 
 import tempfile
@@ -15,93 +15,93 @@ from kubernetes.client.rest import ApiException
 logger = logging.getLogger(__name__)
 
 class K8sBaseClient:
-    """Kubernetes 基础客户端，提供通用的初始化和配置功能"""
-    
+    """Базовый клиент Kubernetes, предоставляющий общую функциональность инициализации и конфигурации"""
+
     def __init__(self, kubeconfig_content: str = None):
         """
-        初始化基础客户端
-        
+        Инициализировать базовый клиент
+
         Args:
-            kubeconfig_content: kubeconfig 文件内容
+            kubeconfig_content: Содержимое файла kubeconfig
         """
         self.kubeconfig_content = kubeconfig_content
         self.temp_config = None
         self.initialized = False
-        
+
     def init_client_base(self) -> bool:
         """
-        通用的客户端初始化逻辑
-        
+        Общая логика инициализации клиента
+
         Returns:
-            成功返回 True，失败返回 False
+            Возвращает True при успехе, False при неудаче
         """
         try:
             if self.kubeconfig_content:
-                # 创建临时文件存储 kubeconfig
+                # Создать временный файл для хранения kubeconfig
                 self.temp_config = tempfile.NamedTemporaryFile(delete=False)
                 self.temp_config.write(self.kubeconfig_content.encode())
                 self.temp_config.flush()
                 config.load_kube_config(self.temp_config.name)
             else:
-                # 尝试默认方式加载配置
+                # Попробовать загрузить конфигурацию способом по умолчанию
                 config.load_kube_config()
-                
-            # 配置SSL证书验证
+
+            # Настроить проверку SSL сертификатов
             client.Configuration.set_default(self._configure_no_verify_ssl())
-            
+
             self.initialized = True
-            logger.info("Kubernetes基础客户端初始化成功")
+            logger.info("Инициализация базового клиента Kubernetes прошла успешно")
             return True
-            
+
         except Exception as e:
-            logger.error(f"初始化 Kubernetes 基础客户端失败: {e}")
+            logger.error(f"Не удалось инициализировать базовый клиент Kubernetes: {e}")
             self.initialized = False
             return False
-    
+
     def _configure_no_verify_ssl(self):
         """
-        配置Kubernetes客户端跳过SSL证书验证，用于自签名证书环境
-        
+        Настроить клиент Kubernetes для пропуска проверки SSL сертификатов, для среды с самоподписанными сертификатами
+
         Returns:
-            配置好的客户端配置
+            Настроенная конфигурация клиента
         """
-        # 获取当前客户端配置
+        # Получить текущую конфигурацию клиента
         configuration = client.Configuration.get_default_copy()
-        
-        # 禁用SSL证书验证
+
+        # Отключить проверку SSL сертификатов
         configuration.verify_ssl = False
         configuration.ssl_ca_cert = None
-        
-        # 设置警告消息
-        logger.warning("已禁用SSL证书验证，这可能存在安全风险")
-        
+
+        # Установить предупреждение
+        logger.warning("Проверка SSL сертификатов отключена, это может представлять угрозу безопасности")
+
         return configuration
-    
+
     def test_connection(self) -> Tuple[bool, str]:
         """
-        测试连接到Kubernetes集群
-        
+        Тестировать подключение к кластеру Kubernetes
+
         Returns:
-            (是否成功, 消消息)
+            (Успешно ли, Сообщение)
         """
         try:
             if not self.initialized:
-                return False, "客户端未初始化"
-                
-            # 尝试获取集群版本信息
+                return False, "Клиент не инициализирован"
+
+            # Попробовать получить информацию о версии кластера
             version_api = client.VersionApi()
             version = version_api.get_code().git_version
-            return True, f"连接成功，集群版本: {version}"
-            
+            return True, f"Подключение успешно, версия кластера: {version}"
+
         except ApiException as e:
-            logger.error(f"连接测试失败: {e}")
-            return False, f"API错误: {e.reason}"
+            logger.error(f"Тест подключения не удался: {e}")
+            return False, f"Ошибка API: {e.reason}"
         except Exception as e:
-            logger.error(f"连接测试失败: {e}")
-            return False, f"连接失败: {str(e)}"
-    
+            logger.error(f"Тест подключения не удался: {e}")
+            return False, f"Подключение не удалось: {str(e)}"
+
     def __del__(self):
-        """析构函数，删除临时文件"""
+        """Деструктор, удалить временные файлы"""
         if self.temp_config:
             try:
                 self.temp_config.close()

@@ -1,33 +1,33 @@
 ---
-# 集群内存使用率检查
+# Проверка использования памяти кластера
 id: prom_cluster_memory_usage
-name: 集群内存使用率检查
-description: 检查整个集群的内存使用率
+name: Проверка использования памяти кластера
+description: Проверить использование памяти всего кластера
 type: prometheus
 category: cluster
 severity: warning
 enabled: true
 tier: cluster
 
-# 规则配置
+# Конфигурация правила
 config:
-  # Prometheus查询配置 - 集群整体内存使用率
+  # Конфигурация запроса Prometheus - общее использование памяти кластера
   query: "(1 - (sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))) * 100"
-  
-  # 时间范围配置
+
+  # Конфигурация временного диапазона
   time_range:
     start: "now-10m"
     end: "now"
     step: "1m"
-  
-  # 断言配置
+
+  # Конфигурация утверждений
   assertions:
-    - name: "集群内存使用率正常"
+    - name: "Нормальное использование памяти кластера"
       condition: "max_value < 80"
       severity: warning
-      description: "集群内存使用率: {{ max_value | round(2) }}%"
+      description: "Использование памяти кластера: {{ max_value | round(2) }}%"
 
-# 标签
+# Теги
 tags:
   - cluster
   - memory

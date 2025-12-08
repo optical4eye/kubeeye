@@ -1,33 +1,33 @@
 ---
-# CPU使用率检查规则 - 严重阈值
+# Правило проверки использования CPU - критический порог
 id: prom_cpu_usage_critical
-name: 节点CPU使用率严重告警
-description: 检查节点CPU使用率是否超过严重阈值
+name: Критическое предупреждение об использовании CPU узла
+description: Проверить, превышает ли использование CPU узла критический порог
 type: prometheus
 category: resource
 severity: critical
 enabled: true
 tier: basic
 
-# 规则配置
+# Конфигурация правила
 config:
-  # Prometheus查询配置 - 直接返回CPU使用率
+  # Конфигурация запроса Prometheus - прямой возврат использования CPU
   query: "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
-  
-  # 时间范围配置
-  time_range:
-    start: "now-10m"  # 10分钟前
-    end: "now"        # 当前时间
-    step: "1m"        # 1分钟间隔
 
-  # 断言配置 - 一个规则一个检查
+  # Конфигурация временного диапазона
+  time_range:
+    start: "now-10m"  # 10 минут назад
+    end: "now"        # Текущее время
+    step: "1m"        # Интервал 1 минута
+
+  # Конфигурация утверждений - одна проверка на правило
   assertions:
-    - name: "节点CPU使用率严重告警"
+    - name: "Критическое предупреждение об использовании CPU узла"
       condition: "max_value < 90"
       severity: critical
-      description: "节点CPU使用率: {{ max_value | round(2) }}%"
+      description: "Использование CPU узла: {{ max_value | round(2) }}%"
 
-# 标签
+# Теги
 tags:
   - cpu
   - performance

@@ -19,7 +19,7 @@ from utils.rule_manager import RuleManager
 
 def render_rule_management_tab():
     """Отобразить вкладку управления правилами"""
-    st.markdown("### 🛠️ Центр управления правилами")
+    st.markdown("### Центр управления правилами")
 
     gitops_manager = GitOpsRuleManager()
     config = gitops_manager.load_config()
@@ -36,7 +36,7 @@ def render_rule_management_tab():
 
 def render_mode_selector(gitops_manager: GitOpsRuleManager, config: Dict):
     """Отобразить селектор режима"""
-    st.markdown("#### 🎯 Режим управления правилами")
+    st.markdown("####  Режим управления правилами")
 
     is_env_config = config.get("from_env", False)
     current_repo = config.get("repository")
@@ -47,8 +47,8 @@ def render_mode_selector(gitops_manager: GitOpsRuleManager, config: Dict):
     with col1:
         current_mode = config.get("mode", "local")
         mode_options = {
-            "local": "📁 Локальный режим",
-            "gitops": "🔄 Режим GitOps"
+            "local": "Локальный режим",
+            "gitops": "Режим GitOps"
         }
 
         # Если репозиторий из ENV, блокируем выбор режима
@@ -56,7 +56,7 @@ def render_mode_selector(gitops_manager: GitOpsRuleManager, config: Dict):
             st.selectbox(
                 "Выберите режим управления",
                 options=["gitops"],
-                format_func=lambda x: "🔄 Режим GitOps (управляется через ENV)",
+                format_func=lambda x: " Режим GitOps (управляется через ENV)",
                 index=0,
                 disabled=True
             )
@@ -84,7 +84,7 @@ def render_mode_selector(gitops_manager: GitOpsRuleManager, config: Dict):
                 st.selectbox(
                     "Выберите режим управления",
                     options=["local"],
-                    format_func=lambda x: "📁 Локальный режим (ENV переменные не заданы)",
+                    format_func=lambda x: " Локальный режим (ENV переменные не заданы)",
                     index=0,
                     disabled=True
                 )
@@ -106,28 +106,28 @@ def render_mode_selector(gitops_manager: GitOpsRuleManager, config: Dict):
                 st.metric("Правил GitOps", 0)
 
     with col3:
-        if st.button("🔄 Обновить", help="Обновить список правил"):
+        if st.button(" Обновить", help="Обновить список правил"):
             st.rerun()
 
 
 def render_local_mode(gitops_manager: GitOpsRuleManager):
     """Отобразить интерфейс локального режима"""
-    st.markdown("#### 📁 Локальные правила")
+    st.markdown("####  Локальные правила")
     render_local_rule_list()
 
 
 def render_gitops_mode(gitops_manager: GitOpsRuleManager, config: Dict):
     """Отобразить интерфейс режима GitOps"""
-    st.markdown("#### 🔄 Управление правилами GitOps")
+    st.markdown("####  Управление правилами GitOps")
 
     is_env_config = config.get("from_env", False)
     current_repo = config.get("repository")
     is_env_repo = current_repo.get('from_env', False) if current_repo else False
 
     if is_env_config or is_env_repo:
-        st.info("🎯 Конфигурация управляется через переменные окружения")
+        st.info(" Конфигурация управляется через переменные окружения")
 
-    tab_manage, tab_browse = st.tabs(["⚙️ Настройка репозитория", "🔍 Просмотр правил"])
+    tab_manage, tab_browse = st.tabs([" Настройка репозитория", " Просмотр правил"])
 
     with tab_manage:
         render_repository_management(gitops_manager, config)
@@ -145,7 +145,7 @@ def render_local_rule_list():
             "Выберите типы правил",
             ["node", "prometheus", "opa"],
             default=["node", "prometheus", "opa"],
-            format_func=lambda x: {"node": "🖥️ Правила узлов", "prometheus": "📊 Правила мониторинга", "opa": "🔒 Правила безопасности"}[x]
+            format_func=lambda x: {"node": " Правила узлов", "prometheus": " Правила мониторинга", "opa": " Правила безопасности"}[x]
         )
 
     with col2:
@@ -162,21 +162,21 @@ def render_local_rule_list():
 
     rule_data = []
     severity_map = {
-        "info": "ℹ️ Информация",
-        "low": "🟢 Низкая",
-        "warning": "⚠️ Предупреждение",
-        "medium": "🟡 Средняя",
-        "high": "🟠 Высокая",
-        "critical": "🚨 Критическая"
+        "info": "Информация",
+        "low": "Низкая",
+        "warning": "Предупреждение",
+        "medium": "Средняя",
+        "high": "Высокая",
+        "critical": "Критическая"
     }
 
     for rule in all_rules:
         rule_data.append({
             "ID": rule.id,
             "Название": rule.name,
-            "Тип": {"node": "🖥️ Узел", "prometheus": "📊 Мониторинг", "opa": "🔒 Безопасность"}[rule.type],
-            "Статус": "✅ Включено" if rule.enabled else "❌ Отключено",
-            "Серьёзность": severity_map.get(rule.severity, f"❓ {rule.severity}"),
+            "Тип": {"node": "Узел", "prometheus": "Мониторинг", "opa": "Безопасность"}[rule.type],
+            "Статус": "Включено" if rule.enabled else "Отключено",
+            "Серьёзность": severity_map.get(rule.severity, rule.severity),
             "Описание": rule.description[:50] + "..." if len(rule.description) > 50 else rule.description
         })
 
@@ -193,21 +193,21 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
 
     if current_repo and not (is_env_config or is_env_repo):
         # Отображение текущего репозитория - только просмотр и удаление
-        st.markdown("### 📋 Текущий репозиторий")
-        st.info("💡 Репозиторий нельзя изменить. Для смены репозитория необходимо сначала удалить текущий.")
+        st.markdown("###  Текущий репозиторий")
+        st.info(" Репозиторий нельзя изменить. Для смены репозитория необходимо сначала удалить текущий.")
 
         with st.container():
             col1, col2, col3 = st.columns([3, 1, 1])
 
             with col1:
-                st.markdown(f"**🎯 {current_repo['name']}**")
+                st.markdown(f"** {current_repo['name']}**")
                 st.markdown(f"**URL:** `{current_repo['url']}`")
                 st.markdown(f"**Ветка:** `{current_repo.get('branch', 'main')}`")
                 if current_repo.get('username'):
                     st.markdown(f"**Имя пользователя:** `{current_repo['username']}`")
                 if current_repo.get('token'):
-                    st.markdown("🔐 **Доступ: с токеном**")
-                ssl_verification_status = "✅ Включена" if not current_repo.get('insecure') else "❌ Отключена"
+                    st.markdown(" **Доступ: с токеном**")
+                ssl_verification_status = "Включена" if not current_repo.get('insecure') else "Отключена"
                 st.markdown(f"**Проверка SSL:** `{ssl_verification_status}`")
                 if current_repo.get('description'):
                     st.markdown(f"**Описание:** {current_repo['description']}")
@@ -215,18 +215,18 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                 # Проверяем синхронизацию
                 repo_path = gitops_manager.git_rules_dir / current_repo["name"]
                 if repo_path.exists():
-                    st.success("✅ Репозиторий синхронизирован")
+                    st.success("Репозиторий синхронизирован")
                     rules_count = len(gitops_manager.get_repo_rules(current_repo["name"]))
                     st.markdown(f"**Обнаружено правил:** {rules_count} (все автоматически включены)")
                 else:
-                    st.warning("⚠️ Репозиторий не синхронизирован")
+                    st.warning(" Репозиторий не синхронизирован")
 
             with col2:
-                if st.button("🔄 Синхронизировать", type="primary", use_container_width=True):
+                if st.button(" Синхронизировать", type="primary", use_container_width=True):
                     sync_repository(gitops_manager, current_repo)
 
             with col3:
-                if st.button("🗑️ Удалить", type="secondary", use_container_width=True):
+                if st.button(" Удалить", type="secondary", use_container_width=True):
                     success, message = gitops_manager.remove_repository()
                     if success:
                         st.success(message)
@@ -237,21 +237,21 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
 
     elif current_repo and (is_env_config or is_env_repo):
         # Репозиторий из ENV переменных - только просмотр
-        st.markdown("### 📋 Репозиторий из переменных окружения")
-        st.info("🔧 Этот репозиторий настроен через переменные окружения и не может быть изменен через интерфейс.")
+        st.markdown("###  Репозиторий из переменных окружения")
+        st.info(" Этот репозиторий настроен через переменные окружения и не может быть изменен через интерфейс.")
 
         with st.container():
             col1, col2 = st.columns([3, 1])
 
             with col1:
-                st.markdown(f"**🎯 {current_repo['name']}**")
+                st.markdown(f"** {current_repo['name']}**")
                 st.markdown(f"**URL:** `{current_repo['url']}`")
                 st.markdown(f"**Ветка:** `{current_repo.get('branch', 'main')}`")
                 if current_repo.get('username'):
                     st.markdown(f"**Имя пользователя:** `{current_repo['username']}`")
                 if current_repo.get('token'):
-                    st.markdown("🔐 **Доступ: с токеном**")
-                insecure_status = "❌ Отключено" if current_repo.get('insecure') else "✅ Включено"
+                    st.markdown(" **Доступ: с токеном**")
+                insecure_status = "Отключено" if current_repo.get('insecure') else "Включено"
                 st.markdown(f"**Проверка SSL:** `{insecure_status}`")
                 if current_repo.get('description'):
                     st.markdown(f"**Описание:** {current_repo['description']}")
@@ -259,20 +259,20 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                 # Проверяем синхронизацию
                 repo_path = gitops_manager.git_rules_dir / current_repo["name"]
                 if repo_path.exists():
-                    st.success("✅ Репозиторий синхронизирован")
+                    st.success("Репозиторий синхронизирован")
                     rules_count = len(gitops_manager.get_repo_rules(current_repo["name"]))
                     st.markdown(f"**Обнаружено правил:** {rules_count} (все автоматически включены)")
                 else:
-                    st.warning("⚠️ Репозиторий не синхронизирован")
+                    st.warning(" Репозиторий не синхронизирован")
 
             with col2:
-                if st.button("🔄 Синхронизировать", type="primary", use_container_width=True):
+                if st.button(" Синхронизировать", type="primary", use_container_width=True):
                     sync_repository(gitops_manager, current_repo)
 
     else:
         # Форма добавления нового репозитория
-        st.markdown("### ➕ Добавление репозитория правил")
-        st.info("💡 В режиме GitOps можно использовать только один репозиторий. После добавления его можно будет только удалить, но не изменить.")
+        st.markdown("###  Добавление репозитория правил")
+        st.info(" В режиме GitOps можно использовать только один репозиторий. После добавления его можно будет только удалить, но не изменить.")
 
         with st.form("add_repo_form"):
             col1, col2 = st.columns(2)
@@ -301,7 +301,7 @@ def render_repository_management(gitops_manager: GitOpsRuleManager, config: Dict
                     help="Используйте только для тестирования или внутренних репозиториев с самоподписанными сертификатами"
                 )
 
-            submitted = st.form_submit_button("✅ Добавить репозиторий")
+            submitted = st.form_submit_button("Добавить репозиторий")
 
             if submitted:
                 if not repo_name or not repo_url:
@@ -330,20 +330,20 @@ def render_git_rule_browser(gitops_manager: GitOpsRuleManager, config: Dict):
     current_repo = config.get("repository")
 
     if not current_repo:
-        st.warning("💡 Сначала добавьте Git репозиторий в разделе 'Настройка репозитория'")
+        st.warning(" Сначала добавьте Git репозиторий в разделе 'Настройка репозитория'")
         return
 
     repo_path = gitops_manager.git_rules_dir / current_repo["name"]
     if not repo_path.exists():
-        st.warning(f"⚠️ Репозиторий **{current_repo['name']}** не синхронизирован")
-        if st.button("🔄 Синхронизировать сейчас", type="primary"):
+        st.warning(f" Репозиторий **{current_repo['name']}** не синхронизирован")
+        if st.button(" Синхронизировать сейчас", type="primary"):
             sync_repository(gitops_manager, current_repo)
         return
 
     git_rules = gitops_manager.get_repo_rules(current_repo["name"])
 
     if not git_rules:
-        st.info("📭 В этом репозитории отсутствуют файлы правил или структура не соответствует ожидаемой")
+        st.info(" В этом репозитории отсутствуют файлы правил или структура не соответствует ожидаемой")
         st.markdown("""
         **Ожидаемая структура репозитория:**
         ```
@@ -359,7 +359,7 @@ def render_git_rule_browser(gitops_manager: GitOpsRuleManager, config: Dict):
         """)
         return
 
-    st.success(f"📚 Репозиторий: **{current_repo['name']}** | Всего правил: **{len(git_rules)}** (все автоматически включены)")
+    st.success(f" Репозиторий: **{current_repo['name']}** | Всего правил: **{len(git_rules)}** (все автоматически включены)")
 
     # Фильтры для правил
     col1, col2 = st.columns([2, 1])
@@ -368,7 +368,7 @@ def render_git_rule_browser(gitops_manager: GitOpsRuleManager, config: Dict):
             "Фильтр по типу",
             ["node", "prometheus", "opa"],
             default=["node", "prometheus", "opa"],
-            format_func=lambda x: {"node": "🖥️ Узлы", "prometheus": "📊 Мониторинг", "opa": "🔒 Безопасность"}[x]
+            format_func=lambda x: {"node": "Узлы", "prometheus": "Мониторинг", "opa": "Безопасность"}[x]
         )
 
     with col2:
@@ -385,7 +385,7 @@ def render_git_rule_browser(gitops_manager: GitOpsRuleManager, config: Dict):
         return
 
     for i, rule in enumerate(filtered_rules):
-        with st.expander(f"📋 {rule.name} ({rule.type})", expanded=False):
+        with st.expander(f"{rule.name} ({rule.type})", expanded=False):
             col1, col2 = st.columns([3, 1])
             with col1:
                 st.markdown(f"**Описание:** {rule.description}")
@@ -393,15 +393,14 @@ def render_git_rule_browser(gitops_manager: GitOpsRuleManager, config: Dict):
                 st.markdown(f"**Категория:** {rule.category}")
                 if rule.tags:
                     st.markdown(f"**Теги:** {', '.join(rule.tags)}")
-                status_icon = "✅" if rule.enabled else "❌"
-                st.markdown(f"**Статус:** {status_icon} {'Включено (автоматически)' if rule.enabled else 'Отключено'}")
+                st.markdown(f"**Статус:** {'Включено (автоматически)' if rule.enabled else 'Отключено'}")
             with col2:
-                if st.button(f"📥 Импортировать", key=f"import_{rule.id}_{i}", type="primary"):
+                if st.button(f"Импортировать", key=f"import_{rule.id}_{i}", type="primary"):
                     if gitops_manager.sync_git_rule_to_local(rule, rule.type):
-                        st.success("✅ Импортировано локально")
+                        st.success("Импортировано локально")
                         st.rerun()
                     else:
-                        st.error("❌ Ошибка импорта")
+                        st.error("Ошибка импорта")
 
 
 def sync_repository(gitops_manager: GitOpsRuleManager, repo: Dict):
