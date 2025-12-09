@@ -1,65 +1,124 @@
-# kubeeye-deployment.yaml
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kubeeye.fullname" . }}-app
+  name: {{ include "kubeeye.fullname" . }}-frontend
   labels:
-    app: kubeeye
-  {{- include "kubeeye.labels" . | nindent 4 }}
-  annotations:
-    checksum/rules: {{ include "rules.checksum" . | quote }}
+    {{- include "kubeeye.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.frontend.replicaCount }}
   selector:
     matchLabels:
-      app: kubeeye
-    {{- include "kubeeye.selectorLabels" . | nindent 6 }}
+      {{- include "kubeeye.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
   template:
     metadata:
       labels:
-        app: kubeeye
-      {{- include "kubeeye.selectorLabels" . | nindent 8 }}
-      annotations:
-        checksum/rules: {{ include "rules.checksum" . | quote }}
+        {{- include "kubeeye.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
     spec:
       securityContext:
         runAsUser: 1001
         runAsGroup: 1001
         fsGroup: 1001
       containers:
-      - name: kubeeye
-        image: {{ .Values.image }}:{{ .Values.tag }}
-        ports:
-        - containerPort: 8501
-        env:
-      {{- .Values.kubeeyeEnv | toYaml | nindent 8 }}
-        volumeMounts:
-      # Common
-        - name: data-volume
-          mountPath: /app/data
-        - name: localtime
-          mountPath: /etc/localtime
-          readOnly: true
-      # rules
-        {{- range .Values.kubeeyeLocalRules }}
-        - name: {{ .name }}
-          mountPath: /app/rules/{{ .type }}/{{ .name }}.yaml
-          subPath: {{ .name }}.yaml
-        {{- end }}
-        resources:
-	      {{- .Values.resources | toYaml | nindent 10 }}
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
       volumes:
-      # Common
-      - name: data-volume
-        persistentVolumeClaim:
-          claimName: {{ include "kubeeye.fullname" . }}-pvc
-      - name: localtime
-        hostPath:
-          path: /etc/localtime
-          type: File
-      # rules
-      {{- range .Values.kubeeyeLocalRules }}
-      - name: {{ .name }}
-        configMap:
-          name: {{ .name }}
+        - name: nginx-config
+          configMap:
+            name: {{ include "kubeeye.fullname" . }}-nginx-config
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubeeye.fullname" . }}-backend
+  labels:
+    {{- include "kubeeye.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kubeeye.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "kubeeye.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: KUBEEYE_DATA_DIR
+              value: "/app/data"
+            - name: PYTHONPATH
+              value: "/app"
+            {{- .Values.backend.env | toYaml | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+            {{- range .Values.backend.LocalRules }}
+            - name: {{ .name }}
+              mountPath: /app/rules/{{ .type }}/{{ .name }}.yaml
+              subPath: {{ .name }}.yaml
+            {{- end }}
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: {{ include "kubeeye.fullname" . }}-pvc
+        {{- range .Values.backend.LocalRules }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ .name }}
         {{- end }}

@@ -1,76 +1,66 @@
-image: kubeeye
-tag: 'v2.0'
-
-replicas: 1
-
-service:
-  ports:
-  - port: 8501
-    protocol: TCP
-    targetPort: 8501
+---
+# Frontend configuration
+frontend:
+  replicaCount: 1
+  image:
+    repository: kubeeye-frontend
+    tag: "v3.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 80
     nodePort: 30693
-  type: NodePort
+  resources:
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
 
-persistence:
-  enabled: true
-  storageClass: ""
-  accessMode: ReadWriteOnce
-  size: 1Gi
+# Backend configuration
+backend:
+  replicaCount: 1
+  image:
+    repository: kubeeye-backend
+    tag: "v3.0"
+    pullPolicy: IfNotPresent
+  service:
+    port: 8000
+  env:
+    - name: KUBEEYE_GITOPS_REPO_NAME
+      value: "kubeeye_rules"
+    - name: KUBEEYE_GITOPS_REPO_URL
+      value: "https://github.com/optical4eye/kubeeye-rules.git"
+    - name: KUBEEYE_GITOPS_REPO_BRANCH
+      value: "main"
+    - name: KUBEEYE_GITOPS_REPO_USERNAME
+      value: "optical4eye"
+    - name: KUBEEYE_GITOPS_REPO_TOKEN
+      value: ""
+    - name: KUBEEYE_GITOPS_REPO_INSECURE
+      value: "false"
+    - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
+      value: "kubeeye repo rules"
+    - name: KUBEYE_REPORT_RETENTION_DAYS
+      value: '1'
 
-kubeeyeEnv:
-  - name: KUBEEYE_DATA_DIR
-    value: "/app/data"
-  - name: KUBEEYE_GITOPS_REPO_NAME
-    value: "kubeeye_rules"
-  - name: KUBEEYE_GITOPS_REPO_URL
-    value: "https://github.com/optical4eye/kubeeye-rules.git"
-  - name: KUBEEYE_GITOPS_REPO_BRANCH
-    value: "main"
-  - name: KUBEEYE_GITOPS_REPO_USERNAME
-    value: "optical4eye"
-  - name: KUBEEYE_GITOPS_REPO_TOKEN
-    value: ""
-  - name: KUBEEYE_GITOPS_REPO_INSECURE
-    value: "false"
-  - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
-    value: "kubeeye repo rules"
-  - name: KUBEYE_REPORT_RETENTION_DAYS
-    value: '1'
+  resources:
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
 
-kubeeyeLocalRules:
-  # Opa
-  - name: opa-dangerous-capabilities
-    type: opa
-  - name: opa-host-network
-    type: opa
-  - name: opa-host-path
-    type: opa
-  - name: opa-image-tags
-    type: opa
-  - name: opa-privileged-container
-    type: opa
-  - name: opa-resource-limits
-    type: opa
-  - name: opa-run-as-non-root
-    type: opa
-  # Node
-  - name: node-disk-usage-simple
-    type: node
-  - name: node-kubelet-status
-    type: node
-  - name: node-load-average-simple
-    type: node
-  - name: node-memory-usage-simple
-    type: node
-  - name: node-zombie-processes
-    type: node
-  - name: node-process-count
-    type: node
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi
 
-resources:
-  limits:
-    memory: "1Gi"
-    cpu: "500m"
-  requests:
-    memory: "512Mi"
-    cpu: "250m"
+  LocalRules:
+    - name: opa-host-network
+      type: opa
+    - name: node-disk-usage-simple
+      type: node

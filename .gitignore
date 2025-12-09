@@ -3,6 +3,8 @@
 
 data
 
+backend/data/
+
 # OSX trash
 .DS_Store
 

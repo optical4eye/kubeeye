@@ -1,0 +1,61 @@
+{
+  "name": "kubeeye-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^15.0.7",
+    "@testing-library/user-event": "^14.5.2",
+    "axios": "^1.7.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.28.0",
+    "react-scripts": "5.0.1",
+    "recharts": "^2.13.3",
+    "antd": "^5.21.4",
+    "date-fns": "^4.1.0",
+    "@tanstack/react-query": "^5.59.0",
+    "react-syntax-highlighter": "^15.6.1",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "overrides": {
+    "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.15",
+    "rollup-plugin-terser": "npm:@rollup/plugin-terser@^0.4.4",
+    "glob": "npm:glob@^9.3.5",
+    "rimraf": "npm:rimraf@^5.0.5",
+    "@humanwhocodes/object-schema": "npm:@eslint/object-schema@^2.0.3",
+    "@humanwhocodes/config-array": "npm:@eslint/config-array@^0.18.0",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "npm:@babel/plugin-transform-nullish-coalescing-operator@^7.25.0",
+    "@babel/plugin-proposal-numeric-separator": "npm:@babel/plugin-transform-numeric-separator@^7.25.0",
+    "@babel/plugin-proposal-class-properties": "npm:@babel/plugin-transform-class-properties@^7.25.0",
+    "@babel/plugin-proposal-private-methods": "npm:@babel/plugin-transform-private-methods@^7.25.0",
+    "@babel/plugin-proposal-optional-chaining": "npm:@babel/plugin-transform-optional-chaining@^7.25.0",
+    "@babel/plugin-proposal-private-property-in-object": "npm:@babel/plugin-transform-private-property-in-object@^7.25.0",
+    "svgo": "npm:svgo@^3.3.2"
+  },
+  "proxy": "http://localhost:8000"
+}

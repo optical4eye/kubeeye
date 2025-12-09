@@ -1,0 +1,41 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - KUBEEYE_DATA_DIR=/app/data
+      - KUBEEYE_GITOPS_REPO_NAME=kubeeye_rules
+      - KUBEEYE_GITOPS_REPO_URL=https://github.com/optical4eye/kubeeye-rules.git
+      - KUBEEYE_GITOPS_REPO_BRANCH=main
+      - KUBEEYE_GITOPS_REPO_USERNAME=optical4eye
+      - KUBEEYE_GITOPS_REPO_TOKEN=""
+      - KUBEEYE_GITOPS_REPO_INSECURE=false
+      - KUBEEYE_GITOPS_REPO_DESCRIPTION=kubeeye repo rules
+      - KUBEYE_REPORT_RETENTION_DAYS=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  kubeeye-data:
+    driver: local
+
+networks:
+  default:
+    name: kubeeye-network

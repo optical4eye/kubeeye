@@ -1,0 +1,49 @@
+.app-container {
+  min-height: 100vh;
+  background-color: #7359f8;
+}
+
+.main-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #282a36;
+}
+
+.content-area {
+  padding: 24px;
+  background: #282a36;
+  margin: 0;
+  border-radius: 8px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #f8f8f2;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: #6272a4;
+  margin-bottom: 24px;
+}
+
+.logo {
+  height: 32px;
+  margin: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #7359f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.no-gray-hover rect:hover {
+  fill: transparent !important;
+}

@@ -4,7 +4,9 @@ This version of kubeeye is located here - https://github.com/optical4eye/kubeeye
 
 ## Overview
 
-KubeEye is a **purely observational** Kubernetes cluster inspection tool focused on safe information gathering about the cluster and identifying potential issues. The tool is built on Streamlit and provides an intuitive web interface supporting various inspection methods.
+KubeEye is a **purely observational** Kubernetes cluster inspection tool focused on safe information gathering about the cluster and identifying potential issues. The tool provides a modern React web interface with FastAPI backend, supporting various inspection methods.
+
+**Version 3.0** introduces a microservices architecture with separate frontend and backend components for better scalability and maintainability.
 
 **Security Guarantee**: KubeEye uses a strict read-only inspection policy, all operations are limited to information gathering and status viewing, no modifications, deletions, or dangerous operations are ever performed, ensuring cluster security.
 
@@ -34,19 +36,89 @@ KubeEye is a **purely observational** Kubernetes cluster inspection tool focused
 - **Installation Operation Ban**: Software installation such as `apt install`, `pip install`, etc. is not allowed
 - **Mandatory Safe Mode**: It is impossible to lower security levels through settings
 
+## Architecture
+
+### Version 3.0 - Microservices Architecture
+
+- **Frontend**: React application served by Nginx
+- **Backend**: FastAPI application with business logic
+- **Database**: File-based storage (JSON files)
+- **Communication**: REST API between frontend and backend
+
+### Components
+
+```
+┌─────────────────┐    REST API    ┌─────────────────┐
+│   React Frontend│◄──────────────►│  FastAPI Backend │
+│     (Nginx)     │                │   (Python)      │
+└─────────────────┘                └─────────────────┘
+         │                                   │
+         └────────────► Browser ◄────────────┘
+```
+
 ## Quick Start
 
-### Method 1: Run via Docker
+### Method 1: Docker Compose (Recommended)
 
-#### Data Persistence
 ```bash
-# Create data directory
-mkdir -p /opt/kubeeye/data
+# Clone repository
+git clone https://github.com/optical4eye/kubeeye.git
+cd kubeeye
 
-# Run container with data directory and time mounting
+# Start services
+docker-compose up -d
+
+# Access application at http://localhost
+```
+
+### Method 2: Separate Docker Images
+
+```bash
+# Build frontend
+docker build -f Dockerfile.frontend -t kubeeye-frontend:v3.0 .
+
+# Build backend
+docker build -f Dockerfile.backend -t kubeeye-backend:v3.0 .
+
+# Run backend
 docker run -d \
-  --name kubeeye \
-  -p 8501:8501 \
-  -v /opt/kubeeye/data:/app/data \
-  -v /etc/localtime:/etc/localtime:ro \
-  kubespheredev/kubeeye:v2.0.0-alpha.1
+  --name kubeeye-backend \
+  -p 8000:8000 \
+  -v kubeeye-data:/app/data \
+  kubeeye-backend:v3.0
+
+# Run frontend
+docker run -d \
+  --name kubeeye-frontend \
+  -p 80:80 \
+  -e REACT_APP_API_URL=http://localhost:8000 \
+  kubeeye-frontend:v3.0
+```
+
+### Method 3: Kubernetes with Helm
+
+```bash
+# Add Helm repository (if applicable)
+# helm repo add kubeeye https://optical4eye.github.io/kubeeye
+
+# Install with Helm
+helm install kubeeye ./chart/kubeeye
+
+# Access via NodePort (default: 30693)
+# Or configure Ingress for domain access
+```
+
+### Method 4: Development Mode
+
+```bash
+# Backend
+cd /path/to/kubeeye
+pip install -r requirements.txt
+uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+
+# Frontend (new terminal)
+cd frontend
+npm install
+npm start
+# Access at http://localhost:3000 (proxies to backend)
+```
