@@ -28,24 +28,27 @@ RUN pip install --no-cache-dir --upgrade pip && \
 ENV PYTHONPATH=/app
 ENV KUBEEYE_DATA_DIR=/app/data
 
-# Download corresponding OPA binary file based on target architecture
+# Download OPA binary for the correct architecture
 RUN set -eux; \
-    OPA_VERSION="v1.11.0"; \
-    case "${TARGETARCH:-amd64}" in \
-        amd64) \
+    # Determine architecture using uname
+    ARCH=$(uname -m); \
+    case "${ARCH}" in \
+        x86_64) \
             OPA_ARCH="amd64"; \
             ;; \
-        arm64) \
+        aarch64) \
             OPA_ARCH="arm64"; \
             ;; \
-        arm) \
+        arm*) \
             OPA_ARCH="arm"; \
             ;; \
         *) \
-            echo "Unsupported architecture: ${TARGETARCH}"; \
+            echo "Unsupported architecture: ${ARCH}"; \
             exit 1; \
             ;; \
     esac; \
+    echo "Detected architecture: ${ARCH}, using OPA arch: ${OPA_ARCH}"; \
+    OPA_VERSION="v1.11.0"; \
     curl -sSL "https://github.com/open-policy-agent/opa/releases/download/${OPA_VERSION}/opa_linux_${OPA_ARCH}_static" -o opa && \
     chmod +x opa && \
     mv opa /usr/local/bin/opa
@@ -62,7 +65,7 @@ RUN python init.py
 
 # Add user for security
 RUN addgroup -S kubeeye --gid 1001 && adduser -u 1001 -S kubeeye -G kubeeye
-RUN chown -R kubeeye:kubeeye /app
+RUN chown -R kubeeye:kubeeye /app /usr/local/bin/opa
 
 USER kubeeye
 

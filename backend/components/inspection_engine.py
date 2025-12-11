@@ -225,7 +225,10 @@ class InspectionEngine:
         """Execute OPA inspection"""
         try:
             if kubeconfig:
-                opa_config = {"kubeconfig": kubeconfig, "opa_path": "opa"}
+                opa_config = {
+                    "kubeconfig": kubeconfig,
+                    "opa_path": "/usr/local/bin/opa",
+                }
                 opa_inspector = OpaInspector(opa_config, use_gitops=self.use_gitops)
                 if show_progress:
                     logger.info("Executing OPA compliance inspection...")

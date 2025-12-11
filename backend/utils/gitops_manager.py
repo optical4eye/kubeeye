@@ -141,20 +141,24 @@ class GitOpsRuleManager:
         try:
             # Form URL with authentication
             auth_url = repo_url
-            if username and token:
-                if repo_url.startswith("https://"):
-                    auth_url = repo_url.replace(
-                        "https://", f"https://{username}:{token}@"
-                    )
-                elif repo_url.startswith("http://"):
-                    auth_url = repo_url.replace(
-                        "http://", f"http://{username}:{token}@"
-                    )
-            elif token:
-                if repo_url.startswith("https://"):
-                    auth_url = repo_url.replace("https://", f"https://{token}@")
-                elif repo_url.startswith("http://"):
-                    auth_url = repo_url.replace("http://", f"http://{token}@")
+            if token and token.strip():
+                # Only use authentication if token is not empty
+                if username and username.strip():
+                    # Use username:token if both are present
+                    if repo_url.startswith("https://"):
+                        auth_url = repo_url.replace(
+                            "https://", f"https://{username}:{token}@"
+                        )
+                    elif repo_url.startswith("http://"):
+                        auth_url = repo_url.replace(
+                            "http://", f"http://{username}:{token}@"
+                        )
+                else:
+                    # Use token only if username is empty
+                    if repo_url.startswith("https://"):
+                        auth_url = repo_url.replace("https://", f"https://{token}@")
+                    elif repo_url.startswith("http://"):
+                        auth_url = repo_url.replace("http://", f"http://{token}@")
 
             if repo_path.exists():
                 # Check if it's a valid git repository
@@ -162,6 +166,14 @@ class GitOpsRuleManager:
                     repo = git.Repo(repo_path)
                     # If valid, update existing repository
                     origin = repo.remotes.origin
+
+                    # Update remote URL if it has changed
+                    current_url = origin.url
+                    if current_url != auth_url:
+                        origin.set_url(auth_url)
+                        logger.debug(
+                            f"Updated remote URL from {current_url} to {auth_url}"
+                        )
 
                     # Add options for insecure connection
                     pull_kwargs = {}

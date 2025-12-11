@@ -164,6 +164,17 @@ class OpaInspector(BaseInspector):
                 "data.kubernetes.violations",
             ]
 
+            logger.info(f"Executing OPA command: {' '.join(cmd)}")
+
+            # Check if OPA binary exists and is executable
+            import os
+
+            if not os.path.exists(self.opa_path):
+                raise Exception(f"OPA binary not found at {self.opa_path}")
+
+            if not os.access(self.opa_path, os.X_OK):
+                raise Exception(f"OPA binary at {self.opa_path} is not executable")
+
             result = subprocess.run(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -196,8 +207,33 @@ class OpaInspector(BaseInspector):
             return []
 
         except subprocess.CalledProcessError as e:
-            logger.error(f"OPA execution failed: {e.stderr}")
+            logger.error(
+                f"OPA execution failed: returncode={e.returncode}, stderr={e.stderr}, stdout={e.stdout}"
+            )
             raise Exception(f"OPA execution failed: {e.stderr}")
+        except OSError as e:
+            logger.error(f"OS error executing OPA: {e}, errno={e.errno}")
+            if e.errno == 8:  # Exec format error
+                logger.error(
+                    f"Exec format error for OPA at {self.opa_path}. Check architecture and file integrity."
+                )
+                # Try to get file info
+                try:
+                    import os
+
+                    stat_info = os.stat(self.opa_path)
+                    logger.error(f"OPA file permissions: {oct(stat_info.st_mode)}")
+                    # Try to run file command if available
+                    try:
+                        file_result = subprocess.run(
+                            ["file", self.opa_path], capture_output=True, text=True
+                        )
+                        logger.error(f"File info: {file_result.stdout}")
+                    except:
+                        pass
+                except Exception as stat_e:
+                    logger.error(f"Could not get file info: {stat_e}")
+            raise Exception(f"OS error executing OPA: {e}")
         except Exception as e:
             logger.error(f"OPA evaluation error: {e}")
             raise
