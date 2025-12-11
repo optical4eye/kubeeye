@@ -183,11 +183,11 @@ const RuleManagement = () => {
     <div>
       <div className="page-title">Управление правилами инспекции</div>
 
-      <Card style={{ marginBottom: 16 }}>
+      <Card className="margin-bottom-space-4">
         <Space wrap>
           <Select
             placeholder="Тип правил"
-            style={{ width: 150 }}
+            className="width-150"
             onChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
             value={filters.type}
           >
@@ -199,7 +199,7 @@ const RuleManagement = () => {
 
           <Input
             placeholder="Поиск по названию или описанию"
-            style={{ width: 250 }}
+            className="width-250"
             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
             value={filters.search}
           />
@@ -282,7 +282,7 @@ const RuleManagement = () => {
                 }
                 type={useGitops ? "info" : "warning"}
                 showIcon
-                style={{ marginBottom: 16 }}
+                className="margin-bottom-space-4"
               />
 
 

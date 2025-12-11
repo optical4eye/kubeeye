@@ -229,7 +229,7 @@ const ClusterManagement = () => {
         title: 'Результаты проверки kubeconfig',
         content: (
           <div>
-            <div style={{ marginBottom: 16 }}>
+            <div className="margin-bottom-space-4">
               {success ? '✅' : '❌'} {testMessage}
             </div>
           </div>
@@ -286,26 +286,26 @@ const ClusterManagement = () => {
   const clusterColumns = [
     { title: 'Имя кластера', dataIndex: 'name', key: 'name' },
     { title: 'Узлы', dataIndex: 'nodes', key: 'nodes', render: (nodes) => nodes?.length || 0 },
-    { title: 'Prometheus', dataIndex: 'prometheus_config', key: 'prometheus', render: (config) => config?.enabled ? <Tag color="#50fa7b">Включен</Tag> : <Tag color="#ff5555">Отключен</Tag> },
-    { title: 'Kubeconfig', dataIndex: 'kubeconfig', key: 'kubeconfig', render: (kubeconfig) => kubeconfig ? <Tag color="#50fa7b">Настроен</Tag> : <Tag color="#ff5555">Не настроен</Tag> },
+    { title: 'Prometheus', dataIndex: 'prometheus_config', key: 'prometheus', render: (config) => config?.enabled ? <Tag color="var(--success-color)">Включен</Tag> : <Tag color="var(--error-color)">Отключен</Tag> },
+    { title: 'Kubeconfig', dataIndex: 'kubeconfig', key: 'kubeconfig', render: (kubeconfig) => kubeconfig ? <Tag color="var(--success-color)">Настроен</Tag> : <Tag color="var(--error-color)">Не настроен</Tag> },
     {
       title: 'Сертификат истекает через',
       dataIndex: 'cert_expiry_days',
       key: 'cert_expiry',
       render: (days) => {
         if (days === null || days === undefined) {
-          return <Tag color="#6272a4">Неизвестно</Tag>;
+          return <Tag color="var(--secondary-color)">Неизвестно</Tag>;
         }
         if (days < 0) {
-          return <Tag color="#ff5555">Истек</Tag>;
+          return <Tag color="var(--error-color)">Истек</Tag>;
         }
         if (days <= 7) {
-          return <Tag color="#ff5555">{days} дней</Tag>;
+          return <Tag color="var(--error-color)">{days} дней</Tag>;
         }
         if (days <= 30) {
-          return <Tag color="#f1fa8c">{days} дней</Tag>;
+          return <Tag color="var(--warning-color)">{days} дней</Tag>;
         }
-        return <Tag color="#50fa7b">{days} дней</Tag>;
+        return <Tag color="var(--success-color)">{days} дней</Tag>;
       }
     },
     {
@@ -378,7 +378,7 @@ const ClusterManagement = () => {
                 />
               </Form.Item>
 
-              <Collapse defaultActiveKey={[]}>
+              <Collapse defaultActiveKey={[]} className="margin-bottom-space-4">
                 <Collapse.Panel header="Настройки Prometheus" key="prometheus">
                   <Form.Item
                     name="prometheus_enabled"
@@ -445,7 +445,7 @@ const ClusterManagement = () => {
         open={createModalVisible}
         onCancel={() => setCreateModalVisible(false)}
         footer={null}
-        width={800}
+        className="modal-medium"
       >
         <Form
           form={form}
@@ -491,7 +491,7 @@ const ClusterManagement = () => {
           editForm.resetFields();
         }}
         footer={null}
-        width={800}
+        className="modal-medium"
       >
         <Form
           form={editForm}
@@ -520,7 +520,7 @@ const ClusterManagement = () => {
             />
           </Form.Item>
 
-          <Collapse defaultActiveKey={[]}>
+          <Collapse defaultActiveKey={[]} className="margin-bottom-space-4">
             <Collapse.Panel header="Настройки Prometheus" key="prometheus">
               <Form.Item
                 name="prometheus_enabled"

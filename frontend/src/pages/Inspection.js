@@ -4,6 +4,8 @@ import { PlayCircleOutlined, SyncOutlined, CheckCircleOutlined, CloseCircleOutli
 import { getClusters, runInspectionAsync, getInspectionTaskStatus, cancelInspectionTask, getRules } from '../services/api';
 import ScheduledInspection from '../components/ScheduledInspection';
 import RuleManagement from '../components/RuleManagement';
+import RuleSelector from '../components/RuleSelector';
+import { getTaskStatusIcon, getTaskStatusColor } from '../components/statusUtils';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -178,93 +180,12 @@ const Inspection = () => {
     }));
   };
 
-  const getTaskStatusIcon = (status) => {
-    switch (status) {
-      case 'pending':
-        return <ClockCircleOutlined style={{ color: '#faad14' }} />;
-      case 'running':
-        return <SyncOutlined spin style={{ color: '#1890ff' }} />;
-      case 'completed':
-        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
-      case 'failed':
-        return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />;
-      case 'cancelled':
-        return <StopOutlined style={{ color: '#d9d9d9' }} />;
-      default:
-        return <ClockCircleOutlined />;
-    }
-  };
-
-  const getTaskStatusColor = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'orange';
-      case 'running':
-        return 'blue';
-      case 'completed':
-        return 'green';
-      case 'failed':
-        return 'red';
-      case 'cancelled':
-        return 'default';
-      default:
-        return 'default';
-    }
-  };
 
   const formatTaskTime = (isoString) => {
     if (!isoString) return '';
     return new Date(isoString).toLocaleString();
   };
 
-  const renderRuleSelection = (ruleType, title) => {
-    const availableRules = rules[ruleType] || [];
-    const selected = selectedRules[ruleType] || [];
-    const allSelected = availableRules.length > 0 && selected.length === availableRules.length;
-    const someSelected = selected.length > 0 && selected.length < availableRules.length;
-
-    const handleSelectAll = (checked) => {
-      if (checked) {
-        handleRuleSelection(ruleType, availableRules.map(rule => rule.id));
-      } else {
-        handleRuleSelection(ruleType, []);
-      }
-    };
-
-    return (
-      <Card title={title} size="small">
-        {availableRules.length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            <Checkbox
-              indeterminate={someSelected}
-              checked={allSelected}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-            >
-              Выбрать все ({availableRules.length})
-            </Checkbox>
-          </div>
-        )}
-        <Checkbox.Group
-          value={selected}
-          onChange={(values) => handleRuleSelection(ruleType, values)}
-          style={{ width: '100%' }}
-        >
-          <Space direction="vertical" style={{ width: '100%' }}>
-            {availableRules.map(rule => (
-              <Checkbox key={rule.id} value={rule.id}>
-                <div>
-                  <strong>{rule.name}</strong>
-                  <div style={{ fontSize: '12px', color: '#f8f8f2' }}>
-                    {rule.description}
-                  </div>
-                </div>
-              </Checkbox>
-            ))}
-          </Space>
-        </Checkbox.Group>
-      </Card>
-    );
-  };
 
   return (
     <div>
@@ -278,7 +199,8 @@ const Inspection = () => {
               <div>
                 <label>Выберите кластер для инспекции:</label>
                 <Select
-                  style={{ width: '100%', marginTop: 8 }}
+                  className="margin-top-space-2"
+                  style={{ width: '100%' }}
                   placeholder="Выберите кластер"
                   onChange={setSelectedCluster}
                   value={selectedCluster}
@@ -293,19 +215,37 @@ const Inspection = () => {
 
 
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-                {renderRuleSelection('node', 'Правила узлов')}
-                {renderRuleSelection('opa', 'Правила Kubernetes')}
-                {renderRuleSelection('prometheus', 'Правила мониторинга')}
+              <div className="grid-auto-fit">
+                <RuleSelector
+                  ruleType="node"
+                  title="Правила узлов"
+                  availableRules={rules.node || []}
+                  selectedRules={selectedRules}
+                  onRuleSelection={handleRuleSelection}
+                />
+                <RuleSelector
+                  ruleType="opa"
+                  title="Правила Kubernetes"
+                  availableRules={rules.opa || []}
+                  selectedRules={selectedRules}
+                  onRuleSelection={handleRuleSelection}
+                />
+                <RuleSelector
+                  ruleType="prometheus"
+                  title="Правила мониторинга"
+                  availableRules={rules.prometheus || []}
+                  selectedRules={selectedRules}
+                  onRuleSelection={handleRuleSelection}
+                />
               </div>
 
               {/* Summary of selected rules */}
               {Object.values(selectedRules).some(arr => arr.length > 0) && (
-                <Card size="small" style={{ marginTop: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Card size="small" className="margin-top-space-4">
+                  <div className="flex-space-between">
                     <div>
                       <strong>Выбранные правила:</strong>
-                      <div style={{ marginTop: 8 }}>
+                      <div className="margin-top-space-2">
                         {Object.entries(selectedRules).map(([type, rules]) => (
                           rules.length > 0 && (
                             <div key={type} style={{ marginBottom: 4 }}>
@@ -317,11 +257,11 @@ const Inspection = () => {
                         ))}
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#bd93f9' }}>
+                    <div className="text-right">
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--accent-color)' }}>
                         {Object.values(selectedRules).reduce((sum, arr) => sum + arr.length, 0)}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#6272a4' }}>всего правил</div>
+                      <div style={{ fontSize: '12px', color: 'var(--secondary-color)' }}>всего правил</div>
                     </div>
                   </div>
                 </Card>
@@ -335,7 +275,7 @@ const Inspection = () => {
                 loading={loading}
                 disabled={!selectedCluster || Object.values(selectedRules).every(arr => arr.length === 0)}
                 size="large"
-                style={{ marginTop: 16 }}
+                className="margin-top-space-4"
               >
                 Запустить инспекцию
               </Button>
@@ -344,7 +284,7 @@ const Inspection = () => {
 
           {/* Active Tasks Section */}
           {activeTasks.length > 0 && (
-            <Card title="Активные задачи" style={{ marginTop: 16 }}>
+            <Card title="Активные задачи" className="margin-top-space-4">
               <List
                 dataSource={activeTasks}
                 renderItem={task => (
@@ -389,7 +329,7 @@ const Inspection = () => {
                             <div>Завершено: {formatTaskTime(task.completed_at)}</div>
                           )}
                           {task.error && (
-                            <div style={{ color: '#ff4d4f', marginTop: 4 }}>
+                            <div style={{ color: 'var(--error-color)', marginTop: 4 }}>
                               Ошибка: {task.error}
                             </div>
                           )}

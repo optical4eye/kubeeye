@@ -159,11 +159,11 @@ const NetworkConnectivity = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'success':
-        return <CheckCircleOutlined style={{ color: '#52c41a' }} />;
+        return <CheckCircleOutlined style={{ color: 'var(--status-completed)' }} />;
       case 'failed':
-        return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />;
+        return <CloseCircleOutlined style={{ color: 'var(--error-color)' }} />;
       default:
-        return <ClockCircleOutlined style={{ color: '#faad14' }} />;
+        return <ClockCircleOutlined style={{ color: 'var(--status-pending)' }} />;
     }
   };
 
@@ -217,7 +217,7 @@ const NetworkConnectivity = () => {
       title: 'Ошибка',
       dataIndex: 'error',
       key: 'error',
-      render: (error) => error ? <span style={{ color: '#ff4d4f' }}>{error}</span> : '-'
+      render: (error) => error ? <span style={{ color: 'var(--error-color)' }}>{error}</span> : '-'
     }
   ];
 
@@ -229,7 +229,7 @@ const NetworkConnectivity = () => {
       <div className="page-title">Проверка сетевых подключений</div>
       <div className="page-subtitle">Проверка доступности сетевых сервисов из узлов кластера</div>
 
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space direction="vertical" size="large" className="width-100">
         <Card title="Настройки проверки" loading={loading}>
           <Form form={form} layout="vertical">
             <Form.Item label="Кластер" required>
@@ -237,7 +237,7 @@ const NetworkConnectivity = () => {
                 placeholder="Выберите кластер"
                 value={selectedCluster}
                 onChange={handleClusterChange}
-                style={{ width: '100%' }}
+                className="width-100"
               >
                 {clusters.map(cluster => (
                   <Option key={cluster.name} value={cluster.name}>
@@ -272,7 +272,7 @@ const NetworkConnectivity = () => {
                   </div>
                 </div>
                 {selectedNodes.length > 0 && (
-                  <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--neutral-color)' }}>
                     Выбрано узлов: {selectedNodes.length}
                   </div>
                 )}
@@ -285,7 +285,7 @@ const NetworkConnectivity = () => {
                   placeholder="192.168.1.100"
                   value={targetIp}
                   onChange={(e) => setTargetIp(e.target.value)}
-                  style={{ width: '150px' }}
+                  className="width-150"
                 />
               </Form.Item>
 
@@ -294,7 +294,7 @@ const NetworkConnectivity = () => {
                   placeholder="80"
                   value={targetPort}
                   onChange={(e) => setTargetPort(e.target.value)}
-                  style={{ width: '100px' }}
+                  className="width-100px"
                 />
               </Form.Item>
 
@@ -305,7 +305,7 @@ const NetworkConnectivity = () => {
                   max={30}
                   value={timeout}
                   onChange={(e) => setTimeout(parseInt(e.target.value) || 5)}
-                  style={{ width: '120px' }}
+                  className="width-120px"
                 />
               </Form.Item>
             </Space>
@@ -343,7 +343,7 @@ const NetworkConnectivity = () => {
               size="small"
             />
 
-            <div style={{ marginTop: '16px' }}>
+            <div className="margin-top-space-4">
               <Alert
                 message={`Статистика: ${results.filter(r => r.status === 'success').length} успешных, ${results.filter(r => r.status === 'failed').length} неудачных`}
                 type={results.some(r => r.status === 'failed') ? 'warning' : 'success'}

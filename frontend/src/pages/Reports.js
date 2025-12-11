@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Select, Input, Space, Tag, Modal, Descriptions, Alert, Statistic, Row, Col, Tabs, Collapse, Tooltip } from 'antd';
 import { DownloadOutlined, DeleteOutlined, EyeOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { getReports, getReport, deleteReport, exportReport, getCleanupConfig } from '../services/api';
+import { getStatusTag, getSeverityTag, getInspectionStatusTag } from '../components/statusUtils';
 
 const { Option } = Select;
 const { Search } = Input;
@@ -25,34 +26,6 @@ const getInspectionItems = (reportDetail) => {
 };
 
 const InspectionDetails = ({ items }) => {
-  const getStatusTag = (status) => {
-    switch (status) {
-      case 'passed':
-      case 'success':
-        return <Tag color="#50fa7b">Успешно</Tag>;
-      case 'exception':
-        return <Tag color="#ff5555">Ошибка</Tag>;
-      case 'failed':
-        return <Tag color="#ff5555">Неудачно</Tag>;
-      case 'warning':
-        return <Tag color="#f1fa8c">Предупреждение</Tag>;
-      default:
-        return <Tag color="#bd93f9">Неизвестно</Tag>;
-    }
-  };
-
-  const getSeverityTag = (severity) => {
-    switch (severity) {
-      case 'critical':
-        return <Tag color="#ff5555">Критично</Tag>;
-      case 'warning':
-        return <Tag color="#f1fa8c">Предупреждение</Tag>;
-      case 'info':
-        return <Tag color="#bd93f9">Информация</Tag>;
-      default:
-        return <Tag color="#6272a4">Неизвестно</Tag>;
-    }
-  };
 
   const columns = [
     {
@@ -248,18 +221,6 @@ const Reports = () => {
     }
   };
 
-  const getStatusTag = (report) => {
-    const totalIssues = (report.critical || 0) + (report.warning || 0) + (report.info || 0);
-    if (totalIssues === 0) {
-      return <Tag color="#50fa7b">OK</Tag>;
-    } else if (report.critical > 0) {
-      return <Tag color="#ff5555">Критические ошибки</Tag>;
-    } else if (report.warning > 0) {
-      return <Tag color="#f1fa8c">Предупреждения</Tag>;
-    } else {
-      return <Tag color="#bd93f9">Другие ошибки</Tag>;
-    }
-  };
 
   const columns = [
     {
@@ -362,7 +323,7 @@ const Reports = () => {
 
       {cleanupConfig && (
         <Collapse
-          style={{ marginBottom: 16 }}
+          className="margin-bottom-space-4"
           items={[
             {
               key: 'cleanup-info',
@@ -370,11 +331,11 @@ const Reports = () => {
               children: (
                 <div>
                   <p>Система автоматически удаляет старые отчеты для освобождения дискового пространства.</p>
-                  <ul style={{ marginTop: 8 }}>
+                  <ul className="margin-top-space-2">
                     <li><strong>Период хранения:</strong> {cleanupConfig.retention_days || 14} дней</li>
                     <li><strong>Источник настроек:</strong> {cleanupConfig.source === 'env' ? 'Переменная окружения' : cleanupConfig.source === 'file' ? 'Файл конфигурации' : 'По умолчанию'}</li>
                   </ul>
-                  <p style={{ marginTop: 8 }}><strong>Примечание:</strong> Автоочистка выполняется автоматически в фоновом режиме. Изменить настройки можно через переменную окружения <code>KUBEYE_REPORT_RETENTION_DAYS</code> или файл конфигурации.</p>
+                  <p className="margin-top-space-2"><strong>Примечание:</strong> Автоочистка выполняется автоматически в фоновом режиме. Изменить настройки можно через переменную окружения <code>KUBEYE_REPORT_RETENTION_DAYS</code> или файл конфигурации.</p>
                 </div>
               ),
             },
@@ -382,11 +343,11 @@ const Reports = () => {
         />
       )}
 
-      <Card style={{ marginBottom: 16 }}>
+      <Card className="margin-bottom-space-4">
         <Space wrap>
           <Select
             placeholder="Кластер"
-            style={{ width: 200 }}
+            className="width-200"
             onChange={(value) => setFilters(prev => ({ ...prev, cluster: value }))}
             value={filters.cluster}
           >
@@ -398,7 +359,7 @@ const Reports = () => {
 
           <Select
             placeholder="Период"
-            style={{ width: 150 }}
+            className="width-150"
             onChange={(value) => setFilters(prev => ({ ...prev, period: value }))}
             value={filters.period}
           >
@@ -410,7 +371,7 @@ const Reports = () => {
 
           <Search
             placeholder="Поиск по кластеру или ID"
-            style={{ width: 250 }}
+            className="width-250"
             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
             value={filters.search}
           />
@@ -431,7 +392,7 @@ const Reports = () => {
         title="Детали отчета"
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
-        width={1800}
+        className="modal-large"
         footer={[
           <Button key="close" onClick={() => setDetailModalVisible(false)}>
             Закрыть
@@ -449,46 +410,27 @@ const Reports = () => {
               </Descriptions.Item>
             </Descriptions>
 
-            <Row gutter={16} style={{ marginTop: 16 }}>
+            <Row gutter={16} className="margin-top-space-4">
               <Col span={6}>
-                <Statistic title="Критические" value={reportDetail.critical || 0} valueStyle={{ color: '#ff5555' }} />
+                <Statistic title="Критические" value={reportDetail.critical || 0} valueStyle={{ color: 'var(--error-color)' }} />
               </Col>
               <Col span={6}>
-                <Statistic title="Предупреждения" value={reportDetail.warning || 0} valueStyle={{ color: '#f1fa8c' }} />
+                <Statistic title="Предупреждения" value={reportDetail.warning || 0} valueStyle={{ color: 'var(--warning-color)' }} />
               </Col>
               <Col span={6}>
-                <Statistic title="Другие ошибки" value={reportDetail.info || 0} valueStyle={{ color: '#bd93f9' }} />
+                <Statistic title="Другие ошибки" value={reportDetail.info || 0} valueStyle={{ color: 'var(--accent-color)' }} />
               </Col>
               <Col span={6}>
-                <Statistic title="Успешно" value={reportDetail.passed || 0} valueStyle={{ color: '#50fa7b' }} />
+                <Statistic title="Успешно" value={reportDetail.passed || 0} valueStyle={{ color: 'var(--success-color)' }} />
               </Col>
             </Row>
 
-            <div style={{ marginTop: 24 }}>
+            <div className="margin-top-space-6">
               <Tabs defaultActiveKey="details" items={[
                 {
                   key: 'details',
                   label: 'Детали результатов инспекции',
                   children: <InspectionDetails items={getInspectionItems(reportDetail)} />
-                },
-                {
-                  key: 'cleanup-info',
-                  label: 'Информация об автоочистке отчетов',
-                  children: (
-                    <div>
-                      <p>Система автоматически удаляет старые отчеты для освобождения дискового пространства.</p>
-                      <div style={{ marginTop: 16 }}>
-                        <strong>Текущие настройки автоочистки:</strong>
-                        <ul style={{ marginTop: 8 }}>
-                          <li>Период хранения: {cleanupConfig?.retention_days || 14} дней</li>
-                          <li>Источник настроек: {cleanupConfig?.source === 'env' ? 'Переменная окружения' : cleanupConfig?.source === 'file' ? 'Файл конфигурации' : 'По умолчанию'}</li>
-                        </ul>
-                      </div>
-                      <div style={{ marginTop: 16 }}>
-                        <p><strong>Примечание:</strong> Автоочистка выполняется автоматически в фоновом режиме. Изменить настройки можно через переменную окружения <code>KUBEYE_REPORT_RETENTION_DAYS</code> или файл конфигурации.</p>
-                      </div>
-                    </div>
-                  )
                 }
               ]} />
             </div>
