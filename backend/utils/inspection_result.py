@@ -235,7 +235,7 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
 
     Args:
         result_id: inspection results ID
-        format_type: export format, supports "json", "excel"
+        format_type: export format, supports "json", "pdf"
 
     Returns:
         tuple (success, file path), return exported file path on success
@@ -281,59 +281,6 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
         else:
             return False, "Original file not found"
 
-    elif format_type == "excel":
-        export_path = export_dir / f"{result_id}.xlsx"
-
-        try:
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Inspection Results"
-
-            # Add header information
-            ws["A1"] = "Cluster inspection report"
-            ws["A2"] = f"Cluster name: {result_data.get('cluster_name', '')}"
-            ws["A3"] = f"Inspection time: {result_data.get('timestamp', '')}"
-            ws["A4"] = f"Report ID: {result_data.get('result_id', '')}"
-
-            # Add headers
-            headers = [
-                "Name",
-                "Status",
-                "Severity Level",
-                "Description",
-                "Details",
-                "Solution",
-            ]
-            for col, header in enumerate(headers, start=1):
-                ws.cell(row=6, column=col, value=header)
-
-            # Get all inspection items - compatibility with new and old data structures
-            all_items = []
-            if "inspection_results" in result_data:
-                # New data structure: get all items from inspection_results
-                for inspector_type, inspector_result in result_data[
-                    "inspection_results"
-                ].items():
-                    items = inspector_result.get("items", [])
-                    all_items.extend(items)
-            else:
-                # Old data structure: get directly from items field
-                all_items = result_data.get("items", [])
-
-            # Add data
-            for row_idx, item in enumerate(all_items, start=7):
-                ws.cell(row=row_idx, column=1, value=item.get("name", ""))
-                ws.cell(row=row_idx, column=2, value=item.get("status", ""))
-                ws.cell(row=row_idx, column=3, value=item.get("severity", ""))
-                ws.cell(row=row_idx, column=4, value=item.get("description", ""))
-                ws.cell(row=row_idx, column=5, value=item.get("details", ""))
-                ws.cell(row=row_idx, column=6, value=item.get("solution", ""))
-
-            # Save workbook
-            wb.save(export_path)
-            return True, str(export_path)
-        except Exception as e:
-            return False, f"Excel export failed: {str(e)}"
     elif format_type == "pdf":
         if not PDF_SUPPORT:
             return (

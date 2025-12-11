@@ -333,12 +333,6 @@ const Reports = () => {
           </Button>
           <Button
             icon={<DownloadOutlined />}
-            onClick={() => handleExportReport(record.result_id, 'excel')}
-          >
-            Excel
-          </Button>
-          <Button
-            icon={<DownloadOutlined />}
             onClick={() => handleExportReport(record.result_id, 'pdf')}
           >
             PDF
