@@ -71,38 +71,44 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
     Returns:
         tuple: (deleted_files, freed_space_in_bytes)
     """
-    if retention_days <= 0:
+    if retention_days < 0:
         return 0, 0
 
     cutoff_date = datetime.now() - timedelta(days=retention_days)
-    results_dir = Path(__file__).parent / "data" / "results"
-
-    if not results_dir.exists():
-        return 0, 0
+    data_dir = Path(__file__).parent / "data"
 
     deleted_count = 0
     freed_space = 0
 
-    # Clean up all files in results directory and subdirectories (including exports/)
-    for file_path in results_dir.rglob("*"):
-        if file_path.is_file():
-            try:
-                # Check file modification date
-                file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
-                if file_mtime < cutoff_date:
-                    file_size = file_path.stat().st_size
-                    file_path.unlink()
-                    deleted_count += 1
-                    freed_space += file_size
-            except Exception:
-                continue
+    # Directories to clean up
+    cleanup_dirs = [
+        data_dir / "results",  # Regular inspection reports and network checks
+    ]
+
+    for results_dir in cleanup_dirs:
+        if not results_dir.exists():
+            continue
+
+        # Clean up all files in directory and subdirectories
+        for file_path in results_dir.rglob("*"):
+            if file_path.is_file():
+                try:
+                    # Check file modification date
+                    file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    if file_mtime < cutoff_date:
+                        file_size = file_path.stat().st_size
+                        file_path.unlink()
+                        deleted_count += 1
+                        freed_space += file_size
+                except Exception:
+                    continue
 
     return deleted_count, freed_space
 
 
 def run_cleanup():
     """Execute cleanup of reports according to settings"""
-    logger.info("Starting KubeEye reports cleanup...")
+    logger.info("Starting KubeEye reports and network checks cleanup...")
 
     try:
         # Load configuration
