@@ -26,7 +26,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 CONFIG_FILE = Path(__file__).parent / "data" / "cleanup_config.json"
-DEFAULT_RETENTION_DAYS = 14
+DEFAULT_RETENTION_DAYS = 7
 DEFAULT_AUTO_CLEANUP = False
 
 # Environment variable for retention days
@@ -68,6 +68,9 @@ def save_cleanup_config(config: dict):
 def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
     """Clean up old reports older than retention_days days
 
+    Args:
+        retention_days: number of days to keep files. Use 0 to delete all files.
+
     Returns:
         tuple: (deleted_files, freed_space_in_bytes)
     """
@@ -83,6 +86,7 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
     # Directories to clean up
     cleanup_dirs = [
         data_dir / "results",  # Regular inspection reports and network checks
+        data_dir / "exports",  # Exported reports
     ]
 
     for results_dir in cleanup_dirs:
@@ -93,13 +97,20 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
         for file_path in results_dir.rglob("*"):
             if file_path.is_file():
                 try:
-                    # Check file modification date
-                    file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
-                    if file_mtime < cutoff_date:
+                    if retention_days == 0:
+                        # Delete all files when retention_days is 0
                         file_size = file_path.stat().st_size
                         file_path.unlink()
                         deleted_count += 1
                         freed_space += file_size
+                    else:
+                        # Check file modification date for retention_days > 0
+                        file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                        if file_mtime < cutoff_date:
+                            file_size = file_path.stat().st_size
+                            file_path.unlink()
+                            deleted_count += 1
+                            freed_space += file_size
                 except Exception:
                     continue
 

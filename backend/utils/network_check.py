@@ -11,7 +11,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
@@ -214,9 +214,9 @@ class NetworkConnectivityResult:
         """
         # Data directory
         data_dir = Path(__file__).parent.parent / "data"
-        results_dir = data_dir / "results"
-        cluster_dir = results_dir / self.cluster_name
-        network_checks_dir = cluster_dir / "network_exports"
+        exports_dir = data_dir / "exports"
+        cluster_dir = exports_dir / self.cluster_name
+        network_checks_dir = cluster_dir / "network_reports"
 
         # Ensure directories exist
         network_checks_dir.mkdir(parents=True, exist_ok=True)
@@ -249,10 +249,9 @@ def load_network_check_result(result_id: str) -> Optional[Dict[str, Any]]:
         network check results dictionary, return None if not exists
     """
     data_dir = Path(__file__).parent.parent / "data"
-    results_dir = data_dir / "results"
 
-    # Search all json files in results/*/network_exports/ directories
-    for file_path in results_dir.rglob("network_exports/*.json"):
+    # Search all json files in data/exports/*/network_reports/ directories
+    for file_path in data_dir.rglob("exports/*/network_reports/*.json"):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 result_data = json.load(f)
@@ -281,19 +280,17 @@ def list_network_check_results(
         list of network check result summaries
     """
     data_dir = Path(__file__).parent.parent / "data"
-    results_dir = data_dir / "results"
-
-    if not results_dir.exists():
-        return []
 
     results = []
 
-    # Search in results/*/network_exports/ directories
+    # Search in data/exports/*/network_reports/ directories
     network_checks_pattern = (
-        "network_exports/*.json" if cluster_name else "**/network_exports/*.json"
+        f"exports/{cluster_name}/network_reports/*.json"
+        if cluster_name
+        else "exports/*/network_reports/*.json"
     )
 
-    for file_path in results_dir.glob(network_checks_pattern):
+    for file_path in data_dir.glob(network_checks_pattern):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 result_data = json.load(f)
@@ -319,3 +316,46 @@ def list_network_check_results(
         results = results[:limit]
 
     return results
+
+
+def export_network_report(
+    result_id: str, format_type: str = "json"
+) -> Tuple[bool, str]:
+    """
+    Export network connectivity report in JSON format
+
+    Args:
+        result_id: network check results ID
+        format_type: export format, supports "json"
+
+    Returns:
+        tuple (success, file path), return exported file path on success
+    """
+    # Load network check results
+    result_data = load_network_check_result(result_id)
+    if not result_data:
+        return False, "Specified network check results not found"
+
+    # Get cluster name from result_data
+    cluster_name = result_data.get("cluster_name", "unknown")
+    export_dir = (
+        Path(__file__).parent.parent
+        / "data"
+        / "exports"
+        / cluster_name
+        / "network_reports"
+    )
+
+    # Export by format type
+    if format_type == "json":
+        # Network check results are already saved in the export directory
+        # Just return the path to the existing file
+        export_path = export_dir / f"{result_id}.json"
+
+        if export_path.exists():
+            return True, str(export_path)
+        else:
+            return False, "Result file not found"
+
+    else:
+        return False, f"Unsupported export format: {format_type}"

@@ -247,7 +247,13 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
 
     # Get cluster name from result_data
     cluster_name = result_data.get("cluster_name", "unknown")
-    export_dir = RESULTS_DIR / cluster_name / "inspect_exports"
+    export_dir = (
+        Path(__file__).parent.parent
+        / "data"
+        / "exports"
+        / cluster_name
+        / "inspect_reports"
+    )
     import os
 
     os.makedirs(export_dir, exist_ok=True)

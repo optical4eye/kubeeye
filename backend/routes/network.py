@@ -5,9 +5,11 @@ Network connectivity check routes
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
 import logging
+import os
 
 from utils.cluster_config import get_cluster
 from utils.network_check import (
@@ -17,6 +19,7 @@ from utils.network_check import (
     NetworkConnectivityResult,
     load_network_check_result,
     list_network_check_results,
+    export_network_report,
 )
 from utils.enhanced_logging import log_api_request
 
@@ -62,7 +65,14 @@ class NetworkCheckResult(BaseModel):
     error: Optional[str] = Field(None, description="Error message if failed")
 
 
-@router.post("/network-check", response_model=List[NetworkCheckResult])
+class NetworkCheckResponse(BaseModel):
+    """Model for network check response"""
+
+    result_id: str = Field(..., description="Result ID for saved check")
+    results: List[NetworkCheckResult] = Field(..., description="List of check results")
+
+
+@router.post("/network-check", response_model=NetworkCheckResponse)
 @log_api_request
 async def check_network_connectivity(request: NetworkCheckRequest):
     """
@@ -116,6 +126,7 @@ async def check_network_connectivity(request: NetworkCheckRequest):
         )
 
         # Save results
+        result_id = None
         try:
             result_obj = NetworkConnectivityResult(
                 cluster_name=request.cluster_name,
@@ -127,13 +138,14 @@ async def check_network_connectivity(request: NetworkCheckRequest):
                 result_obj.add_check(check_result)
 
             saved_path = result_obj.save()
+            result_id = result_obj.result_id
             logger.info(f"Network check results saved to: {saved_path}")
 
         except Exception as save_error:
             logger.error(f"Failed to save network check results: {str(save_error)}")
             # Don't fail the request if saving fails
 
-        return results
+        return {"result_id": result_id, "results": results}
 
     except HTTPException:
         raise
@@ -238,9 +250,8 @@ async def delete_network_check_result(result_id: str):
 
         # Find and delete result file
         data_dir = Path(__file__).parent.parent / "data"
-        results_dir = data_dir / "results"
 
-        for file_path in results_dir.rglob("network_exports/*.json"):
+        for file_path in data_dir.rglob("exports/*/network_reports/*.json"):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     data = load_network_check_result(result_id)
@@ -261,3 +272,27 @@ async def delete_network_check_result(result_id: str):
         raise HTTPException(
             status_code=500, detail=f"Failed to delete result: {str(e)}"
         )
+
+
+@router.get("/network-check/results/{result_id}/export/{format}")
+@log_api_request
+async def export_network_check_result(result_id: str, format: str):
+    """Export network connectivity check result"""
+    try:
+        success, file_path = export_network_report(result_id, format)
+        if not success:
+            raise HTTPException(status_code=500, detail=file_path)
+
+        return FileResponse(
+            path=file_path,
+            filename=os.path.basename(file_path),
+            media_type="application/octet-stream",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to export network check result {result_id}: {str(e)}",
+            exc_info=True,
+        )
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")

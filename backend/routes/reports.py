@@ -4,7 +4,7 @@
 Reports management routes
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pathlib import Path
 import os
@@ -60,32 +60,13 @@ async def delete_report(report_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def delete_exported_file_after_delay(file_path: str):
-    """Delete exported file after short delay to allow download completion"""
-    import asyncio
-
-    # Wait 1 second to ensure download is complete
-    await asyncio.sleep(1)
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            print(f"Deleted exported file: {file_path}")
-    except Exception as e:
-        print(f"Error deleting exported file {file_path}: {e}")
-
-
 @router.get("/reports/{report_id}/export/{format}")
-async def export_report_endpoint(
-    report_id: str, format: str, background_tasks: BackgroundTasks
-):
+async def export_report_endpoint(report_id: str, format: str):
     """Export report"""
     try:
         success, file_path = export_report(report_id, format)
         if not success:
             raise HTTPException(status_code=500, detail=file_path)
-
-        # Add background task to delete the file after download
-        background_tasks.add_task(delete_exported_file_after_delay, file_path)
 
         return FileResponse(
             path=file_path,

@@ -94,5 +94,8 @@ export const getNetworkCheckResults = (clusterName = null, limit = 50) => {
 };
 export const getNetworkCheckResult = (resultId) => api.get(apiPath(`/network-check/results/${resultId}`));
 export const deleteNetworkCheckResult = (resultId) => api.delete(apiPath(`/network-check/results/${resultId}`));
+export const exportNetworkCheckResult = (resultId, format) => api.get(apiPath(`/network-check/results/${resultId}/export/${format}`), {
+  responseType: 'blob'
+});
 
 export default api;

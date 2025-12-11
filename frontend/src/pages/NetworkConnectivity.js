@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Form, Select, Checkbox, Input, Button, Table, message, Space, Tag, Spin, Alert } from 'antd';
 import { WifiOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { checkNetworkConnectivity, getClustersForNetworkCheck } from '../services/api';
+import { checkNetworkConnectivity, getClustersForNetworkCheck, exportNetworkCheckResult } from '../services/api';
 
 const { Option } = Select;
 
@@ -15,6 +15,7 @@ const NetworkConnectivity = () => {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [results, setResults] = useState([]);
+  const [resultId, setResultId] = useState(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -90,6 +91,7 @@ const NetworkConnectivity = () => {
     try {
       setChecking(true);
       setResults([]);
+      setResultId(null);
 
       const checkData = {
         cluster_name: selectedCluster,
@@ -100,9 +102,10 @@ const NetworkConnectivity = () => {
       };
 
       const response = await checkNetworkConnectivity(checkData);
-      const checkResults = response.data;
+      const { result_id, results: checkResults } = response.data;
 
       setResults(checkResults);
+      setResultId(result_id);
 
       const successCount = checkResults.filter(r => r.status === 'success').length;
       const failCount = checkResults.filter(r => r.status === 'failed').length;
@@ -124,26 +127,32 @@ const NetworkConnectivity = () => {
   };
 
   const exportResults = async (format) => {
-    if (results.length === 0) {
-      message.warning('Нет результатов для экспорта');
+    if (!resultId) {
+      message.warning('Нет сохраненных результатов для экспорта');
       return;
     }
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `network_check_${selectedCluster}_${timestamp}`;
+    try {
+      const response = await exportNetworkCheckResult(resultId, format);
 
-    if (format === 'json') {
-      const dataStr = JSON.stringify(results, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      const exportFileDefaultName = `${filename}.json`;
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
 
-      // Clear results after export
-      setResults([]);
-      message.success('Результаты экспортированы и удалены');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `network_check_${selectedCluster}_${timestamp}.${format}`;
+      link.setAttribute('download', filename);
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      message.success(`Результаты экспортированы в ${format.toUpperCase()}`);
+    } catch (error) {
+      message.error('Ошибка экспорта результатов');
+      console.error(error);
     }
   };
 
@@ -319,9 +328,11 @@ const NetworkConnectivity = () => {
           <Card
             title={`Результаты проверки (${results.length} узлов)`}
             extra={
-              <Space>
-                <Button onClick={() => exportResults('json')}>Экспорт JSON</Button>
-              </Space>
+              resultId && (
+                <Space>
+                  <Button onClick={() => exportResults('json')}>Экспорт JSON</Button>
+                </Space>
+              )
             }
           >
             <Table
