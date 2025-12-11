@@ -7,11 +7,14 @@ Inspection result management module for saving and loading inspection results
 import json
 import os
 import re
+import logging
 
 import openpyxl
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 # Attempt import for PDF generation
 try:
@@ -183,7 +186,7 @@ def load_result(result_id: str) -> Optional[Dict]:
                 return result_data
         except Exception as e:
             # Log file that failed to read, but continue search
-            print(f"Warning: Failed to read {file_path}: {e}")
+            logger.warning(f"Failed to read {file_path}: {e}")
             continue
 
     # If not found by result_id, try by filename pattern
@@ -209,7 +212,7 @@ def load_result(result_id: str) -> Optional[Dict]:
                     if result_data.get("result_id") == result_id:
                         return result_data
                 except Exception as e:
-                    print(f"Warning: Failed to read {file_path}: {e}")
+                    logger.warning(f"Failed to read {file_path}: {e}")
                     continue
 
     # Try direct filename match
@@ -369,16 +372,16 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                         pdfmetrics.registerFont(TTFont(font_alias, font_path))
                         font_name = font_alias
                         font_found = True
-                        print(f"Using font: {font_alias} from {font_path}")
+                        logger.info(f"Using font: {font_alias} from {font_path}")
                         break
                     except Exception as e:
-                        print(f"Failed to load font {font_path}: {e}")
+                        logger.warning(f"Failed to load font {font_path}: {e}")
                         continue
 
             # If no suitable font found, use Times-Roman (better Unicode support)
             if not font_found:
                 font_name = "Times-Roman"
-                print(f"Using built-in font: {font_name}")
+                logger.info(f"Using built-in font: {font_name}")
 
             # Create PDF document with landscape orientation
             doc = SimpleDocTemplate(

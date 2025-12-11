@@ -9,8 +9,11 @@ import os
 import git
 import shutil
 import yaml
+import logging
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 # GitOps configuration
 GITOPS_CONFIG_FILE = Path(__file__).parent.parent / "data" / "gitops_config.json"
@@ -63,7 +66,7 @@ class GitOpsRuleManager:
                         config.pop("from_env")
                     return config
             except Exception as e:
-                print(f"Error loading configuration: {e}")
+                logger.error(f"Error loading configuration: {e}")
 
         # Default config
         return {
@@ -106,7 +109,7 @@ class GitOpsRuleManager:
         if config.get("from_env") or (
             config.get("repository") and config["repository"].get("from_env")
         ):
-            print(
+            logger.info(
                 "Configuration is managed via environment variables and cannot be changed through the interface"
             )
             return
@@ -223,9 +226,9 @@ class GitOpsRuleManager:
 
                             rules.append(Rule(rule_data))
                     except Exception as e:
-                        print(f"Error loading rule file {yaml_file}: {e}")
+                        logger.error(f"Error loading rule file {yaml_file}: {e}")
 
-        print(
+        logger.info(
             f"Loaded {len(rules)} rules from Git repository {repo_name}, all automatically enabled"
         )
         return rules
@@ -249,7 +252,7 @@ class GitOpsRuleManager:
 
             return True
         except Exception as e:
-            print(f"Error synchronizing rule: {e}")
+            logger.error(f"Error synchronizing rule: {e}")
             return False
 
     def set_repository(self, repo_config: Dict) -> Tuple[bool, str]:

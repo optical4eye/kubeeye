@@ -4,9 +4,13 @@
 GitOps management routes
 """
 
+import logging
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 
 @router.get("/gitops/config")
@@ -43,15 +47,15 @@ async def sync_gitops_repository():
         if not current_repo:
             return {"success": False, "message": "GitOps repository not configured"}
 
-        print(
-            f"DEBUG: GitOps mode enabled, syncing repository {current_repo['name']}..."
+        logger.debug(
+            f"GitOps mode enabled, syncing repository {current_repo['name']}..."
         )
         success, message = gitops_manager.clone_or_update_repo(current_repo)
         if success:
-            print(f"DEBUG: Repository synchronized: {message}")
+            logger.debug(f"Repository synchronized: {message}")
             return {"message": "GitOps repository synchronized successfully"}
         else:
-            print(f"ERROR: Failed to sync repository: {message}")
+            logger.error(f"Failed to sync repository: {message}")
             raise HTTPException(
                 status_code=500, detail="Failed to sync GitOps repository"
             )

@@ -716,17 +716,16 @@ class NodeInspector(BaseInspector):
     def print_execution_summary(self):
         """Print execution summary"""
         stats = self.get_execution_stats()
-        print(f"\n=== Node inspection execution summary ===")
-        print(f"Total nodes: {stats['total_nodes']}")
-        print(f"Available nodes: {stats['available_nodes']}")
-        print(f"Unavailable nodes: {stats['unavailable_nodes']}")
-        print(f"SSH connection errors: {stats['ssh_connection_errors']}")
-        print(f"Node executions: {stats['total_node_executions']}")
-        print(f"Successful executions: {stats['successful_executions']}")
-        print(f"Failed executions: {stats['failed_executions']}")
-        print(f"Success rate: {stats['success_rate']:.1f}%")
-        print(f"Total time: {stats['total_time']:.2f}sec")
-        print(f"========================\n")
+        logger.info("=== Node inspection execution summary ===")
+        logger.info(f"Total nodes: {stats['total_nodes']}")
+        logger.info(f"Available nodes: {stats['available_nodes']}")
+        logger.info(f"Unavailable nodes: {stats['unavailable_nodes']}")
+        logger.info(f"SSH connection errors: {stats['ssh_connection_errors']}")
+        logger.info(f"Node executions: {stats['total_node_executions']}")
+        logger.info(f"Successful executions: {stats['successful_executions']}")
+        logger.info(f"Failed executions: {stats['failed_executions']}")
+        logger.info(f"Success rate: {stats['success_rate']:.1f}%")
+        logger.info(f"Total time: {stats['total_time']:.2f}sec")
 
     @classmethod
     def create_optimized(

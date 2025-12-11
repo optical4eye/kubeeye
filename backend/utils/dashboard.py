@@ -25,9 +25,9 @@ def get_dashboard_data_api() -> Dict:
     total_clusters = len(clusters)
 
     # Debug logging
-    print(f"DEBUG: get_dashboard_data_api - clusters loaded: {len(clusters)}")
+    logger.debug(f"get_dashboard_data_api - clusters loaded: {len(clusters)}")
     if clusters:
-        print(f"DEBUG: clusters: {clusters}")
+        logger.debug(f"clusters: {clusters}")
 
     # Load rules
     node_rules = load_rules("node")
@@ -45,7 +45,7 @@ def get_dashboard_data_api() -> Dict:
             )
             total_rules += len(gitops_rules)
         except Exception as e:
-            print(f"Warning: Failed to load GitOps rules: {e}")
+            logger.warning(f"Failed to load GitOps rules: {e}")
 
     # Fast status counting without loading all results
     status_counts = get_cluster_status_counts_fast()

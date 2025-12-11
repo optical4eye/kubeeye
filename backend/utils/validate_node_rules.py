@@ -1,6 +1,9 @@
 import os
 import yaml
+import logging
 from utils.command_security import check_command_security
+
+logger = logging.getLogger(__name__)
 
 RULES_DIR = os.path.join(os.path.dirname(__file__), "../rules/node")
 
@@ -28,8 +31,8 @@ for fname in os.listdir(RULES_DIR):
         }
     )
 
-print("Node rules command security check results:")
+logger.info("Node rules command security check results:")
 for r in results:
-    print(
+    logger.info(
         f"{r['file']}: {r['command']} => {'Safe' if r['is_safe'] else 'Forbidden'} | Risk: {r['risk']} | {r['desc']}"
     )

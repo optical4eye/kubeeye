@@ -7,7 +7,11 @@ For initialization work when starting the Docker container
 
 import os
 import sys
+import logging
 from pathlib import Path
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 
 def ensure_data_directories():
@@ -25,7 +29,7 @@ def ensure_data_directories():
 
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
-        print(f"Ensure directory exists: {directory}")
+        logger.info(f"Ensure directory exists: {directory}")
 
 
 def validate_environment():
@@ -38,16 +42,16 @@ def validate_environment():
             missing_vars.append(var)
 
     if missing_vars:
-        print(f"Missing environment variables: {', '.join(missing_vars)}")
+        logger.error(f"Missing environment variables: {', '.join(missing_vars)}")
         return False
 
-    print("Environment variables validation passed")
+    logger.info("Environment variables validation passed")
     return True
 
 
 def main():
     """Main initialization function"""
-    print("KubeEye initialization started...")
+    logger.info("KubeEye initialization started...")
 
     try:
         # Validate environment
@@ -57,10 +61,10 @@ def main():
         # Ensure data directories
         ensure_data_directories()
 
-        print("KubeEye initialization completed!")
+        logger.info("KubeEye initialization completed!")
 
     except Exception as e:
-        print(f"Initialization failed: {e}")
+        logger.error(f"Initialization failed: {e}")
         sys.exit(1)
 
 

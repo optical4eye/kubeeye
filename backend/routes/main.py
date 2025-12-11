@@ -48,8 +48,39 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title="KubeEye API",
-    description="Kubernetes cluster inspection tool API",
+    description="""
+    # KubeEye - Kubernetes Cluster Inspection Tool API
+
+    A comprehensive API for inspecting Kubernetes clusters with a focus on security and compliance.
+
+    ## Features
+
+    * **Cluster Management**: Add, configure, and manage multiple Kubernetes clusters
+    * **Security Inspections**: Run automated security checks on nodes, pods, and configurations
+    * **Rule-based Analysis**: Use customizable rules for compliance checking
+    * **Scheduled Inspections**: Automate regular cluster assessments
+    * **Report Generation**: Export inspection results in multiple formats (JSON, Excel, PDF)
+    * **GitOps Integration**: Manage inspection rules through Git repositories
+
+    ## Security
+
+    All operations are read-only and follow strict security guidelines to ensure cluster safety.
+
+    ## Authentication
+
+    Currently uses basic authentication. For production deployments, consider implementing proper authentication mechanisms.
+    """,
     version=VERSION,
+    contact={
+        "name": "KubeEye Team",
+        "url": "https://github.com/optical4eye/kubeeye",
+    },
+    license_info={
+        "name": "MIT License",
+    },
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 
@@ -126,35 +157,63 @@ app.add_middleware(
 
 # Pydantic models
 class ClusterCreate(BaseModel):
-    name: str
-    nodes: List[Dict[str, Any]]
-    prometheus_config: Optional[Dict[str, Any]] = None
-    kubeconfig: Optional[str] = None
+    """Model for creating a new cluster configuration"""
+
+    name: str = Field(..., description="Unique name for the cluster")
+    nodes: List[Dict[str, Any]] = Field(
+        ..., description="List of cluster nodes with connection details"
+    )
+    prometheus_config: Optional[Dict[str, Any]] = Field(
+        None, description="Prometheus server configuration"
+    )
+    kubeconfig: Optional[str] = Field(
+        None, description="Base64 encoded kubeconfig content"
+    )
 
 
 class InspectionRequest(BaseModel):
-    cluster_name: str
-    selected_rules: Dict[str, List[str]]
-    inspection_type: str = "immediate"
+    """Model for requesting cluster inspection"""
+
+    cluster_name: str = Field(..., description="Name of the cluster to inspect")
+    selected_rules: Dict[str, List[str]] = Field(
+        ..., description="Rules to apply by type (node, prometheus, opa)"
+    )
+    inspection_type: str = Field(
+        "immediate", description="Type of inspection: immediate or scheduled"
+    )
 
 
 class ScheduledTaskCreate(BaseModel):
-    name: str
-    description: str = Field(..., min_length=1)
-    cluster: str
-    cron_expr: str
-    rules: Dict[str, Any]
-    enabled: bool = True
-    task_type: Optional[str] = None
-    run_datetime: Optional[str] = None
+    """Model for creating scheduled inspection tasks"""
+
+    name: str = Field(..., description="Unique name for the scheduled task")
+    description: str = Field(..., min_length=1, description="Description of the task")
+    cluster: str = Field(..., description="Target cluster name")
+    cron_expr: str = Field(..., description="Cron expression for scheduling")
+    rules: Dict[str, Any] = Field(
+        ..., description="Rules configuration for the inspection"
+    )
+    enabled: bool = Field(True, description="Whether the task is enabled")
+    task_type: Optional[str] = Field(None, description="Type of scheduled task")
+    run_datetime: Optional[str] = Field(
+        None, description="Specific datetime to run (alternative to cron)"
+    )
 
 
 class TestNodesRequest(BaseModel):
-    nodes: List[Dict[str, Any]]
+    """Model for testing node connectivity"""
+
+    nodes: List[Dict[str, Any]] = Field(
+        ..., description="List of nodes to test connectivity"
+    )
 
 
 class TestKubeconfigRequest(BaseModel):
-    kubeconfig: str
+    """Model for testing kubeconfig validity"""
+
+    kubeconfig: str = Field(
+        ..., description="Base64 encoded kubeconfig content to test"
+    )
 
 
 # Startup event to initialize scheduler and task queue
@@ -165,18 +224,18 @@ async def startup_event():
         from utils.schedule_manager import start_scheduler
 
         start_scheduler()
-        print("Scheduler initialized on application startup")
+        logger.info("Scheduler initialized on application startup")
     except Exception as e:
-        print(f"Failed to start scheduler on startup: {e}")
+        logger.error(f"Failed to start scheduler on startup: {e}")
 
     # Start task queue
     try:
         from utils.task_queue import task_queue
 
         await task_queue.start()
-        print("Async task queue initialized on application startup")
+        logger.info("Async task queue initialized on application startup")
     except Exception as e:
-        print(f"Failed to start task queue on startup: {e}")
+        logger.error(f"Failed to start task queue on startup: {e}")
 
     # Start automatic cleanup thread
     try:
@@ -190,7 +249,7 @@ async def startup_event():
                 try:
                     run_cleanup()
                 except Exception as e:
-                    print(f"Cleanup error: {e}")
+                    logger.error(f"Cleanup error: {e}")
                 time.sleep(24 * 3600)  # 24 hours
 
         # Run cleanup immediately on startup
@@ -199,9 +258,9 @@ async def startup_event():
         # Start background cleanup thread
         cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
         cleanup_thread.start()
-        print("Automatic cleanup initialized on application startup")
+        logger.info("Automatic cleanup initialized on application startup")
     except Exception as e:
-        print(f"Failed to start automatic cleanup: {e}")
+        logger.error(f"Failed to start automatic cleanup: {e}")
 
 
 # Shutdown event to cleanup resources
@@ -212,17 +271,70 @@ async def shutdown_event():
         from utils.task_queue import task_queue
 
         await task_queue.stop()
-        print("Async task queue stopped on application shutdown")
+        logger.info("Async task queue stopped on application shutdown")
     except Exception as e:
-        print(f"Failed to stop task queue on shutdown: {e}")
+        logger.error(f"Failed to stop task queue on shutdown: {e}")
 
 
 # Root endpoint
 @app.get("/")
 @log_api_request
 async def root():
-    """Root endpoint"""
-    return {"message": "KubeEye API", "version": VERSION}
+    """Root endpoint with API information"""
+    return {
+        "message": "KubeEye API",
+        "version": VERSION,
+        "description": "Kubernetes cluster inspection tool with security focus",
+        "docs": {
+            "swagger_ui": "/docs",
+            "redoc": "/redoc",
+            "openapi_json": "/openapi.json",
+        },
+        "endpoints": {
+            "health": "/api/health",
+            "clusters": "/api/clusters",
+            "inspection": "/api/inspection",
+            "reports": "/api/reports",
+            "rules": "/api/rules",
+            "scheduled_tasks": "/api/scheduled-tasks",
+            "gitops": "/api/gitops",
+            "cleanup": "/api/cleanup",
+        },
+    }
+
+
+# API information endpoint
+@app.get("/api/info")
+@log_api_request
+async def api_info():
+    """Get detailed API information"""
+    return {
+        "name": "KubeEye API",
+        "version": VERSION,
+        "description": "Comprehensive Kubernetes cluster inspection and security analysis tool",
+        "features": [
+            "Multi-cluster management",
+            "Automated security inspections",
+            "Rule-based compliance checking",
+            "Scheduled assessments",
+            "Multiple report formats (JSON, Excel, PDF)",
+            "GitOps integration for rule management",
+            "Real-time monitoring and alerting",
+        ],
+        "security": [
+            "Read-only operations only",
+            "Command security validation",
+            "Encrypted sensitive data storage",
+            "Audit logging",
+            "SSH connection security checks",
+        ],
+        "supported_inspection_types": ["node", "prometheus", "opa"],
+        "documentation": {
+            "swagger_ui": "/docs",
+            "interactive_api_docs": "/redoc",
+            "openapi_specification": "/openapi.json",
+        },
+    }
 
 
 # Health check endpoint

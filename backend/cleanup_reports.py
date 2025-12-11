@@ -8,6 +8,7 @@ Can be executed on schedule via cron
 import os
 import sys
 import json
+import logging
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -15,6 +16,9 @@ from datetime import datetime, timedelta
 ROOT_DIR = Path(__file__).parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 # Cleanup functions (copied for autonomy)
 import json
@@ -98,13 +102,13 @@ def cleanup_old_reports(retention_days: int) -> tuple[int, int]:
 
 def run_cleanup():
     """Execute cleanup of reports according to settings"""
-    print("Starting KubeEye reports cleanup...")
+    logger.info("Starting KubeEye reports cleanup...")
 
     try:
         # Load configuration
         config = load_cleanup_config()
         retention_days = config.get("retention_days", DEFAULT_RETENTION_DAYS)
-        print(f"Retention period: {retention_days} days")
+        logger.info(f"Retention period: {retention_days} days")
 
         # Execute cleanup
         deleted_count, freed_space = cleanup_old_reports(retention_days)
@@ -112,12 +116,12 @@ def run_cleanup():
         # Display results
         if deleted_count > 0:
             freed_mb = freed_space / (1024 * 1024)
-            print(f"Deleted {deleted_count} files, freed {freed_mb:.1f} MB")
+            logger.info(f"Deleted {deleted_count} files, freed {freed_mb:.1f} MB")
         else:
-            print("No files found for deletion")
+            logger.info("No files found for deletion")
 
     except Exception as e:
-        print(f"Error during cleanup: {e}")
+        logger.error(f"Error during cleanup: {e}")
         sys.exit(1)
 
 
