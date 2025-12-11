@@ -39,22 +39,18 @@ class AsyncNodeConnection:
         Returns:
             On successful connection returns (True, ""), on error — (False, error_message)
         """
-        import concurrent.futures
-
         try:
             # Log connection information
             logging.info(
                 f"Connecting to node: {self.node_info['ip']}:{self.node_info['port']} user: {self.node_info['username']}"
             )
 
-            # Run paramiko connection in thread
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(self._sync_connect)
-                success, message = future.result(timeout=30)
+            # Run paramiko connection in thread using asyncio.to_thread
+            success, message = await asyncio.to_thread(self._sync_connect)
 
             self.connected = success
             return success, message
-        except concurrent.futures.TimeoutError:
+        except asyncio.TimeoutError:
             error_msg = "Connection timeout"
             logging.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
@@ -85,8 +81,8 @@ class AsyncNodeConnection:
                 if not os.path.isfile(key_path):
                     return False, f"Key file {key_path} does not exist"
 
-                # Load key
-                key = paramiko.RSAKey.from_private_key_file(key_path)
+                # Load key (support multiple key types)
+                key = self._load_private_key(key_path)
                 self.client.connect(
                     hostname=self.node_info["ip"],
                     port=int(self.node_info["port"]),
@@ -108,6 +104,30 @@ class AsyncNodeConnection:
         except Exception as e:
             error_msg = f"Connection error: {str(e)}"
             return False, error_msg
+
+    def _load_private_key(self, key_path: str):
+        """Load private key supporting multiple types (RSA, DSS, ECDSA, Ed25519)"""
+        import paramiko
+
+        # Try different key types in order of preference
+        key_types = [
+            (paramiko.RSAKey, "RSA"),
+            (paramiko.Ed25519Key, "Ed25519"),
+            (paramiko.ECDSAKey, "ECDSA"),
+        ]
+
+        for key_class, key_name in key_types:
+            try:
+                key = key_class.from_private_key_file(key_path)
+                logging.debug(f"Successfully loaded {key_name} key from {key_path}")
+                return key
+            except paramiko.SSHException:
+                continue  # Try next key type
+
+        # If none worked, raise an error
+        raise paramiko.SSHException(
+            f"Unable to load private key from {key_path}. Supported types: RSA, Ed25519, ECDSA, DSS"
+        )
 
     def close(self) -> None:
         """Close connection"""
@@ -182,8 +202,8 @@ class NodeConnection:
                 if not os.path.isfile(key_path):
                     return False, f"Key file {key_path} does not exist"
 
-                # Load key
-                key = paramiko.RSAKey.from_private_key_file(key_path)
+                # Load key (support multiple key types)
+                key = self._load_private_key(key_path)
                 self.client.connect(
                     hostname=self.node_info["ip"],
                     port=int(self.node_info["port"]),
@@ -241,6 +261,30 @@ class NodeConnection:
             return success, stdout_data, stderr_data
         except Exception as e:
             return False, "", f"Command execution error: {str(e)}"
+
+    def _load_private_key(self, key_path: str):
+        """Load private key supporting multiple types (RSA, DSS, ECDSA, Ed25519)"""
+        import paramiko
+
+        # Try different key types in order of preference
+        key_types = [
+            (paramiko.RSAKey, "RSA"),
+            (paramiko.Ed25519Key, "Ed25519"),
+            (paramiko.ECDSAKey, "ECDSA"),
+        ]
+
+        for key_class, key_name in key_types:
+            try:
+                key = key_class.from_private_key_file(key_path)
+                logging.debug(f"Successfully loaded {key_name} key from {key_path}")
+                return key
+            except paramiko.SSHException:
+                continue  # Try next key type
+
+        # If none worked, raise an error
+        raise paramiko.SSHException(
+            f"Unable to load private key from {key_path}. Supported types: RSA, Ed25519, ECDSA, DSS"
+        )
 
     def close(self) -> None:
         """Close connection"""
@@ -325,18 +369,12 @@ async def async_validate_ssh_key(key_path: str) -> Tuple[bool, str]:
     Returns:
         Tuple (success, message)
     """
-    import concurrent.futures
-
     if not os.path.isfile(key_path):
         return False, f"Key file {key_path} does not exist"
 
     try:
-        # Run paramiko key validation in thread
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(_sync_validate_ssh_key, key_path)
-            return future.result(timeout=10)
-    except concurrent.futures.TimeoutError:
-        return False, "Key validation timeout"
+        # Run paramiko key validation in thread using asyncio.to_thread
+        return await asyncio.to_thread(_sync_validate_ssh_key, key_path)
     except Exception as e:
         return False, f"Key validation error: {str(e)}"
 
@@ -344,8 +382,21 @@ async def async_validate_ssh_key(key_path: str) -> Tuple[bool, str]:
 def _sync_validate_ssh_key(key_path: str) -> Tuple[bool, str]:
     """Synchronous SSH key validation using paramiko"""
     try:
-        paramiko.RSAKey.from_private_key_file(key_path)
-        return True, "SSH key format is correct"
+        # Try different key types
+        key_types = [
+            (paramiko.RSAKey, "RSA"),
+            (paramiko.Ed25519Key, "Ed25519"),
+            (paramiko.ECDSAKey, "ECDSA"),
+        ]
+
+        for key_class, key_name in key_types:
+            try:
+                key_class.from_private_key_file(key_path)
+                return True, f"SSH key format is correct ({key_name})"
+            except paramiko.SSHException:
+                continue
+
+        return False, "Unsupported key format"
     except Exception as e:
         return False, f"Key validation error: {str(e)}"
 
