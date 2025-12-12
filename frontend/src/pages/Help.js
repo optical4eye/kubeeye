@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
-import { IntroductionTab, ExamplesTab, SecurityTab } from '../components/HelpTabs';
+import { IntroductionTab, ExamplesTab, SecurityTab, KubeconfigTab } from '../components/HelpTabs';
 
 const Help = () => {
   return (
@@ -23,6 +23,10 @@ const Help = () => {
 
         <Tabs.TabPane tab="Запрещенные команды" key="3" aria-label="Безопасность и запрещенные команды">
           <SecurityTab />
+        </Tabs.TabPane>
+
+        <Tabs.TabPane tab="Настройка Kubeconfig" key="4" aria-label="Настройка kubeconfig для KubeEye">
+          <KubeconfigTab />
         </Tabs.TabPane>
       </Tabs>
     </div>

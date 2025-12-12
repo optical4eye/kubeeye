@@ -1,185 +1,8 @@
 import React from 'react';
 import { Card, Row, Col, Typography } from 'antd';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { DISK_USAGE_RULE, HOST_NETWORK_RULE } from './constants';
-
-// Custom syntax highlighter style matching the app theme
-const customSyntaxStyle = {
-  'code[class*="language-"]': {
-    color: 'var(--code-color)',
-    background: 'var(--background-dark)',
-    fontFamily: '"Inconsolata", "Monaco", "Consolas", monospace',
-    fontSize: '14px',
-    textAlign: 'left',
-    whiteSpace: 'pre',
-    wordSpacing: 'normal',
-    wordBreak: 'normal',
-    wordWrap: 'normal',
-    lineHeight: '1.5',
-    MozTabSize: '4',
-    OTabSize: '4',
-    tabSize: '4',
-    WebkitHyphens: 'none',
-    MozHyphens: 'none',
-    msHyphens: 'none',
-    hyphens: 'none',
-  },
-  'pre[class*="language-"]': {
-    color: 'var(--text-primary)',
-    background: 'var(--background-dark)',
-    fontFamily: '"Inconsolata", "Monaco", "Consolas", monospace',
-    fontSize: '14px',
-    textAlign: 'left',
-    whiteSpace: 'pre',
-    wordSpacing: 'normal',
-    wordBreak: 'normal',
-    wordWrap: 'normal',
-    lineHeight: '1.5',
-    MozTabSize: '4',
-    OTabSize: '4',
-    tabSize: '4',
-    WebkitHyphens: 'none',
-    MozHyphens: 'none',
-    msHyphens: 'none',
-    hyphens: 'none',
-    padding: '16px',
-    margin: '0',
-    overflow: 'auto',
-    borderRadius: '4px',
-    border: '1px solid var(--secondary-color)',
-  },
-  'pre[class*="language-"]::-moz-selection': {
-    background: 'var(--background-hover)',
-  },
-  'pre[class*="language-"] ::-moz-selection': {
-    background: 'var(--background-hover)',
-  },
-  'code[class*="language-"]::-moz-selection': {
-    background: 'var(--background-hover)',
-  },
-  'code[class*="language-"] ::-moz-selection': {
-    background: 'var(--background-hover)',
-  },
-  'pre[class*="language-"]::selection': {
-    background: 'var(--background-hover)',
-  },
-  'pre[class*="language-"] ::selection': {
-    background: 'var(--background-hover)',
-  },
-  'code[class*="language-"]::selection': {
-    background: 'var(--background-hover)',
-  },
-  'code[class*="language-"] ::selection': {
-    background: 'var(--background-hover)',
-  },
-  ':not(pre) > code[class*="language-"]': {
-    background: 'var(--background-dark)',
-    padding: '0.1em',
-    borderRadius: '0.3em',
-    whiteSpace: 'normal',
-  },
-  comment: {
-    color: 'var(--placeholder-color)',
-  },
-  prolog: {
-    color: 'var(--placeholder-color)',
-  },
-  doctype: {
-    color: 'var(--placeholder-color)',
-  },
-  cdata: {
-    color: 'var(--placeholder-color)',
-  },
-  punctuation: {
-    color: 'var(--text-secondary)',
-  },
-  property: {
-    color: 'var(--primary-color)',
-  },
-  tag: {
-    color: 'var(--primary-color)',
-  },
-  constant: {
-    color: 'var(--warning-color)',
-  },
-  symbol: {
-    color: 'var(--warning-color)',
-  },
-  deleted: {
-    color: 'var(--error-color)',
-  },
-  boolean: {
-    color: 'var(--success-color)',
-  },
-  number: {
-    color: 'var(--success-color)',
-  },
-  selector: {
-    color: 'var(--code-color)',
-  },
-  'attr-name': {
-    color: 'var(--code-color)',
-  },
-  string: {
-    color: 'var(--highlight-color)',
-  },
-  char: {
-    color: 'var(--highlight-color)',
-  },
-  builtin: {
-    color: 'var(--code-color)',
-  },
-  inserted: {
-    color: 'var(--success-color)',
-  },
-  operator: {
-    color: 'var(--text-secondary)',
-  },
-  entity: {
-    color: 'var(--primary-color)',
-    cursor: 'help',
-  },
-  url: {
-    color: 'var(--primary-color)',
-  },
-  '.language-css .token.string': {
-    color: 'var(--highlight-color)',
-  },
-  '.style .token.string': {
-    color: 'var(--highlight-color)',
-  },
-  variable: {
-    color: 'var(--warning-color)',
-  },
-  atrule: {
-    color: 'var(--info-color)',
-  },
-  'attr-value': {
-    color: 'var(--highlight-color)',
-  },
-  function: {
-    color: 'var(--code-color)',
-  },
-  'class-name': {
-    color: 'var(--code-color)',
-  },
-  keyword: {
-    color: 'var(--info-color)',
-  },
-  regex: {
-    color: 'var(--success-color)',
-  },
-  important: {
-    color: 'var(--error-color)',
-    fontWeight: 'bold',
-  },
-  bold: {
-    fontWeight: 'bold',
-  },
-  italic: {
-    fontStyle: 'italic',
-  },
-};
+import { DISK_USAGE_RULE, HOST_NETWORK_RULE, POD_RESOURCES_RULE } from './constants';
+import customSyntaxStyle from './syntaxStyles';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -199,7 +22,6 @@ const RuleExample = ({ title, description, whyImportant, problems, howToApply, c
         <Paragraph>
           <Text strong>Как применять в KubeEye:</Text> {howToApply}
         </Paragraph>
-        <Title level={4}>Код примера ({language === "yaml" ? "YAML" : "YAML с Rego"}):</Title>
         <div role="code" aria-label={`Пример кода на ${language === "yaml" ? "YAML" : "Rego"}`}>
           <SyntaxHighlighter language={language} style={customSyntaxStyle}>
             {code}
@@ -238,6 +60,15 @@ const ExamplesTab = () => {
         problems="Правило обнаруживает Pod'ы с hostNetwork: true, что может привести к рискам безопасности, таким как несанкционированный доступ к ресурсам узла или другим Pod'ам."
         howToApply="Правило использует Rego для анализа спецификаций Pod'ов, StatefulSet'ов, DaemonSet'ов и Deployment'ов. Если найдены нарушения, генерируется предупреждение с рекомендациями по использованию Service и Ingress вместо hostNetwork."
         code={HOST_NETWORK_RULE}
+      />
+
+      <RuleExample
+        title="Правило: Проверка ресурсных лимитов Pod (pod-resources-limits)"
+        description="Это правило проверяет, установлены ли ресурсные лимиты (CPU и память) для контейнеров в Pod. Оно относится к категории ресурсов и имеет уровень серьезности 'предупреждение'."
+        whyImportant="Ресурсные лимиты предотвращают чрезмерное использование ресурсов одним Pod'ом, обеспечивая стабильность кластера и справедливое распределение ресурсов."
+        problems="Правило обнаруживает Pod'ы без установленных ресурсных лимитов, что может привести к неконтролируемому потреблению CPU и памяти, влияя на производительность других приложений."
+        howToApply="Правило выполняется на уровне кластера с помощью kubectl и jq для анализа спецификаций Pod'ов. Если найдены нарушения, генерируется предупреждение с рекомендациями по установке limits и requests."
+        code={POD_RESOURCES_RULE}
       />
     </>
   );

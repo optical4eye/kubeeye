@@ -1,4 +1,27 @@
 ---
+# ExternalSecret
+externalSecret:
+  enabled: false
+  clusterSecretStoreName: ""
+  secrets:
+  - secretName: "gitUser"
+    vaultPath: ""
+    vaultKey: ""
+  - secretName: "gitUser"
+    vaultPath: ""
+    vaultKey: ""
+
+# Common configuration
+common:
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+        type: RuntimeDefault
+
 # Frontend configuration
 frontend:
   replicaCount: 1
@@ -7,9 +30,9 @@ frontend:
     tag: "v3.0"
     pullPolicy: IfNotPresent
   service:
-    type: NodePort
+    type: ClusterIP
     port: 80
-    nodePort: 30693
+  nodeSelector: {}
   resources:
     limits:
       memory: "1Gi"
@@ -27,6 +50,7 @@ backend:
     pullPolicy: IfNotPresent
   service:
     port: 8000
+  nodeSelector: {}
   env:
     - name: KUBEEYE_GITOPS_REPO_NAME
       value: "kubeeye_rules"

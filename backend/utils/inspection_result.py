@@ -58,7 +58,7 @@ class InspectionResult:
         self.cluster_name = cluster_name
         self.inspection_type = inspection_type
         self.timestamp = datetime.now()
-        self.result_id = f"{cluster_name}_{inspection_type}_{self.timestamp.strftime('%Y%m%d%H%M%S')}"
+        self.result_id = f"{cluster_name}_{inspection_type}_{self.timestamp.strftime('%Y%m%d_%H%M%S')}"
         self.items = []
 
     def add_item(self, item: Dict) -> None:

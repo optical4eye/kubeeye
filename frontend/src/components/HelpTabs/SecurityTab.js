@@ -11,7 +11,7 @@ const CommandList = ({ title, commands, description }) => (
     <ul>
       {commands.map((item, index) => (
         <li key={index}>
-          <Text strong>{item.category}:</Text> {item.commands}
+          <Text strong>{item.category}:</Text> <code>{item.commands}</code>
         </li>
       ))}
     </ul>

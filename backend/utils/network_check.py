@@ -171,7 +171,7 @@ class NetworkConnectivityResult:
         self.target_ip = target_ip
         self.target_port = target_port
         self.timestamp = datetime.now()
-        self.result_id = f"network_{cluster_name}_{target_ip}_{target_port}_{self.timestamp.strftime('%Y%m%d%H%M%S')}"
+        self.result_id = f"network_{cluster_name}_{target_ip}_{target_port}_{self.timestamp.strftime('%Y%m%d_%H%M%S')}"
         self.checks = []
 
     def add_check(self, check_result: Dict[str, Any]) -> None:
