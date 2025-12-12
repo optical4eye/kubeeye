@@ -13,7 +13,6 @@ services:
       - KUBEEYE_GITOPS_REPO_BRANCH=main
       - KUBEEYE_GITOPS_REPO_USERNAME=optical4eye
       - KUBEEYE_GITOPS_REPO_TOKEN=""
-      - KUBEEYE_GITOPS_REPO_INSECURE=false
       - KUBEEYE_GITOPS_REPO_DESCRIPTION=kubeeye repo rules
       - KUBEYE_REPORT_RETENTION_DAYS=1
     restart: unless-stopped
@@ -27,7 +26,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped

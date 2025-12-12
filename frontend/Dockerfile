@@ -40,6 +40,6 @@ RUN mkdir -p /var/run/nginx \
                 /run/nginx.pid
 USER kubeeye
 
-EXPOSE 80
+EXPOSE 3000
 
 CMD ["nginx", "-g", "daemon off;"]
