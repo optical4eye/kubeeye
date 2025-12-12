@@ -83,4 +83,19 @@ export const runScheduledTask = (taskId) => api.post(apiPath(`/scheduled-tasks/$
 // Cleanup config
 export const getCleanupConfig = () => api.get(apiPath('/cleanup-config'));
 
+// Network connectivity
+export const checkNetworkConnectivity = (checkData) => api.post(apiPath('/network-check'), checkData);
+export const getClustersForNetworkCheck = () => api.get(apiPath('/network-check/clusters'));
+export const getNetworkCheckResults = (clusterName = null, limit = 50) => {
+  const params = new URLSearchParams();
+  if (clusterName) params.append('cluster_name', clusterName);
+  params.append('limit', limit);
+  return api.get(apiPath(`/network-check/results?${params.toString()}`));
+};
+export const getNetworkCheckResult = (resultId) => api.get(apiPath(`/network-check/results/${resultId}`));
+export const deleteNetworkCheckResult = (resultId) => api.delete(apiPath(`/network-check/results/${resultId}`));
+export const exportNetworkCheckResult = (resultId, format) => api.get(apiPath(`/network-check/results/${resultId}/export/${format}`), {
+  responseType: 'blob'
+});
+
 export default api;

@@ -22,6 +22,7 @@ spec:
         runAsUser: 1001
         runAsGroup: 1001
         fsGroup: 1001
+      nodeSelector: {{- .Values.frontend.nodeSelector | toYaml | nindent 8 }}
       containers:
         - name: frontend
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }}"
@@ -46,6 +47,8 @@ spec:
               port: http
             initialDelaySeconds: 5
             periodSeconds: 5
+          securityContext:
+            {{- toYaml .Values.common.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
       volumes:
@@ -77,6 +80,7 @@ spec:
         runAsUser: 1001
         runAsGroup: 1001
         fsGroup: 1001
+      nodeSelector: {{- .Values.backend.nodeSelector | toYaml | nindent 8 }}
       containers:
         - name: backend
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
@@ -103,6 +107,8 @@ spec:
               port: http
             initialDelaySeconds: 5
             periodSeconds: 5
+          securityContext:
+            {{- toYaml .Values.common.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           volumeMounts:
@@ -113,6 +119,8 @@ spec:
               mountPath: /app/rules/{{ .type }}/{{ .name }}.yaml
               subPath: {{ .name }}.yaml
             {{- end }}
+
+
       volumes:
         - name: data-volume
           persistentVolumeClaim:

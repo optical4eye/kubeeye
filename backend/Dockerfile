@@ -1,5 +1,5 @@
 # Backend Dockerfile - FastAPI application
-FROM python:3.13-alpine
+FROM python:3.14-alpine
 
 # Install system dependencies
 RUN apk update && \
@@ -58,7 +58,12 @@ COPY . /app/
 
 
 # Create data directories
-RUN mkdir -p /app/data/clusters /app/data/results /app/data/logs /app/data/schedules /app/data/git_rules
+RUN mkdir -p /app/data/clusters \
+             /app/data/results \
+             /app/data/exports \
+             /app/data/logs \
+             /app/data/schedules \
+             /app/data/git_rules
 
 # Initialize application
 RUN python init.py

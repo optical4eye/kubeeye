@@ -210,3 +210,49 @@ tags:
   - security
   - network
   - hostNetwork`;
+
+export const POD_RESOURCES_RULE = `---
+# Правило - проверка наличия ресурсных лимитов у Pod
+id: pod-resources-limits
+name: Проверка ресурсных лимитов Pod
+description: Проверяет, установлены ли ресурсные лимиты (CPU и память) для контейнеров в Pod
+type: node
+category: resources
+severity: warning
+enabled: true
+tier: basic
+
+# Конфигурация правила
+config:
+  # Выполнение - проверка через kubectl
+  execution:
+    command: "kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.spec.containers[] | has(\"resources\") | not) | \"\\(.metadata.namespace)/\\(.metadata.name)\"' | head -10"
+    timeout: 10
+
+  # Утверждения
+  assertions:
+    - name: "Все Pod имеют ресурсные лимиты"
+      condition: "output == \"\""
+      severity: warning
+      description: "Найдено Pod без ресурсных лимитов: {{ output }}"
+
+# Рекомендации по устранению
+solution: |
+  Установка ресурсных лимитов для Pod:
+  1. Добавьте resources.limits.cpu и resources.limits.memory в спецификацию контейнеров
+  2. Используйте resources.requests для гарантии ресурсов
+  3. Пример:
+     resources:
+       requests:
+         memory: "64Mi"
+         cpu: "250m"
+       limits:
+         memory: "128Mi"
+         cpu: "500m"
+
+# Метки
+tags:
+  - resources
+  - limits
+  - cpu
+  - memory`;

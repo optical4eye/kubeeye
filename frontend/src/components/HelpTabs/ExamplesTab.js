@@ -1,15 +1,15 @@
 import React from 'react';
 import { Card, Row, Col, Typography } from 'antd';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { DISK_USAGE_RULE, HOST_NETWORK_RULE } from './constants';
+import { DISK_USAGE_RULE, HOST_NETWORK_RULE, POD_RESOURCES_RULE } from './constants';
+import customSyntaxStyle from './syntaxStyles';
 
 const { Title, Paragraph, Text } = Typography;
 
 const RuleExample = ({ title, description, whyImportant, problems, howToApply, code, language = "yaml" }) => (
-  <Row gutter={16} style={{ marginBottom: 24 }}>
+  <Row gutter={16} className="help-row-margin">
     <Col span={24}>
-      <Card title={title}>
+      <Card title={title} aria-label={`Пример правила: ${title}`}>
         <Paragraph>
           <Text strong>Описание:</Text> {description}
         </Paragraph>
@@ -22,10 +22,11 @@ const RuleExample = ({ title, description, whyImportant, problems, howToApply, c
         <Paragraph>
           <Text strong>Как применять в KubeEye:</Text> {howToApply}
         </Paragraph>
-        <Title level={4}>Код примера ({language === "yaml" ? "YAML" : "YAML с Rego"}):</Title>
-        <SyntaxHighlighter language={language} style={oneDark}>
-          {code}
-        </SyntaxHighlighter>
+        <div role="code" aria-label={`Пример кода на ${language === "yaml" ? "YAML" : "Rego"}`}>
+          <SyntaxHighlighter language={language} style={customSyntaxStyle}>
+            {code}
+          </SyntaxHighlighter>
+        </div>
       </Card>
     </Col>
   </Row>
@@ -36,7 +37,7 @@ const ExamplesTab = () => {
     <>
       <Row gutter={16}>
         <Col span={24}>
-          <Title level={3}>Примеры правил</Title>
+          <Title level={3} id="examples-title">Примеры правил</Title>
           <Paragraph>
             Ниже приведены примеры правил из репозитория KubeEye. Каждое правило включает название, код примера, подробные пояснения о том, что проверяет правило, почему оно важно, какие проблемы выявляет, и как его применять в KubeEye.
           </Paragraph>
@@ -59,6 +60,15 @@ const ExamplesTab = () => {
         problems="Правило обнаруживает Pod'ы с hostNetwork: true, что может привести к рискам безопасности, таким как несанкционированный доступ к ресурсам узла или другим Pod'ам."
         howToApply="Правило использует Rego для анализа спецификаций Pod'ов, StatefulSet'ов, DaemonSet'ов и Deployment'ов. Если найдены нарушения, генерируется предупреждение с рекомендациями по использованию Service и Ingress вместо hostNetwork."
         code={HOST_NETWORK_RULE}
+      />
+
+      <RuleExample
+        title="Правило: Проверка ресурсных лимитов Pod (pod-resources-limits)"
+        description="Это правило проверяет, установлены ли ресурсные лимиты (CPU и память) для контейнеров в Pod. Оно относится к категории ресурсов и имеет уровень серьезности 'предупреждение'."
+        whyImportant="Ресурсные лимиты предотвращают чрезмерное использование ресурсов одним Pod'ом, обеспечивая стабильность кластера и справедливое распределение ресурсов."
+        problems="Правило обнаруживает Pod'ы без установленных ресурсных лимитов, что может привести к неконтролируемому потреблению CPU и памяти, влияя на производительность других приложений."
+        howToApply="Правило выполняется на уровне кластера с помощью kubectl и jq для анализа спецификаций Pod'ов. Если найдены нарушения, генерируется предупреждение с рекомендациями по установке limits и requests."
+        code={POD_RESOURCES_RULE}
       />
     </>
   );

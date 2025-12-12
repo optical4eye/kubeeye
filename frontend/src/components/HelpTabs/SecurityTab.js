@@ -11,7 +11,7 @@ const CommandList = ({ title, commands, description }) => (
     <ul>
       {commands.map((item, index) => (
         <li key={index}>
-          <Text strong>{item.category}:</Text> {item.commands}
+          <Text strong>{item.category}:</Text> <code>{item.commands}</code>
         </li>
       ))}
     </ul>
@@ -20,9 +20,9 @@ const CommandList = ({ title, commands, description }) => (
 
 const SecurityTab = () => {
   return (
-    <Row gutter={16} style={{ marginBottom: 24 }}>
+    <Row gutter={16} className="help-row-margin">
       <Col span={24}>
-        <Card title="Запрещенные команды">
+        <Card title="Запрещенные команды" aria-label="Информация о безопасности команд">
           <Paragraph>
             <Text strong>Обзор:</Text> KubeEye — это инструмент для инспекции кластеров Kubernetes, который должен работать в режиме только чтения. Для обеспечения безопасности и предотвращения несанкционированных изменений в системе, бэкенд KubeEye строго ограничивает выполнение команд, которые могут модифицировать систему или данные.
           </Paragraph>
@@ -32,7 +32,7 @@ const SecurityTab = () => {
 
           <Divider />
 
-          <Title level={4}>Подключение к Kubernetes</Title>
+          <Title level={4} id="kubernetes-connection">Подключение к Kubernetes</Title>
           <Paragraph>
             <Text strong>Read-Only режим:</Text> KubeEye подключается к кластерам Kubernetes исключительно в режиме чтения. Все API-вызовы ограничены операциями получения информации (list, get, describe), без возможности создания, обновления или удаления ресурсов.
           </Paragraph>
@@ -53,7 +53,7 @@ const SecurityTab = () => {
 
           <Divider />
 
-          <Title level={4}>Причины запрета</Title>
+          <Title level={4} id="reasons-for-ban">Причины запрета</Title>
           <Paragraph>
             <Text strong>Принцип "только чтение":</Text> KubeEye разработан как инструмент инспекции, который должен только анализировать состояние системы, не изменяя его. Любые модифицирующие операции противоречат этому принципу.
           </Paragraph>
@@ -66,7 +66,7 @@ const SecurityTab = () => {
 
           <Divider />
 
-          <Title level={4}>Потенциальные риски использования запрещенных команд</Title>
+          <Title level={4} id="potential-risks">Потенциальные риски использования запрещенных команд</Title>
           <Paragraph>
             <Text strong>Повреждение системы:</Text> Команды вроде rm или dd могут привести к потере данных или неработоспособности узлов кластера.
           </Paragraph>

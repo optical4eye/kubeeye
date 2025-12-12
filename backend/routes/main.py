@@ -299,6 +299,7 @@ async def root():
             "scheduled_tasks": "/api/scheduled-tasks",
             "gitops": "/api/gitops",
             "cleanup": "/api/cleanup",
+            "network": "/api/network-check",
         },
     }
 
@@ -412,7 +413,16 @@ async def get_queue_tasks(limit: int = 50):
 
 
 # Import and include all route modules
-from . import clusters, inspection, reports, scheduled_tasks, rules, gitops, cleanup
+from . import (
+    clusters,
+    inspection,
+    reports,
+    scheduled_tasks,
+    rules,
+    gitops,
+    cleanup,
+    network,
+)
 
 app.include_router(clusters.router, prefix="/api", tags=["clusters"])
 app.include_router(inspection.router, prefix="/api", tags=["inspection"])
@@ -421,6 +431,7 @@ app.include_router(scheduled_tasks.router, prefix="/api", tags=["scheduled-tasks
 app.include_router(rules.router, prefix="/api", tags=["rules"])
 app.include_router(gitops.router, prefix="/api", tags=["gitops"])
 app.include_router(cleanup.router, prefix="/api", tags=["cleanup"])
+app.include_router(network.router, prefix="/api", tags=["network"])
 
 
 if __name__ == "__main__":

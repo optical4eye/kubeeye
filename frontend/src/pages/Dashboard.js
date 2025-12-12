@@ -4,7 +4,14 @@ import { ReloadOutlined, ClusterOutlined, CheckCircleOutlined, WarningOutlined, 
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { getDashboardData } from '../services/api';
 
-const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6B7280'];
+const chartColors = {
+  success: 'var(--success-color)',
+  warning: 'var(--warning-color)',
+  error: 'var(--error-color)',
+  info: 'var(--secondary-color)'
+};
+
+const COLORS = [chartColors.success, chartColors.warning, chartColors.error, chartColors.info];
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -65,9 +72,9 @@ const Dashboard = () => {
 
   // Подготовка данных для столбчатой диаграммы
   const barData = [
-    { name: 'Критические ошибки', value: cluster_statuses.reduce((sum, cs) => sum + (cs.critical_count || 0), 0), color: '#EF4444' },
-    { name: 'Предупреждения', value: cluster_statuses.reduce((sum, cs) => sum + (cs.warning_count || 0), 0), color: '#F59E0B' },
-    { name: 'Успешно', value: cluster_statuses.reduce((sum, cs) => sum + (cs.passed_count || 0), 0), color: '#10B981' }
+    { name: 'Критические ошибки', value: cluster_statuses.reduce((sum, cs) => sum + (cs.critical_count || 0), 0), color: chartColors.error },
+    { name: 'Предупреждения', value: cluster_statuses.reduce((sum, cs) => sum + (cs.warning_count || 0), 0), color: chartColors.warning },
+    { name: 'Успешно', value: cluster_statuses.reduce((sum, cs) => sum + (cs.passed_count || 0), 0), color: chartColors.success }
   ];
 
   const clusterColumns = [
@@ -84,7 +91,7 @@ const Dashboard = () => {
       <div className="page-title">Обзор кластеров</div>
       <div className="page-subtitle">Мониторинг и инспекция Kubernetes кластеров</div>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
+      <Row gutter={16} className="dashboard-row">
         <Col span={24}>
           <Button icon={<ReloadOutlined />} onClick={loadDashboardData} loading={loading}>
             Обновить данные
@@ -92,7 +99,7 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
+      <Row gutter={16} className="dashboard-row">
         <Col span={3}><Statistic title="Кластеры" value={total_clusters} /></Col>
         <Col span={3}><Statistic title="Инспекций" value={recent_scans} /></Col>
         <Col span={3}><Statistic title="Критические" value={recent_results.reduce((sum, r) => sum + (r.critical || 0), 0)} /></Col>
@@ -105,7 +112,7 @@ const Dashboard = () => {
 
 
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
+      <Row gutter={16} className="dashboard-row">
         <Col span={24}>
           <Card title="Тренды ошибок (7 дней)">
             <ResponsiveContainer width="100%" height={300}>
@@ -115,10 +122,10 @@ const Dashboard = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="critical" stroke="#EF4444" name="Критические" />
-                <Line type="monotone" dataKey="warning" stroke="#F59E0B" name="Предупреждения" />
-                <Line type="monotone" dataKey="info" stroke="#6B7280" name="Другие" />
-                <Line type="monotone" dataKey="passed" stroke="#10B981" name="Успешно" />
+                <Line type="monotone" dataKey="critical" stroke="var(--error-color)" name="Критические" />
+                <Line type="monotone" dataKey="warning" stroke="var(--warning-color)" name="Предупреждения" />
+                <Line type="monotone" dataKey="info" stroke="var(--text-secondary)" name="Другие" />
+                <Line type="monotone" dataKey="passed" stroke="var(--success-color)" name="Успешно" />
               </LineChart>
             </ResponsiveContainer>
           </Card>

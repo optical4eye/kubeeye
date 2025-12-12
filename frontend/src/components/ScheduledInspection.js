@@ -3,6 +3,8 @@ import { Card, Button, Table, Modal, Form, Select, DatePicker, TimePicker, Input
 import { PlusOutlined, DeleteOutlined, PlayCircleFilled, EditOutlined } from '@ant-design/icons';
 import { format, parseISO, parse } from 'date-fns';
 import { getClusters, getRules, getScheduledTasks, createScheduledTask, deleteScheduledTask, runScheduledTask, updateScheduledTask } from '../services/api';
+import RuleSelector from './RuleSelector';
+import { getStatusTag } from './statusUtils';
 
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -190,16 +192,6 @@ const ScheduledInspection = () => {
     }
   };
 
-  const getStatusTag = (status) => {
-    const statusMap = {
-      success: { color: 'green', text: 'Успешно' },
-      running: { color: 'blue', text: 'Выполняется' },
-      failed: { color: 'red', text: 'Ошибка' },
-      pending: { color: 'orange', text: 'Ожидает' }
-    };
-    const statusInfo = statusMap[status] || { color: 'default', text: status };
-    return <span style={{ color: statusInfo.color }}>{statusInfo.text}</span>;
-  };
 
   const taskColumns = [
     { title: 'Название', dataIndex: 'name', key: 'name' },
@@ -237,54 +229,6 @@ const ScheduledInspection = () => {
     }
   ];
 
-  const renderRuleSelection = (ruleType, title) => {
-    const availableRules = rules[ruleType] || [];
-    const selected = selectedRules[ruleType] || [];
-    const allSelected = availableRules.length > 0 && selected.length === availableRules.length;
-    const someSelected = selected.length > 0 && selected.length < availableRules.length;
-
-    const handleSelectAll = (checked) => {
-      if (checked) {
-        handleRuleSelection(ruleType, availableRules.map(rule => rule.id));
-      } else {
-        handleRuleSelection(ruleType, []);
-      }
-    };
-
-    return (
-      <Card title={title} size="small">
-        {availableRules.length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            <Checkbox
-              indeterminate={someSelected}
-              checked={allSelected}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-            >
-              Выбрать все ({availableRules.length})
-            </Checkbox>
-          </div>
-        )}
-        <Checkbox.Group
-          value={selected}
-          onChange={(values) => handleRuleSelection(ruleType, values)}
-          style={{ width: '100%' }}
-        >
-          <Space direction="vertical" style={{ width: '100%' }}>
-            {availableRules.map(rule => (
-              <Checkbox key={rule.id} value={rule.id}>
-                <div>
-                  <strong>{rule.name}</strong>
-                  <div style={{ fontSize: '12px', color: '#666' }}>
-                    {rule.description}
-                  </div>
-                </div>
-              </Checkbox>
-            ))}
-          </Space>
-        </Checkbox.Group>
-      </Card>
-    );
-  };
 
   return (
     <div>
@@ -394,12 +338,30 @@ const ScheduledInspection = () => {
                 }}
               </Form.Item>
 
-              <div style={{ marginTop: 24, marginBottom: 24 }}>
+              <div className="margin-top-space-6 margin-bottom-space-6">
                 <h4>Выберите правила инспекции:</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-                  {renderRuleSelection('node', 'Правила узлов')}
-                  {renderRuleSelection('opa', 'Правила Kubernetes')}
-                  {renderRuleSelection('prometheus', 'Правила мониторинга')}
+                <div className="grid-auto-fit">
+                  <RuleSelector
+                    ruleType="node"
+                    title="Правила узлов"
+                    availableRules={rules.node || []}
+                    selectedRules={selectedRules}
+                    onRuleSelection={handleRuleSelection}
+                  />
+                  <RuleSelector
+                    ruleType="opa"
+                    title="Правила Kubernetes"
+                    availableRules={rules.opa || []}
+                    selectedRules={selectedRules}
+                    onRuleSelection={handleRuleSelection}
+                  />
+                  <RuleSelector
+                    ruleType="prometheus"
+                    title="Правила мониторинга"
+                    availableRules={rules.prometheus || []}
+                    selectedRules={selectedRules}
+                    onRuleSelection={handleRuleSelection}
+                  />
                 </div>
               </div>
 
@@ -525,12 +487,30 @@ const ScheduledInspection = () => {
             }}
           </Form.Item>
 
-          <div style={{ marginTop: 24, marginBottom: 24 }}>
+          <div className="margin-top-space-6 margin-bottom-space-6">
             <h4>Выберите правила инспекции:</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-              {renderRuleSelection('node', 'Правила узлов')}
-              {renderRuleSelection('prometheus', 'Правила мониторинга')}
-              {renderRuleSelection('opa', 'Правила безопасности')}
+            <div className="grid-auto-fit">
+              <RuleSelector
+                ruleType="node"
+                title="Правила узлов"
+                availableRules={rules.node || []}
+                selectedRules={selectedRules}
+                onRuleSelection={handleRuleSelection}
+              />
+              <RuleSelector
+                ruleType="prometheus"
+                title="Правила мониторинга"
+                availableRules={rules.prometheus || []}
+                selectedRules={selectedRules}
+                onRuleSelection={handleRuleSelection}
+              />
+              <RuleSelector
+                ruleType="opa"
+                title="Правила Kubernetes"
+                availableRules={rules.opa || []}
+                selectedRules={selectedRules}
+                onRuleSelection={handleRuleSelection}
+              />
             </div>
           </div>
 

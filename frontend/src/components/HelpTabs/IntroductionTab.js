@@ -5,9 +5,9 @@ const { Paragraph, Text } = Typography;
 
 const IntroductionTab = () => {
   return (
-    <Row gutter={16} style={{ marginBottom: 24 }}>
+    <Row gutter={16} className="help-row-margin">
       <Col span={24}>
-        <Card title="Введение в Open Policy Agent (OPA)">
+        <Card title="Введение в Open Policy Agent (OPA)" aria-label="Введение в OPA">
           <Paragraph>
             <Text strong>Open Policy Agent (OPA)</Text> — это инструмент для политик и управления доступом в облачных и контейнерных средах, таких как Kubernetes.
             OPA позволяет определять и применять политики безопасности, соответствия и управления ресурсами в декларативном виде, используя язык Rego.
