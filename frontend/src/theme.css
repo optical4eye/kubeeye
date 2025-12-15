@@ -42,6 +42,14 @@
   --accent-color: #bd93f9;
   --neutral-color: #666;
 
+  /* Status outline colors */
+  --status-outline-success: #22c55e;
+  --status-outline-error: #dc2626;
+  --status-outline-warning: #d97706;
+  --status-outline-info: #0891b2;
+  --status-outline-processing: #2563eb;
+  --status-outline-default: #6b7280;
+
   /* Spacing scale */
   --space-1: 4px;
   --space-2: 8px;
@@ -95,8 +103,8 @@ body {
 }
 
 * {
-  font-family: 'Inter', sans-serif !important;
-  color: var(--text-primary) !important;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
 }
 
 code {

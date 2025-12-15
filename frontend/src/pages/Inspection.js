@@ -309,7 +309,7 @@ const Inspection = () => {
                           <Typography.Text strong>
                             Задача {task.task_id.split('_')[1]}
                           </Typography.Text>
-                          <Tag color={getTaskStatusColor(task.status)}>
+                          <Tag className={`status-${task.status}`}>
                             {task.status === 'pending' && 'Ожидает'}
                             {task.status === 'running' && 'Выполняется'}
                             {task.status === 'completed' && 'Завершена'}

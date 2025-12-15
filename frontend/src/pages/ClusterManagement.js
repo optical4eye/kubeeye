@@ -328,10 +328,10 @@ const ClusterManagement = () => {
   const nodeColumns = [
     { title: 'NAME', dataIndex: 'name', key: 'name' },
     { title: 'STATUS', dataIndex: 'status', key: 'status', render: (status) => {
-      let color = 'var(--error-color)';
-      if (status === 'Ready') color = 'var(--success-color)';
-      else if (status === 'NotReady') color = 'var(--warning-color)';
-      return <Tag color={color}>{status}</Tag>;
+      let className = 'status-not-ready';
+      if (status === 'Ready') className = 'status-ready';
+      else if (status === 'NotReady') className = 'status-not-ready';
+      return <Tag className={className}>{status}</Tag>;
     }},
     { title: 'ROLES', dataIndex: 'roles', key: 'roles', render: (roles) => roles?.join(', ') || 'N/A' },
     { title: 'AGE', dataIndex: 'age', key: 'age' },
@@ -346,26 +346,26 @@ const ClusterManagement = () => {
   const clusterColumns = [
     { title: 'Имя кластера', dataIndex: 'name', key: 'name' },
     { title: 'Узлы', dataIndex: 'nodes', key: 'nodes', render: (nodes) => nodes?.length || 0 },
-    { title: 'Prometheus', dataIndex: 'prometheus_config', key: 'prometheus', render: (config) => config?.enabled ? <Tag color="var(--success-color)">Включен</Tag> : <Tag color="var(--error-color)">Отключен</Tag> },
-    { title: 'Kubeconfig', dataIndex: 'kubeconfig', key: 'kubeconfig', render: (kubeconfig) => kubeconfig ? <Tag color="var(--success-color)">Настроен</Tag> : <Tag color="var(--error-color)">Не настроен</Tag> },
+    { title: 'Prometheus', dataIndex: 'prometheus_config', key: 'prometheus', render: (config) => config?.enabled ? <Tag className="status-enabled">Включен</Tag> : <Tag className="status-disabled">Отключен</Tag> },
+    { title: 'Kubeconfig', dataIndex: 'kubeconfig', key: 'kubeconfig', render: (kubeconfig) => kubeconfig ? <Tag className="status-configured">Настроен</Tag> : <Tag className="status-not-configured">Не настроен</Tag> },
     {
       title: 'Сертификат истекает через',
       dataIndex: 'cert_expiry_days',
       key: 'cert_expiry',
       render: (days) => {
         if (days === null || days === undefined) {
-          return <Tag color="var(--secondary-color)">Неизвестно</Tag>;
+          return <Tag className="status-unknown">Неизвестно</Tag>;
         }
         if (days < 0) {
-          return <Tag color="var(--error-color)">Истек</Tag>;
+          return <Tag className="status-expired">Истек</Tag>;
         }
         if (days <= 7) {
-          return <Tag color="var(--error-color)">{days} дней</Tag>;
+          return <Tag className="status-expired">{days} дней</Tag>;
         }
         if (days <= 30) {
-          return <Tag color="var(--warning-color)">{days} дней</Tag>;
+          return <Tag className="status-expires-soon">{days} дней</Tag>;
         }
-        return <Tag color="var(--success-color)">{days} дней</Tag>;
+        return <Tag className="status-valid">{days} дней</Tag>;
       }
     },
     {

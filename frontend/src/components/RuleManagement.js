@@ -124,14 +124,22 @@ const RuleManagement = () => {
   };
 
   const getSeverityTag = (severity) => {
-    const colors = {
-      critical: 'red',
-      high: 'orange',
-      medium: 'yellow',
-      low: 'blue',
-      info: 'gray'
-    };
-    return <Tag color={colors[severity] || 'default'}>{severity}</Tag>;
+    switch (severity) {
+      case 'critical':
+        return <Tag className="status-critical">Критическая</Tag>;
+      case 'high':
+        return <Tag className="status-high">Высокая</Tag>;
+      case 'medium':
+        return <Tag className="status-medium">Средняя</Tag>;
+      case 'low':
+        return <Tag className="status-low">Низкая</Tag>;
+      case 'warning':
+        return <Tag className="status-warning">Предупреждение</Tag>;
+      case 'info':
+        return <Tag className="status-info">Информация</Tag>;
+      default:
+        return <Tag className="status-unknown">Неизвестная</Tag>;
+    }
   };
 
   const columns = [

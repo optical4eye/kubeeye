@@ -159,22 +159,22 @@ const NetworkConnectivity = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'success':
-        return <CheckCircleOutlined style={{ color: 'var(--status-completed)' }} />;
+        return <CheckCircleOutlined aria-label="Success status" style={{ color: 'var(--status-completed)' }} />;
       case 'failed':
-        return <CloseCircleOutlined style={{ color: 'var(--error-color)' }} />;
+        return <CloseCircleOutlined aria-label="Failed status" style={{ color: 'var(--error-color)' }} />;
       default:
-        return <ClockCircleOutlined style={{ color: 'var(--status-pending)' }} />;
+        return <ClockCircleOutlined aria-label="Pending status" style={{ color: 'var(--status-pending)' }} />;
     }
   };
 
   const getStatusTag = (status) => {
     switch (status) {
       case 'success':
-        return <Tag color="success">Успешно</Tag>;
+        return <Tag className="status-passed">Успешно</Tag>;
       case 'failed':
-        return <Tag color="error">Неудачно</Tag>;
+        return <Tag className="status-failed">Неудачно</Tag>;
       default:
-        return <Tag color="warning">Неизвестно</Tag>;
+        return <Tag className="status-unknown">Неизвестно</Tag>;
     }
   };
 

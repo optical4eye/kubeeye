@@ -96,6 +96,217 @@
   color: var(--primary-color) !important;
 }
 
+/* Status tag styles - colored border and text, no background */
+.status-passed,
+.status-success {
+  background-color: transparent !important;
+  color: var(--status-outline-success) !important;
+  border-color: var(--status-outline-success) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-failed,
+.status-exception {
+  background-color: transparent !important;
+  color: var(--status-outline-error) !important;
+  border-color: var(--status-outline-error) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-warning {
+  background-color: transparent !important;
+  color: var(--status-outline-warning) !important;
+  border-color: var(--status-outline-warning) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-pending {
+  background-color: transparent !important;
+  color: var(--status-outline-warning) !important;
+  border-color: var(--status-outline-warning) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-running {
+  background-color: transparent !important;
+  color: var(--status-outline-processing) !important;
+  border-color: var(--status-outline-processing) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-completed {
+  background-color: transparent !important;
+  color: var(--status-outline-success) !important;
+  border-color: var(--status-outline-success) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-cancelled {
+  background-color: transparent !important;
+  color: var(--status-outline-default) !important;
+  border-color: var(--status-outline-default) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-unknown {
+  background-color: transparent !important;
+  color: var(--status-outline-default) !important;
+  border-color: var(--status-outline-default) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-critical {
+  background-color: transparent !important;
+  color: var(--status-outline-error) !important;
+  border-color: var(--status-outline-error) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-high {
+  background-color: transparent !important;
+  color: var(--status-outline-error) !important;
+  border-color: var(--status-outline-error) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-medium {
+  background-color: transparent !important;
+  color: var(--status-outline-warning) !important;
+  border-color: var(--status-outline-warning) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-low {
+  background-color: transparent !important;
+  color: var(--status-outline-processing) !important;
+  border-color: var(--status-outline-processing) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-info {
+  background-color: transparent !important;
+  color: var(--status-outline-info) !important;
+  border-color: var(--status-outline-info) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-ok {
+  background-color: transparent !important;
+  color: var(--status-outline-success) !important;
+  border-color: var(--status-outline-success) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-critical-issues {
+  background-color: transparent !important;
+  color: var(--status-outline-error) !important;
+  border-color: var(--status-outline-error) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-warnings {
+  background-color: transparent !important;
+  color: var(--status-outline-warning) !important;
+  border-color: var(--status-outline-warning) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-other-issues {
+  background-color: transparent !important;
+  color: var(--status-outline-processing) !important;
+  border-color: var(--status-outline-processing) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-enabled {
+  background-color: transparent !important;
+  color: var(--status-outline-success) !important;
+  border-color: var(--status-outline-success) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-disabled {
+  background-color: transparent !important;
+  color: var(--status-outline-error) !important;
+  border-color: var(--status-outline-error) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-configured {
+  background-color: transparent !important;
+  color: var(--status-outline-success) !important;
+  border-color: var(--status-outline-success) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-not-configured {
+  background-color: transparent !important;
+  color: var(--status-outline-error) !important;
+  border-color: var(--status-outline-error) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-expired {
+  background-color: transparent !important;
+  color: var(--status-outline-error) !important;
+  border-color: var(--status-outline-error) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-expires-soon {
+  background-color: transparent !important;
+  color: var(--status-outline-warning) !important;
+  border-color: var(--status-outline-warning) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-valid {
+  background-color: transparent !important;
+  color: var(--status-outline-success) !important;
+  border-color: var(--status-outline-success) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-ready {
+  background-color: transparent !important;
+  color: var(--status-outline-success) !important;
+  border-color: var(--status-outline-success) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
+.status-not-ready {
+  background-color: transparent !important;
+  color: var(--status-outline-warning) !important;
+  border-color: var(--status-outline-warning) !important;
+  font-weight: 500 !important;
+  cursor: default !important;
+}
+
 /* Modal size utilities */
 .modal-medium {
   width: var(--modal-width-medium) !important;

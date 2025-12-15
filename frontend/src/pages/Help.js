@@ -7,7 +7,7 @@ const Help = () => {
   return (
     <div>
       <div className="page-title">
-        <QuestionCircleOutlined className="help-icon-margin" />
+        <QuestionCircleOutlined className="help-icon-margin" aria-label="Help icon" />
         Помощь
       </div>
       <div className="page-subtitle">Руководство по использованию KubeEye и примеры правил</div>
