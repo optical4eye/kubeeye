@@ -139,6 +139,31 @@ async def get_cluster_details(cluster_name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/clusters/{cluster_name}/nodes")
+async def get_cluster_nodes(cluster_name: str):
+    """Get cluster nodes information"""
+    try:
+        cluster_config = get_cluster(cluster_name)
+        if not cluster_config:
+            raise HTTPException(status_code=404, detail="Cluster not found")
+
+        kubeconfig = cluster_config.get_kubeconfig()
+        if not kubeconfig:
+            raise HTTPException(status_code=400, detail="Kubeconfig not configured for this cluster")
+
+        k8s_client = K8sClient(kubeconfig)
+        nodes_result = k8s_client.get_nodes()
+
+        if nodes_result.get("status") == "error":
+            raise HTTPException(status_code=500, detail=nodes_result.get("error", "Failed to get nodes"))
+
+        return nodes_result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get cluster nodes: {str(e)}")
+
+
 def _get_nodes_for_testing(
     cluster_name: str, request: Optional[TestNodesRequest] = None
 ) -> List[Dict]:

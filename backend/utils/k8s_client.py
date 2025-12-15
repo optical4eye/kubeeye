@@ -83,13 +83,36 @@ class K8sClient(K8sBaseClient):
             result = []
 
             for node in nodes.items:
+                # Calculate AGE
+                creation_time = node.metadata.creation_timestamp
+                if creation_time:
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    age_seconds = (now - creation_time).total_seconds()
+                    age = self._format_age(age_seconds)
+                else:
+                    age = "N/A"
+
+                # Get IP addresses
+                internal_ip = "N/A"
+                external_ip = "N/A"
+                if node.status.addresses:
+                    for addr in node.status.addresses:
+                        if addr.type == "InternalIP":
+                            internal_ip = addr.address
+                        elif addr.type == "ExternalIP":
+                            external_ip = addr.address
+
                 node_info = {
                     "name": node.metadata.name,
                     "status": self._get_node_status(node),
                     "roles": self._get_node_roles(node),
-                    "kubelet_version": node.status.node_info.kubelet_version,
+                    "age": age,
+                    "version": node.status.node_info.kubelet_version,
+                    "internal_ip": internal_ip,
+                    "external_ip": external_ip,
                     "os_image": node.status.node_info.os_image,
                     "kernel_version": node.status.node_info.kernel_version,
+                    "container_runtime": node.status.node_info.container_runtime_version,
                     "cpu": node.status.capacity.get("cpu", "N/A"),
                     "memory": node.status.capacity.get("memory", "N/A"),
                     "pods": node.status.capacity.get("pods", "N/A"),
@@ -156,6 +179,20 @@ class K8sClient(K8sBaseClient):
                 )
 
         return taints
+
+    def _format_age(self, seconds: float) -> str:
+        """Format age in seconds to human readable format"""
+        if seconds < 60:
+            return f"{int(seconds)}s"
+        elif seconds < 3600:
+            minutes = int(seconds / 60)
+            return f"{minutes}m"
+        elif seconds < 86400:
+            hours = int(seconds / 3600)
+            return f"{hours}h"
+        else:
+            days = int(seconds / 86400)
+            return f"{days}d"
 
     def get_pods(self, namespace: str = None) -> Dict:
         """

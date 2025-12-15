@@ -22,6 +22,7 @@ export const createCluster = (clusterData) => api.post(apiPath('/clusters'), clu
 export const updateCluster = (clusterName, clusterData) => api.put(apiPath(`/clusters/${clusterName}`), clusterData);
 export const deleteCluster = (clusterName) => api.delete(apiPath(`/clusters/${clusterName}`));
 export const getClusterDetails = (clusterName) => api.get(apiPath(`/clusters/${clusterName}`));
+export const getClusterNodes = (clusterName) => api.get(apiPath(`/clusters/${clusterName}/nodes`));
 export const testClusterNodes = (clusterName, nodes = null) => {
   // Use extended timeout for node testing
   const testApi = axios.create({

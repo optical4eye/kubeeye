@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Modal, Form, Input, Tabs, message, Space, Tag, Collapse, Checkbox } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
-import { getClusters, createCluster, updateCluster, deleteCluster, getClusterDetails, testClusterNodes, testClusterKubeconfig } from '../services/api';
+import { Card, Table, Button, Modal, Form, Input, Tabs, message, Space, Tag, Collapse, Checkbox, Select } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
+import { getClusters, createCluster, updateCluster, deleteCluster, getClusterDetails, getClusterNodes, testClusterNodes, testClusterKubeconfig } from '../services/api';
 
 const { TabPane } = Tabs;
 
@@ -10,7 +10,12 @@ const ClusterManagement = () => {
   const [loading, setLoading] = useState(true);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedCluster, setSelectedCluster] = useState(null);
+  const [clusterDetails, setClusterDetails] = useState(null);
+  const [clusterNodes, setClusterNodes] = useState([]);
+  const [nodesLoading, setNodesLoading] = useState(false);
+  const [nodeFilter, setNodeFilter] = useState('all');
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -31,12 +36,6 @@ const ClusterManagement = () => {
     loadClusters();
   }, []);
 
-  useEffect(() => {
-    if (selectedCluster) {
-      // Загрузка деталей кластера для редактирования
-      loadClusterDetails(selectedCluster.name);
-    }
-  }, [selectedCluster]);
 
   const handleCreateCluster = async (values) => {
     try {
@@ -70,6 +69,10 @@ const ClusterManagement = () => {
       await deleteCluster(clusterName);
       message.success('Кластер удален');
       loadClusters();
+      // Сброс выбранного кластера
+      setSelectedCluster(null);
+      setClusterDetails(null);
+      setClusterNodes([]);
     } catch (error) {
       message.error('Ошибка удаления кластера');
       console.error(error);
@@ -101,6 +104,42 @@ const ClusterManagement = () => {
     }
   };
 
+  const loadClusterNodes = async (clusterName) => {
+    try {
+      setNodesLoading(true);
+      const response = await getClusterNodes(clusterName);
+      const nodesData = response.data;
+
+      if (nodesData.status === 'success') {
+        setClusterNodes(nodesData.nodes || []);
+      } else {
+        message.error('Ошибка получения узлов кластера');
+        setClusterNodes([]);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки узлов кластера:', error);
+      let errorMessage = 'Не удалось получить информацию об узлах кластера';
+
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
+      message.error(errorMessage);
+      setClusterNodes([]);
+    } finally {
+      setNodesLoading(false);
+    }
+  };
+
+  const handleShowClusterDetails = (cluster) => {
+    setSelectedCluster(cluster);
+    setClusterDetails(cluster);
+    setDetailsModalVisible(true);
+    loadClusterNodes(cluster.name);
+  };
+
   const handleEditCluster = async (values) => {
     try {
       // Парсинг узлов из текста
@@ -124,6 +163,10 @@ const ClusterManagement = () => {
       setSelectedCluster(null);
       editForm.resetFields();
       loadClusters();
+      // Обновить узлы если кластер был выбран
+      if (clusterDetails) {
+        loadClusterNodes(clusterDetails.name);
+      }
     } catch (error) {
       message.error('Ошибка обновления кластера');
       console.error(error);
@@ -277,6 +320,29 @@ const ClusterManagement = () => {
     }).join('\n');
   };
 
+  const filteredNodes = clusterNodes.filter(node => {
+    if (nodeFilter === 'all') return true;
+    return node.status.toLowerCase() === nodeFilter.toLowerCase();
+  });
+
+  const nodeColumns = [
+    { title: 'NAME', dataIndex: 'name', key: 'name' },
+    { title: 'STATUS', dataIndex: 'status', key: 'status', render: (status) => {
+      let color = 'var(--error-color)';
+      if (status === 'Ready') color = 'var(--success-color)';
+      else if (status === 'NotReady') color = 'var(--warning-color)';
+      return <Tag color={color}>{status}</Tag>;
+    }},
+    { title: 'ROLES', dataIndex: 'roles', key: 'roles', render: (roles) => roles?.join(', ') || 'N/A' },
+    { title: 'AGE', dataIndex: 'age', key: 'age' },
+    { title: 'VERSION', dataIndex: 'version', key: 'version' },
+    { title: 'INTERNAL-IP', dataIndex: 'internal_ip', key: 'internal_ip' },
+    { title: 'EXTERNAL-IP', dataIndex: 'external_ip', key: 'external_ip' },
+    { title: 'OS-IMAGE', dataIndex: 'os_image', key: 'os_image' },
+    { title: 'KERNEL-VERSION', dataIndex: 'kernel_version', key: 'kernel_version' },
+    { title: 'CONTAINER-RUNTIME', dataIndex: 'container_runtime', key: 'container_runtime' },
+  ];
+
   const clusterColumns = [
     { title: 'Имя кластера', dataIndex: 'name', key: 'name' },
     { title: 'Узлы', dataIndex: 'nodes', key: 'nodes', render: (nodes) => nodes?.length || 0 },
@@ -307,7 +373,13 @@ const ClusterManagement = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button icon={<EditOutlined />} onClick={() => setSelectedCluster(record)}>
+          <Button icon={<EyeOutlined />} onClick={() => handleShowClusterDetails(record)}>
+            Детали
+          </Button>
+          <Button icon={<EditOutlined />} onClick={() => {
+            setSelectedCluster(record);
+            loadClusterDetails(record.name);
+          }}>
             Редактировать
           </Button>
           <Button
@@ -591,6 +663,62 @@ const ClusterManagement = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={`Детали кластера: ${clusterDetails?.name}`}
+        open={detailsModalVisible}
+        onCancel={() => {
+          setDetailsModalVisible(false);
+          setSelectedCluster(null);
+          setClusterDetails(null);
+          setClusterNodes([]);
+          setNodeFilter('all');
+        }}
+        footer={null}
+        width={1200}
+        className="modal-large"
+      >
+        {clusterDetails && (
+          <div>
+            <div style={{ marginBottom: '20px' }}>
+              <h3>Кластер: {clusterDetails.name}</h3>
+              <p>Узлов: {clusterDetails.nodes?.length || 0}</p>
+              <p>Prometheus: {clusterDetails.prometheus_config?.enabled ? 'Включен' : 'Отключен'}</p>
+              <p>Kubeconfig: {clusterDetails.kubeconfig ? 'Настроен' : 'Не настроен'}</p>
+            </div>
+
+
+            <div style={{ marginBottom: '20px' }}>
+              <Space>
+                <Button
+                  onClick={() => loadClusterNodes(selectedCluster.name)}
+                  loading={nodesLoading}
+                >
+                  Обновить узлы
+                </Button>
+                <Select
+                  value={nodeFilter}
+                  onChange={setNodeFilter}
+                  style={{ width: 150 }}
+                >
+                  <Select.Option value="all">Все статусы</Select.Option>
+                  <Select.Option value="ready">Ready</Select.Option>
+                  <Select.Option value="notready">NotReady</Select.Option>
+                  <Select.Option value="unknown">Unknown</Select.Option>
+                </Select>
+              </Space>
+            </div>
+
+            <Table
+              columns={nodeColumns}
+              dataSource={filteredNodes}
+              loading={nodesLoading}
+              rowKey="name"
+              pagination={false}
+            />
+          </div>
+        )}
       </Modal>
     </div>
   );
