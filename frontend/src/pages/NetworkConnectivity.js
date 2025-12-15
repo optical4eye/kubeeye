@@ -232,7 +232,7 @@ const NetworkConnectivity = () => {
       <Space direction="vertical" size="large" className="width-100">
         <Card title="Настройки проверки" loading={loading}>
           <Form form={form} layout="vertical">
-            <Form.Item label="Кластер" required>
+            <Form.Item name="cluster" label="Кластер" required>
               <Select
                 placeholder="Выберите кластер"
                 value={selectedCluster}
@@ -280,7 +280,7 @@ const NetworkConnectivity = () => {
             )}
 
             <Space>
-              <Form.Item label="Целевой IP" required>
+              <Form.Item name="target_ip" label="Целевой IP" required>
                 <Input
                   placeholder="192.168.1.100"
                   value={targetIp}
@@ -289,7 +289,7 @@ const NetworkConnectivity = () => {
                 />
               </Form.Item>
 
-              <Form.Item label="Порт" required>
+              <Form.Item name="target_port" label="Порт" required>
                 <Input
                   placeholder="80"
                   value={targetPort}
@@ -298,7 +298,7 @@ const NetworkConnectivity = () => {
                 />
               </Form.Item>
 
-              <Form.Item label="Таймаут (сек)">
+              <Form.Item name="timeout" label="Таймаут (сек)">
                 <Input
                   type="number"
                   min={1}

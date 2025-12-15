@@ -153,7 +153,11 @@
   background-color: rgba(0, 0, 0, 0.45) !important;
 }
 
-.ant-modal-content,
+.ant-modal-content {
+  background: var(--background-main) !important;
+  color: var(--text-primary) !important;
+}
+
 .ant-modal-header,
 .ant-modal-body,
 .ant-modal-footer {
@@ -164,6 +168,17 @@
 .ant-modal-header,
 .ant-modal-footer {
   border-color: var(--secondary-color) !important;
+}
+
+/* Confirm Modals (info, success, warning, error) */
+.ant-modal-confirm .ant-modal-content {
+  background: var(--background-main) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-modal-confirm .ant-modal-confirm-title,
+.ant-modal-confirm .ant-modal-confirm-content {
+  color: var(--text-primary) !important;
 }
 
 /* Mobile responsive for modals */
@@ -415,66 +430,6 @@ input[type="checkbox"]:focus {
   border-color: var(--secondary-color) !important;
 }
 
-/* Collapses */
-.ant-collapse {
-  background: var(--background-main) !important;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-}
-
-.ant-collapse-header,
-.ant-collapse-content {
-  background: var(--background-main) !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-collapse-item {
-  border: 1px solid var(--gray-600) !important;
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-3) !important;
-}
-
-.ant-collapse-header {
-  border-bottom: 1px solid var(--gray-600) !important;
-  padding: var(--space-3) var(--space-4) !important;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.ant-collapse-header:hover {
-  background: var(--background-hover) !important;
-  color: var(--text-primary) !important;
-  border-bottom-color: var(--gray-500) !important;
-}
-
-.ant-collapse-item-active .ant-collapse-header {
-  background: var(--background-hover) !important;
-  border-bottom-color: var(--primary-color) !important;
-  color: var(--primary-color) !important;
-}
-
-.ant-collapse-content {
-  border-top: 1px solid var(--gray-600) !important;
-  padding: var(--space-4) var(--space-5) !important;
-}
-
-.ant-collapse-arrow {
-  color: var(--primary-color) !important;
-  transition: transform 0.2s ease;
-}
-
-/* Mobile responsive for collapse */
-@media (max-width: 768px) {
-  .ant-collapse-header {
-    padding: var(--space-3) var(--space-4) !important;
-    font-size: 0.9rem;
-  }
-
-  .ant-collapse-content {
-    padding: var(--space-3) var(--space-4) !important;
-  }
-}
 
 /* Messages and Notifications */
 .ant-message,
@@ -506,7 +461,6 @@ input[type="checkbox"]:focus {
   background: var(--background-hover) !important;
   color: var(--text-primary) !important;
 }
-
 .ant-dropdown-menu-item-selected,
 .ant-select-dropdown-menu-item-selected {
   background: var(--secondary-color) !important;
@@ -533,6 +487,18 @@ input[type="checkbox"]:focus {
   background: var(--primary-color) !important;
   color: var(--text-primary) !important;
 }
+
+/* Collapses */
+.ant-collapse {
+  background: var(--background-main) !important;
+}
+
+.ant-collapse-header,
+.ant-collapse-content {
+  background: var(--background-main) !important;
+  color: var(--text-primary) !important;
+}
+
 
 /* Breadcrumbs */
 .ant-breadcrumb {

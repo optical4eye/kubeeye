@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Modal, Form, Input, Tabs, message, Space, Tag, Collapse } from 'antd';
+import { Card, Table, Button, Modal, Form, Input, Tabs, message, Space, Tag, Collapse, Checkbox } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { getClusters, createCluster, updateCluster, deleteCluster, getClusterDetails, testClusterNodes, testClusterKubeconfig } from '../services/api';
 
@@ -225,17 +225,11 @@ const ClusterManagement = () => {
       const response = await testClusterKubeconfig(clusterName, kubeconfigToTest);
       const { success, message: testMessage } = response.data;
 
-      Modal.info({
-        title: 'Результаты проверки kubeconfig',
-        content: (
-          <div>
-            <div className="margin-bottom-space-4">
-              {success ? '✅' : '❌'} {testMessage}
-            </div>
-          </div>
-        ),
-        width: 500,
-      });
+      if (success) {
+        message.success(`Kubeconfig проверен: ${testMessage}`);
+      } else {
+        message.error(`Ошибка проверки kubeconfig: ${testMessage}`);
+      }
     } catch (error) {
       const errorMessage = error.response?.data?.detail || error.message || 'Неизвестная ошибка';
       message.error(`Ошибка проверки kubeconfig: ${errorMessage}`);
@@ -378,38 +372,48 @@ const ClusterManagement = () => {
                 />
               </Form.Item>
 
-              <Collapse defaultActiveKey={[]} className="margin-bottom-space-4">
-                <Collapse.Panel header="Настройки Prometheus" key="prometheus">
-                  <Form.Item
-                    name="prometheus_enabled"
-                    label="Включить Prometheus"
-                    valuePropName="checked"
-                  >
-                    <input type="checkbox" />
-                  </Form.Item>
+              <Collapse
+                defaultActiveKey={[]}
+                className="margin-bottom-space-4"
+                items={[
+                  {
+                    key: 'prometheus',
+                    label: 'Настройки Prometheus',
+                    children: (
+                      <>
+                        <Form.Item
+                          name="prometheus_enabled"
+                          label="Включить Prometheus"
+                          valuePropName="checked"
+                        >
+                          <Checkbox />
+                        </Form.Item>
 
-                  <Form.Item
-                    name="prometheus_url"
-                    label="URL Prometheus"
-                  >
-                    <Input placeholder="http://prometheus.example.com:9090" />
-                  </Form.Item>
+                        <Form.Item
+                          name="prometheus_url"
+                          label="URL Prometheus"
+                        >
+                          <Input placeholder="http://prometheus.example.com:9090" />
+                        </Form.Item>
 
-                  <Form.Item
-                    name="prometheus_username"
-                    label="Имя пользователя Prometheus"
-                  >
-                    <Input />
-                  </Form.Item>
+                        <Form.Item
+                          name="prometheus_username"
+                          label="Имя пользователя Prometheus"
+                        >
+                          <Input />
+                        </Form.Item>
 
-                  <Form.Item
-                    name="prometheus_password"
-                    label="Пароль Prometheus"
-                  >
-                    <Input.Password />
-                  </Form.Item>
-                </Collapse.Panel>
-              </Collapse>
+                        <Form.Item
+                          name="prometheus_password"
+                          label="Пароль Prometheus"
+                        >
+                          <Input />
+                        </Form.Item>
+                      </>
+                    ),
+                  },
+                ]}
+              />
 
               <Form.Item
                 name="kubeconfig"
@@ -520,38 +524,48 @@ const ClusterManagement = () => {
             />
           </Form.Item>
 
-          <Collapse defaultActiveKey={[]} className="margin-bottom-space-4">
-            <Collapse.Panel header="Настройки Prometheus" key="prometheus">
-              <Form.Item
-                name="prometheus_enabled"
-                label="Включить Prometheus"
-                valuePropName="checked"
-              >
-                <input type="checkbox" />
-              </Form.Item>
+          <Collapse
+            defaultActiveKey={[]}
+            className="margin-bottom-space-4"
+            items={[
+              {
+                key: 'prometheus',
+                label: 'Настройки Prometheus',
+                children: (
+                  <>
+                    <Form.Item
+                      name="prometheus_enabled"
+                      label="Включить Prometheus"
+                      valuePropName="checked"
+                    >
+                      <Checkbox />
+                    </Form.Item>
 
-              <Form.Item
-                name="prometheus_url"
-                label="URL Prometheus"
-              >
-                <Input placeholder="http://prometheus.example.com:9090" />
-              </Form.Item>
+                    <Form.Item
+                      name="prometheus_url"
+                      label="URL Prometheus"
+                    >
+                      <Input placeholder="http://prometheus.example.com:9090" />
+                    </Form.Item>
 
-              <Form.Item
-                name="prometheus_username"
-                label="Имя пользователя Prometheus"
-              >
-                <Input />
-              </Form.Item>
+                    <Form.Item
+                      name="prometheus_username"
+                      label="Имя пользователя Prometheus"
+                    >
+                      <Input />
+                    </Form.Item>
 
-              <Form.Item
-                name="prometheus_password"
-                label="Пароль Prometheus"
-              >
-                <Input.Password />
-              </Form.Item>
-            </Collapse.Panel>
-          </Collapse>
+                    <Form.Item
+                      name="prometheus_password"
+                      label="Пароль Prometheus"
+                    >
+                      <Input />
+                    </Form.Item>
+                  </>
+                ),
+              },
+            ]}
+          />
 
           <Form.Item
             name="kubeconfig"

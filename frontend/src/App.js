@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { Layout, Menu, Spin } from 'antd';
+import { Layout, Menu, Spin, ConfigProvider, theme } from 'antd';
 import {
   DashboardOutlined,
   ClusterOutlined,
@@ -79,32 +79,48 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className="app-container">
-        <Layout className="main-layout">
-          <Sidebar />
-          <Layout className="main-layout-bg">
-            <Header className="header-bg">
-              <div className="header-title">
-                Kubernetes Cluster Inspection Tool
-              </div>
-            </Header>
-            <Content className="content-area">
-              <Suspense fallback={<div className="loading-spinner"><Spin size="large" /></div>}>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/clusters" element={<ClusterManagement />} />
-                  <Route path="/network" element={<NetworkConnectivity />} />
-                  <Route path="/inspection" element={<Inspection />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/help" element={<Help />} />
-                </Routes>
-              </Suspense>
-            </Content>
+    <ConfigProvider
+      theme={{
+        algorithm: theme.darkAlgorithm,
+        token: {
+          colorPrimary: '#6366f1',
+          colorBgContainer: '#282a36',
+          colorBgElevated: '#282a36',
+          colorText: '#f8f8f2',
+          colorTextSecondary: '#8b94b8',
+          colorBorder: '#6272a4',
+          colorBorderSecondary: '#6272a4',
+          colorBgLayout: '#21222c',
+        },
+      }}
+    >
+      <Router>
+        <div className="app-container">
+          <Layout className="main-layout">
+            <Sidebar />
+            <Layout className="main-layout-bg">
+              <Header className="header-bg">
+                <div className="header-title">
+                  Kubernetes Cluster Inspection Tool
+                </div>
+              </Header>
+              <Content className="content-area">
+                <Suspense fallback={<div className="loading-spinner"><Spin size="large" /></div>}>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/clusters" element={<ClusterManagement />} />
+                    <Route path="/network" element={<NetworkConnectivity />} />
+                    <Route path="/inspection" element={<Inspection />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/help" element={<Help />} />
+                  </Routes>
+                </Suspense>
+              </Content>
+            </Layout>
           </Layout>
-        </Layout>
-      </div>
-    </Router>
+        </div>
+      </Router>
+    </ConfigProvider>
   );
 }
 
