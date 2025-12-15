@@ -249,7 +249,7 @@ const Reports = () => {
     {
       title: 'Статус',
       key: 'status',
-      render: (_, record) => getStatusTag(record),
+      render: (_, record) => getStatusTag(record.status),
     },
     {
       title: 'Критические',

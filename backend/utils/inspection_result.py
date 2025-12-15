@@ -705,6 +705,14 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
 
         total = len(result_data.get("items", []))
 
+    # Determine overall status
+    if critical > 0:
+        status = 'failed'
+    elif warning > 0:
+        status = 'warning'
+    else:
+        status = 'passed'
+
     return {
         "cluster_name": result_data.get("cluster_name", ""),
         "inspection_type": result_data.get("inspection_type", "unknown"),
@@ -715,6 +723,7 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
         "critical": critical,
         "warning": warning,
         "info": info,
+        "status": status,
     }
 
 
@@ -796,15 +805,26 @@ def load_result_minimal(file_path: Path) -> Optional[Dict]:
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
+        # Calculate status
+        critical = data.get("critical", 0)
+        warning = data.get("warning", 0)
+        if critical > 0:
+            status = 'failed'
+        elif warning > 0:
+            status = 'warning'
+        else:
+            status = 'passed'
+
         # Return only necessary fields for list
         return {
             "result_id": data.get("result_id"),
             "cluster_name": data.get("cluster_name"),
             "timestamp": data.get("timestamp"),
             "inspection_type": data.get("inspection_type"),
-            "critical": data.get("critical", 0),
-            "warning": data.get("warning", 0),
+            "critical": critical,
+            "warning": warning,
             "passed": data.get("passed", 0),
+            "status": status,
         }
     except:
         return None
