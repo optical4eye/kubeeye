@@ -202,6 +202,13 @@ class GitOpsRuleManager:
                 git.Repo.clone_from(auth_url, repo_path, **clone_kwargs)
                 message = f"Repository {repo_name} successfully cloned"
 
+            # Clear rules cache after repository update
+            try:
+                from .rule_loader import clear_rules_cache
+                clear_rules_cache()
+            except Exception as e:
+                logger.warning(f"Failed to clear rules cache: {e}")
+
             return True, message
         except Exception as e:
             return False, f"Operation error: {str(e)}"

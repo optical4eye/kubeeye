@@ -66,6 +66,12 @@ backend:
       value: "kubeeye repo rules"
     - name: KUBEYE_REPORT_RETENTION_DAYS
       value: '1'
+    - name: KUBEYE_SSH_CONNECTION_TIMEOUT
+      value: '10'
+    - name: KUBEYE_SSH_MAX_CONCURRENT_CHECKS
+      value: '10'
+    - name: GIT_SSL_NO_VERIFY
+      value: 'false'
 
   resources:
     limits:

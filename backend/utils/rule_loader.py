@@ -8,6 +8,7 @@ import yaml
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional
+from functools import lru_cache
 
 # Log setup
 logger = logging.getLogger(__name__)
@@ -104,20 +105,20 @@ class Rule:
         return self.config.get("execution", {})
 
 
-def load_rules(
+@lru_cache(maxsize=32)
+def _load_rules_cached(
+    rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False, cache_key: int = 0
+) -> tuple:
+    """Cached version of rule loading - returns tuple for hashing"""
+    # Implementation moved to _load_rules_impl
+    rules = _load_rules_impl(rule_type, include_disabled, use_gitops)
+    return tuple(rule.id for rule in rules)
+
+
+def _load_rules_impl(
     rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False
 ) -> List[Rule]:
-    """
-    Load rules of specified type
-
-    Args:
-        rule_type: rule type, e.g. node, opa, prometheus, if None, load all rules
-        include_disabled: whether to include disabled rules
-        use_gitops: whether to use GitOps rules
-
-    Returns:
-        List of rules
-    """
+    """Internal implementation of rule loading"""
     rules = []
 
     # Determine base directory
@@ -271,6 +272,60 @@ def load_rules(
     return rules
 
 
+def _get_directory_hash(base_dir: Path) -> int:
+    """Get hash of directory contents for cache invalidation"""
+    if not base_dir.exists():
+        return 0
+
+    import hashlib
+    hasher = hashlib.md5()
+
+    try:
+        # Sort files for consistent hashing
+        yaml_files = sorted(base_dir.rglob("*.yaml"))
+        for file_path in yaml_files:
+            if file_path.is_file():
+                # Include file path and modification time
+                hasher.update(str(file_path).encode())
+                hasher.update(str(file_path.stat().st_mtime).encode())
+    except Exception:
+        # If hashing fails, return 0 to disable cache
+        return 0
+
+    return int(hasher.hexdigest(), 16) % 2**32
+
+
+def load_rules(
+    rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False
+) -> List[Rule]:
+    """
+    Load rules of specified type
+
+    Args:
+        rule_type: rule type, e.g. node, opa, prometheus, if None, load all rules
+        include_disabled: whether to include disabled rules
+        use_gitops: whether to use GitOps rules
+
+    Returns:
+        List of rules
+    """
+    # Generate cache key based on directory contents
+    base_dir = GIT_RULES_DIR if use_gitops else RULES_DIR
+    cache_key = _get_directory_hash(base_dir)
+
+    # Check cache first
+    cached_ids = _load_rules_cached(rule_type, include_disabled, use_gitops, cache_key)
+    if cached_ids:
+        # If we have cached result, load fresh rules and filter by cached IDs
+        all_rules = _load_rules_impl(rule_type, include_disabled, use_gitops)
+        # Filter rules by cached IDs to maintain order and ensure consistency
+        id_to_rule = {rule.id: rule for rule in all_rules}
+        return [id_to_rule[rule_id] for rule_id in cached_ids if rule_id in id_to_rule]
+
+    # If no cache, load normally
+    return _load_rules_impl(rule_type, include_disabled, use_gitops)
+
+
 def load_rule_from_file(file_path: str) -> Optional[Rule]:
     """
     Load single rule from file
@@ -335,9 +390,18 @@ def save_rule(rule: Rule) -> bool:
         with open(file_path, "w", encoding="utf-8") as f:
             yaml.dump(rule_dict, f, default_flow_style=False, allow_unicode=True)
 
+        # Clear cache after saving
+        _load_rules_cached.cache_clear()
+
         logger.info(f"Rule {rule.id} successfully saved to file {file_path}")
         return True
 
     except Exception as e:
         logger.error(f"Failed to save rule {rule.id}: {str(e)}")
         return False
+
+
+def clear_rules_cache():
+    """Clear the rules loading cache"""
+    _load_rules_cached.cache_clear()
+    logger.info("Rules cache cleared")

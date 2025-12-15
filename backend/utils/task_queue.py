@@ -241,12 +241,7 @@ class AsyncTaskQueue:
         if task.progress_callback:
             task.progress_callback("Inspection completed")
 
-        if not success:
-            cluster_name = payload.get("cluster_name", "unknown")
-            raise RuntimeError(
-                f"Inspection failed for cluster {cluster_name}: {message}"
-            )
-
+        # Inspection now always succeeds (errors are recorded in results)
         return {
             "success": success,
             "message": message,

@@ -10,6 +10,7 @@ import socket
 import logging
 from typing import Dict, Tuple, Optional
 import os
+from .ssh_connection_pool import ssh_pool
 
 
 class AsyncNodeConnection:
@@ -187,6 +188,9 @@ class NodeConnection:
             self.client = paramiko.SSHClient()
             self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+            # Get configurable SSH timeout (used for connection, commands, and socket tests)
+            ssh_timeout = int(os.getenv('KUBEYE_SSH_CONNECTION_TIMEOUT', '10'))
+
             # Connect
             if self.node_info["auth_type"] == "password":
                 self.client.connect(
@@ -194,7 +198,7 @@ class NodeConnection:
                     port=int(self.node_info["port"]),
                     username=self.node_info["username"],
                     password=self.node_info["password"],
-                    timeout=5,
+                    timeout=ssh_timeout,
                 )
             else:
                 # Key authentication
@@ -209,7 +213,7 @@ class NodeConnection:
                     port=int(self.node_info["port"]),
                     username=self.node_info["username"],
                     pkey=key,
-                    timeout=5,
+                    timeout=ssh_timeout,
                 )
 
             self.connected = True
@@ -235,7 +239,7 @@ class NodeConnection:
 
     def execute_command(self, command: str) -> Tuple[bool, str, str]:
         """
-        Execute command on node using paramiko
+        Execute command on node using connection pool
 
         Args:
             command: command to execute
@@ -243,14 +247,33 @@ class NodeConnection:
         Returns:
             Tuple (success, stdout, stderr)
         """
-        if not self.connected:
-            success, message = self.connect()
-            if not success:
-                return False, "", message
+        try:
+            # Get or create event loop
+            try:
+                loop = asyncio.get_running_loop()
+                # If there's already a running loop, we need to use it differently
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self._execute_command_sync, command)
+                    return future.result(timeout=command_timeout + 5)  # command timeout + 5s buffer
+            except RuntimeError:
+                # No running loop, we can use asyncio.run
+                return asyncio.run(self._execute_command_async(command))
+
+        except Exception as e:
+            return False, "", f"Command execution error: {str(e)}"
+
+    async def _execute_command_async(self, command: str) -> Tuple[bool, str, str]:
+        """Execute command asynchronously"""
+        # Get connection from pool
+        client = await ssh_pool.get_connection(self.node_info)
+        if not client:
+            return False, "", "Failed to get connection from pool"
 
         try:
-            # Execute command
-            stdin, stdout, stderr = self.client.exec_command(command, timeout=60)
+            # Execute command with configurable timeout (6x base SSH timeout for commands)
+            command_timeout = ssh_timeout * 6  # 60s for 10s base
+            stdin, stdout, stderr = client.exec_command(command, timeout=command_timeout)
             exit_status = stdout.channel.recv_exit_status()
 
             # Read output
@@ -259,8 +282,13 @@ class NodeConnection:
 
             success = exit_status == 0
             return success, stdout_data, stderr_data
-        except Exception as e:
-            return False, "", f"Command execution error: {str(e)}"
+        finally:
+            # Return connection to pool
+            await ssh_pool.return_connection(self.node_info, client)
+
+    def _execute_command_sync(self, command: str) -> Tuple[bool, str, str]:
+        """Execute command synchronously using new event loop"""
+        return asyncio.run(self._execute_command_async(command))
 
     def _load_private_key(self, key_path: str):
         """Load private key supporting multiple types (RSA, DSS, ECDSA, Ed25519)"""
@@ -333,9 +361,10 @@ def test_node_connection(node_info: Dict) -> Tuple[bool, str]:
         host = node_info["ip"]
         port = int(node_info.get("port", 22))
 
-        # Create socket with 5 second timeout
+        # Create socket with timeout based on SSH timeout (0.5x for quick tests)
+        socket_timeout = ssh_timeout * 0.5  # 5s for 10s base
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5.0)  # 5 second timeout
+        sock.settimeout(float(socket_timeout))
 
         try:
             result = sock.connect_ex((host, port))
@@ -347,7 +376,7 @@ def test_node_connection(node_info: Dict) -> Tuple[bool, str]:
                 return False, f"Connection to {host}:{port} failed (port unreachable)"
         except socket.timeout:
             sock.close()
-            return False, f"Connection to {host}:{port} timed out (5s)"
+            return False, f"Connection to {host}:{port} timed out ({socket_timeout}s)"
         except socket.gaierror as e:
             sock.close()
             return False, f"DNS resolution error for {host}: {str(e)}"

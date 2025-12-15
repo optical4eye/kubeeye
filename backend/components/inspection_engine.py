@@ -126,7 +126,18 @@ class InspectionEngine:
                 if success:
                     all_results["node"] = result
                 else:
-                    return False, f"Node inspection failed: {result}", None
+                    logger.warning(f"Node inspection failed: {result}")
+                    # Create error result for failed inspection
+                    error_result = InspectionResult(cluster_name, "node")
+                    error_result.add_item({
+                        "name": "Node inspection failed",
+                        "status": "error",
+                        "description": f"Node inspection could not be completed: {result}",
+                        "severity": "critical",
+                        "details": str(result),
+                        "solution": "Check cluster node connectivity and configuration"
+                    })
+                    all_results["node"] = error_result
 
             if run_prometheus_check:
                 success, result = self._execute_prometheus_inspection(
@@ -138,7 +149,18 @@ class InspectionEngine:
                 if success:
                     all_results["prometheus"] = result
                 else:
-                    return False, f"Prometheus inspection failed: {result}", None
+                    logger.warning(f"Prometheus inspection failed: {result}")
+                    # Create error result for failed inspection
+                    error_result = InspectionResult(cluster_name, "prometheus")
+                    error_result.add_item({
+                        "name": "Prometheus inspection failed",
+                        "status": "error",
+                        "description": f"Prometheus inspection could not be completed: {result}",
+                        "severity": "critical",
+                        "details": str(result),
+                        "solution": "Check Prometheus server connectivity and configuration"
+                    })
+                    all_results["prometheus"] = error_result
 
             if run_opa_check:
                 success, result = self._execute_opa_inspection(
@@ -147,19 +169,45 @@ class InspectionEngine:
                 if success:
                     all_results["opa"] = result
                 else:
-                    return False, f"OPA inspection failed: {result}", None
+                    logger.warning(f"OPA inspection failed: {result}")
+                    # Create error result for failed inspection
+                    error_result = InspectionResult(cluster_name, "opa")
+                    error_result.add_item({
+                        "name": "OPA inspection failed",
+                        "status": "error",
+                        "description": f"OPA inspection could not be completed: {result}",
+                        "severity": "critical",
+                        "details": str(result),
+                        "solution": "Check Kubernetes API connectivity and kubeconfig"
+                    })
+                    all_results["opa"] = error_result
 
             if all_results:
                 result_path = self._save_inspection_results(
                     all_results, cluster_name, cluster_config, inspection_type
                 )
-                return (
-                    True,
-                    f"Inspection completed, results saved: {result_path}",
-                    all_results,
+                # Check if we have any successful results (not just error results)
+                has_successful_results = any(
+                    result and hasattr(result, 'items') and
+                    any(item.get('status') != 'error' for item in result.items)
+                    for result in all_results.values()
+                    if result is not None
                 )
+
+                if has_successful_results:
+                    return (
+                        True,
+                        f"Inspection completed successfully, results saved: {result_path}",
+                        all_results,
+                    )
+                else:
+                    return (
+                        True,
+                        f"Inspection completed with errors, results saved: {result_path}",
+                        all_results,
+                    )
             else:
-                error_msg = "No inspection results obtained."
+                error_msg = "No inspection types were configured to run."
                 return False, error_msg, None
         except Exception as e:
             error_msg = f"Inspection execution error: {str(e)}"

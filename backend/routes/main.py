@@ -275,6 +275,15 @@ async def shutdown_event():
     except Exception as e:
         logger.error(f"Failed to stop task queue on shutdown: {e}")
 
+    try:
+        from utils.ssh_connection_pool import ssh_pool
+
+        await ssh_pool.close_all()
+        logger.info("SSH connection pool closed on application shutdown")
+    except Exception as e:
+        logger.error(f"Failed to close SSH connection pool on shutdown: {e}")
+
+
 
 # Root endpoint
 @app.get("/")

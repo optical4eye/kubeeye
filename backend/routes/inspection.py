@@ -50,11 +50,13 @@ async def run_immediate_inspection(
             use_gitops=use_gitops,
         )
 
-        if not success:
+        # Inspection now always succeeds (errors are recorded in results)
+        # Only raise exception for critical infrastructure errors
+        if not success and "No inspection types were configured" in message:
             logger.error(
                 f"Inspection failed for cluster {request.cluster_name}: {message}"
             )
-            raise HTTPException(status_code=500, detail=message)
+            raise HTTPException(status_code=400, detail=message)
 
         logger.info(
             f"Inspection completed successfully for cluster: {request.cluster_name}"

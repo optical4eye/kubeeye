@@ -15,6 +15,8 @@ services:
       - KUBEEYE_GITOPS_REPO_TOKEN=""
       - KUBEEYE_GITOPS_REPO_DESCRIPTION=kubeeye repo rules
       - KUBEYE_REPORT_RETENTION_DAYS=1
+      - KUBEYE_SSH_CONNECTION_TIMEOUT=10
+      - KUBEYE_SSH_MAX_CONCURRENT_CHECKS=10
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]

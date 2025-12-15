@@ -260,58 +260,112 @@ class NodeInspector(BaseInspector):
 
     def _check_all_node_connections(self) -> List[Dict]:
         """
-        Check SSH connection to all nodes
+        Check SSH connection to all nodes in parallel using ThreadPoolExecutor
         Returns list of available nodes
         """
-        logger.info("Checking SSH connection to all nodes...")
+        logger.info("Checking SSH connection to all nodes in parallel...")
+
+        import concurrent.futures
+        import os
 
         available_nodes = []
 
-        for node in self.nodes:
-            node_key = self.ssh_error_manager._get_node_key(node)
-            node_name = node.get("name", node["ip"])
+        # Get configurable SSH timeout and max concurrent checks
+        ssh_timeout = int(os.getenv('KUBEYE_SSH_CONNECTION_TIMEOUT', '10'))
+        max_concurrent_checks = int(os.getenv('KUBEYE_SSH_MAX_CONCURRENT_CHECKS', '10'))
 
-            # Check if there was already an error for this node
-            if self.ssh_error_manager.has_connection_error(node):
-                logger.debug(f"Node {node_name} already has SSH error, skipping")
-                continue
+        # Calculate derived timeouts based on base SSH timeout
+        connection_check_timeout = ssh_timeout * 1.5  # 15s for 10s base
+        total_check_timeout = ssh_timeout * 2  # 20s for 10s base
 
-            # Check status cache
-            if node_key in self.connection_status_cache:
-                status = self.connection_status_cache[node_key]
-                node["connection_status"] = status
-                if status["success"]:
-                    available_nodes.append(node)
-                else:
-                    # Register error in manager
-                    self.ssh_error_manager.register_connection_error(
-                        node, status["message"]
-                    )
-                continue
+        max_workers = min(max_concurrent_checks, len(self.nodes))
 
-            # Perform connection check
-            logger.info(f"Checking SSH connection to node: {node_name}")
-            success, message = test_node_connection(node)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all connection checks
+            future_to_node = {}
+            for node in self.nodes:
+                node_key = self.ssh_error_manager._get_node_key(node)
+                node_name = node.get("name", node["ip"])
 
-            # Save status
-            status = {"success": success, "message": message}
-            self.connection_status_cache[node_key] = status
-            node["connection_status"] = status
+                # Check if there was already an error for this node
+                if self.ssh_error_manager.has_connection_error(node):
+                    logger.debug(f"Node {node_name} already has SSH error, skipping")
+                    continue
 
-            if success:
-                available_nodes.append(node)
-                logger.info(f"SSH connection to node {node_name} successful")
-            else:
-                logger.error(
-                    f"SSH connection to node {node_name} unavailable: {message}"
-                )
-                # Register error in manager
-                self.ssh_error_manager.register_connection_error(node, message)
+                # Check status cache
+                if node_key in self.connection_status_cache:
+                    status = self.connection_status_cache[node_key]
+                    node["connection_status"] = status
+                    if status["success"]:
+                        available_nodes.append(node)
+                    else:
+                        # Register error in manager
+                        self.ssh_error_manager.register_connection_error(
+                            node, status["message"]
+                        )
+                    continue
+
+                # Submit connection check to thread pool
+                future = executor.submit(self._check_single_node_connection_with_timeout, node)
+                future_to_node[future] = node
+
+            # Collect results as they complete
+            for future in concurrent.futures.as_completed(future_to_node):
+                node = future_to_node[future]
+                node_key = self.ssh_error_manager._get_node_key(node)
+                node_name = node.get("name", node["ip"])
+
+                try:
+                    success, message = future.result(timeout=total_check_timeout)
+
+                    # Save status
+                    status = {"success": success, "message": message}
+                    self.connection_status_cache[node_key] = status
+                    node["connection_status"] = status
+
+                    if success:
+                        available_nodes.append(node)
+                        logger.info(f"SSH connection to node {node_name} successful")
+                    else:
+                        logger.error(
+                            f"SSH connection to node {node_name} unavailable: {message}"
+                        )
+                        # Register error in manager
+                        self.ssh_error_manager.register_connection_error(node, message)
+
+                except concurrent.futures.TimeoutError:
+                    error_msg = f"Connection check timeout (20s) for node {node_name}"
+                    logger.error(error_msg)
+                    self.ssh_error_manager.register_connection_error(node, error_msg)
+                except Exception as e:
+                    error_msg = f"Connection check error for node {node_name}: {str(e)}"
+                    logger.error(error_msg)
+                    self.ssh_error_manager.register_connection_error(node, error_msg)
 
         logger.info(
             f"Connection check completed. Available: {len(available_nodes)}, Unavailable: {len(self.nodes) - len(available_nodes)}"
         )
         return available_nodes
+
+    def _check_single_node_connection_with_timeout(self, node: Dict) -> Tuple[bool, str]:
+        """
+        Check connection to single node with timeout
+        """
+        import concurrent.futures
+
+        node_name = node.get("name", node["ip"])
+
+        try:
+            # Run connection test with timeout using ThreadPoolExecutor
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(test_node_connection, node)
+                success, message = future.result(timeout=connection_check_timeout)
+                return success, message
+
+        except concurrent.futures.TimeoutError:
+            return False, f"Connection timeout ({connection_check_timeout}s) for node {node_name}"
+        except Exception as e:
+            return False, f"Connection check error for node {node_name}: {str(e)}"
 
     def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
         """
@@ -737,11 +791,14 @@ class NodeInspector(BaseInspector):
             max_workers = node_count
             timeout = 30
         elif node_count <= 10:
-            max_workers = min(5, node_count)
+            max_workers = min(8, node_count)  # Increased from 5 to 8
             timeout = 25
-        else:
-            max_workers = min(10, node_count)
+        elif node_count <= 20:
+            max_workers = min(15, node_count)  # Support for medium clusters
             timeout = 20
+        else:
+            max_workers = min(25, node_count)  # Support for large clusters
+            timeout = 15  # Reduced timeout for large clusters
 
         return cls(
             config=config,

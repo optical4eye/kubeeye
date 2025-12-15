@@ -122,3 +122,62 @@ npm install
 npm start
 # Access at http://localhost:3000 (proxies to backend)
 ```
+
+## Environment Variables
+
+### Backend Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PYTHONPATH` | `/app` | Python module search path |
+| `KUBEEYE_DATA_DIR` | `/app/data` | Directory for storing application data (clusters, reports, etc.) |
+| `KUBEYE_REPORT_RETENTION_DAYS` | `1` | Number of days to retain inspection reports before cleanup |
+| `KUBEYE_SSH_CONNECTION_TIMEOUT` | `10` | Base timeout for SSH connections in seconds. Affects all SSH-related timeouts proportionally |
+| `KUBEYE_SSH_MAX_CONCURRENT_CHECKS` | `10` | Maximum number of concurrent SSH connection checks during inspection |
+
+### GitOps Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `KUBEEYE_GITOPS_REPO_NAME` | `kubeeye_rules` | Name identifier for the GitOps rules repository |
+| `KUBEEYE_GITOPS_REPO_URL` | `https://github.com/optical4eye/kubeeye-rules.git` | URL of the GitOps rules repository |
+| `KUBEEYE_GITOPS_REPO_BRANCH` | `main` | Branch of the GitOps rules repository to use |
+| `KUBEEYE_GITOPS_REPO_USERNAME` | `optical4eye` | Username for GitOps repository authentication |
+| `KUBEEYE_GITOPS_REPO_TOKEN` | `""` | Personal access token for GitOps repository authentication |
+| `KUBEEYE_GITOPS_REPO_DESCRIPTION` | `kubeeye repo rules` | Description of the GitOps rules repository |
+| `GIT_SSL_NO_VERIFY` | `false` | Disable SSL certificate verification for Git operations (use with caution in production) |
+
+### Frontend Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REACT_APP_API_URL` | `http://localhost:8000` | URL of the backend API for frontend communication |
+
+### SSH Timeout Details
+
+The `KUBEYE_SSH_CONNECTION_TIMEOUT` variable controls multiple related timeouts:
+
+- **SSH Connection Timeout**: Direct value (10s default)
+- **SSH Command Execution Timeout**: 6x base timeout (60s default)
+- **Socket Connection Test Timeout**: 0.5x base timeout (5s default)
+- **Node Connection Check Timeout**: 1.5x base timeout (15s default)
+- **Total Connection Check Timeout**: 2x base timeout (20s default)
+
+### Configuration Examples
+
+**For slow networks or VPN connections:**
+```bash
+export KUBEYE_SSH_CONNECTION_TIMEOUT=30
+export KUBEYE_SSH_MAX_CONCURRENT_CHECKS=5
+```
+
+**For large clusters (20+ nodes):**
+```bash
+export KUBEYE_SSH_CONNECTION_TIMEOUT=15
+export KUBEYE_SSH_MAX_CONCURRENT_CHECKS=20
+```
+
+**For development with extended report retention:**
+```bash
+export KUBEYE_REPORT_RETENTION_DAYS=7
+```

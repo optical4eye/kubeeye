@@ -7,9 +7,7 @@ Inspection controller, responsible for planning and coordinating different types
 import logging
 from typing import Dict, List, Any, Tuple, Optional
 
-from inspectors.node.node_inspector import NodeInspector
-from inspectors.opa.opa_inspector import OpaInspector
-from inspectors.prometheus.prometheus_inspector import PrometheusInspector
+from inspectors.inspector_registry import inspector_registry
 from utils.inspection_result import InspectionResult
 
 # Logging setup
@@ -33,38 +31,13 @@ class InspectionController:
         self._initialize_inspectors()
 
     def _initialize_inspectors(self):
-        """Initialize all inspectors"""
+        """Initialize all inspectors using registry"""
         # Output configuration information for debugging
         logger.info(f"Controller configuration: {list(self.config.keys())}")
         logger.info(f"GitOps mode: {self.use_gitops}")
 
-        # Initialize node inspector
-        if "nodes" in self.config and self.config["nodes"]:
-            logger.info(
-                f"Node configuration detected, number of nodes: {len(self.config['nodes'])}"
-            )
-            self.inspectors["node"] = NodeInspector(
-                self.config["nodes"], use_gitops=self.use_gitops
-            )
-            logger.info("Node inspector initialized")
-        else:
-            logger.warning(
-                f"Node configuration not found: nodes={'nodes' in self.config}, count={len(self.config.get('nodes', []))}"
-            )
-
-        # Initialize OPA inspector
-        if "opa" in self.config:
-            self.inspectors["opa"] = OpaInspector(
-                self.config["opa"], use_gitops=self.use_gitops
-            )
-            logger.info("OPA inspector initialized")
-
-        # Initialize Prometheus inspector
-        if "prometheus" in self.config:
-            self.inspectors["prometheus"] = PrometheusInspector(
-                self.config["prometheus"], use_gitops=self.use_gitops
-            )
-            logger.info("Prometheus inspector initialized")
+        # Use registry to create inspectors dynamically
+        self.inspectors = inspector_registry.create_inspectors(self.config, self.use_gitops)
 
         logger.info(
             f"Initialized {len(self.inspectors)} inspectors: {list(self.inspectors.keys())}"

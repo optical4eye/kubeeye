@@ -49,7 +49,15 @@ export const testClusterKubeconfig = (clusterName, kubeconfig = null) => {
 export const runInspection = (inspectionData) => api.post(apiPath('/inspection'), inspectionData);
 
 // Async inspections
-export const runInspectionAsync = (inspectionData) => api.post(apiPath('/inspection/async'), inspectionData);
+export const runInspectionAsync = (inspectionData) => {
+  // Use extended timeout for async inspections
+  const inspectionApi = axios.create({
+    ...api.defaults,
+    timeout: 30000, // 30 seconds for async inspection submission
+  });
+
+  return inspectionApi.post(apiPath('/inspection/async'), inspectionData);
+};
 export const getInspectionTaskStatus = (taskId) => api.get(apiPath(`/inspection/task/${taskId}`));
 export const cancelInspectionTask = (taskId) => api.delete(apiPath(`/inspection/task/${taskId}`));
 
