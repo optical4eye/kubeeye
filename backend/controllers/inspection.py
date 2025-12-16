@@ -37,7 +37,7 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
 
         use_gitops = RuleManager.should_use_gitops()
 
-        success, message, results = execute_inspection_unified(
+        success, message, results = await execute_inspection_unified(
             cluster_name=request.cluster_name,
             selected_rules=request.selected_rules,
             inspection_type=request.inspection_type,

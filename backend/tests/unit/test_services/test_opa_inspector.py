@@ -306,21 +306,23 @@ class TestOpaInspector:
 
     @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
     @patch('os.path.exists')
-    def test_evaluate_opa_opa_not_found(self, mock_exists, mock_k8s_client_class):
+    @pytest.mark.asyncio
+    async def test_evaluate_opa_opa_not_found(self, mock_exists, mock_k8s_client_class):
         """Test OPA evaluation when OPA binary not found"""
         mock_exists.return_value = False
 
         inspector = OpaInspector({})
 
         with pytest.raises(Exception) as exc_info:
-            inspector._evaluate_opa("package test", [{"name": "test"}])
+            await inspector._evaluate_opa("package test", [{"name": "test"}])
 
         assert "OPA binary not found" in str(exc_info.value)
 
     @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
     @patch('os.path.exists')
     @patch('os.access')
-    def test_evaluate_opa_not_executable(self, mock_access, mock_exists, mock_k8s_client_class):
+    @pytest.mark.asyncio
+    async def test_evaluate_opa_not_executable(self, mock_access, mock_exists, mock_k8s_client_class):
         """Test OPA evaluation when OPA binary not executable"""
         mock_exists.return_value = True
         mock_access.return_value = False
@@ -328,7 +330,7 @@ class TestOpaInspector:
         inspector = OpaInspector({})
 
         with pytest.raises(Exception) as exc_info:
-            inspector._evaluate_opa("package test", [{"name": "test"}])
+            await inspector._evaluate_opa("package test", [{"name": "test"}])
 
         assert "not executable" in str(exc_info.value)
 

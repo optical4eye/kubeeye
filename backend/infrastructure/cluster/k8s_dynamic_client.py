@@ -354,6 +354,17 @@ class K8sDynamicClient(K8sBaseClient):
             else:
                 result = dict(obj)
 
+            # Filter out callable objects to avoid serialization issues
+            def filter_callable(data):
+                if isinstance(data, dict):
+                    return {k: filter_callable(v) for k, v in data.items() if not callable(v)}
+                elif isinstance(data, list):
+                    return [filter_callable(item) for item in data if not callable(item)]
+                else:
+                    return data if not callable(data) else None
+
+            result = filter_callable(result)
+
             # Handle datetime objects
             self._convert_datetime_in_dict(result)
             return result

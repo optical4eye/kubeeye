@@ -4,6 +4,7 @@
 Node inspector with centralized SSH connection error management
 """
 
+import asyncio
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -207,7 +208,7 @@ class NodeInspector(BaseInspector):
     def inspector_type(self) -> str:
         return "node"
 
-    def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
+    async def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
         """
         Run inspection with guaranteed unified SSH error display
         """
@@ -235,7 +236,7 @@ class NodeInspector(BaseInspector):
             return result
 
         # Execute inspection rules only on available nodes
-        result = super().run_inspection(cluster_name, rule_ids)
+        result = await super().run_inspection(cluster_name, rule_ids)
 
         # Add SSH connection errors to the beginning of the report
         ssh_errors = self.ssh_error_manager.get_all_connection_errors()
@@ -361,7 +362,7 @@ class NodeInspector(BaseInspector):
         except Exception as e:
             return False, f"Connection check error for node {node_name}: {str(e)}"
 
-    def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
+    def _apply_rule_sync(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
         """
         Apply inspection rule only to available nodes
         """
@@ -432,6 +433,9 @@ class NodeInspector(BaseInspector):
 
         logger.info(f"Rule {rule.id} executed in {rule_duration:.2f}sec")
         return node_results
+
+    async def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
+        return await asyncio.to_thread(self._apply_rule_sync, rule, context)
 
     def _execute_rule_concurrently(
         self, rule: Rule, command: str, assertions: List[Dict], target_nodes: List[Dict]

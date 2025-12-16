@@ -5,6 +5,7 @@ OPA rules inspector - simplified version
 Focused on core functions, removed redundant code and excessive logging
 """
 
+import asyncio
 import logging
 import os
 import tempfile
@@ -65,7 +66,7 @@ class OpaInspector(BaseInspector):
         """Prepare inspection context"""
         return super()._prepare_context(cluster_name)
 
-    def _apply_rule(self, rule: Rule, context: Dict) -> Dict:
+    async def _apply_rule(self, rule: Rule, context: Dict) -> Dict:
         """Execute OPA rule validation"""
         logger.info(f"Executing rule: {rule.id}")
 
@@ -81,13 +82,13 @@ class OpaInspector(BaseInspector):
                 return self._pass_result(rule, "No matching resources")
 
             # Execute OPA evaluation
-            violations = self._evaluate_opa(rego_content, resources)
+            violations = await self._evaluate_opa(rego_content, resources)
 
             # Evaluate assertions
             return self._evaluate_assertions(rule, violations, len(resources))
 
         except Exception as e:
-            logger.error(f"Rule {rule.id} execution failed: {e}")
+            logger.error(f"Rule {rule.id} execution failed: {e}", exc_info=True)
             return self._error_result(rule, f"Execution failed: {str(e)}")
 
     def _get_rego_content(self, rule: Rule) -> Optional[str]:
@@ -119,17 +120,31 @@ class OpaInspector(BaseInspector):
 
             # Flatten resource list
             all_resources = []
-            for resource_list in resources_dict.values():
-                all_resources.extend(resource_list)
+            try:
+                if isinstance(resources_dict, dict):
+                    try:
+                        for resource_list in resources_dict.values():
+                            if isinstance(resource_list, list):
+                                all_resources.extend(resource_list)
+                            else:
+                                logger.warning(f"Skipping non-list resource_list: {type(resource_list)}")
+                    except Exception as e:
+                        logger.error(f"Error iterating resources_dict.values(): {e}", exc_info=True)
+                        return []
+                else:
+                    logger.warning(f"resources_dict is not dict: {type(resources_dict)}")
+            except Exception as e:
+                logger.error(f"Error flattening resources: {e}", exc_info=True)
+                return []
 
             logger.info(f"Retrieved {len(all_resources)} resources")
             return all_resources
 
         except Exception as e:
-            logger.error(f"Failed to get cluster resources: {e}")
+            logger.error(f"Failed to get cluster resources: {e}", exc_info=True)
             return []
 
-    def _evaluate_opa(self, rego_content: str, resources: List[Dict]) -> List[Dict]:
+    async def _evaluate_opa(self, rego_content: str, resources: List[Dict]) -> List[Dict]:
         """Execute OPA evaluation"""
         if not resources:
             return []
@@ -143,7 +158,17 @@ class OpaInspector(BaseInspector):
                 f.write(rego_content.encode("utf-8"))
                 rego_path = f.name
 
-            input_data = {"resources": resources}
+            # Filter out callable objects from resources
+            def filter_callable(data):
+                if isinstance(data, dict):
+                    return {k: filter_callable(v) for k, v in data.items() if not callable(v)}
+                elif isinstance(data, list):
+                    return [filter_callable(item) for item in data if not callable(item)]
+                else:
+                    return data if not callable(data) else None
+
+            filtered_resources = filter_callable(resources)
+            input_data = {"resources": filtered_resources}
             with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
                 json.dump(input_data, f, cls=DateTimeEncoder)
                 input_path = f.name
@@ -168,7 +193,8 @@ class OpaInspector(BaseInspector):
             if not os.access(self.opa_path, os.X_OK):
                 raise Exception(f"OPA binary at {self.opa_path} is not executable")
 
-            result = subprocess.run(
+            result = await asyncio.to_thread(
+                subprocess.run,
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -178,7 +204,14 @@ class OpaInspector(BaseInspector):
 
             # Parse results
             if result.stdout:
-                output = json.loads(result.stdout.strip())
+                try:
+                    output = json.loads(result.stdout.strip())
+                except json.JSONDecodeError as e:
+                    logger.error(f"OPA output is not valid JSON: {e}, stdout: {result.stdout[:500]}")
+                    return []
+                except Exception as e:
+                    logger.error(f"Error parsing OPA output: {e}")
+                    return []
 
                 # Get actual violation data from result[0].expressions[0].value
                 try:
@@ -188,8 +221,8 @@ class OpaInspector(BaseInspector):
                             violations = result_item["expressions"][0].get("value", [])
                             logger.info(f"Found {len(violations)} violations")
                             return violations if isinstance(violations, list) else []
-                except (KeyError, IndexError, TypeError) as e:
-                    logger.error(f"Error parsing OPA results: {e}")
+                except Exception as e:
+                    logger.error(f"Error parsing OPA results: {e}", exc_info=True)
                     # Try old parsing method as fallback
                     violations = output.get("result", [])
                     return violations if isinstance(violations, list) else []
@@ -245,6 +278,9 @@ class OpaInspector(BaseInspector):
             }
 
             assertions = self.get_rule_config(rule, "assertions", [])
+            if not isinstance(assertions, list):
+                logger.warning(f"Assertions is not list: {type(assertions)}, setting to []")
+                assertions = []
             assertion_result = self.rule_processor.assertion_manager.evaluate_assertions(
                 assertions, assertion_vars, mode="simple"
             )

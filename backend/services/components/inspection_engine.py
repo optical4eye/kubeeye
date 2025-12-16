@@ -4,6 +4,7 @@
 Unified inspection execution engine — core logic without UI dependencies
 """
 
+import asyncio
 import logging
 from typing import Dict, List, Any, Optional, Tuple
 
@@ -25,7 +26,7 @@ class InspectionEngine:
         self.progress = None
 
     @log_execution_time
-    def execute_inspection(
+    async def execute_inspection(
         self,
         cluster_name: str,
         selected_rules: Optional[Dict[str, List[str]]] = None,
@@ -72,7 +73,7 @@ class InspectionEngine:
             if show_progress:
                 logger.info("Getting cluster configuration...")
 
-            cluster_config = get_cluster(cluster_name)
+            cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
             if not cluster_config:
                 error_msg = f"Cluster configuration not found: {cluster_name}"
                 return False, error_msg, None
@@ -105,77 +106,44 @@ class InspectionEngine:
             all_results = {}
 
             if run_node_check:
-                success, result = self._execute_node_inspection(
+                success, result = await self._execute_node_inspection(
                     cluster_name, nodes, selected_rules["node"], show_progress
                 )
-                if success:
-                    all_results["node"] = result
-                else:
-                    logger.warning(f"Node inspection failed: {result}")
-                    # Create error result for failed inspection
-                    error_result = InspectionResult(cluster_name, "node")
-                    error_result.add_item(
-                        {
-                            "name": "Node inspection failed",
-                            "status": "error",
-                            "description": f"Node inspection could not be completed: {result}",
-                            "severity": "critical",
-                            "details": str(result),
-                            "solution": "Check cluster node connectivity and configuration",
-                        }
-                    )
-                    all_results["node"] = error_result
+                logger.error(
+                    f"Node inspection result type: {type(result)}, is coroutine: {asyncio.iscoroutine(result)}"
+                )
+                all_results["node"] = result
 
             if run_prometheus_check:
-                success, result = self._execute_prometheus_inspection(
+                success, result = await self._execute_prometheus_inspection(
                     cluster_name,
                     prometheus_config,
                     selected_rules["prometheus"],
                     show_progress,
                 )
-                if success:
-                    all_results["prometheus"] = result
-                else:
-                    logger.warning(f"Prometheus inspection failed: {result}")
-                    # Create error result for failed inspection
-                    error_result = InspectionResult(cluster_name, "prometheus")
-                    error_result.add_item(
-                        {
-                            "name": "Prometheus inspection failed",
-                            "status": "error",
-                            "description": f"Prometheus inspection could not be completed: {result}",
-                            "severity": "critical",
-                            "details": str(result),
-                            "solution": "Check Prometheus server connectivity and configuration",
-                        }
-                    )
-                    all_results["prometheus"] = error_result
+                all_results["prometheus"] = result
 
             if run_opa_check:
-                success, result = self._execute_opa_inspection(
+                success, result = await self._execute_opa_inspection(
                     cluster_name, kubeconfig, selected_rules["opa"], show_progress
                 )
-                if success:
-                    all_results["opa"] = result
-                else:
-                    logger.warning(f"OPA inspection failed: {result}")
-                    # Create error result for failed inspection
-                    error_result = InspectionResult(cluster_name, "opa")
-                    error_result.add_item(
-                        {
-                            "name": "OPA inspection failed",
-                            "status": "error",
-                            "description": f"OPA inspection could not be completed: {result}",
-                            "severity": "critical",
-                            "details": str(result),
-                            "solution": "Check Kubernetes API connectivity and kubeconfig",
-                        }
-                    )
-                    all_results["opa"] = error_result
+                all_results["opa"] = result
+
+            # Ensure all results are not coroutines
+            for key, result in all_results.items():
+                if result and asyncio.iscoroutine(result):
+                    all_results[key] = await result
 
             if all_results:
-                result_path = self._save_inspection_results(all_results, cluster_name, cluster_config, inspection_type)
+                result_path = await asyncio.to_thread(
+                    self._save_inspection_results, all_results, cluster_name, cluster_config, inspection_type
+                )
                 # Check if we have any successful results (not just error results)
+                logger.error(f"all_results keys: {list(all_results.keys())}")
+                for key, result in all_results.items():
+                    logger.error(
+                        f"all_results[{key}] type: {type(result)}, is coroutine: {asyncio.iscoroutine(result)}"
+                    )
                 has_successful_results = any(
                     result and hasattr(result, "items") and any(item.get("status") != "error" for item in result.items)
                     for result in all_results.values()
@@ -201,7 +169,7 @@ class InspectionEngine:
             error_msg = f"Inspection execution error: {str(e)}"
             return False, error_msg, None
 
-    def _execute_node_inspection(
+    async def _execute_node_inspection(
         self,
         cluster_name: str,
         nodes: List[Dict],
@@ -209,20 +177,41 @@ class InspectionEngine:
         show_progress: bool,
     ) -> Tuple[bool, Any]:
         """Execute node inspection"""
+        node_inspector = None
         try:
             node_inspector = NodeInspector(nodes, use_gitops=self.use_gitops)
 
             if show_progress:
                 logger.info("Executing node inspection...")
-            result = node_inspector.run_inspection(cluster_name, selected_rules)
+            result = await node_inspector.run_inspection(cluster_name, selected_rules)
+            logger.error(
+                f"_execute_node_inspection result type: {type(result)}, is coroutine: {asyncio.iscoroutine(result)}"
+            )
             if show_progress:
                 logger.info("Node inspection completed")
             return True, result
         except Exception as e:
             logger.error(f"Node inspection error: {e}")
-            return False, str(e)
+            # Create error result with SSH connection errors
+            error_result = InspectionResult(cluster_name, "node")
+            error_result.add_item(
+                {
+                    "name": "Node inspection failed",
+                    "status": "error",
+                    "description": f"Node inspection could not be completed: {str(e)}",
+                    "severity": "critical",
+                    "details": str(e),
+                    "solution": "Check cluster node connectivity and configuration",
+                }
+            )
+            # Add SSH connection errors if available
+            if node_inspector and hasattr(node_inspector, "ssh_error_manager"):
+                ssh_errors = node_inspector.ssh_error_manager.get_all_connection_errors()
+                for error in ssh_errors:
+                    error_result.add_item(error)
+            return True, error_result
 
-    def _execute_prometheus_inspection(
+    async def _execute_prometheus_inspection(
         self,
         cluster_name: str,
         prometheus_config: Dict,
@@ -235,7 +224,7 @@ class InspectionEngine:
                 prometheus_inspector = PrometheusInspector(prometheus_config, use_gitops=self.use_gitops)
                 if show_progress:
                     logger.info("Executing Prometheus metrics inspection...")
-                result = prometheus_inspector.run_inspection(cluster_name, selected_rules)
+                result = await prometheus_inspector.run_inspection(cluster_name, selected_rules)
                 if show_progress:
                     logger.info("Prometheus metrics inspection completed")
                 return True, result
@@ -245,9 +234,21 @@ class InspectionEngine:
                 return True, None
         except Exception as e:
             logger.error(f"Prometheus metrics inspection error: {e}")
-            return False, str(e)
+            # Create error result
+            error_result = InspectionResult(cluster_name, "prometheus")
+            error_result.add_item(
+                {
+                    "name": "Prometheus inspection failed",
+                    "status": "error",
+                    "description": f"Prometheus inspection could not be completed: {str(e)}",
+                    "severity": "critical",
+                    "details": str(e),
+                    "solution": "Check Prometheus server connectivity and configuration",
+                }
+            )
+            return True, error_result
 
-    def _execute_opa_inspection(
+    async def _execute_opa_inspection(
         self,
         cluster_name: str,
         kubeconfig: str,
@@ -264,7 +265,7 @@ class InspectionEngine:
                 opa_inspector = OpaInspector(opa_config, use_gitops=self.use_gitops)
                 if show_progress:
                     logger.info("Executing OPA compliance inspection...")
-                result = opa_inspector.run_inspection(cluster_name, selected_rules)
+                result = await opa_inspector.run_inspection(cluster_name, selected_rules)
                 if show_progress:
                     logger.info("OPA compliance inspection completed")
                 return True, result
@@ -274,7 +275,19 @@ class InspectionEngine:
                 return True, None
         except Exception as e:
             logger.error(f"OPA compliance inspection error: {e}")
-            return False, str(e)
+            # Create error result
+            error_result = InspectionResult(cluster_name, "opa")
+            error_result.add_item(
+                {
+                    "name": "OPA inspection failed",
+                    "status": "error",
+                    "description": f"OPA inspection could not be completed: {str(e)}",
+                    "severity": "critical",
+                    "details": str(e),
+                    "solution": "Check Kubernetes API connectivity and kubeconfig",
+                }
+            )
+            return True, error_result
 
     def _save_inspection_results(
         self,
@@ -311,7 +324,7 @@ class InspectionEngine:
 inspection_engine = InspectionEngine()
 
 
-def execute_inspection_unified(
+async def execute_inspection_unified(
     cluster_name: str,
     selected_rules: Optional[Dict[str, List[str]]] = None,
     inspection_type: str = "immediate",
@@ -320,7 +333,7 @@ def execute_inspection_unified(
     use_gitops: bool = False,
 ) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
     """Unified inspection launch interface for all components"""
-    return inspection_engine.execute_inspection(
+    return await inspection_engine.execute_inspection(
         cluster_name,
         selected_rules,
         inspection_type,

@@ -228,7 +228,7 @@ class AsyncTaskQueue:
             task.progress_callback("Starting inspection...")
 
         # Execute inspection
-        success, message, results = execute_inspection_unified(
+        success, message, results = await execute_inspection_unified(
             cluster_name=payload["cluster_name"],
             selected_rules=payload.get("selected_rules"),
             inspection_type=payload.get("inspection_type", "immediate"),

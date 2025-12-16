@@ -5,9 +5,9 @@ Version information module for managing project version information
 """
 
 # Major version number
-VERSION_MAJOR = 2
+VERSION_MAJOR = 3
 # Minor version number
-VERSION_MINOR = 0
+VERSION_MINOR = 1
 # Patch number
 VERSION_PATCH = 0
 # Version tag (e.g. 'alpha', 'beta', 'rc1', leave empty for official release)

@@ -4,11 +4,11 @@
 Prometheus query tool for obtaining metric data from Prometheus
 """
 
-import requests
+import aiohttp
 from typing import Dict, Optional
 from datetime import datetime
-import time
 import base64
+import asyncio
 
 
 class PrometheusClient:
@@ -44,7 +44,7 @@ class PrometheusClient:
 
         return headers
 
-    def query(self, query_expr: str, time_param: Optional[str] = None) -> Dict:
+    async def query(self, query_expr: str, time_param: Optional[str] = None) -> Dict:
         """
         Execute Prometheus query
 
@@ -66,9 +66,9 @@ class PrometheusClient:
             params["time"] = time_param
 
         # Use request with retries
-        return self._request_with_retry(f"{self.url}/api/v1/query", params)
+        return await self._request_with_retry(f"{self.url}/api/v1/query", params)
 
-    def query_range(
+    async def query_range(
         self,
         query_expr: str,
         start_time: datetime,
@@ -101,9 +101,9 @@ class PrometheusClient:
         }
 
         # Use request with retries
-        return self._request_with_retry(f"{self.url}/api/v1/query_range", params)
+        return await self._request_with_retry(f"{self.url}/api/v1/query_range", params)
 
-    def alerts(self) -> Dict:
+    async def alerts(self) -> Dict:
         """Get current triggered alerts"""
         if not self.enabled or not self.url:
             return {
@@ -112,9 +112,9 @@ class PrometheusClient:
             }
 
         # Use request with retries
-        return self._request_with_retry(f"{self.url}/api/v1/alerts")
+        return await self._request_with_retry(f"{self.url}/api/v1/alerts")
 
-    def _request_with_retry(self, url: str, params: Dict = None, max_retries: int = 3) -> Dict:
+    async def _request_with_retry(self, url: str, params: Dict = None, max_retries: int = 3) -> Dict:
         """
         Execute Prometheus API request with retries
 
@@ -138,60 +138,62 @@ class PrometheusClient:
 
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        while retries < max_retries:
-            try:
-                response = requests.get(
-                    url,
-                    headers=self._get_headers(),
-                    params=params,
-                    timeout=30,
-                    verify=verify_ssl,  # Determine whether to verify SSL based on protocol
-                )
-
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 503 or response.status_code >= 500:
-                    # Service unavailable, try to retry
+        connector = aiohttp.TCPConnector(verify_ssl=verify_ssl)
+        async with aiohttp.ClientSession(connector=connector) as session:
+            while retries < max_retries:
+                try:
+                    async with session.get(
+                        url,
+                        headers=self._get_headers(),
+                        params=params,
+                        timeout=aiohttp.ClientTimeout(total=30),
+                    ) as response:
+                        if response.status == 200:
+                            return await response.json()
+                        elif response.status == 503 or response.status >= 500:
+                            # Service unavailable, try to retry
+                            retries += 1
+                            if retries < max_retries:
+                                await asyncio.sleep(1)  # Wait 1 second before retry
+                                continue
+                            else:
+                                text = await response.text()
+                                return {
+                                    "status": "error",
+                                    "error": f"After several retries connection still failed: HTTP {response.status}",
+                                    "detail": text,
+                                }
+                        else:
+                            text = await response.text()
+                            return {
+                                "status": "error",
+                                "error": f"Request failed: HTTP {response.status}",
+                                "detail": text,
+                            }
+                except asyncio.TimeoutError:
+                    # Retry on timeout
                     retries += 1
                     if retries < max_retries:
-                        time.sleep(1)  # Wait 1 second before retry
+                        await asyncio.sleep(1)
                         continue
                     else:
                         return {
                             "status": "error",
-                            "error": f"After several retries connection still failed: HTTP {response.status_code}",
-                            "detail": response.text,
+                            "error": "Request timeout, several retries failed",
                         }
-                else:
-                    return {
-                        "status": "error",
-                        "error": f"Request failed: HTTP {response.status_code}",
-                        "detail": response.text,
-                    }
-            except requests.exceptions.Timeout:
-                # Retry on timeout
-                retries += 1
-                if retries < max_retries:
-                    time.sleep(1)
-                    continue
-                else:
-                    return {
-                        "status": "error",
-                        "error": "Request timeout, several retries failed",
-                    }
-            except requests.exceptions.RequestException as e:
-                last_error = str(e)
-                retries += 1
-                if retries < max_retries:
-                    time.sleep(1)
-                    continue
-                else:
-                    return {
-                        "status": "error",
-                        "error": f"Request exception: {last_error}",
-                    }
+                except aiohttp.ClientError as e:
+                    last_error = str(e)
+                    retries += 1
+                    if retries < max_retries:
+                        await asyncio.sleep(1)
+                        continue
+                    else:
+                        return {
+                            "status": "error",
+                            "error": f"Request exception: {last_error}",
+                        }
 
-    def test_connection(self) -> Dict:
+    async def test_connection(self) -> Dict:
         """Test connection to Prometheus"""
         if not self.enabled or not self.url:
             return {
@@ -202,30 +204,25 @@ class PrometheusClient:
         # Determine whether to verify SSL based on URL protocol
         verify_ssl = self.url.lower().startswith("https://")
 
-        # If this is an HTTP request, disable warnings about insecure requests
-        if not verify_ssl:
-            import urllib3
-
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-        try:
-            response = requests.get(
-                f"{self.url}/api/v1/status/config",
-                headers=self._get_headers(),
-                timeout=10,
-                verify=verify_ssl,  # Determine whether to verify SSL based on protocol
-            )
-
-            if response.status_code == 200:
-                return {
-                    "status": "success",
-                    "message": "Connection to Prometheus successful",
-                }
-            else:
-                return {
-                    "status": "error",
-                    "error": f"Connection failed: HTTP {response.status_code}",
-                    "detail": response.text,
-                }
-        except requests.exceptions.RequestException as e:
-            return {"status": "error", "error": f"Request exception: {str(e)}"}
+        connector = aiohttp.TCPConnector(verify_ssl=verify_ssl)
+        async with aiohttp.ClientSession(connector=connector) as session:
+            try:
+                async with session.get(
+                    f"{self.url}/api/v1/status/config",
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as response:
+                    if response.status == 200:
+                        return {
+                            "status": "success",
+                            "message": "Connection to Prometheus successful",
+                        }
+                    else:
+                        text = await response.text()
+                        return {
+                            "status": "error",
+                            "error": f"Connection failed: HTTP {response.status}",
+                            "detail": text,
+                        }
+            except aiohttp.ClientError as e:
+                return {"status": "error", "error": f"Request exception: {str(e)}"}

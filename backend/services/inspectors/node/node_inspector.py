@@ -207,7 +207,7 @@ class NodeInspector(BaseInspector):
     def inspector_type(self) -> str:
         return "node"
 
-    def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
+    async def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
         """
         Run inspection with guaranteed unified SSH error display
         """
@@ -235,7 +235,7 @@ class NodeInspector(BaseInspector):
             return result
 
         # Execute inspection rules only on available nodes
-        result = super().run_inspection(cluster_name, rule_ids)
+        result = await super().run_inspection(cluster_name, rule_ids)
 
         # Add SSH connection errors to the beginning of the report
         ssh_errors = self.ssh_error_manager.get_all_connection_errors()
@@ -363,7 +363,7 @@ class NodeInspector(BaseInspector):
         except Exception as e:
             return False, f"Connection check error for node {node_name}: {str(e)}"
 
-    def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
+    async def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
         """
         Apply inspection rule only to available nodes
         """
@@ -395,7 +395,7 @@ class NodeInspector(BaseInspector):
 
         if not target_nodes:
             logger.warning(f"Rule {rule.id} - no suitable nodes")
-            return None
+            return self._format_no_nodes_result(rule, "No suitable nodes found for rule execution")
 
         # Filter only nodes with successful SSH connection
         available_nodes = []
@@ -419,7 +419,7 @@ class NodeInspector(BaseInspector):
         # If no available nodes, rule is not executed
         if not available_nodes:
             logger.warning(f"Rule {rule.id} - no available nodes for execution")
-            return None
+            return self._format_no_nodes_result(rule, "No available nodes for rule execution")
 
         # Execute rule on available nodes
         if self.enable_concurrent and len(available_nodes) > 1:
@@ -688,6 +688,13 @@ class NodeInspector(BaseInspector):
         )
         result["node"] = {"ip": node["ip"], "name": node_name}
         result["name"] = f"{rule.name} - {node_name}"
+        return result
+
+    def _format_no_nodes_result(self, rule: Rule, reason: str) -> Dict:
+        """Format result when no nodes are available for rule execution"""
+        result = self.rule_processor.result_formatter.error_result(rule, reason, f"Rule execution skipped: {reason}")
+        result["status"] = "skipped"
+        result["severity"] = "info"
         return result
 
     def get_execution_stats(self) -> Dict:

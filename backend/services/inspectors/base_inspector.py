@@ -5,6 +5,7 @@ Base inspector class, defines common interfaces and basic functions for all insp
 """
 
 from abc import ABC, abstractmethod
+import asyncio
 import logging
 from typing import Dict, List, Any, Optional, Union
 
@@ -51,7 +52,7 @@ class BaseInspector(ABC):
         logger.info(f"Loaded {len(self.rules)} {source_type} rules for {self.inspector_type} inspection")
 
     @abstractmethod
-    def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
+    async def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
         """
         Apply a single rule for inspection
 
@@ -79,7 +80,7 @@ class BaseInspector(ABC):
                 return rule
         return None
 
-    def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
+    async def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
         """
         Run inspection
 
@@ -147,18 +148,49 @@ class BaseInspector(ABC):
 
                 if should_apply:
                     logger.info(f"Applying rule {rule.id}")
-                    inspection_result = self._apply_rule(rule, context)
-                    logger.info(f"Rule {rule.id} applied, result type: {type(inspection_result)}")
+                    inspection_result = await self._apply_rule(rule, context)
+                    logger.error(
+                        "Rule %s applied, result type: %s, is coroutine: %s",
+                        rule.id,
+                        type(inspection_result),
+                        asyncio.iscoroutine(inspection_result),
+                    )
+
+                    # Ensure inspection_result is not a coroutine
+                    if asyncio.iscoroutine(inspection_result):
+                        inspection_result = await inspection_result
 
                     if inspection_result:
                         # Handle single result or list of results
                         if isinstance(inspection_result, list):
-                            logger.info(f"Rule {rule.id} returned list of results, length: {len(inspection_result)}")
+                            logger.error(f"Rule {rule.id} returned list of results, length: {len(inspection_result)}")
                             for item in inspection_result:
+                                logger.error(
+                                    f"Adding item type: {type(item)}, is coroutine: {asyncio.iscoroutine(item)}"
+                                )
+                                if asyncio.iscoroutine(item):
+                                    logger.error("Item is coroutine, awaiting...")
+                                    item = await item
+                                    logger.error(f"After await, item type: {type(item)}")
                                 result.add_item(item)
                         else:
-                            logger.info(f"Rule {rule.id} returned single result")
-                            result.add_item(inspection_result)
+                            logger.error(
+                                "Rule %s returned single result, type: %s, is coroutine: %s",
+                                rule.id,
+                                type(inspection_result),
+                                asyncio.iscoroutine(inspection_result),
+                            )
+                            if asyncio.iscoroutine(inspection_result):
+                                logger.error("inspection_result is coroutine, awaiting...")
+                                inspection_result = await inspection_result
+                                logger.error(f"After await, inspection_result type: {type(inspection_result)}")
+                            if isinstance(inspection_result, dict) and "items" in inspection_result:
+                                logger.error(f"inspection_result is dict with 'items', type: {type(inspection_result)}")
+                                for item in inspection_result["items"]:
+                                    result.add_item(item)
+                            else:
+                                result.add_item(inspection_result)
+                            logger.error(f"Added item to result, result.items length: {len(result.items)}")
                     else:
                         logger.warning(f"Rule {rule.id} returned empty result")
                 else:

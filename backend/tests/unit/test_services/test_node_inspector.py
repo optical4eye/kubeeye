@@ -112,7 +112,8 @@ class TestNodeInspector:
     @patch('services.inspectors.node.node_inspector.CommandSecurityChecker')
     @patch('services.inspectors.node.node_inspector.NodeInspector._check_all_node_connections')
     @patch('services.inspectors.base_inspector.BaseInspector.run_inspection')
-    def test_run_inspection_with_available_nodes(self, mock_base_run, mock_check_connections, mock_security_checker):
+    @pytest.mark.asyncio
+    async def test_run_inspection_with_available_nodes(self, mock_base_run, mock_check_connections, mock_security_checker):
         """Test inspection run with available nodes"""
         nodes_config = [{"ip": "192.168.1.1", "port": 22, "name": "node1"}]
         inspector = NodeInspector(nodes_config)
@@ -125,7 +126,7 @@ class TestNodeInspector:
         mock_result = InspectionResult("test-cluster", "node")
         mock_base_run.return_value = mock_result
 
-        result = inspector.run_inspection("test-cluster")
+        result = await inspector.run_inspection("test-cluster")
 
         assert isinstance(result, InspectionResult)
         assert result.cluster_name == "test-cluster"
@@ -134,7 +135,8 @@ class TestNodeInspector:
 
     @patch('services.inspectors.node.node_inspector.CommandSecurityChecker')
     @patch('services.inspectors.node.node_inspector.NodeInspector._check_all_node_connections')
-    def test_run_inspection_no_available_nodes(self, mock_check_connections, mock_security_checker):
+    @pytest.mark.asyncio
+    async def test_run_inspection_no_available_nodes(self, mock_check_connections, mock_security_checker):
         """Test inspection run with no available nodes"""
         nodes_config = [{"ip": "192.168.1.1", "port": 22, "name": "node1"}]
         inspector = NodeInspector(nodes_config)
@@ -145,7 +147,7 @@ class TestNodeInspector:
         # Mock SSH error
         mock_error = {"connection_error": True, "name": "SSH connection - node1"}
         with patch.object(inspector.ssh_error_manager, 'get_all_connection_errors', return_value=[mock_error]):
-            result = inspector.run_inspection("test-cluster")
+            result = await inspector.run_inspection("test-cluster")
 
         assert isinstance(result, InspectionResult)
         assert len(result.items) == 1  # Should have SSH error

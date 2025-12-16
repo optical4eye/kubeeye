@@ -88,7 +88,7 @@ class PrometheusInspector(BaseInspector):
 
         return issues
 
-    def _apply_rule(self, rule: Rule, context: Dict) -> Dict:
+    async def _apply_rule(self, rule: Rule, context: Dict) -> Dict:
         """
         Apply Prometheus rule for checking - simplified version
 
@@ -106,7 +106,7 @@ class PrometheusInspector(BaseInspector):
         # Execute query
         try:
             # Execute instant query (simplified version, no longer supports complex range queries)
-            result = self.prometheus_client.query(query)
+            result = await self.prometheus_client.query(query)
 
             # Process result
             metrics = self._process_query_result(result)
