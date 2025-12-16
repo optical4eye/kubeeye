@@ -1,0 +1,22 @@
+# KubeEye security configuration file
+# Note: All security settings are mandatory and cannot be changed
+
+# ==================== Mandatory Security Principles ====================
+# KubeEye is a pure observation-type inspection tool that follows these unchangeable security principles:
+#
+# 1. Read-only principle: All inspection commands can only read information, cannot modify any content
+# 2. Whitelist mode: Only explicitly safe commands are allowed to execute
+# 3. Mandatory security checks: All commands must pass security validation
+# 4. Prohibit high-risk operations: Commands like rm, chmod, systemctl restart are strictly prohibited
+#
+# The mission of inspection tools is to observe and report, absolutely not to modify and operate!
+
+# ==================== Basic Settings ====================
+# Command execution timeout (seconds)
+command_timeout: 30
+
+# Maximum length limit for single command
+max_command_length: 1000
+
+# Audit log retention days
+audit_retention_days: 90

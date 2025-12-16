@@ -1,51 +1,51 @@
-# KubeEye - Kubernetes Cluster Inspection Tool
+# KubeEye - Инструмент инспекции кластеров Kubernetes
 
-This version of kubeeye is located here - https://github.com/optical4eye/kubeeye/
+Эта версия kubeeye расположена здесь - https://github.com/optical4eye/kubeeye/
 
-## Overview
+## Обзор
 
-KubeEye is a **purely observational** Kubernetes cluster inspection tool focused on safe information gathering about the cluster and identifying potential issues. The tool provides a modern React web interface with FastAPI backend, supporting various inspection methods.
+KubeEye - это **чисто observational** инструмент инспекции кластеров Kubernetes, ориентированный на безопасный сбор информации о кластере и выявление потенциальных проблем. Инструмент предоставляет современный веб-интерфейс React с FastAPI backend, поддерживающий различные методы инспекции.
 
-**Version 3.0** introduces a microservices architecture with separate frontend and backend components for better scalability and maintainability.
+**Версия 3.0** вводит микросервисную архитектуру с отдельными компонентами frontend и backend для лучшей масштабируемости и поддерживаемости.
 
-**Security Guarantee**: KubeEye uses a strict read-only inspection policy, all operations are limited to information gathering and status viewing, no modifications, deletions, or dangerous operations are ever performed, ensuring cluster security.
+**Гарантия безопасности**: KubeEye использует строгую политику инспекции только для чтения, все операции ограничены сбором информации и просмотром статуса, никакие модификации, удаления или опасные операции никогда не выполняются, обеспечивая безопасность кластера.
 
-## Main Features
+## Основные возможности
 
-- **Security First**: Mandatory read-only mode, all inspection commands undergo strict security checks, ensuring zero risk
-- **Cluster Information Management**: Support for configuring and managing connection information for multiple clusters
-- **Various Inspection Methods**: Node status, Prometheus metrics, OPA rule compliance
-- **Visual Reports**: Intuitive display of inspection results, including charts and detailed problem descriptions
-- **History Query**: Support for viewing inspection result history and trend analysis
-- **Fix Recommendations**: Providing solution recommendations for detected problems
-- **Sensitive Information Encryption**: Protection of cluster connection passwords and other sensitive information using encryption algorithms
-- **Log Management**: Unified logging system for convenient tracking and problem diagnostics
-- **Certificate Monitoring**: Automatic checking of kubeconfig certificate expiration dates, advance warnings
+- **Безопасность прежде всего**: Обязательный режим только для чтения, все команды инспекции проходят строгие проверки безопасности, обеспечивая нулевой риск
+- **Управление информацией о кластерах**: Поддержка настройки и управления информацией о подключении для нескольких кластеров
+- **Различные методы инспекции**: Статус узлов, метрики Prometheus, соответствие правилам OPA
+- **Визуальные отчеты**: Интуитивное отображение результатов инспекции, включая графики и подробные описания проблем
+- **Запрос истории**: Поддержка просмотра истории результатов инспекции и анализа тенденций
+- **Рекомендации по исправлению**: Предоставление рекомендаций по решениям для выявленных проблем
+- **Шифрование чувствительной информации**: Защита паролей подключения к кластеру и другой чувствительной информации с использованием алгоритмов шифрования
+- **Управление логами**: Единая система логирования для удобного отслеживания и диагностики проблем
+- **Мониторинг сертификатов**: Автоматическая проверка сроков действия сертификатов kubeconfig, предварительные предупреждения
 
-## Security Features
+## Функции безопасности
 
-### Purely Observational Design
-- **Read-Only Principle**: All inspection operations are limited to information retrieval and status viewing
-- **Whitelist Mode**: Only explicitly safe commands are allowed to execute, all unknown commands are prohibited by default
-- **Multi-Level Security Checks**: Strict security checks before command execution
-- **Audit Log**: Complete recording of all operations and security events
+### Чисто observational дизайн
+- **Принцип только для чтения**: Все операции инспекции ограничены извлечением информации и просмотром статуса
+- **Режим whitelist**: Разрешено выполнение только явно безопасных команд, все неизвестные команды запрещены по умолчанию
+- **Многоуровневые проверки безопасности**: Строгие проверки безопасности перед выполнением команд
+- **Аудит лог**: Полная запись всех операций и событий безопасности
 
-### Security Measures
-- **Modification Operation Ban**: Dangerous commands such as `rm`, `chmod`, `systemctl restart`, etc. are prohibited
-- **Write Operation Ban**: No write actions are allowed, such as file redirection, file creation, etc.
-- **Installation Operation Ban**: Software installation such as `apt install`, `pip install`, etc. is not allowed
-- **Mandatory Safe Mode**: It is impossible to lower security levels through settings
+### Меры безопасности
+- **Запрет операций модификации**: Опасные команды такие как `rm`, `chmod`, `systemctl restart` и т.д. запрещены
+- **Запрет операций записи**: Запрещены действия записи, такие как перенаправление файлов, создание файлов и т.д.
+- **Запрет операций установки**: Установка программного обеспечения такая как `apt install`, `pip install` и т.д. не разрешена
+- **Обязательный безопасный режим**: Невозможно снизить уровни безопасности через настройки
 
-## Architecture
+## Архитектура
 
-### Version 3.0 - Microservices Architecture
+### Версия 3.0 - Микросервисная архитектура
 
-- **Frontend**: React application served by Nginx
-- **Backend**: FastAPI application with business logic
-- **Database**: File-based storage (JSON files)
-- **Communication**: REST API between frontend and backend
+- **Frontend**: React приложение, обслуживаемое Nginx
+- **Backend**: FastAPI приложение с бизнес-логикой
+- **База данных**: Файловое хранилище (JSON файлы)
+- **Связь**: REST API между frontend и backend
 
-### Components
+### Компоненты
 
 ```
 ┌─────────────────┐    REST API    ┌─────────────────┐
@@ -56,128 +56,128 @@ KubeEye is a **purely observational** Kubernetes cluster inspection tool focused
          └────────────► Browser ◄────────────┘
 ```
 
-## Quick Start
+### Структура Backend
 
-### Method 1: Docker Compose (Recommended)
+Backend организован по принципам сервис-ориентированной архитектуры с четким разделением ответственности:
+
+```
+backend/
+├── scripts/                    # Исполняемые скрипты и инициализация
+├── services/                   # Бизнес-сервисы (ядро функционала)
+│   ├── inspectors/             # Логика инспекций Kubernetes
+│   │   ├── node/               # Инспекторы узлов
+│   │   ├── opa/                # OPA инспекторы
+│   │   └── prometheus/         # Prometheus инспекторы
+│   └── components/             # Дополнительные компоненты бизнес-логики
+├── controllers/                # API контроллеры (обработка HTTP запросов)
+├── infrastructure/             # Инфраструктурный код (утилиты, клиенты)
+│   ├── cluster/                # Kubernetes/кластерные утилиты
+│   ├── security/               # Безопасность и шифрование
+│   ├── logging/                # Логирование
+│   ├── network/                # Сетевые проверки
+│   ├── prometheus/             # Prometheus клиент
+│   ├── gitops/                 # GitOps менеджер
+│   ├── rules/                  # Управление правилами
+│   ├── results/                # Обработка результатов
+│   ├── tasks/                  # Управление задачами
+│   ├── common/                 # Общие утилиты
+│   └── config/                 # Конфигурационные файлы
+├── Dockerfile                  # Docker конфигурация backend
+├── requirements.txt            # Python зависимости
+├── .dockerignore               # Исключаемые файлы для Docker
+└── __init__.py
+```
+
+#### Описание основных директорий:
+
+- **scripts/**: Исполняемые скрипты и скрипты инициализации
+- **services/**: Бизнес-логика приложения, инспекторы и компоненты
+- **controllers/**: Обработчики API запросов, роуты FastAPI
+- **infrastructure/**: Низкоуровневые утилиты, клиенты, конфигурации
+
+## Быстрый старт
+
+### Метод 1: Docker Compose (Рекомендуется)
 
 ```bash
-# Clone repository
+# Клонировать репозиторий
 git clone https://github.com/optical4eye/kubeeye.git
 cd kubeeye
 
-# Start services
+# Запустить сервисы
 docker-compose up -d
 
-# Access application at http://localhost
+# Доступ к приложению по адресу http://localhost
 ```
 
-### Method 2: Separate Docker Images
+### Метод 2: Kubernetes с Helm
 
 ```bash
-# Build frontend
-docker build -f Dockerfile.frontend -t kubeeye-frontend:v3.0 .
-
-# Build backend
-docker build -f Dockerfile.backend -t kubeeye-backend:v3.0 .
-
-# Run backend
-docker run -d \
-  --name kubeeye-backend \
-  -p 8000:8000 \
-  -v kubeeye-data:/app/data \
-  kubeeye-backend:v3.0
-
-# Run frontend
-docker run -d \
-  --name kubeeye-frontend \
-  -p 80:80 \
-  -e REACT_APP_API_URL=http://localhost:8000 \
-  kubeeye-frontend:v3.0
-```
-
-### Method 3: Kubernetes with Helm
-
-```bash
-# Add Helm repository (if applicable)
+# Добавить Helm репозиторий (если применимо)
 # helm repo add kubeeye https://optical4eye.github.io/kubeeye
 
-# Install with Helm
+# Установить с Helm
 helm install kubeeye ./chart/kubeeye
 
-# Access via NodePort (default: 30693)
-# Or configure Ingress for domain access
+# Доступ через NodePort (по умолчанию: 30693)
+# Или настроить Ingress для доступа по домену
 ```
 
-### Method 4: Development Mode
+## Переменные окружения
 
-```bash
-# Backend
-cd /path/to/kubeeye
-pip install -r requirements.txt
-uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+### Конфигурация Backend
 
-# Frontend (new terminal)
-cd frontend
-npm install
-npm start
-# Access at http://localhost:3000 (proxies to backend)
-```
+| Переменная | По умолчанию | Описание |
+|------------|--------------|----------|
+| `PYTHONPATH` | `/app` | Путь поиска модулей Python |
+| `KUBEEYE_DATA_DIR` | `/app/data` | Директория для хранения данных приложения (кластеры, отчеты и т.д.) |
+| `KUBEYE_REPORT_RETENTION_DAYS` | `7` | Количество дней хранения отчетов инспекции перед очисткой |
+| `KUBEYE_SSH_CONNECTION_TIMEOUT` | `10` | Базовый таймаут для SSH соединений в секундах. Влияет на все SSH-таймауты пропорционально |
+| `KUBEYE_SSH_MAX_CONCURRENT_CHECKS` | `10` | Максимальное количество одновременных проверок SSH соединений во время инспекции |
 
-## Environment Variables
+### Конфигурация GitOps
 
-### Backend Configuration
+| Переменная | По умолчанию | Описание |
+|------------|--------------|----------|
+| `KUBEEYE_GITOPS_REPO_NAME` | `kubeeye_rules` | Идентификатор имени для репозитория правил GitOps |
+| `KUBEEYE_GITOPS_REPO_URL` | `https://github.com/optical4eye/kubeeye-rules.git` | URL репозитория правил GitOps |
+| `KUBEEYE_GITOPS_REPO_BRANCH` | `main` | Ветка репозитория правил GitOps для использования |
+| `KUBEEYE_GITOPS_REPO_USERNAME` | `optical4eye` | Имя пользователя для аутентификации в репозитории GitOps |
+| `KUBEEYE_GITOPS_REPO_TOKEN` | `""` | Персональный токен доступа для репозитория GitOps |
+| `KUBEEYE_GITOPS_REPO_DESCRIPTION` | `kubeeye repo rules` | Описание репозитория правил GitOps |
+| `GIT_SSL_NO_VERIFY` | `false` | Отключить проверку SSL сертификатов для Git операций (использовать с осторожностью в продакшене) |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PYTHONPATH` | `/app` | Python module search path |
-| `KUBEEYE_DATA_DIR` | `/app/data` | Directory for storing application data (clusters, reports, etc.) |
-| `KUBEYE_REPORT_RETENTION_DAYS` | `1` | Number of days to retain inspection reports before cleanup |
-| `KUBEYE_SSH_CONNECTION_TIMEOUT` | `10` | Base timeout for SSH connections in seconds. Affects all SSH-related timeouts proportionally |
-| `KUBEYE_SSH_MAX_CONCURRENT_CHECKS` | `10` | Maximum number of concurrent SSH connection checks during inspection |
+### Конфигурация Frontend
 
-### GitOps Configuration
+| Переменная | По умолчанию | Описание |
+|------------|--------------|----------|
+| `REACT_APP_API_URL` | `http://localhost:8000` | URL backend API для связи с frontend |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `KUBEEYE_GITOPS_REPO_NAME` | `kubeeye_rules` | Name identifier for the GitOps rules repository |
-| `KUBEEYE_GITOPS_REPO_URL` | `https://github.com/optical4eye/kubeeye-rules.git` | URL of the GitOps rules repository |
-| `KUBEEYE_GITOPS_REPO_BRANCH` | `main` | Branch of the GitOps rules repository to use |
-| `KUBEEYE_GITOPS_REPO_USERNAME` | `optical4eye` | Username for GitOps repository authentication |
-| `KUBEEYE_GITOPS_REPO_TOKEN` | `""` | Personal access token for GitOps repository authentication |
-| `KUBEEYE_GITOPS_REPO_DESCRIPTION` | `kubeeye repo rules` | Description of the GitOps rules repository |
-| `GIT_SSL_NO_VERIFY` | `false` | Disable SSL certificate verification for Git operations (use with caution in production) |
+### Детали SSH таймаутов
 
-### Frontend Configuration
+Переменная `KUBEYE_SSH_CONNECTION_TIMEOUT` контролирует несколько связанных таймаутов:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `REACT_APP_API_URL` | `http://localhost:8000` | URL of the backend API for frontend communication |
+- **SSH таймаут соединения**: Прямое значение (10с по умолчанию)
+- **SSH таймаут выполнения команды**: 6x базового таймаута (60с по умолчанию)
+- **Таймаут теста соединения сокета**: 0.5x базового таймаута (5с по умолчанию)
+- **Таймаут проверки соединения узла**: 1.5x базового таймаута (15с по умолчанию)
+- **Общий таймаут проверки соединения**: 2x базового таймаута (20с по умолчанию)
 
-### SSH Timeout Details
+### Примеры конфигурации
 
-The `KUBEYE_SSH_CONNECTION_TIMEOUT` variable controls multiple related timeouts:
-
-- **SSH Connection Timeout**: Direct value (10s default)
-- **SSH Command Execution Timeout**: 6x base timeout (60s default)
-- **Socket Connection Test Timeout**: 0.5x base timeout (5s default)
-- **Node Connection Check Timeout**: 1.5x base timeout (15s default)
-- **Total Connection Check Timeout**: 2x base timeout (20s default)
-
-### Configuration Examples
-
-**For slow networks or VPN connections:**
+**Для медленных сетей или VPN соединений:**
 ```bash
 export KUBEYE_SSH_CONNECTION_TIMEOUT=30
 export KUBEYE_SSH_MAX_CONCURRENT_CHECKS=5
 ```
 
-**For large clusters (20+ nodes):**
+**Для больших кластеров (20+ узлов):**
 ```bash
 export KUBEYE_SSH_CONNECTION_TIMEOUT=15
 export KUBEYE_SSH_MAX_CONCURRENT_CHECKS=20
 ```
 
-**For development with extended report retention:**
+**Для разработки с расширенным хранением отчетов:**
 ```bash
 export KUBEYE_REPORT_RETENTION_DAYS=7
 ```

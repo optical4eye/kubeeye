@@ -1,0 +1,46 @@
+# KubeEye security configuration file
+# Note: KubeEye adopts mandatory security mode, core security settings cannot be changed
+
+# ==================== Mandatory Security Principles ====================
+# The following security settings are mandatory configurations, hardcoded in the code, cannot be modified through configuration:
+#
+# enable_security_check: true    # Mandatory security check enabled
+# strict_mode: true               # Mandatory strict mode
+# whitelist_only: true            # Mandatory whitelist mode
+# allow_sudo_commands: false      # Mandatory sudo commands prohibited
+# allow_root_user: false          # Mandatory root user prohibited
+# auto_validate_rules: true       # Mandatory rule validation enabled
+# block_invalid_rules: true       # Mandatory insecure rules blocked
+#
+# Core security principles:
+# 1. Inspection tools can only observe, absolutely cannot modify
+# 2. All high-risk commands are strictly prohibited, no exceptions
+# 3. Only explicitly safe read-only commands are allowed to execute
+# 4. No options to reduce security levels are provided
+
+# ==================== Adjustable Parameters ====================
+# The following parameters can be adjusted, but will not affect core security policies
+
+# Command execution limits
+max_command_length: 1000        # Maximum length limit for single command
+command_timeout: 30             # Command execution timeout (seconds)
+
+# Audit log settings
+audit_log_path: "logs/security_audit.log"  # Audit log file path
+audit_retention_days: 90        # Audit log retention days
+enable_detailed_logging: true   # Whether to enable detailed logging
+
+# Network security settings
+allowed_ports:                  # List of allowed connection ports
+  - 22    # SSH
+  - 80    # HTTP
+  - 443   # HTTPS
+  - 6443  # Kubernetes API Server
+  - 8080  # Generic HTTP
+  - 9090  # Prometheus
+  - 10250 # kubelet
+
+blocked_ips: []                 # List of blocked IP addresses (optional)
+
+# Whether to force key authentication (disable password authentication)
+require_key_auth: false
