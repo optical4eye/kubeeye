@@ -105,9 +105,7 @@ class AssertionManager:
         else:
             return self._evaluate_detailed_mode(assertions, context)
 
-    def _evaluate_simple_mode(
-        self, assertions: List[Dict], context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _evaluate_simple_mode(self, assertions: List[Dict], context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Simplified mode: only process first assertion (compatible with original AssertionEvaluator)
         """
@@ -156,9 +154,7 @@ class AssertionManager:
                 "severity": "error",
             }
 
-    def _evaluate_detailed_mode(
-        self, assertions: List[Dict], context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _evaluate_detailed_mode(self, assertions: List[Dict], context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Detailed mode: process all assertions (compatible with original RuleProcessor)
         """
@@ -201,9 +197,7 @@ class AssertionManager:
 
         # Get highest severity level
         severities = [fa["severity"] for fa in failed_assertions]
-        highest_severity = (
-            self._get_highest_severity(severities) if severities else "info"
-        )
+        highest_severity = self._get_highest_severity(severities) if severities else "info"
 
         # Build description information
         if failed_assertions:

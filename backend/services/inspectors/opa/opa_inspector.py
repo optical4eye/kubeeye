@@ -48,10 +48,7 @@ class OpaInspector(BaseInspector):
         issues = []
 
         # Check Rego rules
-        if not (
-            self.get_rule_config(rule, "rego.inline")
-            or self.get_rule_config(rule, "rego.file")
-        ):
+        if not (self.get_rule_config(rule, "rego.inline") or self.get_rule_config(rule, "rego.file")):
             issues.append("Missing Rego rules configuration")
 
         # Check resource configuration
@@ -116,9 +113,7 @@ class OpaInspector(BaseInspector):
         try:
             # Prefer optimized version
             if hasattr(self.k8s_client, "list_resources_from_config_optimized"):
-                resources_dict = self.k8s_client.list_resources_from_config_optimized(
-                    rule.config
-                )
+                resources_dict = self.k8s_client.list_resources_from_config_optimized(rule.config)
             else:
                 resources_dict = self.k8s_client.list_resources_from_config(rule.config)
 
@@ -149,9 +144,7 @@ class OpaInspector(BaseInspector):
                 rego_path = f.name
 
             input_data = {"resources": resources}
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
                 json.dump(input_data, f, cls=DateTimeEncoder)
                 input_path = f.name
 
@@ -191,10 +184,7 @@ class OpaInspector(BaseInspector):
                 try:
                     if "result" in output and len(output["result"]) > 0:
                         result_item = output["result"][0]
-                        if (
-                            "expressions" in result_item
-                            and len(result_item["expressions"]) > 0
-                        ):
+                        if "expressions" in result_item and len(result_item["expressions"]) > 0:
                             violations = result_item["expressions"][0].get("value", [])
                             logger.info(f"Found {len(violations)} violations")
                             return violations if isinstance(violations, list) else []
@@ -207,16 +197,12 @@ class OpaInspector(BaseInspector):
             return []
 
         except subprocess.CalledProcessError as e:
-            logger.error(
-                f"OPA execution failed: returncode={e.returncode}, stderr={e.stderr}, stdout={e.stdout}"
-            )
+            logger.error(f"OPA execution failed: returncode={e.returncode}, stderr={e.stderr}, stdout={e.stdout}")
             raise Exception(f"OPA execution failed: {e.stderr}")
         except OSError as e:
             logger.error(f"OS error executing OPA: {e}, errno={e.errno}")
             if e.errno == 8:  # Exec format error
-                logger.error(
-                    f"Exec format error for OPA at {self.opa_path}. Check architecture and file integrity."
-                )
+                logger.error(f"Exec format error for OPA at {self.opa_path}. Check architecture and file integrity.")
                 # Try to get file info
                 try:
                     import os
@@ -225,11 +211,9 @@ class OpaInspector(BaseInspector):
                     logger.error(f"OPA file permissions: {oct(stat_info.st_mode)}")
                     # Try to run file command if available
                     try:
-                        file_result = subprocess.run(
-                            ["file", self.opa_path], capture_output=True, text=True
-                        )
+                        file_result = subprocess.run(["file", self.opa_path], capture_output=True, text=True)
                         logger.error(f"File info: {file_result.stdout}")
-                    except:
+                    except Exception:
                         pass
                 except Exception as stat_e:
                     logger.error(f"Could not get file info: {stat_e}")
@@ -246,16 +230,12 @@ class OpaInspector(BaseInspector):
                     except Exception:
                         pass
 
-    def _evaluate_assertions(
-        self, rule: Rule, violations: List[Dict], resource_count: int
-    ) -> Dict:
+    def _evaluate_assertions(self, rule: Rule, violations: List[Dict], resource_count: int) -> Dict:
         """Evaluate assertions and return result (using unified AssertionManager)"""
         try:
             # Ensure violations is a list
             if not isinstance(violations, list):
-                logger.warning(
-                    f"Violation result is not a list type: {type(violations)}"
-                )
+                logger.warning(f"Violation result is not a list type: {type(violations)}")
                 violations = [] if violations is None else [violations]
 
             assertion_vars = {
@@ -265,23 +245,15 @@ class OpaInspector(BaseInspector):
             }
 
             assertions = self.get_rule_config(rule, "assertions", [])
-            assertion_result = (
-                self.rule_processor.assertion_manager.evaluate_assertions(
-                    assertions, assertion_vars, mode="simple"
-                )
+            assertion_result = self.rule_processor.assertion_manager.evaluate_assertions(
+                assertions, assertion_vars, mode="simple"
             )
 
             if assertion_result["passed"]:
-                description = assertion_result.get(
-                    "pass_description", f"{rule.name}: Check passed"
-                )
-                return self._pass_result(
-                    rule, description, f"Checked {resource_count} resources"
-                )
+                description = assertion_result.get("pass_description", f"{rule.name}: Check passed")
+                return self._pass_result(rule, description, f"Checked {resource_count} resources")
             else:
-                description = assertion_result.get(
-                    "fail_description", f"{rule.name}: Check failed"
-                )
+                description = assertion_result.get("fail_description", f"{rule.name}: Check failed")
                 details = self._format_violations(violations)
                 return self._fail_result(
                     rule,
@@ -320,20 +292,14 @@ class OpaInspector(BaseInspector):
 
                 details.append(detail)
             except Exception as e:
-                logger.error(
-                    f"Error formatting violation {i}: {e}, violation type: {type(violation)}"
-                )
-                details.append(
-                    f"- Violation element with formatting error: {str(violation)[:100]}"
-                )
+                logger.error(f"Error formatting violation {i}: {e}, violation type: {type(violation)}")
+                details.append(f"- Violation element with formatting error: {str(violation)[:100]}")
 
         return "\n".join(details)
 
     def _pass_result(self, rule: Rule, description: str, details: str = "") -> Dict:
         """Generate "Passed" result (delegated to ResultFormatter)"""
-        return self.rule_processor.result_formatter.pass_result(
-            rule, description, details
-        )
+        return self.rule_processor.result_formatter.pass_result(rule, description, details)
 
     def _fail_result(
         self,
@@ -344,9 +310,7 @@ class OpaInspector(BaseInspector):
         violations: List[Dict] = None,
     ) -> Dict:
         """Generate "Failed" result (delegated to ResultFormatter)"""
-        return self.rule_processor.result_formatter.fail_result(
-            rule, description, details, severity, violations
-        )
+        return self.rule_processor.result_formatter.fail_result(rule, description, details, severity, violations)
 
     def _error_result(self, rule: Rule, error_msg: str) -> Dict:
         """Generate "Error" result (delegated to ResultFormatter)"""

@@ -12,9 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Generate default key file path
-KEY_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "data", ".secret_key"
-)
+KEY_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", ".secret_key")
 
 
 def get_encryption_key():
@@ -42,9 +40,7 @@ def get_encryption_key():
                     logger.info("Encryption key loaded successfully")
                     return key_data
                 except Exception as e:
-                    logger.error(
-                        f"Loaded key has invalid format, new key will be generated: {str(e)}"
-                    )
+                    logger.error(f"Loaded key has invalid format, new key will be generated: {str(e)}")
                     os.rename(KEY_FILE, f"{KEY_FILE}.backup")
 
         # If does not exist or invalid, generate new key
@@ -111,7 +107,7 @@ def decrypt_password(encrypted_password: str) -> str:
         # Decrypt
         try:
             decrypted = f.decrypt(encrypted).decode()
-            logger.debug(f"Password decryption successful")
+            logger.debug("Password decryption successful")
             return decrypted
         except Exception as e:
             logger.error(f"Fernet decryption failure: {str(e)}")
@@ -119,6 +115,4 @@ def decrypt_password(encrypted_password: str) -> str:
             return encrypted_password
     except Exception as e:
         logger.error(f"Error occurred during password decryption process: {str(e)}")
-        return (
-            encrypted_password  # On decryption failure return original encrypted string
-        )
+        return encrypted_password  # On decryption failure return original encrypted string

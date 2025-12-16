@@ -55,7 +55,7 @@ async def delete_report(report_id: str):
                 if data.get("result_id") == report_id:
                     os.remove(file_path)
                     return {"message": f"Report {report_id} deleted"}
-            except:
+            except Exception:
                 continue
         raise HTTPException(status_code=404, detail="Report not found")
     except HTTPException:

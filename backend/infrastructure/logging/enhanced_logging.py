@@ -112,16 +112,14 @@ def setup_logging(
     logger.setLevel(getattr(logging, log_level.upper()))
 
     # Remove existing handlers
-    for handler in logger.handlers[:]:
+    for handler in list(logger.handlers):
         logger.removeHandler(handler)
 
     # Create formatters
     if enable_structured:
         formatter = StructuredFormatter()
     else:
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Console handler
     if enable_console:
@@ -134,9 +132,7 @@ def setup_logging(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.handlers.RotatingFileHandler(
-            log_file, maxBytes=10 * 1024 * 1024, backupCount=5
-        )
+        file_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 

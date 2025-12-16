@@ -25,9 +25,9 @@ async def get_gitops_status():
 
         return {
             "enabled": has_repo,
-            "repository": config.get("repository", {}).get("name") if has_repo else None,
+            "repository": (config.get("repository", {}).get("name") if has_repo else None),
             "last_sync": config.get("last_sync"),
-            "status": "configured" if has_repo else "not_configured"
+            "status": "configured" if has_repo else "not_configured",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -67,17 +67,13 @@ async def sync_gitops_repository():
         if not current_repo:
             return {"success": False, "message": "GitOps repository not configured"}
 
-        logger.debug(
-            f"GitOps mode enabled, syncing repository {current_repo['name']}..."
-        )
+        logger.debug(f"GitOps mode enabled, syncing repository {current_repo['name']}...")
         success, message = gitops_manager.clone_or_update_repo(current_repo)
         if success:
             logger.debug(f"Repository synchronized: {message}")
             return {"message": "GitOps repository synchronized successfully"}
         else:
             logger.error(f"Failed to sync repository: {message}")
-            raise HTTPException(
-                status_code=500, detail="Failed to sync GitOps repository"
-            )
+            raise HTTPException(status_code=500, detail="Failed to sync GitOps repository")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

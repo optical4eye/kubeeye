@@ -9,7 +9,7 @@ import os
 import re
 import logging
 
-import openpyxl
+# openpyxl not used
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
@@ -37,9 +37,7 @@ except ImportError:
     PDF_SUPPORT = False
 
 # Data directory definition
-DATA_DIR = (
-    Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
-)
+DATA_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
 RESULTS_DIR = DATA_DIR / "results"
 
 # Ensure directory exists
@@ -204,9 +202,7 @@ def load_result(result_id: str) -> Optional[Dict]:
         parts = result_id.split("_")
         if len(parts) >= 3:
             # Assume format type_date_time, try to find corresponding file
-            for file_path in RESULTS_DIR.glob(
-                f"inspection_result_*_{parts[-2]}_{parts[-1]}.json"
-            ):
+            for file_path in RESULTS_DIR.glob(f"inspection_result_*_{parts[-2]}_{parts[-1]}.json"):
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         result_data = json.load(f)
@@ -444,23 +440,18 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
             # Get all inspection items
             all_items = []
             if "inspection_results" in result_data:
-                for inspector_type, inspector_result in result_data[
-                    "inspection_results"
-                ].items():
+                for inspector_type, inspector_result in result_data["inspection_results"].items():
                     items = inspector_result.get("items", [])
                     all_items.extend(items)
             else:
                 all_items = result_data.get("items", [])
 
             # Statistics
-            passed_count = sum(
-                1 for item in all_items if item.get("status") in ["passed", "success"]
-            )
+            passed_count = sum(1 for item in all_items if item.get("status") in ["passed", "success"])
             warning_count = sum(
                 1
                 for item in all_items
-                if item.get("severity") == "warning"
-                and item.get("status") not in ["passed", "success"]
+                if item.get("severity") == "warning" and item.get("status") not in ["passed", "success"]
             )
             exception_count = len(all_items) - passed_count
 
@@ -474,16 +465,12 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                 max_rows_per_page = 30  # Limit for readability
 
                 # Split data into chunks for pagination
-                for page_num, start_idx in enumerate(
-                    range(0, len(all_items), max_rows_per_page)
-                ):
+                for page_num, start_idx in enumerate(range(0, len(all_items), max_rows_per_page)):
                     end_idx = min(start_idx + max_rows_per_page, len(all_items))
                     page_items = all_items[start_idx:end_idx]
 
                     if page_num > 0:
-                        story.append(
-                            Paragraph(f"<i>Table continuation...</i>", normal_style)
-                        )
+                        story.append(Paragraph("<i>Table continuation...</i>", normal_style))
                         story.append(Spacer(1, 10))
 
                     # Create table data
@@ -534,10 +521,7 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                     total_proportion = sum(col_proportions)
 
                     # Calculate width of each column
-                    col_widths = [
-                        (page_width / total_proportion) * prop
-                        for prop in col_proportions
-                    ]
+                    col_widths = [(page_width / total_proportion) * prop for prop in col_proportions]
 
                     # Create table
                     table = Table(table_data, colWidths=col_widths, repeatRows=1)
@@ -583,17 +567,11 @@ def export_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]
                     for i in range(1, len(table_data)):
                         status_text = all_items[start_idx + i - 1].get("status", "")
                         if status_text == "passed":
-                            table_style.add(
-                                "BACKGROUND", (1, i), (1, i), colors.lightgreen
-                            )
+                            table_style.add("BACKGROUND", (1, i), (1, i), colors.lightgreen)
                         elif status_text in ["failed", "error", "exception"]:
-                            table_style.add(
-                                "BACKGROUND", (1, i), (1, i), colors.lightcoral
-                            )
+                            table_style.add("BACKGROUND", (1, i), (1, i), colors.lightcoral)
                         elif status_text == "warning":
-                            table_style.add(
-                                "BACKGROUND", (1, i), (1, i), colors.lightyellow
-                            )
+                            table_style.add("BACKGROUND", (1, i), (1, i), colors.lightyellow)
 
                     table.setStyle(table_style)
 
@@ -640,9 +618,7 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
         passed = 0
         total = 0
 
-        for inspector_type, inspector_result in result_data.get(
-            "inspection_results", {}
-        ).items():
+        for inspector_type, inspector_result in result_data.get("inspection_results", {}).items():
             items = inspector_result.get("items", [])
             total += len(items)
 
@@ -826,7 +802,7 @@ def load_result_minimal(file_path: Path) -> Optional[Dict]:
             "passed": data.get("passed", 0),
             "status": status,
         }
-    except:
+    except Exception:
         return None
 
 

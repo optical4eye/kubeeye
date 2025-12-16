@@ -5,7 +5,7 @@ Inspector registry for dynamic inspector management
 """
 
 import logging
-from typing import Dict, Type, Any, Optional
+from typing import Dict, Any
 from abc import ABC, abstractmethod
 
 from services.inspectors.base_inspector import BaseInspector
@@ -17,9 +17,7 @@ class InspectorFactory(ABC):
     """Abstract factory for creating inspectors"""
 
     @abstractmethod
-    def create_inspector(
-        self, config: Dict[str, Any], use_gitops: bool = False
-    ) -> BaseInspector:
+    def create_inspector(self, config: Dict[str, Any], use_gitops: bool = False) -> BaseInspector:
         """Create an inspector instance"""
         pass
 
@@ -35,9 +33,7 @@ class NodeInspectorFactory(InspectorFactory):
     def can_create(self, config: Dict[str, Any]) -> bool:
         return "nodes" in config and config["nodes"]
 
-    def create_inspector(
-        self, config: Dict[str, Any], use_gitops: bool = False
-    ) -> BaseInspector:
+    def create_inspector(self, config: Dict[str, Any], use_gitops: bool = False) -> BaseInspector:
         from services.inspectors.node.node_inspector import NodeInspector
 
         return NodeInspector(config["nodes"], use_gitops=use_gitops)
@@ -49,9 +45,7 @@ class OpaInspectorFactory(InspectorFactory):
     def can_create(self, config: Dict[str, Any]) -> bool:
         return "opa" in config
 
-    def create_inspector(
-        self, config: Dict[str, Any], use_gitops: bool = False
-    ) -> BaseInspector:
+    def create_inspector(self, config: Dict[str, Any], use_gitops: bool = False) -> BaseInspector:
         from services.inspectors.opa.opa_inspector import OpaInspector
 
         return OpaInspector(config["opa"], use_gitops=use_gitops)
@@ -63,9 +57,7 @@ class PrometheusInspectorFactory(InspectorFactory):
     def can_create(self, config: Dict[str, Any]) -> bool:
         return "prometheus" in config
 
-    def create_inspector(
-        self, config: Dict[str, Any], use_gitops: bool = False
-    ) -> BaseInspector:
+    def create_inspector(self, config: Dict[str, Any], use_gitops: bool = False) -> BaseInspector:
         from services.inspectors.prometheus.prometheus_inspector import (
             PrometheusInspector,
         )
@@ -95,9 +87,7 @@ class InspectorRegistry:
         """Get list of available inspector types"""
         return list(self._factories.keys())
 
-    def create_inspectors(
-        self, config: Dict[str, Any], use_gitops: bool = False
-    ) -> Dict[str, BaseInspector]:
+    def create_inspectors(self, config: Dict[str, Any], use_gitops: bool = False) -> Dict[str, BaseInspector]:
         """Create inspectors based on configuration"""
         inspectors = {}
 

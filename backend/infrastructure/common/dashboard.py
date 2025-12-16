@@ -43,9 +43,7 @@ def get_dashboard_data_api() -> Dict:
     gitops_config = gitops_manager.load_config()
     if gitops_config.get("mode") == "gitops" and gitops_config.get("repository"):
         try:
-            gitops_rules = gitops_manager.get_repo_rules(
-                gitops_config["repository"]["name"]
-            )
+            gitops_rules = gitops_manager.get_repo_rules(gitops_config["repository"]["name"])
             total_rules += len(gitops_rules)
         except Exception as e:
             logger.warning(f"Failed to load GitOps rules: {e}")
@@ -94,15 +92,11 @@ def get_dashboard_data_api() -> Dict:
 
                 kubeconfig_content = cluster_config.get_kubeconfig()
                 if kubeconfig_content:
-                    cert_info = get_cluster_cert_status(
-                        cluster_name, kubeconfig_content
-                    )
+                    cert_info = get_cluster_cert_status(cluster_name, kubeconfig_content)
                     cert_status = cert_info.get("status", "unknown")
                     cert_days_remaining = cert_info.get("days_remaining")
             except Exception as e:
-                logger.warning(
-                    f"Failed to get information for cluster {cluster_name}: {e}"
-                )
+                logger.warning(f"Failed to get information for cluster {cluster_name}: {e}")
                 cert_status = "unknown"
                 cert_days_remaining = None
 
@@ -110,12 +104,8 @@ def get_dashboard_data_api() -> Dict:
                 "name": cluster_name,
                 "status": status,
                 "last_scan": latest_result["timestamp"] if latest_result else None,
-                "critical_count": (
-                    latest_result.get("critical", 0) if latest_result else 0
-                ),
-                "warning_count": (
-                    latest_result.get("warning", 0) if latest_result else 0
-                ),
+                "critical_count": (latest_result.get("critical", 0) if latest_result else 0),
+                "warning_count": (latest_result.get("warning", 0) if latest_result else 0),
                 "passed_count": latest_result.get("passed", 0) if latest_result else 0,
                 "node_count": node_count,
                 "cert_status": cert_status,

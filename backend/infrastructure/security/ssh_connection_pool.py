@@ -7,7 +7,7 @@ SSH connection pool for reusing connections to nodes
 import asyncio
 import logging
 import time
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 from dataclasses import dataclass
 import paramiko
 
@@ -70,15 +70,13 @@ class SSHConnectionPool:
                     # Connection is dead, close it
                     try:
                         conn_info.client.close()
-                    except:
+                    except Exception:
                         pass
 
             # Create new connection
             client = await self._create_connection(node_info)
             if client:
-                conn_info = ConnectionInfo(
-                    client=client, last_used=time.time(), created_at=time.time()
-                )
+                conn_info = ConnectionInfo(client=client, last_used=time.time(), created_at=time.time())
                 logger.debug(f"Created new connection for {node_key}")
                 return client
 
@@ -103,16 +101,14 @@ class SSHConnectionPool:
                 self.pools[node_key] = []
 
             if len(self.pools[node_key]) < self.max_connections:
-                conn_info = ConnectionInfo(
-                    client=client, last_used=time.time(), created_at=time.time()
-                )
+                conn_info = ConnectionInfo(client=client, last_used=time.time(), created_at=time.time())
                 self.pools[node_key].append(conn_info)
                 logger.debug(f"Returned connection to pool for {node_key}")
             else:
                 # Pool is full, close connection
                 try:
                     client.close()
-                except:
+                except Exception:
                     pass
                 logger.debug(f"Closed connection (pool full) for {node_key}")
 
@@ -175,7 +171,7 @@ class SSHConnectionPool:
             # Try to execute a simple command
             stdin, stdout, stderr = client.exec_command("echo 1", timeout=5)
             return stdout.channel.recv_exit_status() == 0
-        except:
+        except Exception:
             return False
 
     async def _clean_expired_connections(self, node_key: str):
@@ -193,7 +189,7 @@ class SSHConnectionPool:
                 # Close expired connection
                 try:
                     conn_info.client.close()
-                except:
+                except Exception:
                     pass
                 logger.debug(f"Closed expired connection for {node_key}")
 
@@ -206,7 +202,7 @@ class SSHConnectionPool:
                 for conn_info in connections:
                     try:
                         conn_info.client.close()
-                    except:
+                    except Exception:
                         pass
             self.pools.clear()
             logger.info("Closed all connections in pool")

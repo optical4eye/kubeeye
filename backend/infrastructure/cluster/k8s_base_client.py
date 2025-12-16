@@ -74,9 +74,7 @@ class K8sBaseClient:
         configuration.ssl_ca_cert = None
 
         # Set warning
-        logger.warning(
-            "SSL certificate verification disabled, this may pose a security threat"
-        )
+        logger.warning("SSL certificate verification disabled, this may pose a security threat")
 
         return configuration
 
@@ -109,5 +107,5 @@ class K8sBaseClient:
             try:
                 self.temp_config.close()
                 os.unlink(self.temp_config.name)
-            except:
+            except Exception:
                 pass

@@ -1,0 +1,92 @@
+# Test Dockerfile - Complete test environment for KubeEye backend
+FROM python:3.14-alpine
+
+# Install system dependencies
+RUN apk update && \
+    apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    openssh-client \
+    curl \
+    git \
+    font-dejavu \
+    font-liberation
+
+# Set working directory
+WORKDIR /app
+
+# First copy requirements.txt to utilize Docker cache
+COPY requirements.txt /app/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Install additional test dependencies
+RUN pip install --no-cache-dir \
+    pytest>=8.3.0 \
+    pytest-cov>=6.0.0 \
+    pytest-mock>=3.14.0 \
+    httpx>=0.28.0 \
+    pytest-asyncio>=0.25.0 \
+    black>=25.12.0 \
+    safety>=3.2.0 \
+    locust>=2.32.0 \
+    flake8>=7.3.0 \
+    pylint>=3.2.0
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV KUBEEYE_DATA_DIR=/app/data
+
+# Download OPA binary for the correct architecture
+RUN set -eux; \
+    # Determine architecture using uname
+    ARCH=$(uname -m); \
+    case "${ARCH}" in \
+        x86_64) \
+            OPA_ARCH="amd64"; \
+            ;; \
+        aarch64) \
+            OPA_ARCH="arm64"; \
+            ;; \
+        arm*) \
+            OPA_ARCH="arm"; \
+            ;; \
+        *) \
+            echo "Unsupported architecture: ${ARCH}"; \
+            exit 1; \
+            ;; \
+    esac; \
+    echo "Detected architecture: ${ARCH}, using OPA arch: ${OPA_ARCH}"; \
+    OPA_VERSION="v1.11.0"; \
+    curl -sSL "https://github.com/open-policy-agent/opa/releases/download/${OPA_VERSION}/opa_linux_${OPA_ARCH}_static" -o opa && \
+    chmod +x opa && \
+    mv opa /usr/local/bin/opa
+
+# Copy project files
+COPY . /app/
+
+# Create data directories
+RUN mkdir -p /app/data/clusters \
+             /app/data/results \
+             /app/data/exports \
+             /app/data/logs \
+             /app/data/schedules \
+             /app/data/git_rules \
+             /app/test-results
+
+# Initialize application
+RUN python scripts/init.py
+
+# Expose API port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
+
+# Default command for testing
+CMD ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=backend", "--cov-report=term-missing", "--cov-report=html:/app/test-results/coverage"]

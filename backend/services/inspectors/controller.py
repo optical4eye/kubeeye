@@ -37,13 +37,9 @@ class InspectionController:
         logger.info(f"GitOps mode: {self.use_gitops}")
 
         # Use registry to create inspectors dynamically
-        self.inspectors = inspector_registry.create_inspectors(
-            self.config, self.use_gitops
-        )
+        self.inspectors = inspector_registry.create_inspectors(self.config, self.use_gitops)
 
-        logger.info(
-            f"Initialized {len(self.inspectors)} inspectors: {list(self.inspectors.keys())}"
-        )
+        logger.info(f"Initialized {len(self.inspectors)} inspectors: {list(self.inspectors.keys())}")
 
     def get_available_inspectors(self) -> List[str]:
         """
@@ -75,9 +71,7 @@ class InspectionController:
 
         # Determine inspectors to execute
         if inspector_types:
-            active_inspectors = {
-                k: v for k, v in self.inspectors.items() if k in inspector_types
-            }
+            active_inspectors = {k: v for k, v in self.inspectors.items() if k in inspector_types}
         else:
             active_inspectors = self.inspectors
 
@@ -96,20 +90,14 @@ class InspectionController:
                 logger.info(f"Executing {inspector_type} inspection...")
                 result = inspector.run_inspection(cluster_name, inspector_rule_ids)
                 results[inspector_type] = result
-                logger.info(
-                    f"{inspector_type} inspection completed, found {len(result.items)} results"
-                )
+                logger.info(f"{inspector_type} inspection completed, found {len(result.items)} results")
 
             except Exception as e:
-                logger.exception(
-                    f"Error executing {inspector_type} inspection: {str(e)}"
-                )
+                logger.exception(f"Error executing {inspector_type} inspection: {str(e)}")
 
         return results
 
-    def _calculate_statistics(
-        self, all_results: Dict[str, InspectionResult]
-    ) -> Tuple[int, int, int, int, int]:
+    def _calculate_statistics(self, all_results: Dict[str, InspectionResult]) -> Tuple[int, int, int, int, int]:
         """Calculate inspection statistics efficiently"""
         total_items = 0
         total_passed = 0
@@ -166,9 +154,7 @@ class InspectionController:
             return item.get("severity", "unknown")
         return "unknown"
 
-    def _serialize_inspection_results(
-        self, all_results: Dict[str, InspectionResult]
-    ) -> Dict[str, Dict]:
+    def _serialize_inspection_results(self, all_results: Dict[str, InspectionResult]) -> Dict[str, Dict]:
         """Serialize inspection results efficiently"""
         serialized_results = {}
 
@@ -251,9 +237,7 @@ class InspectionController:
         result_path = results_dir / filename
 
         # Calculate statistics efficiently
-        total_items, total_passed, total_failed, total_warning, total_error = (
-            self._calculate_statistics(all_results)
-        )
+        total_items, total_passed, total_failed, total_warning, total_error = self._calculate_statistics(all_results)
 
         # Serialize inspection results
         serialized_results = self._serialize_inspection_results(all_results)
@@ -265,9 +249,7 @@ class InspectionController:
             "timestamp": datetime.now().isoformat(),
             "inspection_type": inspection_type,
             "execution_info": {
-                "triggered_by": (
-                    "user" if inspection_type == "immediate" else "scheduler"
-                ),
+                "triggered_by": ("user" if inspection_type == "immediate" else "scheduler"),
                 "inspectors_used": list(all_results.keys()),
                 "execution_duration": "N/A",
             },

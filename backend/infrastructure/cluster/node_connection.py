@@ -8,7 +8,7 @@ import asyncio
 import paramiko
 import socket
 import logging
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 import os
 from infrastructure.security.ssh_connection_pool import ssh_pool
 
@@ -219,9 +219,7 @@ class NodeConnection:
             self.connected = True
             return True, ""
         except paramiko.AuthenticationException:
-            error_msg = (
-                "Authentication failed (incorrect username, password or SSH key)"
-            )
+            error_msg = "Authentication failed (incorrect username, password or SSH key)"
             logging.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
         except paramiko.SSHException as e:
@@ -260,9 +258,7 @@ class NodeConnection:
 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(self._execute_command_sync, command)
-                    return future.result(
-                        timeout=command_timeout + 5
-                    )  # command timeout + 5s buffer
+                    return future.result(timeout=command_timeout + 5)  # command timeout + 5s buffer
             except RuntimeError:
                 # No running loop, we can use asyncio.run
                 return asyncio.run(self._execute_command_async(command))
@@ -283,9 +279,7 @@ class NodeConnection:
 
             # Execute command with configurable timeout (6x base SSH timeout for commands)
             command_timeout = ssh_timeout * 6  # 60s for 10s base
-            stdin, stdout, stderr = client.exec_command(
-                command, timeout=command_timeout
-            )
+            stdin, stdout, stderr = client.exec_command(command, timeout=command_timeout)
             exit_status = stdout.channel.recv_exit_status()
 
             # Read output

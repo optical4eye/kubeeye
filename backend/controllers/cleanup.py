@@ -19,7 +19,7 @@ async def get_cleanup_status():
             "enabled": config.get("enabled", False),
             "max_age_days": config.get("max_age_days", 30),
             "cleanup_interval_hours": config.get("cleanup_interval_hours", 24),
-            "last_cleanup": config.get("last_cleanup")
+            "last_cleanup": config.get("last_cleanup"),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

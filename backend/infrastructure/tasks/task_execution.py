@@ -13,9 +13,7 @@ from infrastructure.rules.rule_manager import RuleManager
 logger = logging.getLogger(__name__)
 
 
-def execute_inspection_task(
-    task, show_progress: bool = False
-) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+def execute_inspection_task(task, show_progress: bool = False) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
     """
     Execute inspection task for scheduled tasks
 
@@ -42,9 +40,7 @@ def execute_inspection_task(
         # Determine whether to use GitOps rules
         use_gitops = RuleManager.should_use_gitops()
 
-        logger.info(
-            f"Executing scheduled task: {task.name} for cluster: {cluster_name}"
-        )
+        logger.info(f"Executing scheduled task: {task.name} for cluster: {cluster_name}")
         logger.info(f"Selected rules: {selected_rules}")
         logger.info(f"GitOps mode: {use_gitops}")
 

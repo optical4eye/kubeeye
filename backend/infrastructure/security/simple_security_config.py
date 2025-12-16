@@ -33,23 +33,17 @@ class SimpleSecurityConfig:
                 with open(config_path, "r", encoding="utf-8") as f:
                     config = yaml.safe_load(f) or {}
             else:
-                logger.warning(
-                    f"Configuration file does not exist: {config_path}, using default configuration"
-                )
+                logger.warning(f"Configuration file does not exist: {config_path}, using default configuration")
                 config = {}
 
             # Set default values
             return {
                 "max_command_length": config.get("max_command_length", 1000),
                 "command_timeout": config.get("command_timeout", 30),
-                "audit_log_path": config.get(
-                    "audit_log_path", "data/logs/security_audit.log"
-                ),
+                "audit_log_path": config.get("audit_log_path", "data/logs/security_audit.log"),
                 "audit_retention_days": config.get("audit_retention_days", 90),
                 "enable_detailed_logging": config.get("enable_detailed_logging", True),
-                "allowed_ports": config.get(
-                    "allowed_ports", [22, 80, 443, 6443, 8080, 9090, 10250]
-                ),
+                "allowed_ports": config.get("allowed_ports", [22, 80, 443, 6443, 8080, 9090, 10250]),
                 "blocked_ips": config.get("blocked_ips", []),
                 "require_key_auth": config.get("require_key_auth", False),
             }

@@ -19,6 +19,12 @@ __pycache__
 .pytest_cache
 .coverage
 htmlcov
+.mypy_cache
+.dmypy.json
+__pypackages__/
+.python-version
+.env*
+.envrc
 
 # Virtual environments
 venv/
@@ -47,7 +53,14 @@ docs/
 # Local development files
 docker-compose.yml
 docker-compose.override.yml
+docker-compose.test.yaml
 kubeeye-deployment.yaml
+
+# Test results and artifacts
+test-results/
+.coverage.*
+coverage.xml
+junit-report.xml
 
 # Data directories (will be created in container)
 data/
@@ -59,3 +72,10 @@ build-multiarch.sh
 dev.sh
 docker-compose.multiarch.yml
 Dockerfile
+Dockerfile.test
+
+# Development tools
+.tox/
+.nox/
+.pre-commit-config.yaml
+.pre-commit/

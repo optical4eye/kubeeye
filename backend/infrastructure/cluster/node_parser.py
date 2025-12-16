@@ -9,9 +9,7 @@ from typing import List, Dict, Any, Tuple
 
 # Pre-compiled regular expressions for performance
 IP_PORT_PATTERN = re.compile(r"^([\d\.]+)(?::(\d+))?$")
-NODE_PATTERN = re.compile(
-    r"^(\d+\.\d+\.\d+\.\d+)(?::(\d+))?\s+(\w+)\s+(password|key)(?:\s+(.+))?$"
-)
+NODE_PATTERN = re.compile(r"^(\d+\.\d+\.\d+\.\d+)(?::(\d+))?\s+(\w+)\s+(password|key)(?:\s+(.+))?$")
 
 
 def parse_nodes_from_text(text: str) -> Tuple[List[Dict[str, Any]], List[str]]:
@@ -69,9 +67,7 @@ def parse_nodes_from_text(text: str) -> Tuple[List[Dict[str, Any]], List[str]]:
                 if credential:
                     node_info["password"] = credential
                 else:
-                    errors.append(
-                        f"Line {line_num}: password required for 'password' type"
-                    )
+                    errors.append(f"Line {line_num}: password required for 'password' type")
                     continue
             else:  # key
                 if credential:

@@ -52,14 +52,12 @@ def ensure_opa_binary():
 
     if not (stat_info.st_mode & 0o111):
         logger.error(f"OPA binary is not executable. Permissions: {oct(permissions)}")
-        raise RuntimeError(f"OPA binary is not executable")
+        raise RuntimeError("OPA binary is not executable")
 
     # Test if OPA can be executed
     try:
         logger.info("Testing OPA execution...")
-        result = subprocess.run(
-            [str(opa_path), "version"], capture_output=True, text=True, timeout=10
-        )
+        result = subprocess.run([str(opa_path), "version"], capture_output=True, text=True, timeout=10)
         logger.info(f"OPA test result: returncode={result.returncode}")
         if result.stdout:
             logger.info(f"OPA stdout: {result.stdout.strip()}")

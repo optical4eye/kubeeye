@@ -4,62 +4,171 @@
 Main FastAPI application and shared dependencies
 """
 
+# Standard library imports
 import logging
-from fastapi import FastAPI, Request, Response, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional, Tuple
-import uvicorn
-import json
 import os
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import AsyncContextManager
+from contextlib import asynccontextmanager
 
-# Import enhanced logging
+# Third-party imports
+import uvicorn
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+# Local imports
+from infrastructure.common.version import VERSION
 from infrastructure.logging.enhanced_logging import (
     log_api_request,
-    ErrorBoundary,
     request_id,
 )
 from infrastructure.logging.logging_config import get_system_health
 
-# Import existing modules
-from infrastructure.cluster.cluster_config import (
-    list_clusters,
-    get_cluster,
-    delete_cluster,
+# Import route modules
+from . import (
+    clusters,
+    inspection,
+    reports,
+    scheduled_tasks,
+    rules,
+    gitops,
+    cleanup,
+    network,
 )
-from infrastructure.results.inspection_result import (
-    list_results,
-    load_result,
-    export_report,
-)
-from infrastructure.rules.rule_loader import load_rules
-from infrastructure.rules.rule_manager import RuleManager
-from infrastructure.tasks.schedule_manager import (
-    load_schedules,
-    add_schedule,
-    delete_schedule,
-    run_inspection,
-    update_task_status,
-)
-from services.components.inspection_engine import execute_inspection_unified
-from infrastructure.common.version import VERSION
-from scripts.cleanup_reports import load_cleanup_config
-from .models import ClusterCreate, InspectionRequest, ScheduledTaskCreate, TestNodesRequest, TestKubeconfigRequest
+
+# Constants
+DATA_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
+CLUSTERS_DIR = DATA_DIR / "clusters"
+RESULTS_DIR = DATA_DIR / "results"
+LOGS_DIR = DATA_DIR / "logs"
+SCHEDULES_DIR = DATA_DIR / "schedules"
+GIT_RULES_DIR = DATA_DIR / "git_rules"
 
 # Setup logger
 logger = logging.getLogger(__name__)
 
+
+def handle_api_exceptions(default_status_code: int = 500, default_message: str = "Internal server error"):
+    """
+    Decorator for handling API exceptions consistently
+
+    Args:
+        default_status_code: Default HTTP status code for exceptions
+        default_message: Default error message
+    """
+
+    def decorator(func):
+        async def wrapper(*args, **kwargs):
+            try:
+                return await func(*args, **kwargs)
+            except HTTPException:
+                # Re-raise HTTP exceptions as-is
+                raise
+            except Exception as e:
+                logger.error(f"Error in {func.__name__}: {str(e)}", exc_info=True)
+                raise HTTPException(status_code=default_status_code, detail=default_message)
+
+        return wrapper
+
+    return decorator
+
+
 # Ensure data directories exist
-DATA_DIR = (
-    Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
-)
-CLUSTERS_DIR = DATA_DIR / "clusters"
-RESULTS_DIR = DATA_DIR / "results"
 CLUSTERS_DIR.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+SCHEDULES_DIR.mkdir(parents=True, exist_ok=True)
+GIT_RULES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _start_scheduler():
+    """Initialize and start the scheduler"""
+    try:
+        from infrastructure.tasks.schedule_manager import start_scheduler
+
+        start_scheduler()
+        logger.info("Scheduler initialized on application startup")
+    except Exception as e:
+        logger.error(f"Failed to start scheduler on startup: {e}")
+
+
+async def _start_task_queue():
+    """Initialize and start the async task queue"""
+    try:
+        from infrastructure.tasks.task_queue import task_queue
+
+        await task_queue.start()
+        logger.info("Async task queue initialized on application startup")
+    except Exception as e:
+        logger.error(f"Failed to start task queue on startup: {e}")
+
+
+def _start_cleanup_worker():
+    """Start the automatic cleanup background worker"""
+    try:
+        import threading
+        import time
+        from scripts.cleanup_reports import run_cleanup
+
+        def cleanup_worker():
+            """Run cleanup every 24 hours"""
+            while True:
+                try:
+                    run_cleanup()
+                except Exception as e:
+                    logger.error(f"Cleanup error: {e}")
+                time.sleep(24 * 3600)  # 24 hours
+
+        # Run cleanup immediately on startup
+        run_cleanup()
+
+        # Start background cleanup thread
+        cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
+        cleanup_thread.start()
+        logger.info("Automatic cleanup initialized on application startup")
+    except Exception as e:
+        logger.error(f"Failed to start automatic cleanup: {e}")
+
+
+async def _shutdown_task_queue():
+    """Stop the async task queue on shutdown"""
+    try:
+        from infrastructure.tasks.task_queue import task_queue
+
+        await task_queue.stop()
+        logger.info("Async task queue stopped on application shutdown")
+    except Exception as e:
+        logger.error(f"Failed to stop task queue on shutdown: {e}")
+
+
+async def _close_ssh_pool():
+    """Close SSH connection pool on shutdown"""
+    try:
+        from infrastructure.security.ssh_connection_pool import ssh_pool
+
+        await ssh_pool.close_all()
+        logger.info("SSH connection pool closed on application shutdown")
+    except Exception as e:
+        logger.error(f"Failed to close SSH connection pool on shutdown: {e}")
+
+
+# Lifespan context manager for startup and shutdown events
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncContextManager[None]:
+    """Handle application startup and shutdown events"""
+    # Startup
+    _start_scheduler()
+    await _start_task_queue()
+    _start_cleanup_worker()
+
+    yield
+
+    # Shutdown
+    await _shutdown_task_queue()
+    await _close_ssh_pool()
+
 
 app = FastAPI(
     title="KubeEye API",
@@ -96,6 +205,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
 
 
@@ -170,76 +280,6 @@ app.add_middleware(
 )
 
 
-
-
-# Startup event to initialize scheduler and task queue
-@app.on_event("startup")
-async def startup_event():
-    """Initialize scheduler and task queue on startup"""
-    try:
-        from infrastructure.tasks.schedule_manager import start_scheduler
-
-        start_scheduler()
-        logger.info("Scheduler initialized on application startup")
-    except Exception as e:
-        logger.error(f"Failed to start scheduler on startup: {e}")
-
-    # Start task queue
-    try:
-        from infrastructure.tasks.task_queue import task_queue
-
-        await task_queue.start()
-        logger.info("Async task queue initialized on application startup")
-    except Exception as e:
-        logger.error(f"Failed to start task queue on startup: {e}")
-
-    # Start automatic cleanup thread
-    try:
-        import threading
-        import time
-        from scripts.cleanup_reports import run_cleanup
-
-        def cleanup_worker():
-            """Run cleanup every 24 hours"""
-            while True:
-                try:
-                    run_cleanup()
-                except Exception as e:
-                    logger.error(f"Cleanup error: {e}")
-                time.sleep(24 * 3600)  # 24 hours
-
-        # Run cleanup immediately on startup
-        run_cleanup()
-
-        # Start background cleanup thread
-        cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
-        cleanup_thread.start()
-        logger.info("Automatic cleanup initialized on application startup")
-    except Exception as e:
-        logger.error(f"Failed to start automatic cleanup: {e}")
-
-
-# Shutdown event to cleanup resources
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup resources on shutdown"""
-    try:
-        from infrastructure.tasks.task_queue import task_queue
-
-        await task_queue.stop()
-        logger.info("Async task queue stopped on application shutdown")
-    except Exception as e:
-        logger.error(f"Failed to stop task queue on shutdown: {e}")
-
-    try:
-        from infrastructure.security.ssh_connection_pool import ssh_pool
-
-        await ssh_pool.close_all()
-        logger.info("SSH connection pool closed on application shutdown")
-    except Exception as e:
-        logger.error(f"Failed to close SSH connection pool on shutdown: {e}")
-
-
 # Root endpoint
 @app.get("/")
 @log_api_request
@@ -263,7 +303,7 @@ async def root():
             "scheduled_tasks": "/api/scheduled-tasks",
             "gitops": "/api/gitops",
             "cleanup": "/api/cleanup",
-            "network": "/api/network-check",
+            "network-check": "/api/network-check",
         },
     }
 
@@ -316,9 +356,8 @@ async def health_check():
         queue_status = {
             "running": task_queue.running,
             "queue_size": task_queue.queue.qsize(),
-            "active_workers": len(
-                [t for t in task_queue.tasks.values() if t.status.value == "running"]
-            ),
+            "active_workers": len([t for t in task_queue.tasks.values() if t.status.value == "running"]),
+            "pending_tasks": len([t for t in task_queue.tasks.values() if t.status.value == "pending"]),
         }
 
         return {
@@ -344,18 +383,12 @@ async def get_queue_status():
             "running": task_queue.running,
             "max_workers": task_queue.max_workers,
             "queue_size": task_queue.queue.qsize(),
-            "active_tasks": len(
-                [t for t in task_queue.tasks.values() if t.status.value == "running"]
-            ),
-            "pending_tasks": len(
-                [t for t in task_queue.tasks.values() if t.status.value == "pending"]
-            ),
+            "active_tasks": len([t for t in task_queue.tasks.values() if t.status.value == "running"]),
+            "pending_tasks": len([t for t in task_queue.tasks.values() if t.status.value == "pending"]),
             "total_tasks": len(task_queue.tasks),
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get queue status: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get queue status: {str(e)}")
 
 
 @app.get("/api/queue/tasks")
@@ -377,16 +410,6 @@ async def get_queue_tasks(limit: int = 50):
 
 
 # Import and include all route modules
-from . import (
-    clusters,
-    inspection,
-    reports,
-    scheduled_tasks,
-    rules,
-    gitops,
-    cleanup,
-    network,
-)
 
 app.include_router(clusters.router, prefix="/api", tags=["clusters"])
 app.include_router(inspection.router, prefix="/api", tags=["inspection"])

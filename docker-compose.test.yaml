@@ -1,0 +1,34 @@
+services:
+  test-runner:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    ports:
+      - "8001:8000"  # Port for test server if needed
+    volumes:
+      - ./backend:/app
+      - ./backend/data:/app/data
+      - ./backend/test-results:/app/test-results
+      - ./backend/logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - KUBEEYE_DATA_DIR=/app/data
+      - KUBEYE_REPORT_RETENTION_DAYS=0
+      - KUBEYE_SSH_CONNECTION_TIMEOUT=10
+      - KUBEYE_SSH_MAX_CONCURRENT_CHECKS=10
+      - KUBEYE_GITOPS_REPO_NAME=kubeeye_rules
+      - KUBEYE_GITOPS_REPO_URL=https://github.com/optical4eye/kubeeye-rules.git
+      - KUBEYE_GITOPS_REPO_BRANCH=main
+      - KUBEYE_GITOPS_REPO_USERNAME=optical4eye
+      - KUBEYE_GITOPS_REPO_TOKEN=""
+      - KUBEYE_GITOPS_REPO_DESCRIPTION=kubeeye repo rules
+    command: ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=scripts", "--cov=controllers", "--cov=services", "--cov=infrastructure", "--cov-report=term-missing", "--cov-report=html:/app/test-results/coverage"]
+    profiles: ["test"]
+
+volumes:
+  kubeeye-data:
+    driver: local
+
+networks:
+  default:
+    name: kubeeye-test-network

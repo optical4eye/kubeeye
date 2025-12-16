@@ -5,7 +5,7 @@ Node inspection parallelism configuration management
 """
 
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
 from dataclasses import dataclass
 
 
@@ -37,21 +37,14 @@ class NodeInspectorConfig:
         return cls(
             max_workers=int(os.getenv("NODE_INSPECTOR_MAX_WORKERS", "5")),
             timeout=int(os.getenv("NODE_INSPECTOR_TIMEOUT", "30")),
-            connection_timeout=int(
-                os.getenv("NODE_INSPECTOR_CONNECTION_TIMEOUT", "10")
-            ),
+            connection_timeout=int(os.getenv("NODE_INSPECTOR_CONNECTION_TIMEOUT", "10")),
             retry_attempts=int(os.getenv("NODE_INSPECTOR_RETRY_ATTEMPTS", "2")),
             retry_delay=int(os.getenv("NODE_INSPECTOR_RETRY_DELAY", "1")),
-            enable_connection_pool=os.getenv(
-                "NODE_INSPECTOR_CONNECTION_POOL", "true"
-            ).lower()
-            == "true",
+            enable_connection_pool=os.getenv("NODE_INSPECTOR_CONNECTION_POOL", "true").lower() == "true",
             pool_size=int(os.getenv("NODE_INSPECTOR_POOL_SIZE", "10")),
             keep_alive=os.getenv("NODE_INSPECTOR_KEEP_ALIVE", "true").lower() == "true",
-            verbose_logging=os.getenv("NODE_INSPECTOR_VERBOSE", "false").lower()
-            == "true",
-            log_command_output=os.getenv("NODE_INSPECTOR_LOG_OUTPUT", "false").lower()
-            == "true",
+            verbose_logging=os.getenv("NODE_INSPECTOR_VERBOSE", "false").lower() == "true",
+            log_command_output=os.getenv("NODE_INSPECTOR_LOG_OUTPUT", "false").lower() == "true",
         )
 
     @classmethod
@@ -75,8 +68,7 @@ class NodeInspectorConfig:
             timeout=timeout,
             connection_timeout=min(10, timeout // 3),
             retry_attempts=2 if node_count <= 10 else 1,
-            verbose_logging=node_count
-            <= 5,  # Enable verbose logging for small node counts
+            verbose_logging=node_count <= 5,  # Enable verbose logging for small node counts
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -101,9 +93,7 @@ class NodeInspectorConfig:
         if self.max_workers < 1:
             issues.append("max_workers must be greater than 0")
         if self.max_workers > 20:
-            issues.append(
-                "max_workers should not exceed 20, may cause resource overload"
-            )
+            issues.append("max_workers should not exceed 20, may cause resource overload")
 
         if self.timeout < 5:
             issues.append("timeout should not be less than 5 seconds")

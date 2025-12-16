@@ -128,9 +128,7 @@ class ResultFormatter:
         )
 
     @staticmethod
-    def error_result(
-        rule: Rule, error_msg: str, description: Optional[str] = None, **kwargs
-    ) -> Dict:
+    def error_result(rule: Rule, error_msg: str, description: Optional[str] = None, **kwargs) -> Dict:
         """
         Generate "Error" result
 

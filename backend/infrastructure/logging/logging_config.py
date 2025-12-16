@@ -13,13 +13,10 @@ from typing import Optional
 from infrastructure.logging.enhanced_logging import (
     setup_logging,
     get_error_summary,
-    error_tracker,
 )
 
 # Data directory definition
-DATA_DIR = (
-    Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
-)
+DATA_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
 LOGS_DIR = DATA_DIR / "logs"
 
 # Ensure log directory exists

@@ -39,9 +39,7 @@ class PrometheusClient:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         elif self.username and self.password:
-            auth = base64.b64encode(
-                f"{self.username}:{self.password}".encode()
-            ).decode()
+            auth = base64.b64encode(f"{self.username}:{self.password}".encode()).decode()
             headers["Authorization"] = f"Basic {auth}"
 
         return headers
@@ -116,9 +114,7 @@ class PrometheusClient:
         # Use request with retries
         return self._request_with_retry(f"{self.url}/api/v1/alerts")
 
-    def _request_with_retry(
-        self, url: str, params: Dict = None, max_retries: int = 3
-    ) -> Dict:
+    def _request_with_retry(self, url: str, params: Dict = None, max_retries: int = 3) -> Dict:
         """
         Execute Prometheus API request with retries
 

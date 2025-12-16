@@ -174,9 +174,7 @@ class K8sClient(K8sBaseClient):
 
         if node.spec.taints:
             for taint in node.spec.taints:
-                taints.append(
-                    {"key": taint.key, "value": taint.value, "effect": taint.effect}
-                )
+                taints.append({"key": taint.key, "value": taint.value, "effect": taint.effect})
 
         return taints
 
@@ -225,11 +223,7 @@ class K8sClient(K8sBaseClient):
                     "creation_timestamp": pod.metadata.creation_timestamp,
                     "containers": [c.name for c in pod.spec.containers],
                     "restart_count": (
-                        sum(
-                            c.restart_count
-                            for c in pod.status.container_statuses
-                            if c.restart_count
-                        )
+                        sum(c.restart_count for c in pod.status.container_statuses if c.restart_count)
                         if pod.status.container_statuses
                         else 0
                     ),
@@ -300,9 +294,7 @@ class K8sClient(K8sBaseClient):
         """Get ServiceAccount list for all namespaces"""
         try:
             serviceaccounts = self.core_v1.list_service_account_for_all_namespaces()
-            return [
-                self._convert_k8s_object_to_dict(sa) for sa in serviceaccounts.items
-            ]
+            return [self._convert_k8s_object_to_dict(sa) for sa in serviceaccounts.items]
         except Exception as e:
             logger.error(f"Failed to get all ServiceAccounts: {e}")
             return []
@@ -362,15 +354,11 @@ class K8sClient(K8sBaseClient):
             elif resource_type == "secrets":
                 items = self.core_v1.list_secret_for_all_namespaces().items
             elif resource_type == "persistentvolumeclaims":
-                items = (
-                    self.core_v1.list_persistent_volume_claim_for_all_namespaces().items
-                )
+                items = self.core_v1.list_persistent_volume_claim_for_all_namespaces().items
             elif resource_type == "serviceaccounts":
                 items = self.core_v1.list_service_account_for_all_namespaces().items
             elif resource_type == "networkpolicies":
-                items = (
-                    self.networking_v1.list_network_policy_for_all_namespaces().items
-                )
+                items = self.networking_v1.list_network_policy_for_all_namespaces().items
             elif resource_type == "roles":
                 items = self.rbac_v1.list_role_for_all_namespaces().items
             elif resource_type == "rolebindings":
@@ -414,9 +402,7 @@ class K8sClient(K8sBaseClient):
                 # Try to handle as CRD cluster resource
                 items = self._list_custom_cluster_resources(resource_type)
                 if items is None:
-                    logger.warning(
-                        f"Unsupported cluster resource type: {resource_type}"
-                    )
+                    logger.warning(f"Unsupported cluster resource type: {resource_type}")
                     return []
 
             return [self._convert_k8s_object_to_dict(item) for item in items]
@@ -455,18 +441,12 @@ class K8sClient(K8sBaseClient):
                 return {
                     "metadata": {
                         "name": obj.metadata.name,
-                        "namespace": (
-                            obj.metadata.namespace
-                            if hasattr(obj.metadata, "namespace")
-                            else None
-                        ),
+                        "namespace": (obj.metadata.namespace if hasattr(obj.metadata, "namespace") else None),
                     }
                 }
             return {}
 
-    def get_custom_resources(
-        self, group: str, version: str, plural: str, namespace: str = None
-    ) -> List[Dict]:
+    def get_custom_resources(self, group: str, version: str, plural: str, namespace: str = None) -> List[Dict]:
         """
         Get custom resource (CRD) list
 
@@ -487,17 +467,13 @@ class K8sClient(K8sBaseClient):
                 )
             else:
                 # Get CRD resources for all namespaces
-                response = self.custom_objects.list_cluster_custom_object(
-                    group=group, version=version, plural=plural
-                )
+                response = self.custom_objects.list_cluster_custom_object(group=group, version=version, plural=plural)
 
             items = response.get("items", [])
             return [self._convert_dict_to_k8s_format(item) for item in items]
 
         except Exception as e:
-            logger.debug(
-                f"Failed to get CRD resource {group}/{version}/{plural}: {str(e)}"
-            )
+            logger.debug(f"Failed to get CRD resource {group}/{version}/{plural}: {str(e)}")
             return []
 
     def _list_custom_resources(self, resource_type: str) -> List:
@@ -531,10 +507,7 @@ class K8sClient(K8sBaseClient):
                 response = self.custom_objects.list_cluster_custom_object(
                     group=group, version=version, plural=resource_type
                 )
-                return [
-                    self._convert_dict_to_k8s_format(item)
-                    for item in response.get("items", [])
-                ]
+                return [self._convert_dict_to_k8s_format(item) for item in response.get("items", [])]
             except Exception as e:
                 logger.debug(f"Failed to get CRD resource {resource_type}: {str(e)}")
                 return []
@@ -564,14 +537,9 @@ class K8sClient(K8sBaseClient):
                 response = self.custom_objects.list_cluster_custom_object(
                     group=group, version=version, plural=resource_type
                 )
-                return [
-                    self._convert_dict_to_k8s_format(item)
-                    for item in response.get("items", [])
-                ]
+                return [self._convert_dict_to_k8s_format(item) for item in response.get("items", [])]
             except Exception as e:
-                logger.debug(
-                    f"Failed to get cluster-level CRD resource {resource_type}: {str(e)}"
-                )
+                logger.debug(f"Failed to get cluster-level CRD resource {resource_type}: {str(e)}")
                 return []
 
         return None
@@ -639,9 +607,7 @@ class K8sClient(K8sBaseClient):
             logger.debug(f"Failed to get CRD list: {str(e)}")
             return []
 
-    def get_custom_resource_by_crd(
-        self, crd_info: Dict, namespace: str = None
-    ) -> List[Dict]:
+    def get_custom_resource_by_crd(self, crd_info: Dict, namespace: str = None) -> List[Dict]:
         """
         Get custom resources based on CRD definition
 
@@ -664,14 +630,10 @@ class K8sClient(K8sBaseClient):
                     group=group, version=version, namespace=namespace, plural=plural
                 )
             elif scope == "Cluster":
-                response = self.custom_objects.list_cluster_custom_object(
-                    group=group, version=version, plural=plural
-                )
+                response = self.custom_objects.list_cluster_custom_object(group=group, version=version, plural=plural)
             else:
                 # Get resources for all namespaces
-                response = self.custom_objects.list_cluster_custom_object(
-                    group=group, version=version, plural=plural
-                )
+                response = self.custom_objects.list_cluster_custom_object(group=group, version=version, plural=plural)
 
             items = response.get("items", [])
             return [self._convert_dict_to_k8s_format(item) for item in items]

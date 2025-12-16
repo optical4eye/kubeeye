@@ -169,9 +169,7 @@ class CommandSecurityChecker:
         """
         command = command.strip()
 
-        logger.info(
-            f" Security check begins - Command: {command[:100]}{'...' if len(command) > 100 else ''}"
-        )
+        logger.info(f" Security check begins - Command: {command[:100]}{'...' if len(command) > 100 else ''}")
 
         if not command:
             logger.info("Empty command, considered safe")
@@ -185,16 +183,12 @@ class CommandSecurityChecker:
         # Step two: Check if command contains absolutely prohibited operations (blacklist)
         if self._contains_critical_operations(command):
             risk_level, risk_desc = self._analyze_command_risk(command)
-            logger.error(
-                f"Prohibited modification operation detected: {command[:100]}... Risk: {risk_desc}"
-            )
+            logger.error(f"Prohibited modification operation detected: {command[:100]}... Risk: {risk_desc}")
             return False, risk_level, risk_desc
 
         # Step three: If whitelist-only mode is enabled, reject all non-explicitly allowed commands
         if self.whitelist_only:
-            logger.warning(
-                f" Whitelist-only mode: Command not in safe whitelist: {command[:100]}..."
-            )
+            logger.warning(f" Whitelist-only mode: Command not in safe whitelist: {command[:100]}...")
             return (
                 False,
                 RiskLevel.HIGH,
@@ -205,15 +199,11 @@ class CommandSecurityChecker:
         risk_level, risk_desc = self._analyze_command_risk(command)
 
         if risk_level == RiskLevel.CRITICAL:
-            logger.error(
-                f"Critical risk command detected: {command[:100]}... Risk: {risk_desc}"
-            )
+            logger.error(f"Critical risk command detected: {command[:100]}... Risk: {risk_desc}")
             return False, risk_level, risk_desc
 
         if self.strict_mode and risk_level == RiskLevel.HIGH:
-            logger.warning(
-                f"High risk command rejected in strict mode: {command[:100]}... Risk: {risk_desc}"
-            )
+            logger.warning(f"High risk command rejected in strict mode: {command[:100]}... Risk: {risk_desc}")
             return False, risk_level, risk_desc
 
         if risk_level in [RiskLevel.MEDIUM, RiskLevel.HIGH]:
@@ -281,9 +271,7 @@ class CommandSecurityChecker:
                     break
 
             if not matched:
-                logger.warning(
-                    f"Subcommand {i} does not match any whitelist pattern: '{sub}'"
-                )
+                logger.warning(f"Subcommand {i} does not match any whitelist pattern: '{sub}'")
                 return False
 
         logger.info("All subcommands passed whitelist check")

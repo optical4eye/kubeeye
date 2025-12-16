@@ -15,9 +15,7 @@ logger = logging.getLogger(__name__)
 class ResultExtractor:
     """Extracting variables from command output"""
 
-    def extract(
-        self, output: str, extractors: List[Dict], context: Dict = None
-    ) -> Dict[str, Any]:
+    def extract(self, output: str, extractors: List[Dict], context: Dict = None) -> Dict[str, Any]:
         """
         Extract variables from output based on extractor configurations
 
@@ -54,9 +52,7 @@ class ResultExtractor:
                             value = match.group(0)
                         result[name] = self._convert_value(value, value_type)
                     else:
-                        logger.warning(
-                            f"Extractor pattern '{name}' '{pattern}' found no matches"
-                        )
+                        logger.warning(f"Extractor pattern '{name}' '{pattern}' found no matches")
                         result[name] = None
                 except (re.error, IndexError) as e:
                     logger.error(f"Regex error for extractor '{name}': {str(e)}")

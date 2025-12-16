@@ -6,7 +6,8 @@ Asynchronous task queue for inspection processing
 
 import asyncio
 import logging
-import json
+
+# json not used
 from typing import Dict, Any, Optional, Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -49,9 +50,7 @@ class Task:
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": (
-                self.completed_at.isoformat() if self.completed_at else None
-            ),
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
             "result": self.result,
             "error": self.error,
         }

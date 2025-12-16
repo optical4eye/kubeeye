@@ -127,9 +127,7 @@ class PrometheusInspector(BaseInspector):
             name_suffix = self._generate_context_suffix(metrics, variables)
 
             # Evaluate assertions
-            assertion_result = self.rule_processor.evaluate_assertions(
-                assertions, variables
-            )
+            assertion_result = self.rule_processor.evaluate_assertions(assertions, variables)
 
             # Return check result based on assertion result
             if assertion_result["passed"]:
@@ -138,22 +136,16 @@ class PrometheusInspector(BaseInspector):
                 first_assertion_desc = first_assertion.get("description", "")
                 if first_assertion_desc:
                     # Render template to display specific values
-                    rendered_desc = (
-                        self.rule_processor.assertion_manager.render_template(
-                            first_assertion_desc, variables
-                        )
+                    rendered_desc = self.rule_processor.assertion_manager.render_template(
+                        first_assertion_desc, variables
                     )
                     description = f"{rule.name}: {rendered_desc}"
                 else:
                     # Display key metric values
                     if "max_value" in variables:
-                        description = (
-                            f"{rule.name}: maximum value {variables['max_value']:.2f}"
-                        )
+                        description = f"{rule.name}: maximum value {variables['max_value']:.2f}"
                     elif "value" in variables:
-                        description = (
-                            f"{rule.name}: current value {variables['value']:.2f}"
-                        )
+                        description = f"{rule.name}: current value {variables['value']:.2f}"
                     else:
                         description = f"{rule.name}: check passed"
 
@@ -167,9 +159,7 @@ class PrometheusInspector(BaseInspector):
                 )
             else:
                 # Remove "Assertion failed: " prefix, use description directly
-                clean_description = assertion_result["description"].replace(
-                    "Assertion failed: ", ""
-                )
+                clean_description = assertion_result["description"].replace("Assertion failed: ", "")
 
                 result = self.rule_processor.format_rule_result(
                     rule=rule,
@@ -188,9 +178,7 @@ class PrometheusInspector(BaseInspector):
 
         except Exception as e:
             logger.exception(f"Error executing Prometheus query: {str(e)}")
-            return self._format_error_result(
-                rule, "Error executing Prometheus query", str(e)
-            )
+            return self._format_error_result(rule, "Error executing Prometheus query", str(e))
 
     def _process_query_result(self, result: Dict) -> List[Dict]:
         """
@@ -220,18 +208,12 @@ class PrometheusInspector(BaseInspector):
             for item in result_data:
                 metric = {
                     "metric": item.get("metric", {}),
-                    "value": (
-                        float(item.get("value", [0, "0"])[1])
-                        if item.get("value")
-                        else 0
-                    ),
+                    "value": (float(item.get("value", [0, "0"])[1]) if item.get("value") else 0),
                 }
                 metrics.append(metric)
         else:
             # No longer supports matrix type complex time series
-            logger.warning(
-                f"Unsupported query result type: {result_type}, use instant query"
-            )
+            logger.warning(f"Unsupported query result type: {result_type}, use instant query")
 
         return metrics
 
@@ -267,9 +249,7 @@ class PrometheusInspector(BaseInspector):
 
         return variables
 
-    def _generate_context_suffix(
-        self, metrics: List[Dict], variables: Dict[str, Any]
-    ) -> str:
+    def _generate_context_suffix(self, metrics: List[Dict], variables: Dict[str, Any]) -> str:
         """
         Generate name suffix containing context information
 

@@ -37,9 +37,7 @@ class K8sDynamicClient(K8sBaseClient):
         self.dynamic_client = None
         self.api_client = None
         self.resource_cache = {}  # Resource definition cache
-        self.resource_mappings = (
-            {}
-        )  # Dynamic resource mapping table, built from rule configuration
+        self.resource_mappings = {}  # Dynamic resource mapping table, built from rule configuration
 
         self.init_client()
 
@@ -61,9 +59,7 @@ class K8sDynamicClient(K8sBaseClient):
                 import tempfile
                 from kubernetes import config
 
-                tmp = tempfile.NamedTemporaryFile(
-                    delete=False, suffix=".yaml", mode="w", encoding="utf-8"
-                )
+                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".yaml", mode="w", encoding="utf-8")
                 tmp.write(self.kubeconfig_content)
                 tmp.close()
                 kubeconfig_path = tmp.name
@@ -81,17 +77,13 @@ class K8sDynamicClient(K8sBaseClient):
 
             # Authentication verification (optional, initialization fails if failed)
             if self.kubeconfig_content:
-                tmp = tempfile.NamedTemporaryFile(
-                    delete=False, suffix=".yaml", mode="w", encoding="utf-8"
-                )
+                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".yaml", mode="w", encoding="utf-8")
                 tmp.write(self.kubeconfig_content)
                 tmp.close()
                 kubeconfig_path = tmp.name
                 try:
                     if not K8sDynamicClient.validate_kubeconfig_auth(kubeconfig_path):
-                        logger.error(
-                            "kubeconfig authentication verification failed, initialization terminated"
-                        )
+                        logger.error("kubeconfig authentication verification failed, initialization terminated")
                         self.initialized = False
                         return False
                 finally:
@@ -120,9 +112,7 @@ class K8sDynamicClient(K8sBaseClient):
             resource definition object or None
         """
         if not self.initialized:
-            logger.warning(
-                f"Dynamic client not initialized, unable to get resource definition: {resource_type}"
-            )
+            logger.warning(f"Dynamic client not initialized, unable to get resource definition: {resource_type}")
             return None
 
         # Check cache
@@ -133,16 +123,10 @@ class K8sDynamicClient(K8sBaseClient):
             # Get resource information from mapping table
             if resource_type in self.resource_mappings:
                 mapping = self.resource_mappings[resource_type]
-                api_version = (
-                    f"{mapping['group']}/{mapping['version']}"
-                    if mapping["group"]
-                    else mapping["version"]
-                )
+                api_version = f"{mapping['group']}/{mapping['version']}" if mapping["group"] else mapping["version"]
 
                 # Use dynamic client to get resource definition
-                resource = self.dynamic_client.resources.get(
-                    api_version=api_version, kind=mapping["kind"]
-                )
+                resource = self.dynamic_client.resources.get(api_version=api_version, kind=mapping["kind"])
 
                 self.resource_cache[resource_type] = resource
                 return resource
@@ -168,9 +152,7 @@ class K8sDynamicClient(K8sBaseClient):
                 return resource
             return None
         except Exception as e:
-            logger.debug(
-                f"Automatic resource discovery failed {resource_type}: {str(e)}"
-            )
+            logger.debug(f"Automatic resource discovery failed {resource_type}: {str(e)}")
             return None
 
     def list_resources(self, resource_type: str, namespace: str = None) -> List[Dict]:
@@ -185,9 +167,7 @@ class K8sDynamicClient(K8sBaseClient):
             resource object list
         """
         if not self.initialized:
-            logger.error(
-                f"Client not initialized, unable to list resources: {resource_type}"
-            )
+            logger.error(f"Client not initialized, unable to list resources: {resource_type}")
             return []
 
         try:
@@ -219,33 +199,21 @@ class K8sDynamicClient(K8sBaseClient):
                 except Exception as convert_e:
                     logger.error(f"Failed to convert resource object: {str(convert_e)}")
 
-            logger.info(
-                f"Successfully listed resources {resource_type}: {len(converted_items)} items"
-            )
+            logger.info(f"Successfully listed resources {resource_type}: {len(converted_items)} items")
             return converted_items
 
         except ResourceNotFoundError as e:
-            logger.warning(
-                f"Resource type does not exist: {resource_type}, error: {str(e)}"
-            )
+            logger.warning(f"Resource type does not exist: {resource_type}, error: {str(e)}")
             return []
         except Exception as e:
-            logger.error(
-                f"[list_resources] Failed to list resources {resource_type}: {str(e)}"
-            )
+            logger.error(f"[list_resources] Failed to list resources {resource_type}: {str(e)}")
             logger.error(f"[list_resources] Exception type: {type(e).__name__}")
             logger.error(f"[list_resources] Detailed error information: {repr(e)}")
-            logger.error(
-                f"[list_resources] Current mapping table keys: {list(self.resource_mappings.keys())}"
-            )
-            logger.error(
-                f"[list_resources] Current cache keys: {list(self.resource_cache.keys())}"
-            )
+            logger.error(f"[list_resources] Current mapping table keys: {list(self.resource_mappings.keys())}")
+            logger.error(f"[list_resources] Current cache keys: {list(self.resource_cache.keys())}")
             return []
 
-    def get_resource(
-        self, resource_type: str, name: str, namespace: str = None
-    ) -> Optional[Dict]:
+    def get_resource(self, resource_type: str, name: str, namespace: str = None) -> Optional[Dict]:
         """
         Get single resource - similar to Go Dynamic Client's Get() method
 
@@ -329,9 +297,7 @@ class K8sDynamicClient(K8sBaseClient):
                 crd_list.append(crd_info)
 
                 # Dynamically add to resource mapping table
-                latest_version = (
-                    crd.spec.versions[0].name if crd.spec.versions else "v1"
-                )
+                latest_version = crd.spec.versions[0].name if crd.spec.versions else "v1"
                 self.resource_mappings[crd.spec.names.plural] = {
                     "group": crd.spec.group,
                     "version": latest_version,
@@ -339,9 +305,7 @@ class K8sDynamicClient(K8sBaseClient):
                     "namespaced": crd.spec.scope == "Namespaced",
                 }
 
-            logger.info(
-                f"Discovered {len(crd_list)} CRDs, added to resource mapping table"
-            )
+            logger.info(f"Discovered {len(crd_list)} CRDs, added to resource mapping table")
             return crd_list
 
         except Exception as e:
@@ -484,9 +448,7 @@ class K8sDynamicClient(K8sBaseClient):
             namespaced = resource.get("namespaced", True)
 
             if not kind or not api_version:
-                logger.warning(
-                    f"Resource information incomplete, skipping: Kind={kind}, API version={api_version}"
-                )
+                logger.warning(f"Resource information incomplete, skipping: Kind={kind}, API version={api_version}")
                 continue
 
             # Parse apiVersion to get group and version
@@ -511,9 +473,7 @@ class K8sDynamicClient(K8sBaseClient):
 
             self.resource_mappings[mapping_key] = mapping_value
 
-        logger.info(
-            f"Built {len(self.resource_mappings)} resource mappings from rule configuration"
-        )
+        logger.info(f"Built {len(self.resource_mappings)} resource mappings from rule configuration")
 
     def _kind_to_plural(self, kind: str) -> str:
         """
@@ -585,9 +545,7 @@ class K8sDynamicClient(K8sBaseClient):
                         all_resources = []
                         for namespace in include_namespaces:
                             if namespace not in exclude_namespaces:
-                                ns_resources = self.list_resources(
-                                    resource_type, namespace=namespace
-                                )
+                                ns_resources = self.list_resources(resource_type, namespace=namespace)
                                 all_resources.extend(ns_resources)
                         resources[resource_type] = all_resources
                     else:
@@ -597,8 +555,7 @@ class K8sDynamicClient(K8sBaseClient):
                             filtered_resources = [
                                 res
                                 for res in all_resources
-                                if res.get("metadata", {}).get("namespace")
-                                not in exclude_namespaces
+                                if res.get("metadata", {}).get("namespace") not in exclude_namespaces
                             ]
                             resources[resource_type] = filtered_resources
                         else:
@@ -607,9 +564,7 @@ class K8sDynamicClient(K8sBaseClient):
                     # Cluster-level resources, get directly
                     resources[resource_type] = self.list_resources(resource_type)
 
-                logger.debug(
-                    f"Got {resource_type}: {len(resources[resource_type])} resources"
-                )
+                logger.debug(f"Got {resource_type}: {len(resources[resource_type])} resources")
 
             except Exception as e:
                 logger.warning(f"Failed to get resource type {resource_type}: {str(e)}")
@@ -628,32 +583,22 @@ class K8sDynamicClient(K8sBaseClient):
             strategy analysis result
         """
         logger.debug("[_analyze_resource_strategy] Starting resource strategy analysis")
-        logger.debug(
-            f"[_analyze_resource_strategy] Input configuration count: {len(resource_config)}"
-        )
+        logger.debug(f"[_analyze_resource_strategy] Input configuration count: {len(resource_config)}")
         logger.debug(
             f"[_analyze_resource_strategy] Input resource types: {[r.get('kind', 'unknown') for r in resource_config]}"
         )
 
         configured_kinds = {res["kind"] for res in resource_config}
-        logger.debug(
-            f"[_analyze_resource_strategy] Configured resource type set: {configured_kinds}"
-        )
+        logger.debug(f"[_analyze_resource_strategy] Configured resource type set: {configured_kinds}")
 
         # Define controller types
         workload_controllers = {"Deployment", "StatefulSet", "DaemonSet"}
         job_controllers = {"Job", "CronJob"}
         all_controllers = workload_controllers | job_controllers
 
-        logger.debug(
-            f"[_analyze_resource_strategy] Workload controller definitions: {workload_controllers}"
-        )
-        logger.debug(
-            f"[_analyze_resource_strategy] Job controller definitions: {job_controllers}"
-        )
-        logger.debug(
-            f"[_analyze_resource_strategy] All controller definitions: {all_controllers}"
-        )
+        logger.debug(f"[_analyze_resource_strategy] Workload controller definitions: {workload_controllers}")
+        logger.debug(f"[_analyze_resource_strategy] Job controller definitions: {job_controllers}")
+        logger.debug(f"[_analyze_resource_strategy] All controller definitions: {all_controllers}")
 
         # Analyze configuration
         has_pods = "Pod" in configured_kinds
@@ -675,18 +620,14 @@ class K8sDynamicClient(K8sBaseClient):
             "reasoning": "Default strategy - get all configured resources",
         }
 
-        logger.debug(
-            f"[_analyze_resource_strategy] Initial strategy: {json.dumps(strategy, indent=2)}"
-        )
+        logger.debug(f"[_analyze_resource_strategy] Initial strategy: {json.dumps(strategy, indent=2)}")
 
         # If both controllers and Pod are configured, apply optimization strategy
         if has_pods and has_controllers:
             logger.debug(
-                f"[_analyze_resource_strategy] Both Pod and controllers included, entering optimization strategy analysis"
+                "[_analyze_resource_strategy] Both Pod and controllers included, entering optimization strategy analysis"
             )
-            logger.debug(
-                f"[_analyze_resource_strategy] Controller count: {len(configured_controllers)}"
-            )
+            logger.debug(f"[_analyze_resource_strategy] Controller count: {len(configured_controllers)}")
 
             if len(configured_controllers) >= 2:
                 # Multiple controllers + Pod: recommend controller-only strategy
@@ -707,9 +648,7 @@ class K8sDynamicClient(K8sBaseClient):
                 )
             else:
                 # Single controller + Pod: recommend smart hybrid strategy
-                logger.debug(
-                    "[_analyze_resource_strategy] Triggered smart hybrid strategy (single controller+Pod)"
-                )
+                logger.debug("[_analyze_resource_strategy] Triggered smart hybrid strategy (single controller+Pod)")
                 strategy.update(
                     {
                         "mode": "hybrid_smart",
@@ -719,32 +658,24 @@ class K8sDynamicClient(K8sBaseClient):
                         "reasoning": "Controller+Pod configuration, use smart hybrid strategy to filter controlled Pods",
                     }
                 )
-                logger.debug(
-                    "[_analyze_resource_strategy] Applied smart hybrid strategy, enabled Pod filtering"
-                )
+                logger.debug("[_analyze_resource_strategy] Applied smart hybrid strategy, enabled Pod filtering")
         else:
             logger.debug(
                 "[_analyze_resource_strategy] Use default strategy (no Pod+controller combination, or only single type)"
             )
-            logger.debug(
-                f"[_analyze_resource_strategy] Reason: has_pods={has_pods}, has_controllers={has_controllers}"
-            )
+            logger.debug(f"[_analyze_resource_strategy] Reason: has_pods={has_pods}, has_controllers={has_controllers}")
 
         logger.debug(" [_analyze_resource_strategy] Final strategy analysis completed:")
         logger.debug(f"    - Mode: {strategy['mode']}")
         logger.debug(f"    - Get Pods directly: {strategy['get_pods_directly']}")
         logger.debug(f"    - Get controllers: {strategy['get_controllers']}")
-        logger.debug(
-            f"    - Filter controlled Pods: {strategy['filter_controlled_pods']}"
-        )
+        logger.debug(f"    - Filter controlled Pods: {strategy['filter_controlled_pods']}")
         logger.debug(f"    - Optimization applied: {strategy['optimization_applied']}")
         logger.debug(f"    - Reason: {strategy['reasoning']}")
 
         return strategy
 
-    def _filter_controlled_pods(
-        self, pods: List[Dict], controllers: Dict[str, List[Dict]]
-    ) -> List[Dict]:
+    def _filter_controlled_pods(self, pods: List[Dict], controllers: Dict[str, List[Dict]]) -> List[Dict]:
         """
         Filter out Pods controlled by controllers, keep only independent Pods
 
@@ -789,9 +720,7 @@ class K8sDynamicClient(K8sBaseClient):
         )
         return independent_pods
 
-    def list_resources_from_config_optimized(
-        self, rule_config: Dict
-    ) -> Dict[str, List[Dict]]:
+    def list_resources_from_config_optimized(self, rule_config: Dict) -> Dict[str, List[Dict]]:
         """
         Get resources based on rule configuration - optimized version, avoid duplicate acquisition
 
@@ -801,20 +730,14 @@ class K8sDynamicClient(K8sBaseClient):
         Returns:
             resource dictionary grouped by resource type
         """
-        logger.info(
-            " [list_resources_from_config_optimized] ==== Starting optimized resource acquisition ===="
-        )
+        logger.info(" [list_resources_from_config_optimized] ==== Starting optimized resource acquisition ====")
         logger.debug(
             f" [list_resources_from_config_optimized] Input configuration structure: {list(rule_config.keys())}"
         )
-        logger.debug(
-            f" [list_resources_from_config_optimized] Input configuration type: {type(rule_config)}"
-        )
+        logger.debug(f" [list_resources_from_config_optimized] Input configuration type: {type(rule_config)}")
 
         # Build resource mapping
-        logger.debug(
-            " [list_resources_from_config_optimized] Step 1: Build resource mapping"
-        )
+        logger.debug(" [list_resources_from_config_optimized] Step 1: Build resource mapping")
         logger.debug(
             f" [list_resources_from_config_optimized] Mapping table keys before build: {list(self.resource_mappings.keys())}"
         )
@@ -824,9 +747,7 @@ class K8sDynamicClient(K8sBaseClient):
         )
 
         # Analyze resource acquisition strategy
-        logger.debug(
-            " [list_resources_from_config_optimized] Step 2: Analyze resource acquisition strategy"
-        )
+        logger.debug(" [list_resources_from_config_optimized] Step 2: Analyze resource acquisition strategy")
         resource_config = rule_config.get("config", {}).get("resources", [])
         logger.debug(
             f" [list_resources_from_config_optimized] Resources extracted from infrastructure.config.resources: {[r.get('kind', 'unknown') for r in resource_config]}"
@@ -849,17 +770,11 @@ class K8sDynamicClient(K8sBaseClient):
         )
 
         # Get namespace configuration
-        logger.debug(
-            " [list_resources_from_config_optimized] Step 3: Parse namespace configuration"
-        )
+        logger.debug(" [list_resources_from_config_optimized] Step 3: Parse namespace configuration")
         scope_config = rule_config.get("scope", {})
-        logger.debug(
-            f" [list_resources_from_config_optimized] scope configuration: {scope_config}"
-        )
+        logger.debug(f" [list_resources_from_config_optimized] scope configuration: {scope_config}")
         namespace_config = scope_config.get("namespaces", {})
-        logger.debug(
-            f" [list_resources_from_config_optimized] namespace configuration: {namespace_config}"
-        )
+        logger.debug(f" [list_resources_from_config_optimized] namespace configuration: {namespace_config}")
         include_namespaces = namespace_config.get("include", [])
         exclude_namespaces = namespace_config.get("exclude", [])
 
@@ -875,28 +790,22 @@ class K8sDynamicClient(K8sBaseClient):
         )
 
         if strategy["mode"] == "controller_only":
-            logger.info(
-                " [list_resources_from_config_optimized] Executing controller-only strategy"
-            )
+            logger.info(" [list_resources_from_config_optimized] Executing controller-only strategy")
             controllers_to_get = strategy["get_controllers"]
-            logger.debug(
-                f" [list_resources_from_config_optimized] Controllers to get: {controllers_to_get}"
-            )
+            logger.debug(f" [list_resources_from_config_optimized] Controllers to get: {controllers_to_get}")
 
             # Only get controller resources
             for i, resource_type in enumerate(controllers_to_get):
                 resource_type_lower = resource_type.lower() + "s"
                 logger.debug(
-                    f" [list_resources_from_config_optimized] Processing controller {i+1}/{len(controllers_to_get)}: {resource_type} -> {resource_type_lower}"
+                    f" [list_resources_from_config_optimized] Processing controller {i + 1}/{len(controllers_to_get)}: {resource_type} -> {resource_type_lower}"
                 )
 
                 if resource_type_lower in self.resource_mappings:
                     logger.debug(
                         f" [list_resources_from_config_optimized] Found in resource mapping: {resource_type_lower}"
                     )
-                    logger.debug(
-                        " [list_resources_from_config_optimized] Calling _get_namespaced_resources..."
-                    )
+                    logger.debug(" [list_resources_from_config_optimized] Calling _get_namespaced_resources...")
                     controller_resources = self._get_namespaced_resources(
                         resource_type_lower, include_namespaces, exclude_namespaces
                     )
@@ -913,24 +822,18 @@ class K8sDynamicClient(K8sBaseClient):
                     )
 
         elif strategy["mode"] == "hybrid_smart":
-            logger.info(
-                " [list_resources_from_config_optimized] Executing smart hybrid strategy"
-            )
+            logger.info(" [list_resources_from_config_optimized] Executing smart hybrid strategy")
             # Smart hybrid mode: get controllers + filter independent Pods
             controllers = {}
             controllers_to_get = strategy["get_controllers"]
-            logger.debug(
-                f" [list_resources_from_config_optimized] Controllers to get: {controllers_to_get}"
-            )
+            logger.debug(f" [list_resources_from_config_optimized] Controllers to get: {controllers_to_get}")
 
             # Get controllers
-            logger.debug(
-                " [list_resources_from_config_optimized] Phase 1: Get controller resources"
-            )
+            logger.debug(" [list_resources_from_config_optimized] Phase 1: Get controller resources")
             for i, resource_type in enumerate(controllers_to_get):
                 resource_type_lower = resource_type.lower() + "s"
                 logger.debug(
-                    f" [list_resources_from_config_optimized] Processing controller {i+1}/{len(controllers_to_get)}: {resource_type} -> {resource_type_lower}"
+                    f" [list_resources_from_config_optimized] Processing controller {i + 1}/{len(controllers_to_get)}: {resource_type} -> {resource_type_lower}"
                 )
 
                 if resource_type_lower in self.resource_mappings:
@@ -954,9 +857,7 @@ class K8sDynamicClient(K8sBaseClient):
                     )
 
             # Get and filter Pods
-            logger.debug(
-                " [list_resources_from_config_optimized] Phase 2: Get and filter Pod resources"
-            )
+            logger.debug(" [list_resources_from_config_optimized] Phase 2: Get and filter Pod resources")
             logger.debug(
                 f" [list_resources_from_config_optimized] Whether to get Pods directly: {strategy['get_pods_directly']}"
             )
@@ -965,45 +866,31 @@ class K8sDynamicClient(K8sBaseClient):
             )
 
             if strategy["get_pods_directly"] and "pods" in self.resource_mappings:
-                logger.debug(
-                    " [list_resources_from_config_optimized] Getting all Pods..."
-                )
-                all_pods = self._get_namespaced_resources(
-                    "pods", include_namespaces, exclude_namespaces
-                )
-                logger.debug(
-                    f" [list_resources_from_config_optimized] Got {len(all_pods)} Pods"
-                )
+                logger.debug(" [list_resources_from_config_optimized] Getting all Pods...")
+                all_pods = self._get_namespaced_resources("pods", include_namespaces, exclude_namespaces)
+                logger.debug(f" [list_resources_from_config_optimized] Got {len(all_pods)} Pods")
 
                 if strategy["filter_controlled_pods"]:
-                    logger.debug(
-                        " [list_resources_from_config_optimized] Filtering Pods controlled by controllers..."
-                    )
+                    logger.debug(" [list_resources_from_config_optimized] Filtering Pods controlled by controllers...")
                     logger.debug(
                         f" [list_resources_from_config_optimized] Available controller data: {list(controllers.keys())}"
                     )
                     # Filter out Pods controlled by controllers
-                    independent_pods = self._filter_controlled_pods(
-                        all_pods, controllers
-                    )
+                    independent_pods = self._filter_controlled_pods(all_pods, controllers)
                     resources["pods"] = independent_pods
                     logger.info(
                         f" [list_resources_from_config_optimized] Independent Pods after filtering: {len(independent_pods)} items"
                     )
                 else:
                     resources["pods"] = all_pods
-                    logger.info(
-                        f" [list_resources_from_config_optimized] Unfiltered Pods: {len(all_pods)} items"
-                    )
+                    logger.info(f" [list_resources_from_config_optimized] Unfiltered Pods: {len(all_pods)} items")
             else:
                 logger.debug(
                     " [list_resources_from_config_optimized] Skip Pod acquisition (strategy does not require or mapping missing)"
                 )
 
         else:
-            logger.info(
-                " [list_resources_from_config_optimized] Executing default strategy"
-            )
+            logger.info(" [list_resources_from_config_optimized] Executing default strategy")
             # Default strategy: get all configured resources (do not rebuild resource mapping)
             logger.debug(
                 " [list_resources_from_config_optimized] Use built resource mapping to get all configured resources"
@@ -1014,13 +901,11 @@ class K8sDynamicClient(K8sBaseClient):
 
             # Get all configured resource types
             total_types = len(self.resource_mappings)
-            logger.debug(
-                f" [list_resources_from_config_optimized] Need to process {total_types} resource types"
-            )
+            logger.debug(f" [list_resources_from_config_optimized] Need to process {total_types} resource types")
 
             for i, resource_type in enumerate(self.resource_mappings.keys()):
                 logger.debug(
-                    f" [list_resources_from_config_optimized] Processing resource type {i+1}/{total_types}: {resource_type}"
+                    f" [list_resources_from_config_optimized] Processing resource type {i + 1}/{total_types}: {resource_type}"
                 )
 
                 try:
@@ -1029,9 +914,7 @@ class K8sDynamicClient(K8sBaseClient):
                     logger.debug(
                         f" [list_resources_from_config_optimized] Resource {resource_type} mapping information: {json.dumps(mapping, indent=2)}"
                     )
-                    logger.debug(
-                        f" [list_resources_from_config_optimized] Whether namespace-level: {is_namespaced}"
-                    )
+                    logger.debug(f" [list_resources_from_config_optimized] Whether namespace-level: {is_namespaced}")
 
                     if is_namespaced:
                         logger.debug(
@@ -1047,11 +930,9 @@ class K8sDynamicClient(K8sBaseClient):
                             for j, namespace in enumerate(include_namespaces):
                                 if namespace not in exclude_namespaces:
                                     logger.debug(
-                                        f" [list_resources_from_config_optimized] Processing namespace {j+1}/{len(include_namespaces)}: {namespace}"
+                                        f" [list_resources_from_config_optimized] Processing namespace {j + 1}/{len(include_namespaces)}: {namespace}"
                                     )
-                                    ns_resources = self.list_resources(
-                                        resource_type, namespace=namespace
-                                    )
+                                    ns_resources = self.list_resources(resource_type, namespace=namespace)
                                     all_resources.extend(ns_resources)
                                     logger.debug(
                                         f" [list_resources_from_config_optimized] Namespace {namespace} got: {len(ns_resources)} items"
@@ -1065,9 +946,7 @@ class K8sDynamicClient(K8sBaseClient):
                                 f" [list_resources_from_config_optimized] Specified namespaces total: {len(all_resources)} items"
                             )
                         else:
-                            logger.debug(
-                                " [list_resources_from_config_optimized] Getting resources for all namespaces"
-                            )
+                            logger.debug(" [list_resources_from_config_optimized] Getting resources for all namespaces")
                             # Get resources for all namespaces, then filter
                             all_resources = self.list_resources(resource_type)
                             logger.debug(
@@ -1080,8 +959,7 @@ class K8sDynamicClient(K8sBaseClient):
                                 filtered_resources = [
                                     res
                                     for res in all_resources
-                                    if res.get("metadata", {}).get("namespace")
-                                    not in exclude_namespaces
+                                    if res.get("metadata", {}).get("namespace") not in exclude_namespaces
                                 ]
                                 resources[resource_type] = filtered_resources
                                 logger.debug(
@@ -1111,34 +989,22 @@ class K8sDynamicClient(K8sBaseClient):
                     logger.error(
                         f"[list_resources_from_config_optimized] Failed to get resource {resource_type}: {str(e)}"
                     )
-                    logger.error(
-                        f"[list_resources_from_config_optimized] Exception type: {type(e).__name__}"
-                    )
-                    logger.error(
-                        f"[list_resources_from_config_optimized] Detailed error: {repr(e)}"
-                    )
+                    logger.error(f"[list_resources_from_config_optimized] Exception type: {type(e).__name__}")
+                    logger.error(f"[list_resources_from_config_optimized] Detailed error: {repr(e)}")
                     resources[resource_type] = []
 
                 except Exception as e:
-                    logger.error(
-                        f"Failed to get resource type {resource_type}: {str(e)}"
-                    )
+                    logger.error(f"Failed to get resource type {resource_type}: {str(e)}")
                     logger.debug(f"Detailed error: {repr(e)}")
                     resources[resource_type] = []
 
         # Record results
         total_resources = sum(len(res_list) for res_list in resources.values())
-        logger.info(
-            f"Optimized acquisition got {len(resources)} resource types, total {total_resources} resources"
-        )
-        logger.debug(
-            f"Resource distribution: {[(k, len(v)) for k, v in resources.items()]}"
-        )
+        logger.info(f"Optimized acquisition got {len(resources)} resource types, total {total_resources} resources")
+        logger.debug(f"Resource distribution: {[(k, len(v)) for k, v in resources.items()]}")
 
         if strategy["optimization_applied"]:
-            logger.info(
-                " Resource acquisition optimization applied, avoided duplicate acquisition"
-            )
+            logger.info(" Resource acquisition optimization applied, avoided duplicate acquisition")
 
         logger.info("==== Optimized resource acquisition completed ====")
         return resources
@@ -1169,9 +1035,7 @@ class K8sDynamicClient(K8sBaseClient):
         try:
             # Check resource mapping
             if resource_type not in self.resource_mappings:
-                logger.error(
-                    f"[_get_namespaced_resources] Resource type {resource_type} not in mapping table"
-                )
+                logger.error(f"[_get_namespaced_resources] Resource type {resource_type} not in mapping table")
                 logger.debug(
                     f"[_get_namespaced_resources] Current mapping table keys: {list(self.resource_mappings.keys())}"
                 )
@@ -1186,12 +1050,8 @@ class K8sDynamicClient(K8sBaseClient):
 
             if not is_namespaced:
                 # Cluster-level resources
-                logger.debug(
-                    " [_get_namespaced_resources] Resource is cluster-level, get directly"
-                )
-                logger.debug(
-                    f" [_get_namespaced_resources] Calling list_resources({resource_type})..."
-                )
+                logger.debug(" [_get_namespaced_resources] Resource is cluster-level, get directly")
+                logger.debug(f" [_get_namespaced_resources] Calling list_resources({resource_type})...")
                 cluster_resources = self.list_resources(resource_type)
                 logger.debug(
                     f" [_get_namespaced_resources] Cluster-level resources got: {len(cluster_resources)} items"
@@ -1201,17 +1061,13 @@ class K8sDynamicClient(K8sBaseClient):
             # Namespace-level resource processing
             if include_namespaces:
                 # Only get resources for specified namespaces
-                logger.debug(
-                    " [_get_namespaced_resources] Strategy: Get resources for specified namespaces"
-                )
-                logger.debug(
-                    f" [_get_namespaced_resources] Namespaces to process: {include_namespaces}"
-                )
+                logger.debug(" [_get_namespaced_resources] Strategy: Get resources for specified namespaces")
+                logger.debug(f" [_get_namespaced_resources] Namespaces to process: {include_namespaces}")
                 all_resources = []
 
                 for i, namespace in enumerate(include_namespaces):
                     logger.debug(
-                        f" [_get_namespaced_resources] Processing namespace {i+1}/{len(include_namespaces)}: {namespace}"
+                        f" [_get_namespaced_resources] Processing namespace {i + 1}/{len(include_namespaces)}: {namespace}"
                     )
 
                     if namespace not in exclude_namespaces:
@@ -1221,65 +1077,48 @@ class K8sDynamicClient(K8sBaseClient):
                         logger.debug(
                             f" [_get_namespaced_resources] Calling list_resources({resource_type}, {namespace})..."
                         )
-                        namespace_resources = self.list_resources(
-                            resource_type, namespace
-                        )
+                        namespace_resources = self.list_resources(resource_type, namespace)
                         all_resources.extend(namespace_resources)
                         logger.debug(
                             f" [_get_namespaced_resources] Namespace {namespace} got: {len(namespace_resources)} items"
                         )
                     else:
-                        logger.debug(
-                            f" [_get_namespaced_resources] Skip excluded namespace: {namespace}"
-                        )
+                        logger.debug(f" [_get_namespaced_resources] Skip excluded namespace: {namespace}")
 
-                logger.debug(
-                    f" [_get_namespaced_resources] Specified namespaces total resources: {len(all_resources)}"
-                )
+                logger.debug(f" [_get_namespaced_resources] Specified namespaces total resources: {len(all_resources)}")
                 return all_resources
             else:
                 # Get resources for all namespaces, then filter
-                logger.debug(
-                    " [_get_namespaced_resources] Strategy: Get resources for all namespaces"
-                )
-                logger.debug(
-                    f" [_get_namespaced_resources] Calling list_resources({resource_type})..."
-                )
+                logger.debug(" [_get_namespaced_resources] Strategy: Get resources for all namespaces")
+                logger.debug(f" [_get_namespaced_resources] Calling list_resources({resource_type})...")
                 all_resources = self.list_resources(resource_type)
-                logger.debug(
-                    f" [_get_namespaced_resources] All namespaces resources got: {len(all_resources)} items"
-                )
+                logger.debug(f" [_get_namespaced_resources] All namespaces resources got: {len(all_resources)} items")
 
                 if exclude_namespaces:
-                    logger.debug(
-                        " [_get_namespaced_resources] Need to filter excluded namespaces"
-                    )
-                    logger.debug(f" [_get_namespaced_resources] Starting filtering...")
+                    logger.debug(" [_get_namespaced_resources] Need to filter excluded namespaces")
+                    logger.debug(" [_get_namespaced_resources] Starting filtering...")
 
                     # Count resources per namespace before filtering
                     ns_count_before = {}
                     for res in all_resources:
-                        ns = res.get("metadata", {}).get(
-                            "namespace", "<cluster-scoped>"
-                        )
+                        ns = res.get("metadata", {}).get("namespace", "<cluster-scoped>")
                         ns_count_before[ns] = ns_count_before.get(ns, 0) + 1
                     logger.debug(
-                        f" [_get_namespaced_resources] Resources per namespace before filtering: {ns_count_before}"
+                        " [_get_namespaced_resources] Resources per namespace before filtering: {}".format(
+                            ns_count_before
+                        )
                     )
 
                     filtered_resources = [
                         resource
                         for resource in all_resources
-                        if resource.get("metadata", {}).get("namespace")
-                        not in exclude_namespaces
+                        if resource.get("metadata", {}).get("namespace") not in exclude_namespaces
                     ]
 
                     # Count resources per namespace after filtering
                     ns_count_after = {}
                     for res in filtered_resources:
-                        ns = res.get("metadata", {}).get(
-                            "namespace", "<cluster-scoped>"
-                        )
+                        ns = res.get("metadata", {}).get("namespace", "<cluster-scoped>")
                         ns_count_after[ns] = ns_count_after.get(ns, 0) + 1
                     logger.debug(
                         f" [_get_namespaced_resources] Resources per namespace after filtering: {ns_count_after}"
@@ -1296,12 +1135,8 @@ class K8sDynamicClient(K8sBaseClient):
                     return all_resources
 
         except Exception as e:
-            logger.error(
-                f"[_get_namespaced_resources] Failed to get resource {resource_type}: {str(e)}"
-            )
-            logger.error(
-                f"[_get_namespaced_resources] Exception type: {type(e).__name__}"
-            )
+            logger.error(f"[_get_namespaced_resources] Failed to get resource {resource_type}: {str(e)}")
+            logger.error(f"[_get_namespaced_resources] Exception type: {type(e).__name__}")
             logger.error(f"[_get_namespaced_resources] Detailed error: {repr(e)}")
             logger.error(
                 f"[_get_namespaced_resources] Current resource mappings: {list(self.resource_mappings.keys())}"
@@ -1325,9 +1160,7 @@ class K8sDynamicClient(K8sBaseClient):
         if not kubeconfig_str:
             raise Exception(f"kubeconfig field does not exist in {cluster_json_path}")
         # Write to temporary file
-        tmp = tempfile.NamedTemporaryFile(
-            delete=False, suffix=".yaml", mode="w", encoding="utf-8"
-        )
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".yaml", mode="w", encoding="utf-8")
         tmp.write(kubeconfig_str)
         tmp.close()
         return tmp.name
@@ -1349,7 +1182,7 @@ class K8sDynamicClient(K8sBaseClient):
             original_config = None
             try:
                 original_config = config.KUBE_CONFIG_DEFAULT_LOCATION
-            except:
+            except Exception:
                 pass
 
             try:
@@ -1366,27 +1199,17 @@ class K8sDynamicClient(K8sBaseClient):
 
                 namespaces = v1.list_namespace(_request_timeout=5)
 
-                logger.info(
-                    f"kubeconfig authentication verification passed: {kubeconfig_path}"
-                )
-                logger.debug(
-                    f"Successfully connected to cluster, discovered {len(namespaces.items)} namespaces"
-                )
+                logger.info(f"kubeconfig authentication verification passed: {kubeconfig_path}")
+                logger.debug(f"Successfully connected to cluster, discovered {len(namespaces.items)} namespaces")
                 return True
 
             except ApiException as e:
                 if e.status == 401:
-                    logger.error(
-                        f"kubeconfig authentication failed - unauthorized: {kubeconfig_path}"
-                    )
+                    logger.error(f"kubeconfig authentication failed - unauthorized: {kubeconfig_path}")
                 elif e.status == 403:
-                    logger.error(
-                        f"kubeconfig authentication failed - insufficient permissions: {kubeconfig_path}"
-                    )
+                    logger.error(f"kubeconfig authentication failed - insufficient permissions: {kubeconfig_path}")
                 else:
-                    logger.error(
-                        f"kubeconfig API call failed (status code {e.status}): {e.reason}"
-                    )
+                    logger.error(f"kubeconfig API call failed (status code {e.status}): {e.reason}")
                 return False
 
             except Exception as e:
@@ -1398,13 +1221,11 @@ class K8sDynamicClient(K8sBaseClient):
                 if original_config:
                     try:
                         config.load_kube_config(config_file=original_config)
-                    except:
+                    except Exception:
                         pass
 
         except ImportError:
-            logger.error(
-                "kubernetes client library not installed, cannot verify kubeconfig"
-            )
+            logger.error("kubernetes client library not installed, cannot verify kubeconfig")
             return False
         except Exception as e:
             logger.error(f"kubeconfig authentication verification exception: {str(e)}")

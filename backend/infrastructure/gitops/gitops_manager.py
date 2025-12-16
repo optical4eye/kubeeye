@@ -16,10 +16,7 @@ from typing import Dict, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 # GitOps configuration
-GITOPS_CONFIG_FILE = (
-    Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
-    / "gitops_config.json"
-)
+GITOPS_CONFIG_FILE = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent))) / "gitops_config.json"
 
 # ENV variables for pre-configuring repository
 GITOPS_ENV_VARS = {
@@ -38,10 +35,7 @@ class GitOpsRuleManager:
 
     def __init__(self):
         self.config_file = GITOPS_CONFIG_FILE
-        self.git_rules_dir = (
-            Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
-            / "git_rules"
-        )
+        self.git_rules_dir = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent))) / "git_rules"
         self.git_rules_dir.mkdir(parents=True, exist_ok=True)
 
     def has_env_config(self) -> bool:
@@ -112,9 +106,7 @@ class GitOpsRuleManager:
     def save_config(self, config: Dict):
         """Save GitOps configuration"""
         # Do not save configurations from ENV variables
-        if config.get("from_env") or (
-            config.get("repository") and config["repository"].get("from_env")
-        ):
+        if config.get("from_env") or (config.get("repository") and config["repository"].get("from_env")):
             logger.info(
                 "Configuration is managed via environment variables and cannot be changed through the interface"
             )
@@ -125,10 +117,7 @@ class GitOpsRuleManager:
             config_to_save = config.copy()
             if "from_env" in config_to_save:
                 config_to_save.pop("from_env")
-            if (
-                config_to_save.get("repository")
-                and "from_env" in config_to_save["repository"]
-            ):
+            if config_to_save.get("repository") and "from_env" in config_to_save["repository"]:
                 config_to_save["repository"].pop("from_env")
 
             json.dump(config_to_save, f, indent=2, ensure_ascii=False)
@@ -152,13 +141,9 @@ class GitOpsRuleManager:
                 if username and username.strip():
                     # Use username:token if both are present
                     if repo_url.startswith("https://"):
-                        auth_url = repo_url.replace(
-                            "https://", f"https://{username}:{token}@"
-                        )
+                        auth_url = repo_url.replace("https://", f"https://{username}:{token}@")
                     elif repo_url.startswith("http://"):
-                        auth_url = repo_url.replace(
-                            "http://", f"http://{username}:{token}@"
-                        )
+                        auth_url = repo_url.replace("http://", f"http://{username}:{token}@")
                 else:
                     # Use token only if username is empty
                     if repo_url.startswith("https://"):
@@ -177,9 +162,7 @@ class GitOpsRuleManager:
                     current_url = origin.url
                     if current_url != auth_url:
                         origin.set_url(auth_url)
-                        logger.debug(
-                            f"Updated remote URL from {current_url} to {auth_url}"
-                        )
+                        logger.debug(f"Updated remote URL from {current_url} to {auth_url}")
 
                     # Add options for insecure connection
                     pull_kwargs = {}
@@ -210,7 +193,7 @@ class GitOpsRuleManager:
 
             # Clear rules cache after repository update
             try:
-                from .rule_loader import clear_rules_cache
+                from infrastructure.rules.rule_loader import clear_rules_cache
 
                 clear_rules_cache()
             except Exception as e:
@@ -243,9 +226,7 @@ class GitOpsRuleManager:
                             # Mark source as git
                             rule_data["source"] = "git"
                             rule_data["repository"] = repo_name
-                            rule_data["file_path"] = str(
-                                yaml_file.relative_to(repo_path)
-                            )
+                            rule_data["file_path"] = str(yaml_file.relative_to(repo_path))
 
                             # AUTOMATICALLY ENABLE RULES FROM GITOPS
                             rule_data["enabled"] = True
@@ -254,9 +235,7 @@ class GitOpsRuleManager:
                     except Exception as e:
                         logger.error(f"Error loading rule file {yaml_file}: {e}")
 
-        logger.info(
-            f"Loaded {len(rules)} rules from Git repository {repo_name}, all automatically enabled"
-        )
+        logger.info(f"Loaded {len(rules)} rules from Git repository {repo_name}, all automatically enabled")
         return rules
 
     def sync_git_rule_to_local(self, rule, target_type: str) -> bool:
@@ -286,9 +265,7 @@ class GitOpsRuleManager:
         config = self.load_config()
 
         # Check if repository is managed via ENV
-        if config.get("from_env") or (
-            config.get("repository") and config["repository"].get("from_env")
-        ):
+        if config.get("from_env") or (config.get("repository") and config["repository"].get("from_env")):
             return (
                 False,
                 "Repository is managed via environment variables and cannot be changed",
@@ -304,9 +281,7 @@ class GitOpsRuleManager:
         config = self.load_config()
 
         # Check if repository is managed via ENV
-        if config.get("from_env") or (
-            config.get("repository") and config["repository"].get("from_env")
-        ):
+        if config.get("from_env") or (config.get("repository") and config["repository"].get("from_env")):
             return (
                 False,
                 "Repository is managed via environment variables and cannot be deleted",

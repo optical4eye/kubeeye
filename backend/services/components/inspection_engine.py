@@ -5,12 +5,11 @@ Unified inspection execution engine — core logic without UI dependencies
 """
 
 import logging
-import json
 from typing import Dict, List, Any, Optional, Tuple
 
 from infrastructure.cluster.cluster_config import get_cluster
 from infrastructure.results.inspection_result import InspectionResult
-from infrastructure.logging.enhanced_logging import ErrorBoundary, log_execution_time
+from infrastructure.logging.enhanced_logging import log_execution_time
 from services.inspectors.node.node_inspector import NodeInspector
 from services.inspectors.prometheus.prometheus_inspector import PrometheusInspector
 from services.inspectors.opa.opa_inspector import OpaInspector
@@ -78,31 +77,17 @@ class InspectionEngine:
                 error_msg = f"Cluster configuration not found: {cluster_name}"
                 return False, error_msg, None
 
-            nodes = (
-                cluster_config.get_nodes()
-                if hasattr(cluster_config, "get_nodes")
-                else []
-            )
+            nodes = cluster_config.get_nodes() if hasattr(cluster_config, "get_nodes") else []
             prometheus_config = (
-                cluster_config.get_prometheus_config()
-                if hasattr(cluster_config, "get_prometheus_config")
-                else {}
+                cluster_config.get_prometheus_config() if hasattr(cluster_config, "get_prometheus_config") else {}
             )
-            kubeconfig = (
-                cluster_config.get_kubeconfig()
-                if hasattr(cluster_config, "get_kubeconfig")
-                else ""
-            )
+            kubeconfig = cluster_config.get_kubeconfig() if hasattr(cluster_config, "get_kubeconfig") else ""
 
-            run_node_check = bool(nodes) and (
-                selected_rules and selected_rules.get("node")
+            run_node_check = bool(nodes) and (selected_rules and selected_rules.get("node"))
+            run_prometheus_check = bool(prometheus_config and prometheus_config.get("enabled", False)) and (
+                selected_rules and selected_rules.get("prometheus")
             )
-            run_prometheus_check = bool(
-                prometheus_config and prometheus_config.get("enabled", False)
-            ) and (selected_rules and selected_rules.get("prometheus"))
-            run_opa_check = bool(kubeconfig) and (
-                selected_rules and selected_rules.get("opa")
-            )
+            run_opa_check = bool(kubeconfig) and (selected_rules and selected_rules.get("opa"))
 
             logger.info(
                 f"Inspection types check - node count: {len(nodes)}, Prometheus enabled: {prometheus_config.get('enabled', False) if prometheus_config else False}, kubeconfig: {'present' if kubeconfig else 'absent'}"
@@ -189,14 +174,10 @@ class InspectionEngine:
                     all_results["opa"] = error_result
 
             if all_results:
-                result_path = self._save_inspection_results(
-                    all_results, cluster_name, cluster_config, inspection_type
-                )
+                result_path = self._save_inspection_results(all_results, cluster_name, cluster_config, inspection_type)
                 # Check if we have any successful results (not just error results)
                 has_successful_results = any(
-                    result
-                    and hasattr(result, "items")
-                    and any(item.get("status") != "error" for item in result.items)
+                    result and hasattr(result, "items") and any(item.get("status") != "error" for item in result.items)
                     for result in all_results.values()
                     if result is not None
                 )
@@ -251,14 +232,10 @@ class InspectionEngine:
         """Execute Prometheus inspection"""
         try:
             if prometheus_config and prometheus_config.get("enabled", False):
-                prometheus_inspector = PrometheusInspector(
-                    prometheus_config, use_gitops=self.use_gitops
-                )
+                prometheus_inspector = PrometheusInspector(prometheus_config, use_gitops=self.use_gitops)
                 if show_progress:
                     logger.info("Executing Prometheus metrics inspection...")
-                result = prometheus_inspector.run_inspection(
-                    cluster_name, selected_rules
-                )
+                result = prometheus_inspector.run_inspection(cluster_name, selected_rules)
                 if show_progress:
                     logger.info("Prometheus metrics inspection completed")
                 return True, result
@@ -312,11 +289,7 @@ class InspectionEngine:
                 config_dict = cluster_config.get_dict()
             else:
                 config_dict = {
-                    "nodes": (
-                        cluster_config.get_nodes()
-                        if hasattr(cluster_config, "get_nodes")
-                        else []
-                    ),
+                    "nodes": (cluster_config.get_nodes() if hasattr(cluster_config, "get_nodes") else []),
                     "prometheus": (
                         cluster_config.get_prometheus_config()
                         if hasattr(cluster_config, "get_prometheus_config")
@@ -324,9 +297,7 @@ class InspectionEngine:
                     ),
                     "opa": {
                         "kubeconfig": (
-                            cluster_config.get_kubeconfig()
-                            if hasattr(cluster_config, "get_kubeconfig")
-                            else ""
+                            cluster_config.get_kubeconfig() if hasattr(cluster_config, "get_kubeconfig") else ""
                         )
                     },
                 }
@@ -334,9 +305,7 @@ class InspectionEngine:
             config_dict = {"nodes": [], "prometheus": {}, "opa": {"kubeconfig": ""}}
 
         controller = InspectionController(config_dict, use_gitops=self.use_gitops)
-        return controller.save_inspection_result(
-            all_results, cluster_name, inspection_type
-        )
+        return controller.save_inspection_result(all_results, cluster_name, inspection_type)
 
 
 inspection_engine = InspectionEngine()

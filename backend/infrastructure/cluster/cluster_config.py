@@ -15,9 +15,7 @@ from infrastructure.results.inspection_result import get_latest_result_by_cluste
 logger = logging.getLogger(__name__)
 
 # Definition of data directories
-DATA_DIR = (
-    Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
-)
+DATA_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
 CLUSTERS_DIR = DATA_DIR / "clusters"
 RESULTS_DIR = DATA_DIR / "results"
 
@@ -128,16 +126,12 @@ class ClusterConfig:
 
         # Remove password encryption flag
         if prometheus_config.get("password_encrypted"):
-            logger.info(
-                "Prometheus password is marked as encrypted, but will be used in plain text"
-            )
+            logger.info("Prometheus password is marked as encrypted, but will be used in plain text")
             prometheus_config["password_encrypted"] = False
 
         # Remove token encryption flag
         if prometheus_config.get("token_encrypted"):
-            logger.info(
-                "Prometheus token is marked as encrypted, but will be used in plain text"
-            )
+            logger.info("Prometheus token is marked as encrypted, but will be used in plain text")
             prometheus_config["token_encrypted"] = False
 
         return prometheus_config
@@ -155,12 +149,8 @@ class ClusterConfig:
             {
                 "nodes": self.get_nodes(),
                 "prometheus": self.get_prometheus_config(),
-                "kubeconfig": {
-                    "kubeconfig": self.get_kubeconfig()
-                },  # Wrap as dictionary
-                "opa": {
-                    "kubeconfig": self.get_kubeconfig()
-                },  # Format required by OPA inspector
+                "kubeconfig": {"kubeconfig": self.get_kubeconfig()},  # Wrap as dictionary
+                "opa": {"kubeconfig": self.get_kubeconfig()},  # Format required by OPA inspector
             }
         )
 
@@ -227,7 +217,7 @@ def get_cluster_status_counts_fast() -> Dict[str, int]:
         try:
             status = get_cluster_quick_status(cluster_name)
             counts[status] += 1
-        except:
+        except Exception:
             counts["unknown"] += 1
 
     # Update cache

@@ -5,7 +5,7 @@ Rules management routes
 """
 
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from infrastructure.rules.rule_manager import RuleManager
 from infrastructure.rules.rule_loader import load_rules
 
@@ -27,9 +27,7 @@ def _sync_gitops_repository() -> bool:
         if not current_repo:
             return False
 
-        logger.debug(
-            f"GitOps mode enabled, syncing repository {current_repo['name']}..."
-        )
+        logger.debug(f"GitOps mode enabled, syncing repository {current_repo['name']}...")
         success, message = gitops_manager.clone_or_update_repo(current_repo)
         if success:
             logger.debug(f"Repository synchronized: {message}")
@@ -52,9 +50,7 @@ def _load_rules_for_types(rule_types: list[str], use_gitops: bool) -> dict[str, 
 
 def _log_rules_statistics(rules: dict[str, list], use_gitops: bool) -> int:
     """Log loaded rules statistics"""
-    total_rules = sum(
-        len(rules.get(rule_type, [])) for rule_type in ["node", "prometheus", "opa"]
-    )
+    total_rules = sum(len(rules.get(rule_type, [])) for rule_type in ["node", "prometheus", "opa"])
     logger.debug(f"Loaded {total_rules} rules total (GitOps: {use_gitops})")
     for rule_type, rule_list in rules.items():
         logger.debug(f"{rule_type}: {len(rule_list)} rules")

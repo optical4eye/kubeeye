@@ -4,7 +4,7 @@
 Rule management module - provides unified interface for processing rules for various components
 Updated version, supports assertion system
 """
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List
 from infrastructure.rules.rule_loader import load_rules, Rule
 
 
@@ -28,9 +28,7 @@ class RuleManager:
 
         # Debug information
         if use_gitops:
-            print(
-                f"GitOps rules for {rule_type}: found {len(all_rules)} total, {len(enabled_rules)} enabled"
-            )
+            print(f"GitOps rules for {rule_type}: found {len(all_rules)} total, {len(enabled_rules)} enabled")
             for rule in enabled_rules:
                 print(f"  - {rule.id}: {rule.name} (enabled: {rule.enabled})")
 
@@ -63,9 +61,7 @@ class RuleManager:
             if config.get("mode") == "gitops" and config.get("repository") is not None:
                 # Check if required ENV variables are set
                 if not gitops_manager.has_env_config():
-                    print(
-                        "GitOps configured in config, but ENV variables not set - using local mode"
-                    )
+                    print("GitOps configured in config, but ENV variables not set - using local mode")
                     return False
                 return True
 

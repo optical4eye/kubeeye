@@ -17,17 +17,11 @@ import logging
 # Import inspection modules
 
 # Log setup
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("ScheduleManager")
 
 # Directory for storing schedule tasks
-DATA_DIR = Path(
-    os.environ.get(
-        "KUBEEYE_DATA_DIR", str(Path(__file__).resolve().parent.parent)
-    )
-)
+DATA_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).resolve().parent.parent)))
 SCHEDULE_DIR = DATA_DIR / "schedules"
 SCHEDULE_FILE = SCHEDULE_DIR / "schedules.json"
 
@@ -159,9 +153,7 @@ def save_schedules(tasks):
     """Save all schedule tasks"""
     try:
         with open(SCHEDULE_FILE, "w") as f:
-            json.dump(
-                [task.to_dict() for task in tasks], f, indent=2, ensure_ascii=False
-            )
+            json.dump([task.to_dict() for task in tasks], f, indent=2, ensure_ascii=False)
         return True
     except Exception as e:
         logger.error(f"Error saving schedule: {e}")
@@ -218,17 +210,22 @@ def run_inspection_bg(task):
     try:
         logger.info(f"Starting inspection task: {task.name} ({task.task_id})")
         update_task_status(task.task_id, last_status="running")
-        from services.components.ui.task_execution import execute_inspection_task
+        from services.components.inspection_engine import execute_inspection_unified
 
-        success, message, _ = execute_inspection_task(task, show_progress=False)
+        success, message, _ = execute_inspection_unified(
+            cluster_name=task.cluster,
+            selected_rules=task.rules,
+            inspection_type="scheduled",
+            show_progress=False,
+            show_ui_feedback=False,
+            use_gitops=False,
+        )
         if success:
             update_task_status(task.task_id, last_status="success")
             logger.info(f"Task completed: {task.name} ({task.task_id})")
         else:
             update_task_status(task.task_id, last_status="failed")
-            logger.error(
-                f"Task execution error: {task.name} ({task.task_id}) - {message}"
-            )
+            logger.error(f"Task execution error: {task.name} ({task.task_id}) - {message}")
         return success
     except Exception as e:
         logger.error(f"Task execution error: {e}", exc_info=True)
@@ -246,10 +243,15 @@ def run_inspection(task_id, return_results=False):
         return False, "Task not found", None
     try:
         if return_results:
-            from services.components.ui.task_execution import execute_inspection_task
+            from services.components.inspection_engine import execute_inspection_unified
 
-            success, message, results = execute_inspection_task(
-                task, show_progress=True
+            success, message, results = execute_inspection_unified(
+                cluster_name=task.cluster,
+                selected_rules=task.rules,
+                inspection_type="scheduled",
+                show_progress=True,
+                show_ui_feedback=False,
+                use_gitops=False,
             )
             return success, message, results
         else:
@@ -268,23 +270,14 @@ def _scheduler_loop():
             tasks = load_schedules()
             now = dt.now()
             for task in tasks:
-                if (
-                    task.enabled
-                    and task.task_type == "once"
-                    and task.run_datetime
-                    and not task.last_run
-                ):
+                if task.enabled and task.task_type == "once" and task.run_datetime and not task.last_run:
                     try:
                         run_dt = dt.strptime(task.run_datetime, "%Y-%m-%d %H:%M")
                     except Exception as e:
-                        logger.error(
-                            f"Error parsing run_datetime for task {task.name}: {e}"
-                        )
+                        logger.error(f"Error parsing run_datetime for task {task.name}: {e}")
                         continue
                     if now >= run_dt:
-                        logger.info(
-                            f"Executing one-time task: {task.name} ({task.task_id})"
-                        )
+                        logger.info(f"Executing one-time task: {task.name} ({task.task_id})")
                         success = run_inspection_bg(task)
                         task.enabled = False
                         add_schedule(task)
@@ -308,41 +301,17 @@ def schedule_tasks():
                 minute, hour, day, month, day_of_week = cron_parts[:5]
 
                 # Check if it's a simple schedule that can be handled by schedule library
-                if (
-                    minute == "*"
-                    and hour == "*"
-                    and day == "*"
-                    and month == "*"
-                    and day_of_week == "*"
-                ):
+                if minute == "*" and hour == "*" and day == "*" and month == "*" and day_of_week == "*":
                     # Every minute
-                    schedule.every().minute.do(lambda t=task: run_inspection_bg(t)).tag(
-                        task.task_id
-                    )
-                    logger.info(
-                        f"Scheduled Cron task: {task.name} ({task.task_id}) - every minute"
-                    )
-                elif (
-                    minute != "*"
-                    and hour != "*"
-                    and day == "*"
-                    and month == "*"
-                    and day_of_week == "*"
-                ):
+                    schedule.every().minute.do(lambda t=task: run_inspection_bg(t)).tag(task.task_id)
+                    logger.info(f"Scheduled Cron task: {task.name} ({task.task_id}) - every minute")
+                elif minute != "*" and hour != "*" and day == "*" and month == "*" and day_of_week == "*":
                     # Specific time every day
                     schedule.every().day.at(f"{hour.zfill(2)}:{minute.zfill(2)}").do(
                         lambda t=task: run_inspection_bg(t)
                     ).tag(task.task_id)
-                    logger.info(
-                        f"Scheduled Cron task: {task.name} ({task.task_id}) - daily at {hour}:{minute}"
-                    )
-                elif (
-                    minute != "*"
-                    and hour != "*"
-                    and day == "*"
-                    and month == "*"
-                    and day_of_week != "*"
-                ):
+                    logger.info(f"Scheduled Cron task: {task.name} ({task.task_id}) - daily at {hour}:{minute}")
+                elif minute != "*" and hour != "*" and day == "*" and month == "*" and day_of_week != "*":
                     # Specific time on specific days of week
                     day_names = [
                         "monday",
@@ -357,27 +326,21 @@ def schedule_tasks():
                         day_num = int(day_of_week)
                         if 0 <= day_num <= 6:
                             day_name = day_names[day_num]
-                            getattr(schedule.every(), day_name).at(
-                                f"{hour.zfill(2)}:{minute.zfill(2)}"
-                            ).do(lambda t=task: run_inspection_bg(t)).tag(task.task_id)
+                            getattr(schedule.every(), day_name).at(f"{hour.zfill(2)}:{minute.zfill(2)}").do(
+                                lambda t=task: run_inspection_bg(t)
+                            ).tag(task.task_id)
                             logger.info(
                                 f"Scheduled Cron task: {task.name} ({task.task_id}) - weekly on {day_name} at {hour}:{minute}"
                             )
                         else:
-                            logger.error(
-                                f"Invalid day of week {day_of_week} for task {task.name}"
-                            )
+                            logger.error(f"Invalid day of week {day_of_week} for task {task.name}")
                     except (ValueError, AttributeError):
-                        logger.error(
-                            f"Unsupported cron expression for task {task.name}: {task.cron_expr}"
-                        )
+                        logger.error(f"Unsupported cron expression for task {task.name}: {task.cron_expr}")
                 else:
                     # Complex cron expression - use croniter for next run time
                     def create_cron_job(task_obj):
                         def cron_job():
-                            logger.info(
-                                f"Executing cron job for task: {task_obj.name} ({task_obj.task_id})"
-                            )
+                            logger.info(f"Executing cron job for task: {task_obj.name} ({task_obj.task_id})")
                             run_inspection_bg(task_obj)
                             # Reschedule for next occurrence
                             try:
@@ -388,16 +351,14 @@ def schedule_tasks():
                                 next_run = cron.get_next(dt)
                                 delta_seconds = (next_run - base).total_seconds()
                                 if delta_seconds > 0:
-                                    schedule.every(int(delta_seconds)).seconds.do(
-                                        create_cron_job(task_obj)
-                                    ).tag(task_obj.task_id)
+                                    schedule.every(int(delta_seconds)).seconds.do(create_cron_job(task_obj)).tag(
+                                        task_obj.task_id
+                                    )
                                     logger.info(
                                         f"Rescheduled Cron task: {task_obj.name} ({task_obj.task_id}) at {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
                                     )
                             except Exception as e:
-                                logger.error(
-                                    f"Error rescheduling task {task_obj.name}: {e}"
-                                )
+                                logger.error(f"Error rescheduling task {task_obj.name}: {e}")
 
                         return cron_job
 
@@ -407,31 +368,23 @@ def schedule_tasks():
                     cron = croniter(task.cron_expr, base)
                     next_run = cron.get_next(dt)
                     delta_seconds = (next_run - base).total_seconds()
-                    schedule.every(int(delta_seconds)).seconds.do(
-                        create_cron_job(task)
-                    ).tag(task.task_id)
+                    schedule.every(int(delta_seconds)).seconds.do(create_cron_job(task)).tag(task.task_id)
                     logger.info(
                         f"Scheduled complex Cron task: {task.name} ({task.task_id}) at {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
                     )
         elif task.task_type == "hourly":
-            schedule.every().hour.do(lambda t=task: run_inspection_bg(t)).tag(
-                task.task_id
-            )
+            schedule.every().hour.do(lambda t=task: run_inspection_bg(t)).tag(task.task_id)
             logger.info(f"Scheduled hourly task: {task.name} ({task.task_id})")
         elif task.task_type == "daily":
-            schedule.every().day.at("00:00").do(
-                lambda t=task: run_inspection_bg(t)
-            ).tag(task.task_id)
+            schedule.every().day.at("00:00").do(lambda t=task: run_inspection_bg(t)).tag(task.task_id)
             logger.info(f"Scheduled daily task: {task.name} ({task.task_id})")
         elif task.task_type == "weekly":
-            schedule.every().monday.at("00:00").do(
-                lambda t=task: run_inspection_bg(t)
-            ).tag(task.task_id)
+            schedule.every().monday.at("00:00").do(lambda t=task: run_inspection_bg(t)).tag(task.task_id)
             logger.info(f"Scheduled weekly task: {task.name} ({task.task_id})")
         elif task.task_type == "monthly":
-            schedule.every().day.at("00:00").do(
-                lambda t=task: run_inspection_bg(t) if dt.now().day == 1 else None
-            ).tag(task.task_id)
+            schedule.every().day.at("00:00").do(lambda t=task: run_inspection_bg(t) if dt.now().day == 1 else None).tag(
+                task.task_id
+            )
             logger.info(f"Scheduled monthly task: {task.name} ({task.task_id})")
         elif task.task_type == "once" and task.run_datetime:
             try:
@@ -439,12 +392,8 @@ def schedule_tasks():
                 now = dt.now()
                 if run_time > now:
                     delta_seconds = (run_time - now).total_seconds()
-                    schedule.every(int(delta_seconds)).seconds.do(
-                        lambda t=task: run_inspection_bg(t)
-                    ).tag(task.task_id)
-                    logger.info(
-                        f"Scheduled one-time task: {task.name} ({task.task_id}) at {run_time}"
-                    )
+                    schedule.every(int(delta_seconds)).seconds.do(lambda t=task: run_inspection_bg(t)).tag(task.task_id)
+                    logger.info(f"Scheduled one-time task: {task.name} ({task.task_id}) at {run_time}")
             except Exception as e:
                 logger.error(f"Error parsing run_datetime for task {task.name}: {e}")
 
@@ -456,9 +405,7 @@ def reschedule_cron_task(task):
     try:
         schedule.clear(task.task_id)
         if not task.is_valid_cron():
-            logger.error(
-                f"Invalid cron expression for task {task.name} ({task.task_id}): {task.cron_expr}"
-            )
+            logger.error(f"Invalid cron expression for task {task.name} ({task.task_id}): {task.cron_expr}")
             return
         from croniter import croniter
 
@@ -467,36 +414,26 @@ def reschedule_cron_task(task):
         next_run = cron.get_next(dt)
         delta_seconds = (next_run - base).total_seconds()
         if delta_seconds <= 0:
-            logger.warning(
-                f"Next run time is in the past for task {task.name} ({task.task_id}), skipping reschedule"
-            )
+            logger.warning(f"Next run time is in the past for task {task.name} ({task.task_id}), skipping reschedule")
             return
 
         def create_cron_job(task_obj):
             def cron_job():
-                logger.info(
-                    f"Executing rescheduled cron job for task: {task_obj.name} ({task_obj.task_id})"
-                )
+                logger.info(f"Executing rescheduled cron job for task: {task_obj.name} ({task_obj.task_id})")
                 run_inspection_bg(task_obj)
                 reschedule_cron_task(task_obj)
 
             return cron_job
 
-        schedule.every(int(delta_seconds)).seconds.do(create_cron_job(task)).tag(
-            task.task_id
-        )
-        logger.info(
-            f"Rescheduled Cron task: {task.name} ({task.task_id}) at {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        schedule.every(int(delta_seconds)).seconds.do(create_cron_job(task)).tag(task.task_id)
+        logger.info(f"Rescheduled Cron task: {task.name} ({task.task_id}) at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
     except Exception as e:
-        logger.error(
-            f"Error rescheduling task {task.name} ({task.task_id}): {e}", exc_info=True
-        )
+        logger.error(f"Error rescheduling task {task.name} ({task.task_id}): {e}", exc_info=True)
 
 
 def start_scheduler():
     """Start scheduler"""
-    global _scheduler_thread, _stop_event
+    global _scheduler_thread
     try:
         if _scheduler_thread and _scheduler_thread.is_alive():
             logger.info("Scheduler already running")
@@ -504,9 +441,7 @@ def start_scheduler():
         logger.info("Starting scheduler...")
         schedule_tasks()
         _stop_event.clear()
-        _scheduler_thread = threading.Thread(
-            target=_scheduler_loop, name="SchedulerThread"
-        )
+        _scheduler_thread = threading.Thread(target=_scheduler_loop, name="SchedulerThread")
         _scheduler_thread.daemon = True
         _scheduler_thread.start()
         logger.info("Scheduler started successfully")
@@ -518,7 +453,7 @@ def start_scheduler():
 
 def stop_scheduler():
     """Stop scheduler"""
-    global _scheduler_thread, _stop_event
+    global _scheduler_thread
     if not _scheduler_thread or not _scheduler_thread.is_alive():
         logger.info("Scheduler not running")
         return

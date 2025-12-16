@@ -48,9 +48,7 @@ class BaseInspector(ABC):
         )
         self.rules = yaml_rules  # Include all rules, enabled and disabled
         source_type = "GitOps" if self.use_gitops else "local"
-        logger.info(
-            f"Loaded {len(self.rules)} {source_type} rules for {self.inspector_type} inspection"
-        )
+        logger.info(f"Loaded {len(self.rules)} {source_type} rules for {self.inspector_type} inspection")
 
     @abstractmethod
     def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
@@ -81,9 +79,7 @@ class BaseInspector(ABC):
                 return rule
         return None
 
-    def run_inspection(
-        self, cluster_name: str, rule_ids: List[str] = None
-    ) -> InspectionResult:
+    def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
         """
         Run inspection
 
@@ -98,9 +94,7 @@ class BaseInspector(ABC):
         logger.info(
             f"BaseInspector.run_inspection started - inspector type: {self.inspector_type}, cluster: {cluster_name}, source: {source_type}"
         )
-        logger.info(
-            f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}"
-        )
+        logger.info(f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}")
 
         result = InspectionResult(cluster_name, self.inspector_type)
 
@@ -109,17 +103,13 @@ class BaseInspector(ABC):
             active_rules = [
                 rule for rule in self.rules if rule.id in rule_ids and rule.enabled
             ]  # Only execute enabled rules
-            logger.info(
-                f"Number of rules after filtering by specified IDs: {len(active_rules)}"
-            )
+            logger.info(f"Number of rules after filtering by specified IDs: {len(active_rules)}")
         else:
-            active_rules = [
-                rule for rule in self.rules if rule.enabled
-            ]  # Only execute enabled rules
+            active_rules = [rule for rule in self.rules if rule.enabled]  # Only execute enabled rules
             logger.info(f"Using all enabled rules: {len(active_rules)}")
 
         if not active_rules:
-            logger.warning(f"No executable rules, inspection completed")
+            logger.warning("No executable rules, inspection completed")
             return result
 
         logger.info(f"Preparing to execute {len(active_rules)} rules:")
@@ -138,9 +128,7 @@ class BaseInspector(ABC):
                 # Validate rule configuration
                 validation_issues = self._validate_rule_config(rule)
                 if validation_issues:
-                    logger.error(
-                        f"Rule {rule.id} has invalid configuration: {validation_issues}"
-                    )
+                    logger.error(f"Rule {rule.id} has invalid configuration: {validation_issues}")
                     # Rule configuration is invalid
                     result.add_item(
                         self._format_invalid_result(
@@ -160,16 +148,12 @@ class BaseInspector(ABC):
                 if should_apply:
                     logger.info(f"Applying rule {rule.id}")
                     inspection_result = self._apply_rule(rule, context)
-                    logger.info(
-                        f"Rule {rule.id} applied, result type: {type(inspection_result)}"
-                    )
+                    logger.info(f"Rule {rule.id} applied, result type: {type(inspection_result)}")
 
                     if inspection_result:
                         # Handle single result or list of results
                         if isinstance(inspection_result, list):
-                            logger.info(
-                                f"Rule {rule.id} returned list of results, length: {len(inspection_result)}"
-                            )
+                            logger.info(f"Rule {rule.id} returned list of results, length: {len(inspection_result)}")
                             for item in inspection_result:
                                 result.add_item(item)
                         else:
@@ -178,26 +162,18 @@ class BaseInspector(ABC):
                     else:
                         logger.warning(f"Rule {rule.id} returned empty result")
                 else:
-                    logger.info(
-                        f"Rule {rule.id} is not applicable to current environment"
-                    )
+                    logger.info(f"Rule {rule.id} is not applicable to current environment")
                     # Rule is not applicable to current environment
                     result.add_item(
-                        self._format_not_applicable_result(
-                            rule, "Rule is not applicable to current environment"
-                        )
+                        self._format_not_applicable_result(rule, "Rule is not applicable to current environment")
                     )
 
                 executed_count += 1
-                logger.info(
-                    f"Rule {rule.id} executed ({executed_count}/{len(active_rules)})"
-                )
+                logger.info(f"Rule {rule.id} executed ({executed_count}/{len(active_rules)})")
 
             except Exception as e:
                 logger.exception(f"Error executing rule {rule.id}: {str(e)}")
-                error_result = self._format_error_result(
-                    rule, f"Rule execution error: {str(e)}", str(e)
-                )
+                error_result = self._format_error_result(rule, f"Rule execution error: {str(e)}", str(e))
                 result.add_item(error_result)
 
         logger.info(
@@ -259,9 +235,7 @@ class BaseInspector(ABC):
         """
         return self.rule_processor.get_rule_config(rule, path, default_value)
 
-    def _format_invalid_result(
-        self, rule: Rule, description: str, details: str
-    ) -> Dict:
+    def _format_invalid_result(self, rule: Rule, description: str, details: str) -> Dict:
         """
         Format result for rule with invalid configuration (delegated to ResultFormatter)
 
@@ -273,9 +247,7 @@ class BaseInspector(ABC):
         Returns:
             Formatted result dictionary
         """
-        return self.rule_processor.result_formatter.invalid_result(
-            rule, description, details
-        )
+        return self.rule_processor.result_formatter.invalid_result(rule, description, details)
 
     def _format_not_applicable_result(self, rule: Rule, reason: str) -> Dict:
         """
@@ -315,6 +287,4 @@ class BaseInspector(ABC):
         Returns:
             Formatted result dictionary
         """
-        return self.rule_processor.result_formatter.error_result(
-            rule, error, description
-        )
+        return self.rule_processor.result_formatter.error_result(rule, error, description)

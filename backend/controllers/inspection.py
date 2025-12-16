@@ -27,14 +27,10 @@ class AsyncInspectionRequest(BaseModel):
 
 
 @router.post("/inspection")
-async def run_immediate_inspection(
-    request: InspectionRequest, background_tasks: BackgroundTasks
-):
+async def run_immediate_inspection(request: InspectionRequest, background_tasks: BackgroundTasks):
     """Run inspection synchronously (for backward compatibility)"""
     try:
-        logger.info(
-            f"Starting synchronous inspection for cluster: {request.cluster_name}"
-        )
+        logger.info(f"Starting synchronous inspection for cluster: {request.cluster_name}")
 
         # Determine whether to use GitOps rules
         from infrastructure.rules.rule_manager import RuleManager
@@ -53,14 +49,10 @@ async def run_immediate_inspection(
         # Inspection now always succeeds (errors are recorded in results)
         # Only raise exception for critical infrastructure errors
         if not success and "No inspection types were configured" in message:
-            logger.error(
-                f"Inspection failed for cluster {request.cluster_name}: {message}"
-            )
+            logger.error(f"Inspection failed for cluster {request.cluster_name}: {message}")
             raise HTTPException(status_code=400, detail=message)
 
-        logger.info(
-            f"Inspection completed successfully for cluster: {request.cluster_name}"
-        )
+        logger.info(f"Inspection completed successfully for cluster: {request.cluster_name}")
         return {"message": message, "results": results}
     except HTTPException:
         raise
@@ -73,9 +65,7 @@ async def run_immediate_inspection(
 async def run_async_inspection(request: AsyncInspectionRequest):
     """Run inspection asynchronously using task queue"""
     try:
-        logger.info(
-            f"Submitting async inspection task for cluster: {request.cluster_name}"
-        )
+        logger.info(f"Submitting async inspection task for cluster: {request.cluster_name}")
 
         # Determine whether to use GitOps rules if not specified
         if not request.use_gitops:
@@ -118,9 +108,7 @@ async def get_inspection_task_status(task_id: str):
         raise
     except Exception as e:
         logger.error(f"Failed to get task status: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get task status: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
 
 
 @router.delete("/inspection/task/{task_id}")

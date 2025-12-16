@@ -16,9 +16,7 @@ from cryptography.hazmat.backends import default_backend
 logger = logging.getLogger(__name__)
 
 
-def get_cluster_cert_status(
-    cluster_name: str, kubeconfig_content: str
-) -> Dict[str, any]:
+def get_cluster_cert_status(cluster_name: str, kubeconfig_content: str) -> Dict[str, any]:
     """
     Check cluster certificate status
 
@@ -74,9 +72,7 @@ def get_cluster_cert_status(
         return _calculate_cert_status(cert_info)
 
     except Exception as e:
-        logger.error(
-            f"Error occurred while checking certificate status for cluster {cluster_name}: {str(e)}"
-        )
+        logger.error(f"Error occurred while checking certificate status for cluster {cluster_name}: {str(e)}")
         return {
             "status": "unknown",
             "days_remaining": None,

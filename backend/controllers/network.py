@@ -6,15 +6,14 @@ Network connectivity check routes
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field, validator
+from typing import List, Optional
+from pydantic import BaseModel, Field, field_validator
 import logging
 import os
 
 from infrastructure.cluster.cluster_config import get_cluster
 from infrastructure.network.network_check import (
     check_connectivity_from_nodes,
-    validate_ip,
     validate_port,
     NetworkConnectivityResult,
     load_network_check_result,
@@ -32,22 +31,25 @@ class NetworkCheckRequest(BaseModel):
     """Model for network connectivity check request"""
 
     cluster_name: str = Field(..., description="Name of the cluster")
-    selected_nodes: List[str] = Field(
-        ..., description="List of selected node IPs to check from"
-    )
+    selected_nodes: List[str] = Field(..., description="List of selected node IPs to check from")
     target_ip: str = Field(..., description="Target IP address to connect to")
     target_port: int = Field(..., description="Target port to connect to")
-    timeout: Optional[int] = Field(
-        5, description="Connection timeout in seconds", ge=1, le=30
-    )
+    timeout: Optional[int] = Field(5, description="Connection timeout in seconds", ge=1, le=30)
 
-    @validator("target_ip")
+    @field_validator("target_ip")
+    @classmethod
     def validate_target_ip(cls, v):
-        if not validate_ip(v):
-            raise ValueError("Invalid IPv4 address format")
+        import socket
+
+        try:
+            socket.gethostbyname(v)
+            return v
+        except socket.gaierror:
+            raise ValueError("Invalid IP address or hostname")
         return v
 
-    @validator("target_port")
+    @field_validator("target_port")
+    @classmethod
     def validate_target_port(cls, v):
         if not validate_port(v):
             raise ValueError("Port must be between 1 and 65535")
@@ -85,16 +87,12 @@ async def check_network_connectivity(request: NetworkCheckRequest):
         # Get cluster configuration
         cluster_config = get_cluster(request.cluster_name)
         if not cluster_config:
-            raise HTTPException(
-                status_code=404, detail=f"Cluster '{request.cluster_name}' not found"
-            )
+            raise HTTPException(status_code=404, detail=f"Cluster '{request.cluster_name}' not found")
 
         # Get all nodes from cluster
         all_nodes = cluster_config.get_nodes()
         if not all_nodes:
-            raise HTTPException(
-                status_code=400, detail="No nodes configured in the cluster"
-            )
+            raise HTTPException(status_code=400, detail="No nodes configured in the cluster")
 
         # Filter selected nodes
         selected_nodes = []
@@ -105,9 +103,7 @@ async def check_network_connectivity(request: NetworkCheckRequest):
                 selected_nodes.append(node)
 
         if not selected_nodes:
-            raise HTTPException(
-                status_code=400, detail="No valid nodes selected for checking"
-            )
+            raise HTTPException(status_code=400, detail="No valid nodes selected for checking")
 
         logger.info(
             f"Starting network connectivity check from {len(selected_nodes)} nodes to {request.target_ip}:{request.target_port}"
@@ -189,17 +185,13 @@ async def get_clusters_for_network_check():
         return {"clusters": cluster_data}
 
     except Exception as e:
-        logger.error(
-            f"Failed to get clusters for network check: {str(e)}", exc_info=True
-        )
+        logger.error(f"Failed to get clusters for network check: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get clusters: {str(e)}")
 
 
 @router.get("/network-check/results")
 @log_api_request
-async def get_network_check_results(
-    cluster_name: Optional[str] = None, limit: int = 50
-):
+async def get_network_check_results(cluster_name: Optional[str] = None, limit: int = 50):
     """
     Get list of saved network connectivity check results
 
@@ -224,17 +216,13 @@ async def get_network_check_result(result_id: str):
     try:
         result = load_network_check_result(result_id)
         if not result:
-            raise HTTPException(
-                status_code=404, detail="Network check result not found"
-            )
+            raise HTTPException(status_code=404, detail="Network check result not found")
 
         return result
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(
-            f"Failed to get network check result {result_id}: {str(e)}", exc_info=True
-        )
+        logger.error(f"Failed to get network check result {result_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get result: {str(e)}")
 
 
@@ -258,7 +246,7 @@ async def delete_network_check_result(result_id: str):
                     if data and data.get("result_id") == result_id:
                         os.remove(file_path)
                         return {"message": f"Network check result {result_id} deleted"}
-            except:
+            except Exception:
                 continue
 
         raise HTTPException(status_code=404, detail="Network check result not found")
@@ -269,9 +257,7 @@ async def delete_network_check_result(result_id: str):
             f"Failed to delete network check result {result_id}: {str(e)}",
             exc_info=True,
         )
-        raise HTTPException(
-            status_code=500, detail=f"Failed to delete result: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to delete result: {str(e)}")
 
 
 @router.get("/network-check/results/{result_id}/export/{format}")

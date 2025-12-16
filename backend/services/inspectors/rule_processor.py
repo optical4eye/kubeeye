@@ -149,9 +149,7 @@ class RuleProcessor:
 
         return highest
 
-    def evaluate_assertions(
-        self, assertions: List[Dict], context: Dict[str, Any]
-    ) -> Dict:
+    def evaluate_assertions(self, assertions: List[Dict], context: Dict[str, Any]) -> Dict:
         """
         Evaluate set of assertions (delegated to AssertionManager)
 
@@ -162,13 +160,9 @@ class RuleProcessor:
         Returns:
             Dictionary of evaluation results containing passed, failed assertions, etc.
         """
-        return self.assertion_manager.evaluate_assertions(
-            assertions, context, mode="detailed"
-        )
+        return self.assertion_manager.evaluate_assertions(assertions, context, mode="detailed")
 
-    def extract_variables(
-        self, output: str, extractors: List[Dict], context: Dict = None
-    ) -> Dict[str, Any]:
+    def extract_variables(self, output: str, extractors: List[Dict], context: Dict = None) -> Dict[str, Any]:
         """
         Extract variables from output
 

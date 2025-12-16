@@ -4,8 +4,7 @@
 Common utilities for backend API
 """
 
-import sys
-from pathlib import Path
+# No imports needed
 
 
 def create_status_badge(status, text=None):

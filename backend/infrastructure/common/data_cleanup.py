@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Tuple
 import threading
 import time
+import atexit
 
 # Get project root directory
 ROOT_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
@@ -53,9 +54,7 @@ class DataCleanupManager:
         self._cleanup_thread = None
         self._stop_cleanup = False
 
-    def cleanup_by_age(
-        self, dir_path: Path, pattern: str, retention_days: int
-    ) -> Tuple[int, int]:
+    def cleanup_by_age(self, dir_path: Path, pattern: str, retention_days: int) -> Tuple[int, int]:
         """Cleanup by file age"""
         if not dir_path.exists():
             return 0, 0
@@ -81,9 +80,7 @@ class DataCleanupManager:
 
         return deleted_count, total_size
 
-    def cleanup_by_count(
-        self, dir_path: Path, pattern: str, max_files: int
-    ) -> Tuple[int, int]:
+    def cleanup_by_count(self, dir_path: Path, pattern: str, max_files: int) -> Tuple[int, int]:
         """Cleanup by file count (keep newest files)"""
         if not dir_path.exists():
             return 0, 0
@@ -111,9 +108,7 @@ class DataCleanupManager:
 
         return deleted_count, total_size
 
-    def cleanup_by_size(
-        self, dir_path: Path, pattern: str, max_size_mb: int
-    ) -> Tuple[int, int]:
+    def cleanup_by_size(self, dir_path: Path, pattern: str, max_size_mb: int) -> Tuple[int, int]:
         """Cleanup by directory size"""
         if not dir_path.exists():
             return 0, 0
@@ -159,15 +154,11 @@ class DataCleanupManager:
         results = {}
 
         # Cleanup by age
-        deleted_count, deleted_size = self.cleanup_by_age(
-            config["path"], config["pattern"], config["retention_days"]
-        )
+        deleted_count, deleted_size = self.cleanup_by_age(config["path"], config["pattern"], config["retention_days"])
         results["by_age"] = {"count": deleted_count, "size": deleted_size}
 
         # Cleanup by count
-        deleted_count, deleted_size = self.cleanup_by_count(
-            config["path"], config["pattern"], config["max_files"]
-        )
+        deleted_count, deleted_size = self.cleanup_by_count(config["path"], config["pattern"], config["max_files"])
         results["by_count"] = {"count": deleted_count, "size": deleted_size}
 
         return results
@@ -181,15 +172,11 @@ class DataCleanupManager:
         results = {}
 
         # Cleanup by age
-        deleted_count, deleted_size = self.cleanup_by_age(
-            config["path"], config["pattern"], config["retention_days"]
-        )
+        deleted_count, deleted_size = self.cleanup_by_age(config["path"], config["pattern"], config["retention_days"])
         results["by_age"] = {"count": deleted_count, "size": deleted_size}
 
         # Cleanup by size
-        deleted_count, deleted_size = self.cleanup_by_size(
-            config["path"], config["pattern"], config["max_size_mb"]
-        )
+        deleted_count, deleted_size = self.cleanup_by_size(config["path"], config["pattern"], config["max_size_mb"])
         results["by_size"] = {"count": deleted_count, "size": deleted_size}
 
         return results
@@ -203,9 +190,7 @@ class DataCleanupManager:
         results = {}
 
         # Cleanup by age
-        deleted_count, deleted_size = self.cleanup_by_age(
-            config["path"], config["pattern"], config["retention_days"]
-        )
+        deleted_count, deleted_size = self.cleanup_by_age(config["path"], config["pattern"], config["retention_days"])
         results["by_age"] = {"count": deleted_count, "size": deleted_size}
 
         return results
@@ -261,9 +246,7 @@ class DataCleanupManager:
             return
 
         self._stop_cleanup = False
-        self._cleanup_thread = threading.Thread(
-            target=self._auto_cleanup_worker, daemon=True
-        )
+        self._cleanup_thread = threading.Thread(target=self._auto_cleanup_worker, daemon=True)
         self._cleanup_thread.start()
         logger.info("Automatic data cleanup started")
 
@@ -334,8 +317,6 @@ def _init_auto_cleanup():
 
 
 # Register cleanup on program exit
-import atexit
-
 atexit.register(lambda: get_cleanup_manager().stop_auto_cleanup())
 
 # Start automatic cleanup (can be disabled via environment variable)

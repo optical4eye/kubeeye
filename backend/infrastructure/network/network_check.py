@@ -4,7 +4,7 @@
 Network connectivity check utilities
 """
 
-import socket
+# socket not used
 import time
 import logging
 import json
@@ -19,9 +19,7 @@ from infrastructure.cluster.node_connection import NodeConnection
 logger = logging.getLogger(__name__)
 
 
-def check_connection(
-    node: Dict[str, Any], target_ip: str, target_port: int, timeout: int = 5
-) -> Dict[str, Any]:
+def check_connection(node: Dict[str, Any], target_ip: str, target_port: int, timeout: int = 5) -> Dict[str, Any]:
     """
     Check network connectivity from a node to a target IP and port
 
@@ -109,18 +107,14 @@ def check_connectivity_from_nodes(
     def check_single_node(node):
         node_ip = node.get("ip")
         node_name = node.get("name", node_ip)
-        logger.info(
-            f"Checking connectivity from {node_name} ({node_ip}) to {target_ip}:{target_port}"
-        )
+        logger.info(f"Checking connectivity from {node_name} ({node_ip}) to {target_ip}:{target_port}")
 
         result = check_connection(node, target_ip, target_port, timeout)
         return result
 
     # Use ThreadPoolExecutor for parallel checks
     with ThreadPoolExecutor(max_workers=min(len(nodes), 10)) as executor:
-        future_to_node = {
-            executor.submit(check_single_node, node): node for node in nodes
-        }
+        future_to_node = {executor.submit(check_single_node, node): node for node in nodes}
         for future in as_completed(future_to_node):
             try:
                 result = future.result()
@@ -156,7 +150,7 @@ def validate_ip(ip: str) -> bool:
             if num < 0 or num > 255:
                 return False
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -276,9 +270,7 @@ def load_network_check_result(result_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def list_network_check_results(
-    cluster_name: Optional[str] = None, limit: Optional[int] = None
-) -> List[Dict[str, Any]]:
+def list_network_check_results(cluster_name: Optional[str] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
     """
     List network check results
 
@@ -295,9 +287,7 @@ def list_network_check_results(
 
     # Search in data/exports/*/network_reports/ directories
     network_checks_pattern = (
-        f"exports/{cluster_name}/network_reports/*.json"
-        if cluster_name
-        else "exports/*/network_reports/*.json"
+        f"exports/{cluster_name}/network_reports/*.json" if cluster_name else "exports/*/network_reports/*.json"
     )
 
     for file_path in data_dir.glob(network_checks_pattern):
@@ -328,9 +318,7 @@ def list_network_check_results(
     return results
 
 
-def export_network_report(
-    result_id: str, format_type: str = "json"
-) -> Tuple[bool, str]:
+def export_network_report(result_id: str, format_type: str = "json") -> Tuple[bool, str]:
     """
     Export network connectivity report in JSON format
 

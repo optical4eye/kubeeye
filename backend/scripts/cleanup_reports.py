@@ -20,11 +20,6 @@ if str(ROOT_DIR) not in sys.path:
 # Setup logger
 logger = logging.getLogger(__name__)
 
-# Cleanup functions (copied for autonomy)
-import json
-from pathlib import Path
-from datetime import datetime, timedelta
-
 CONFIG_FILE = ROOT_DIR / "data" / "cleanup_config.json"
 DEFAULT_RETENTION_DAYS = 7
 DEFAULT_AUTO_CLEANUP = False

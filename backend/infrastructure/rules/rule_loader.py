@@ -15,15 +15,9 @@ from functools import lru_cache
 logger = logging.getLogger(__name__)
 
 # Main rules directory
-RULES_DIR = (
-    Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
-    / "rules"
-)
+RULES_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent))) / "rules"
 # GitOps rules directory
-GIT_RULES_DIR = (
-    Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent)))
-    / "git_rules"
-)
+GIT_RULES_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent))) / "git_rules"
 
 
 class Rule:
@@ -46,9 +40,7 @@ class Rule:
         self.enabled = rule_data.get("enabled", True)  # Is enabled
         self.solution = rule_data.get("solution", "")  # Solution
         self.tags = rule_data.get("tags", [])  # Tags
-        self.tier = rule_data.get(
-            "tier", "basic"
-        )  # Rule tier (basic/standard/extended)
+        self.tier = rule_data.get("tier", "basic")  # Rule tier (basic/standard/extended)
 
         # GitOps related fields
         self.source = rule_data.get("source", "local")  # Source: local or git
@@ -59,9 +51,7 @@ class Rule:
         self.config = rule_data.get("config", {})  # Unified configuration object
 
         # Fields specific to assertions mode
-        self.assertions = self.config.get(
-            "assertions", []
-        )  # List of assertion configurations
+        self.assertions = self.config.get("assertions", [])  # List of assertion configurations
 
         # Handle extractors - convert from execution format if needed
         self.extractors = self.config.get("extractors", [])
@@ -77,9 +67,7 @@ class Rule:
                         "timeout": execution.get("timeout", 30),
                     }
                 ]
-                logger.info(
-                    f"Converted execution format to extractors for rule {self.id}"
-                )
+                logger.info(f"Converted execution format to extractors for rule {self.id}")
 
     def to_dict(self) -> Dict:
         """Convert rule to dictionary"""
@@ -125,9 +113,7 @@ def _load_rules_cached(
     return tuple(rule.id for rule in rules)
 
 
-def _load_rules_impl(
-    rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False
-) -> List[Rule]:
+def _load_rules_impl(rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False) -> List[Rule]:
     """Internal implementation of rule loading"""
     rules = []
 
@@ -177,17 +163,11 @@ def _load_rules_impl(
             if type_dir.exists():
                 search_dirs.append(type_dir)
             else:
-                logger.warning(
-                    f"Directory for rule type '{rule_type}' does not exist: {type_dir}"
-                )
+                logger.warning(f"Directory for rule type '{rule_type}' does not exist: {type_dir}")
         else:
             # Search in all rule directories
             for item in base_dir.iterdir():
-                if (
-                    item.is_dir()
-                    and not item.name.startswith("_")
-                    and not item.name == "examples"
-                ):
+                if item.is_dir() and not item.name.startswith("_") and not item.name == "examples":
                     search_dirs.append(item)
 
     logger.info(f"Found directories to search: {[str(d) for d in search_dirs]}")
@@ -206,11 +186,7 @@ def _load_rules_impl(
                     rule_data = yaml.safe_load(f)
 
                 # Skip files that don't contain valid rule data
-                if (
-                    rule_data is None
-                    or not isinstance(rule_data, dict)
-                    or not rule_data
-                ):
+                if rule_data is None or not isinstance(rule_data, dict) or not rule_data:
                     logger.info(f"Skipping empty or invalid rule file: {file_path}")
                     continue
 
@@ -246,9 +222,7 @@ def _load_rules_impl(
 
                     # AUTOMATICALLY ENABLE RULES FROM GITOPS
                     rule_data["enabled"] = True
-                    logger.info(
-                        f"Rule from GitOps automatically enabled: {rule_data.get('id', 'unknown')}"
-                    )
+                    logger.info(f"Rule from GitOps automatically enabled: {rule_data.get('id', 'unknown')}")
 
                 # Create rule object
                 rule = Rule(rule_data)
@@ -256,29 +230,18 @@ def _load_rules_impl(
                 # Check if should include in result
                 if rule.enabled or include_disabled:
                     # For GitOps with flat structure, filter by rule_type if specified
-                    if (
-                        use_gitops
-                        and rule_type
-                        and rule.type != rule_type
-                        and rule.type != "unknown"
-                    ):
-                        logger.info(
-                            f"Skipped rule {rule.id} (type mismatch: expected {rule_type}, got {rule.type})"
-                        )
+                    if use_gitops and rule_type and rule.type != rule_type and rule.type != "unknown":
+                        logger.info(f"Skipped rule {rule.id} (type mismatch: expected {rule_type}, got {rule.type})")
                         continue
                     rules.append(rule)
-                    logger.info(
-                        f"Loaded rule: {rule.id} (type: {rule.type}, enabled: {rule.enabled})"
-                    )
+                    logger.info(f"Loaded rule: {rule.id} (type: {rule.type}, enabled: {rule.enabled})")
                 else:
                     logger.info(f"Skipped disabled rule: {rule.id}")
 
             except Exception as e:
                 logger.error(f"Failed to load rule file {file_path}: {str(e)}")
 
-    logger.info(
-        f"Loaded {len(rules)} rules from {'GitOps' if use_gitops else 'local'} directory"
-    )
+    logger.info(f"Loaded {len(rules)} rules from {'GitOps' if use_gitops else 'local'} directory")
     return rules
 
 
@@ -306,9 +269,7 @@ def _get_directory_hash(base_dir: Path) -> int:
     return int(hasher.hexdigest(), 16) % 2**32
 
 
-def load_rules(
-    rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False
-) -> List[Rule]:
+def load_rules(rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False) -> List[Rule]:
     """
     Load rules of specified type
 
@@ -352,9 +313,7 @@ def load_rule_from_file(file_path: str) -> Optional[Rule]:
             rule_data = yaml.safe_load(f)
 
         if not isinstance(rule_data, dict):
-            logger.warning(
-                f"Rule file format {file_path} is invalid, must be YAML dictionary"
-            )
+            logger.warning(f"Rule file format {file_path} is invalid, must be YAML dictionary")
             return None
 
         # If type not specified explicitly, try to infer from file path

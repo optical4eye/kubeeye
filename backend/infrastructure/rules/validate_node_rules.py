@@ -1,13 +1,14 @@
 import os
 import yaml
 import logging
-from infrastructure.security.command_security import check_command_security
+from infrastructure.security.command_security import CommandSecurityChecker
 
 logger = logging.getLogger(__name__)
 
 RULES_DIR = os.path.join(os.path.dirname(__file__), "../rules/node")
 
 results = []
+checker = CommandSecurityChecker()
 
 for fname in os.listdir(RULES_DIR):
     if not fname.endswith(".yaml"):
@@ -20,7 +21,7 @@ for fname in os.listdir(RULES_DIR):
         cmd = rule["config"]["execution"]["command"]
     except Exception:
         continue
-    is_safe, risk, desc = check_command_security(cmd)
+    is_safe, risk, desc = checker.check_command_security(cmd)
     results.append(
         {
             "file": fname,

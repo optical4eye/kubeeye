@@ -5,8 +5,7 @@ Cluster management routes
 """
 
 from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Dict, Optional
 import asyncio
 
 from infrastructure.cluster.cluster_config import (
@@ -53,9 +52,7 @@ async def get_clusters():
                         "nodes": cluster_config.get_nodes(),
                         "prometheus_config": cluster_config.get_prometheus_config(),
                         "kubeconfig": kubeconfig is not None,
-                        "cert_expiry_days": (
-                            cert_status.get("days_remaining") if cert_status else None
-                        ),
+                        "cert_expiry_days": (cert_status.get("days_remaining") if cert_status else None),
                     }
                 )
         return {"clusters": cluster_data}
@@ -153,30 +150,22 @@ async def get_cluster_nodes(cluster_name: str):
 
         kubeconfig = cluster_config.get_kubeconfig()
         if not kubeconfig:
-            raise HTTPException(
-                status_code=400, detail="Kubeconfig not configured for this cluster"
-            )
+            raise HTTPException(status_code=400, detail="Kubeconfig not configured for this cluster")
 
         k8s_client = K8sClient(kubeconfig)
         nodes_result = k8s_client.get_nodes()
 
         if nodes_result.get("status") == "error":
-            raise HTTPException(
-                status_code=500, detail=nodes_result.get("error", "Failed to get nodes")
-            )
+            raise HTTPException(status_code=500, detail=nodes_result.get("error", "Failed to get nodes"))
 
         return nodes_result
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get cluster nodes: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get cluster nodes: {str(e)}")
 
 
-def _get_nodes_for_testing(
-    cluster_name: str, request: Optional[TestNodesRequest] = None
-) -> List[Dict]:
+def _get_nodes_for_testing(cluster_name: str, request: Optional[TestNodesRequest] = None) -> List[Dict]:
     """Get list of nodes for testing"""
     if request and request.nodes:
         return request.nodes
@@ -229,9 +218,7 @@ def _test_single_node(node: Dict) -> Dict:
 
 
 @router.post("/clusters/{cluster_name}/test-nodes")
-async def test_cluster_nodes(
-    cluster_name: str, request: Optional[TestNodesRequest] = None
-):
+async def test_cluster_nodes(cluster_name: str, request: Optional[TestNodesRequest] = None):
     """Test connection to all cluster nodes"""
     try:
         nodes = _get_nodes_for_testing(cluster_name, request)
@@ -239,9 +226,7 @@ async def test_cluster_nodes(
         # Test nodes asynchronously in parallel with individual timeouts
         async def test_with_timeout(node):
             try:
-                result = await asyncio.wait_for(
-                    _test_single_node_async(node), timeout=10.0
-                )
+                result = await asyncio.wait_for(_test_single_node_async(node), timeout=10.0)
                 return result
             except asyncio.TimeoutError:
                 node_name = node.get("name", node["ip"])
@@ -326,9 +311,7 @@ async def test_cluster_nodes(
 
 
 @router.post("/clusters/{cluster_name}/test-kubeconfig")
-async def test_cluster_kubeconfig(
-    cluster_name: str, request: Optional[TestKubeconfigRequest] = None
-):
+async def test_cluster_kubeconfig(cluster_name: str, request: Optional[TestKubeconfigRequest] = None):
     """Test cluster kubeconfig validity"""
     try:
         # If kubeconfig passed in request, use it, otherwise get from infrastructure.config
