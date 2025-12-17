@@ -59,17 +59,18 @@ COPY app /app/
 
 # Create data directories
 RUN mkdir -p /app/data/clusters \
-             /app/data/results \
-             /app/data/exports \
-             /app/data/logs \
-             /app/data/schedules \
-             /app/data/git_rules
+              /app/data/results \
+              /app/data/exports \
+              /app/data/logs \
+              /app/data/schedules \
+              /app/data/git_rules
 
 # Initialize application
-RUN python app/scripts/init.py
+RUN python scripts/init.py
 
 # Add user for security
 RUN addgroup -S kubeeye --gid 1001 && adduser -u 1001 -S kubeeye -G kubeeye
+
 RUN chown -R kubeeye:kubeeye /app /usr/local/bin/opa
 
 USER kubeeye
@@ -82,4 +83,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
 # Start FastAPI
-CMD ["uvicorn", "app.scripts.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "scripts.api:app", "--host", "0.0.0.0", "--port", "8000"]

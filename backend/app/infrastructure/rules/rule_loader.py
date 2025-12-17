@@ -51,7 +51,9 @@ class Rule:
         self.config = rule_data.get("config", {})  # Unified configuration object
 
         # Fields specific to assertions mode
-        self.assertions = self.config.get("assertions", [])  # List of assertion configurations
+        self.assertions = rule_data.get(
+            "assertions", self.config.get("assertions", [])
+        )  # List of assertion configurations
 
         # Handle extractors - convert from execution format if needed
         self.extractors = self.config.get("extractors", [])
@@ -91,6 +93,9 @@ class Rule:
             rule_dict["source"] = self.source
             rule_dict["repository"] = self.repository
             rule_dict["file_path"] = self.file_path
+
+        # Include assertions for API compatibility
+        rule_dict["assertions"] = self.assertions
 
         return rule_dict
 

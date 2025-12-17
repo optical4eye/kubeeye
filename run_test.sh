@@ -85,6 +85,12 @@ done
 echo -e "${BLUE}🚀 Starting KubeEye Test Suite${NC}"
 echo "================================="
 
+# Clean up data directory at start
+echo -e "${YELLOW}🧹 Cleaning up data directory at start...${NC}"
+rm -rf backend/app/data
+echo -e "${GREEN}✅ Data directory cleaned${NC}"
+echo ""
+
 # Clean up previous test results (removed)
 
 # Function to run command with error handling
@@ -129,7 +135,7 @@ if [ "$RUN_LINT" = true ]; then
 
     # Auto-format code with Black
     echo -e "${YELLOW}🔧 Auto-formatting code with Black...${NC}"
-    if docker compose -f docker-compose.test.yaml run --rm test-runner sh -c "cd /app && python -m black --line-length=120 app"; then
+    if docker compose -f docker-compose.test.yaml run --rm test-runner sh -c "cd /app && python -m black --line-length=120 ."; then
         echo -e "${GREEN}✅ Code formatted successfully${NC}"
     else
         echo -e "${RED}❌ Code formatting failed${NC}"
@@ -138,14 +144,14 @@ if [ "$RUN_LINT" = true ]; then
     echo ""
 
     # Flake8 linting (uses .flake8 config for line length and ignores)
-    if ! run_cmd "docker compose -f docker-compose.test.yaml run --rm test-runner sh -c \"cd /app && python -m flake8 app\"" "Flake8 linting"; then
+    if ! run_cmd "docker compose -f docker-compose.test.yaml run --rm test-runner sh -c \"cd /app && python -m flake8 .\"" "Flake8 linting"; then
         ((FAILED_TESTS++))
         echo -e "${RED}❌ Flake8 linting failed. Fix linting issues before proceeding.${NC}"
         exit 1
     fi
 
     # Pylint static analysis (focus on import errors and basic issues)
-    if ! run_cmd "docker compose -f docker-compose.test.yaml run --rm test-runner sh -c \"cd /app && python -m pylint --disable=all --enable=import-error,unused-import,no-name-in-module app\"" "Pylint import checks"; then
+    if ! run_cmd "docker compose -f docker-compose.test.yaml run --rm test-runner sh -c \"cd /app && python -m pylint --disable=all --enable=import-error,unused-import,no-name-in-module .\"" "Pylint import checks"; then
         ((FAILED_TESTS++))
         echo -e "${RED}❌ Pylint import checks failed. Fix import issues before proceeding.${NC}"
         exit 1
@@ -170,7 +176,7 @@ if [ "$RUN_UNIT" = true ] || [ "$RUN_INTEGRATION" = true ]; then
     # Coverage options
     COVERAGE_OPTS=""
     if [ "$RUN_COVERAGE" = true ]; then
-        COVERAGE_OPTS="--cov=app --cov-report=term-missing"
+        COVERAGE_OPTS="--cov=. --cov-report=term-missing"
     fi
 
     # Run tests
@@ -191,6 +197,11 @@ if [ $FAILED_TESTS -eq 0 ]; then
     echo -e "${GREEN}🎉 All tests and checks passed!${NC}"
     echo ""
 
+    # Clean up data directory
+    echo -e "${YELLOW}🧹 Cleaning up data directory...${NC}"
+    rm -rf backend/app/data
+    echo -e "${GREEN}✅ Data directory cleaned${NC}"
+    echo ""
 
     echo -e "${BLUE}📊 All tests passed!${NC}"
     exit 0

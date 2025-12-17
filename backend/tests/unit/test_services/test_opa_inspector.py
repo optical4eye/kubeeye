@@ -22,6 +22,7 @@ class TestDateTimeEncoder:
         encoder = DateTimeEncoder()
 
         from datetime import datetime, timezone
+
         dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 
         result = encoder.default(dt)
@@ -32,6 +33,7 @@ class TestDateTimeEncoder:
         encoder = DateTimeEncoder()
 
         from datetime import date
+
         date_obj = date(2023, 1, 1)
 
         result = encoder.default(date_obj)
@@ -42,6 +44,7 @@ class TestDateTimeEncoder:
         encoder = DateTimeEncoder()
 
         from datetime import timedelta
+
         td = timedelta(days=1)
 
         result = encoder.default(td)
@@ -52,7 +55,7 @@ class TestDateTimeEncoder:
         encoder = DateTimeEncoder()
 
         # Mock the parent default method
-        with patch('json.JSONEncoder.default') as mock_parent:
+        with patch("json.JSONEncoder.default") as mock_parent:
             mock_parent.return_value = "parent_result"
 
             result = encoder.default("test_string")
@@ -63,16 +66,13 @@ class TestDateTimeEncoder:
 class TestOpaInspector:
     """Test cases for OPA inspector"""
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_init(self, mock_k8s_client_class):
         """Test inspector initialization"""
         mock_k8s_client = Mock()
         mock_k8s_client_class.return_value = mock_k8s_client
 
-        config = {
-            "kubeconfig": "test-config",
-            "opa_path": "/custom/opa/path"
-        }
+        config = {"kubeconfig": "test-config", "opa_path": "/custom/opa/path"}
 
         inspector = OpaInspector(config)
 
@@ -80,7 +80,7 @@ class TestOpaInspector:
         assert inspector.opa_path == "/custom/opa/path"
         mock_k8s_client_class.assert_called_once_with("test-config")
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_init_default_opa_path(self, mock_k8s_client_class):
         """Test inspector initialization with default OPA path"""
         mock_k8s_client = Mock()
@@ -93,7 +93,7 @@ class TestOpaInspector:
         assert inspector.opa_path == "/usr/local/bin/opa"
         mock_k8s_client_class.assert_called_once_with(None)
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_validate_rule_complete(self, mock_k8s_client_class):
         """Test rule validation with complete configuration"""
         inspector = OpaInspector({})
@@ -102,7 +102,7 @@ class TestOpaInspector:
         rule.config = {
             "rego": {"inline": "package test"},
             "resources": [{"kind": "Pod"}],
-            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}]
+            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}],
         }
 
         # Mock the get_rule_config method
@@ -124,7 +124,7 @@ class TestOpaInspector:
         # The validation checks for "rego.inline" or "rego.file", so it should pass
         assert len(issues) == 0
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_validate_rule_missing_rego(self, mock_k8s_client_class):
         """Test rule validation with missing Rego rules"""
         inspector = OpaInspector({})
@@ -132,7 +132,7 @@ class TestOpaInspector:
         rule = Mock(spec=Rule)
         rule.config = {
             "resources": [{"kind": "Pod"}],
-            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}]
+            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}],
         }
 
         def mock_get_rule_config(r, key, default=None):
@@ -152,7 +152,7 @@ class TestOpaInspector:
 
         assert "Missing Rego rules configuration" in issues
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_validate_rule_missing_resources(self, mock_k8s_client_class):
         """Test rule validation with missing resources"""
         inspector = OpaInspector({})
@@ -160,7 +160,7 @@ class TestOpaInspector:
         rule = Mock(spec=Rule)
         rule.config = {
             "rego": {"inline": "package test"},
-            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}]
+            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}],
         }
 
         def mock_get_rule_config(r, key, default=None):
@@ -180,16 +180,13 @@ class TestOpaInspector:
 
         assert "Missing resource configuration" in issues
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_validate_rule_missing_assertions(self, mock_k8s_client_class):
         """Test rule validation with missing assertions"""
         inspector = OpaInspector({})
 
         rule = Mock(spec=Rule)
-        rule.config = {
-            "rego": {"inline": "package test"},
-            "resources": [{"kind": "Pod"}]
-        }
+        rule.config = {"rego": {"inline": "package test"}, "resources": [{"kind": "Pod"}]}
 
         def mock_get_rule_config(r, key, default=None):
             if key == "rego.inline":
@@ -208,7 +205,7 @@ class TestOpaInspector:
 
         assert "Missing assertions configuration" in issues
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_get_rego_content_inline(self, mock_k8s_client_class):
         """Test getting Rego content from inline configuration"""
         inspector = OpaInspector({})
@@ -221,9 +218,9 @@ class TestOpaInspector:
         assert content == "package test\nallow = true"
         inspector.get_rule_config.assert_called_with(rule, "rego.inline")
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
-    @patch('builtins.open', new_callable=mock_open, read_data="package test\nfrom_file")
-    @patch('os.path.exists')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
+    @patch("builtins.open", new_callable=mock_open, read_data="package test\nfrom_file")
+    @patch("os.path.exists")
     def test_get_rego_content_from_file(self, mock_exists, mock_file, mock_k8s_client_class):
         """Test getting Rego content from file"""
         mock_exists.return_value = True
@@ -231,18 +228,17 @@ class TestOpaInspector:
         inspector = OpaInspector({})
 
         rule = Mock()
-        inspector.get_rule_config = Mock(side_effect=lambda r, key: {
-            "rego.inline": None,
-            "rego.file": "/path/to/rules.rego"
-        }.get(key))
+        inspector.get_rule_config = Mock(
+            side_effect=lambda r, key: {"rego.inline": None, "rego.file": "/path/to/rules.rego"}.get(key)
+        )
 
         content = inspector._get_rego_content(rule)
 
         assert content == "package test\nfrom_file"
         mock_file.assert_called_once_with("/path/to/rules.rego", "r", encoding="utf-8")
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
-    @patch('os.path.exists')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
+    @patch("os.path.exists")
     def test_get_rego_content_file_not_exists(self, mock_exists, mock_k8s_client_class):
         """Test getting Rego content when file doesn't exist"""
         mock_exists.return_value = False
@@ -250,16 +246,15 @@ class TestOpaInspector:
         inspector = OpaInspector({})
 
         rule = Mock()
-        inspector.get_rule_config = Mock(side_effect=lambda r, key: {
-            "rego.inline": None,
-            "rego.file": "/nonexistent/rules.rego"
-        }.get(key))
+        inspector.get_rule_config = Mock(
+            side_effect=lambda r, key: {"rego.inline": None, "rego.file": "/nonexistent/rules.rego"}.get(key)
+        )
 
         content = inspector._get_rego_content(rule)
 
         assert content is None
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_get_cluster_resources_success(self, mock_k8s_client_class):
         """Test successful cluster resources retrieval"""
         mock_k8s_client = Mock()
@@ -267,7 +262,7 @@ class TestOpaInspector:
 
         mock_k8s_client.list_resources_from_config_optimized.return_value = {
             "pods": [{"name": "pod1"}, {"name": "pod2"}],
-            "services": [{"name": "svc1"}]
+            "services": [{"name": "svc1"}],
         }
 
         inspector = OpaInspector({})
@@ -281,7 +276,7 @@ class TestOpaInspector:
         assert resources[1]["name"] == "pod2"
         assert resources[2]["name"] == "svc1"
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_get_cluster_resources_fallback(self, mock_k8s_client_class):
         """Test cluster resources retrieval fallback to non-optimized method"""
         mock_k8s_client = Mock()
@@ -290,9 +285,7 @@ class TestOpaInspector:
         # Remove optimized method
         del mock_k8s_client.list_resources_from_config_optimized
 
-        mock_k8s_client.list_resources_from_config.return_value = {
-            "pods": [{"name": "pod1"}]
-        }
+        mock_k8s_client.list_resources_from_config.return_value = {"pods": [{"name": "pod1"}]}
 
         inspector = OpaInspector({})
         rule = Mock()
@@ -304,8 +297,8 @@ class TestOpaInspector:
         assert resources[0]["name"] == "pod1"
         mock_k8s_client.list_resources_from_config.assert_called_once_with(rule.config)
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
-    @patch('os.path.exists')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
+    @patch("os.path.exists")
     @pytest.mark.asyncio
     async def test_evaluate_opa_opa_not_found(self, mock_exists, mock_k8s_client_class):
         """Test OPA evaluation when OPA binary not found"""
@@ -318,9 +311,9 @@ class TestOpaInspector:
 
         assert "OPA binary not found" in str(exc_info.value)
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
-    @patch('os.path.exists')
-    @patch('os.access')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
+    @patch("os.path.exists")
+    @patch("os.access")
     @pytest.mark.asyncio
     async def test_evaluate_opa_not_executable(self, mock_access, mock_exists, mock_k8s_client_class):
         """Test OPA evaluation when OPA binary not executable"""
@@ -334,12 +327,13 @@ class TestOpaInspector:
 
         assert "not executable" in str(exc_info.value)
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_evaluate_assertions_pass(self, mock_k8s_client_class):
         """Test assertion evaluation that passes"""
         inspector = OpaInspector({})
 
         rule = Mock()
+        rule.assertions = []
         violations = []
         resource_count = 5
 
@@ -348,7 +342,7 @@ class TestOpaInspector:
         inspector.rule_processor.assertion_manager = Mock()
         inspector.rule_processor.assertion_manager.evaluate_assertions.return_value = {
             "passed": True,
-            "pass_description": "All checks passed"
+            "pass_description": "All checks passed",
         }
         inspector.rule_processor.result_formatter = Mock()
         inspector.rule_processor.result_formatter.pass_result.return_value = {"status": "passed"}
@@ -358,14 +352,15 @@ class TestOpaInspector:
 
         # Result should be a dict with pass/fail information
         assert isinstance(result, dict)
-        assert "status" in result or "passed" in str(result).lower()
+        assert result.get("status") == "passed"
 
-    @patch('services.inspectors.opa.opa_inspector.K8sDynamicClient')
+    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_evaluate_assertions_fail(self, mock_k8s_client_class):
         """Test assertion evaluation that fails"""
         inspector = OpaInspector({})
 
         rule = Mock()
+        rule.assertions = [{"field": "violation_count", "op": "eq", "value": 0}]
         violations = [{"message": "Security violation"}]
         resource_count = 3
 
@@ -375,7 +370,7 @@ class TestOpaInspector:
         inspector.rule_processor.assertion_manager.evaluate_assertions.return_value = {
             "passed": False,
             "fail_description": "Violations found",
-            "severity": "high"
+            "severity": "high",
         }
         inspector.rule_processor.result_formatter = Mock()
         inspector.rule_processor.result_formatter.fail_result.return_value = {"status": "failed"}
@@ -385,24 +380,15 @@ class TestOpaInspector:
 
         # Result should be a dict with fail information
         assert isinstance(result, dict)
-        assert "status" in result or "failed" in str(result).lower()
+        assert result.get("status") == "failed"
 
     def test_format_violations_with_dict_violations(self):
         """Test formatting violations with dictionary violations"""
         inspector = OpaInspector({})
 
         violations = [
-            {
-                "kind": "Pod",
-                "name": "bad-pod",
-                "namespace": "default",
-                "message": "Security violation detected"
-            },
-            {
-                "kind": "Service",
-                "name": "bad-service",
-                "message": "Configuration issue"
-            }
+            {"kind": "Pod", "name": "bad-pod", "namespace": "default", "message": "Security violation detected"},
+            {"kind": "Service", "name": "bad-service", "message": "Configuration issue"},
         ]
 
         result = inspector._format_violations(violations)

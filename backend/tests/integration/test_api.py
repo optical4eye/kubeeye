@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 
-from controllers.main import app
+from api.main import app
 
 
 class TestAPIIntegration:
@@ -35,8 +35,15 @@ class TestAPIIntegration:
         # Check that all expected endpoints are listed
         endpoints = data["endpoints"]
         expected_endpoints = [
-            "health", "clusters", "inspection", "reports",
-            "rules", "scheduled_tasks", "gitops", "cleanup", "network-check"
+            "health",
+            "clusters",
+            "inspection",
+            "reports",
+            "rules",
+            "scheduled_tasks",
+            "gitops",
+            "cleanup",
+            "network-check",
         ]
 
         for endpoint in expected_endpoints:
@@ -65,16 +72,12 @@ class TestAPIIntegration:
         security = data["security"]
         assert "Read-only operations only" in security
 
-    @patch('controllers.main.get_system_health')
-    @patch('infrastructure.tasks.task_queue.task_queue')
+    @patch("api.main.get_system_health")
+    @patch("infrastructure.tasks.task_queue.task_queue")
     def test_health_check_endpoint(self, mock_task_queue, mock_get_health, client):
         """Test health check endpoint"""
         # Mock system health
-        mock_get_health.return_value = {
-            "cpu_usage": 45.2,
-            "memory_usage": 67.8,
-            "disk_usage": 23.1
-        }
+        mock_get_health.return_value = {"cpu_usage": 45.2, "memory_usage": 67.8, "disk_usage": 23.1}
 
         # Mock task queue
         mock_task_queue.running = True
@@ -82,7 +85,7 @@ class TestAPIIntegration:
         mock_task_queue.tasks = {
             "task1": Mock(status=Mock(value="running")),
             "task2": Mock(status=Mock(value="pending")),
-            "task3": Mock(status=Mock(value="completed"))
+            "task3": Mock(status=Mock(value="completed")),
         }
 
         response = client.get("/api/health")
@@ -102,7 +105,7 @@ class TestAPIIntegration:
         assert queue_info["active_workers"] == 1  # One running task
         assert queue_info["pending_tasks"] == 1
 
-    @patch('infrastructure.tasks.task_queue.task_queue')
+    @patch("infrastructure.tasks.task_queue.task_queue")
     def test_queue_status_endpoint(self, mock_task_queue, client):
         """Test queue status endpoint"""
         mock_task_queue.running = True
@@ -111,7 +114,7 @@ class TestAPIIntegration:
         mock_task_queue.tasks = {
             "task1": Mock(status=Mock(value="running")),
             "task2": Mock(status=Mock(value="running")),
-            "task3": Mock(status=Mock(value="pending"))
+            "task3": Mock(status=Mock(value="pending")),
         }
 
         response = client.get("/api/queue/status")
@@ -126,7 +129,7 @@ class TestAPIIntegration:
         assert data["pending_tasks"] == 1
         assert data["total_tasks"] == 3
 
-    @patch('infrastructure.tasks.task_queue.task_queue')
+    @patch("infrastructure.tasks.task_queue.task_queue")
     def test_queue_tasks_endpoint(self, mock_task_queue, client):
         """Test queue tasks endpoint"""
         # Create mock tasks with creation times
@@ -154,7 +157,7 @@ class TestAPIIntegration:
         assert tasks[0]["id"] == "task2"  # Newer task first
         assert tasks[1]["id"] == "task1"
 
-    @patch('infrastructure.tasks.task_queue.task_queue')
+    @patch("infrastructure.tasks.task_queue.task_queue")
     def test_queue_tasks_endpoint_with_limit(self, mock_task_queue, client):
         """Test queue tasks endpoint with limit parameter"""
         # Create many mock tasks
@@ -175,9 +178,9 @@ class TestAPIIntegration:
         assert len(data["tasks"]) == 3
         assert data["total"] == 10
 
-    @patch('controllers.clusters.list_clusters')
-    @patch('controllers.clusters.get_cluster')
-    @patch('controllers.clusters.get_cluster_cert_status')
+    @patch("api.clusters.list_clusters")
+    @patch("api.clusters.get_cluster")
+    @patch("api.clusters.get_cluster_cert_status")
     def test_clusters_endpoint(self, mock_cert_status, mock_get_cluster, mock_list_clusters, client):
         """Test clusters listing endpoint"""
         # Mock cluster data
@@ -218,7 +221,7 @@ class TestAPIIntegration:
         assert cluster2["kubeconfig"] is False
         assert cluster2["cert_expiry_days"] is None
 
-    @patch('controllers.clusters.list_clusters')
+    @patch("api.clusters.list_clusters")
     def test_clusters_endpoint_error(self, mock_list_clusters, client):
         """Test clusters endpoint error handling"""
         mock_list_clusters.side_effect = Exception("Database error")
@@ -229,7 +232,7 @@ class TestAPIIntegration:
         data = response.json()
         assert "Database error" in data["detail"]
 
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     def test_create_cluster_endpoint(self, mock_get_cluster, client):
         """Test cluster creation endpoint"""
         mock_cluster = Mock()
@@ -242,7 +245,7 @@ class TestAPIIntegration:
             "name": "new-cluster",
             "nodes": [{"ip": "192.168.1.100", "port": 22, "name": "node1"}],
             "prometheus_config": {"enabled": True, "url": "http://prometheus:9090"},
-            "kubeconfig": "base64-encoded-config"
+            "kubeconfig": "base64-encoded-config",
         }
 
         response = client.post("/api/clusters", json=cluster_data)
@@ -256,7 +259,7 @@ class TestAPIIntegration:
         mock_cluster.update_prometheus.assert_called_once_with({"enabled": True, "url": "http://prometheus:9090"})
         mock_cluster.update_kubeconfig.assert_called_once_with("base64-encoded-config")
 
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     def test_create_cluster_endpoint_error(self, mock_get_cluster, client):
         """Test cluster creation endpoint error handling"""
         mock_get_cluster.side_effect = Exception("Storage error")
@@ -269,7 +272,7 @@ class TestAPIIntegration:
         data = response.json()
         assert "Storage error" in data["detail"]
 
-    @patch('controllers.clusters.delete_cluster')
+    @patch("api.clusters.delete_cluster")
     def test_delete_cluster_endpoint(self, mock_delete_cluster, client):
         """Test cluster deletion endpoint"""
         response = client.delete("/api/clusters/test-cluster")
@@ -280,7 +283,7 @@ class TestAPIIntegration:
 
         mock_delete_cluster.assert_called_once_with("test-cluster")
 
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     def test_get_cluster_details_endpoint(self, mock_get_cluster, client):
         """Test cluster details endpoint"""
         mock_cluster = Mock()
@@ -299,7 +302,7 @@ class TestAPIIntegration:
         assert data["prometheus_config"] == {"enabled": True}
         assert data["kubeconfig"] == "config-data"
 
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     def test_get_cluster_details_not_found(self, mock_get_cluster, client):
         """Test cluster details endpoint for non-existent cluster"""
         mock_get_cluster.return_value = None
@@ -310,8 +313,8 @@ class TestAPIIntegration:
         data = response.json()
         assert "Cluster not found" in data["detail"]
 
-    @patch('controllers.clusters.get_cluster')
-    @patch('controllers.clusters.K8sClient')
+    @patch("api.clusters.get_cluster")
+    @patch("api.clusters.K8sClient")
     def test_get_cluster_nodes_endpoint(self, mock_k8s_client_class, mock_get_cluster, client):
         """Test cluster nodes endpoint"""
         mock_cluster = Mock()
@@ -319,10 +322,7 @@ class TestAPIIntegration:
         mock_get_cluster.return_value = mock_cluster
 
         mock_k8s_client = Mock()
-        mock_k8s_client.get_nodes.return_value = {
-            "status": "success",
-            "nodes": [{"name": "node1", "status": "Ready"}]
-        }
+        mock_k8s_client.get_nodes.return_value = {"status": "success", "nodes": [{"name": "node1", "status": "Ready"}]}
         mock_k8s_client_class.return_value = mock_k8s_client
 
         response = client.get("/api/clusters/test-cluster/nodes")
@@ -333,7 +333,7 @@ class TestAPIIntegration:
         assert len(data["nodes"]) == 1
         assert data["nodes"][0]["name"] == "node1"
 
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     def test_get_cluster_nodes_no_kubeconfig(self, mock_get_cluster, client):
         """Test cluster nodes endpoint without kubeconfig"""
         mock_cluster = Mock()
@@ -346,8 +346,8 @@ class TestAPIIntegration:
         data = response.json()
         assert "Kubeconfig not configured" in data["detail"]
 
-    @patch('controllers.clusters.get_cluster')
-    @patch('controllers.clusters.K8sClient')
+    @patch("api.clusters.get_cluster")
+    @patch("api.clusters.K8sClient")
     def test_test_cluster_kubeconfig_endpoint(self, mock_k8s_client_class, mock_get_cluster, client):
         """Test cluster kubeconfig testing endpoint"""
         mock_cluster = Mock()
@@ -365,7 +365,7 @@ class TestAPIIntegration:
         assert data["success"] is True
         assert data["message"] == "Connection successful"
 
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     def test_test_cluster_kubeconfig_no_config(self, mock_get_cluster, client):
         """Test cluster kubeconfig testing without configuration"""
         mock_cluster = Mock()

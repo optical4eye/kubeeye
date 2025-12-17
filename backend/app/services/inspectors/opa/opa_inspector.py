@@ -277,7 +277,7 @@ class OpaInspector(BaseInspector):
                 "resource_count": resource_count,
             }
 
-            assertions = self.get_rule_config(rule, "assertions", [])
+            assertions = rule.assertions
             if not isinstance(assertions, list):
                 logger.warning(f"Assertions is not list: {type(assertions)}, setting to []")
                 assertions = []

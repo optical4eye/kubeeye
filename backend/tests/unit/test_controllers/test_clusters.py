@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from fastapi import HTTPException
 
-from controllers.clusters import (
+from api.clusters import (
     get_clusters,
     create_cluster,
     update_cluster,
@@ -29,24 +29,26 @@ class TestClustersController:
     """Test cases for cluster management controller"""
 
     @pytest.mark.asyncio
-    @patch('infrastructure.common.dashboard.get_dashboard_data_api')
+    @patch("infrastructure.common.dashboard.get_dashboard_data_api")
     async def test_get_dashboard_success(self, mock_get_dashboard):
         """Test successful dashboard data retrieval"""
         mock_get_dashboard.return_value = {"data": "test"}
 
-        from controllers.clusters import get_dashboard
+        from api.clusters import get_dashboard
+
         result = await get_dashboard()
 
         assert result == {"data": "test"}
         mock_get_dashboard.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('infrastructure.common.dashboard.get_dashboard_data_api')
+    @patch("infrastructure.common.dashboard.get_dashboard_data_api")
     async def test_get_dashboard_error(self, mock_get_dashboard):
         """Test dashboard error handling"""
         mock_get_dashboard.side_effect = Exception("Dashboard error")
 
-        from controllers.clusters import get_dashboard
+        from api.clusters import get_dashboard
+
         with pytest.raises(HTTPException) as exc_info:
             await get_dashboard()
 
@@ -54,9 +56,9 @@ class TestClustersController:
         assert "Dashboard error" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.list_clusters')
-    @patch('controllers.clusters.get_cluster')
-    @patch('controllers.clusters.get_cluster_cert_status')
+    @patch("api.clusters.list_clusters")
+    @patch("api.clusters.get_cluster")
+    @patch("api.clusters.get_cluster_cert_status")
     async def test_get_clusters_success(self, mock_cert_status, mock_get_cluster, mock_list_clusters):
         """Test successful cluster listing"""
         # Mock cluster list
@@ -94,7 +96,7 @@ class TestClustersController:
         assert cluster2["cert_expiry_days"] is None
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.list_clusters')
+    @patch("api.clusters.list_clusters")
     async def test_get_clusters_error(self, mock_list_clusters):
         """Test cluster listing error handling"""
         mock_list_clusters.side_effect = Exception("List error")
@@ -106,18 +108,19 @@ class TestClustersController:
         assert "List error" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     async def test_create_cluster_success(self, mock_get_cluster):
         """Test successful cluster creation"""
         mock_cluster_config = Mock()
         mock_get_cluster.return_value = mock_cluster_config
 
-        from controllers.models import ClusterCreate
+        from api.models import ClusterCreate
+
         cluster_data = ClusterCreate(
             name="test-cluster",
             nodes=[{"ip": "192.168.1.1", "port": 22, "name": "node1"}],
             prometheus_config={"enabled": True, "url": "http://prometheus:9090"},
-            kubeconfig="test-kubeconfig"
+            kubeconfig="test-kubeconfig",
         )
 
         result = await create_cluster(cluster_data)
@@ -128,15 +131,17 @@ class TestClustersController:
         mock_cluster_config.update_kubeconfig.assert_called_once_with(cluster_data.kubeconfig)
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     async def test_create_cluster_error(self, mock_get_cluster):
         """Test cluster creation error handling"""
         mock_get_cluster.side_effect = Exception("Create error")
 
-        from controllers.models import ClusterCreate
+        from api.models import ClusterCreate
+
         cluster_data = ClusterCreate(name="test-cluster", nodes=[])
 
-        from controllers.clusters import create_cluster
+        from api.clusters import create_cluster
+
         with pytest.raises(HTTPException) as exc_info:
             await create_cluster(cluster_data)
 
@@ -144,31 +149,35 @@ class TestClustersController:
         assert "Create error" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     async def test_update_cluster_success(self, mock_get_cluster):
         """Test successful cluster update"""
         mock_cluster_config = Mock()
         mock_cluster_config.config = {"nodes": []}
         mock_get_cluster.return_value = mock_cluster_config
 
-        from controllers.models import ClusterCreate
+        from api.models import ClusterCreate
+
         cluster_data = ClusterCreate(
             name="test-cluster",
             nodes=[{"ip": "192.168.1.1", "port": 22, "name": "node1"}],
             prometheus_config={"enabled": True, "url": "http://prometheus:9090"},
-            kubeconfig="updated-kubeconfig"
+            kubeconfig="updated-kubeconfig",
         )
 
-        from controllers.clusters import update_cluster
+        from api.clusters import update_cluster
+
         result = await update_cluster("test-cluster", cluster_data)
 
         assert result == {"message": "Cluster test-cluster updated successfully"}
         assert mock_cluster_config.update_node.call_count == 1
-        mock_cluster_config.update_prometheus.assert_called_once_with({"enabled": True, "url": "http://prometheus:9090"})
+        mock_cluster_config.update_prometheus.assert_called_once_with(
+            {"enabled": True, "url": "http://prometheus:9090"}
+        )
         mock_cluster_config.update_kubeconfig.assert_called_once_with("updated-kubeconfig")
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.delete_cluster')
+    @patch("api.clusters.delete_cluster")
     async def test_remove_cluster_success(self, mock_delete_cluster):
         """Test successful cluster deletion"""
         result = await remove_cluster("test-cluster")
@@ -177,7 +186,7 @@ class TestClustersController:
         mock_delete_cluster.assert_called_once_with("test-cluster")
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.delete_cluster')
+    @patch("api.clusters.delete_cluster")
     async def test_remove_cluster_error(self, mock_delete_cluster):
         """Test cluster deletion error handling"""
         mock_delete_cluster.side_effect = Exception("Delete error")
@@ -189,7 +198,7 @@ class TestClustersController:
         assert "Delete error" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     async def test_get_cluster_details_success(self, mock_get_cluster):
         """Test successful cluster details retrieval"""
         mock_cluster_config = Mock()
@@ -204,12 +213,12 @@ class TestClustersController:
             "name": "test-cluster",
             "nodes": [{"ip": "192.168.1.1", "port": 22}],
             "prometheus_config": {"enabled": True},
-            "kubeconfig": "kubeconfig_content"
+            "kubeconfig": "kubeconfig_content",
         }
         assert result == expected
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     async def test_get_cluster_details_not_found(self, mock_get_cluster):
         """Test cluster details for non-existent cluster"""
         mock_get_cluster.return_value = None
@@ -221,8 +230,8 @@ class TestClustersController:
         assert "Cluster not found" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.get_cluster')
-    @patch('controllers.clusters.K8sClient')
+    @patch("api.clusters.get_cluster")
+    @patch("api.clusters.K8sClient")
     async def test_get_cluster_nodes_success(self, mock_k8s_client_class, mock_get_cluster):
         """Test successful cluster nodes retrieval"""
         mock_cluster_config = Mock()
@@ -240,7 +249,7 @@ class TestClustersController:
         mock_k8s_client.get_nodes.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     async def test_get_cluster_nodes_no_kubeconfig(self, mock_get_cluster):
         """Test cluster nodes retrieval without kubeconfig"""
         mock_cluster_config = Mock()
@@ -254,8 +263,8 @@ class TestClustersController:
         assert "Kubeconfig not configured" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    @patch('controllers.clusters.get_cluster')
-    @patch('controllers.clusters.K8sClient')
+    @patch("api.clusters.get_cluster")
+    @patch("api.clusters.K8sClient")
     async def test_get_cluster_nodes_k8s_error(self, mock_k8s_client_class, mock_get_cluster):
         """Test cluster nodes retrieval with K8s error"""
         mock_cluster_config = Mock()
@@ -272,7 +281,7 @@ class TestClustersController:
         assert exc_info.value.status_code == 500
         assert "K8s connection failed" in str(exc_info.value.detail)
 
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     def test_get_nodes_for_testing_with_request(self, mock_get_cluster):
         """Test _get_nodes_for_testing with explicit nodes in request"""
         request = Mock()
@@ -283,7 +292,7 @@ class TestClustersController:
         assert result == [{"ip": "192.168.1.1", "port": 22}]
         mock_get_cluster.assert_not_called()
 
-    @patch('controllers.clusters.get_cluster')
+    @patch("api.clusters.get_cluster")
     def test_get_nodes_for_testing_from_cluster(self, mock_get_cluster):
         """Test _get_nodes_for_testing getting nodes from cluster config"""
         mock_cluster_config = Mock()
@@ -295,7 +304,7 @@ class TestClustersController:
         assert result == [{"ip": "192.168.1.1", "port": 22}]
         mock_get_cluster.assert_called_once_with("test-cluster")
 
-    @patch('controllers.clusters.test_node_connection')
+    @patch("api.clusters.test_node_connection")
     def test_test_single_node_success(self, mock_test_connection):
         """Test successful single node testing"""
         mock_test_connection.return_value = (True, "Connection successful")
@@ -303,14 +312,10 @@ class TestClustersController:
         node = {"ip": "192.168.1.1", "port": 22, "name": "node1"}
         result = _test_single_node(node)
 
-        expected = {
-            "node": "192.168.1.1:22",
-            "success": True,
-            "message": "Connection successful"
-        }
+        expected = {"node": "192.168.1.1:22", "success": True, "message": "Connection successful"}
         assert result == expected
 
-    @patch('controllers.clusters.test_node_connection')
+    @patch("api.clusters.test_node_connection")
     def test_test_single_node_failure(self, mock_test_connection):
         """Test failed single node testing"""
         mock_test_connection.side_effect = Exception("Connection failed")

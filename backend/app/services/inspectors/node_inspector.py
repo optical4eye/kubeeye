@@ -600,7 +600,12 @@ class NodeInspector(BaseInspector):
             status = "passed"
             severity = "info"
             description = f"{rule.name}: check passed"
-            details = "System state meets requirements"
+            # Use the name from the first assertion if available, otherwise use default message
+            details = (
+                assertions[0].get("name", "System state meets requirements")
+                if assertions
+                else "System state meets requirements"
+            )
             solution = ""
         else:
             status = "failed"

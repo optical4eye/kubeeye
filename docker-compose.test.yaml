@@ -6,9 +6,8 @@ services:
     ports:
       - "8001:8000"  # Port for test server if needed
     volumes:
-      - ./backend:/app
-      - ./backend/data:/app/data
-      - ./backend/logs:/app/logs
+      - ./backend/app:/app
+      - ./backend/tests:/app/tests
     environment:
       - PYTHONPATH=/app
       - KUBEEYE_DATA_DIR=/app/data
@@ -21,12 +20,8 @@ services:
       - KUBEYE_GITOPS_REPO_USERNAME=optical4eye
       - KUBEYE_GITOPS_REPO_TOKEN=""
       - KUBEYE_GITOPS_REPO_DESCRIPTION=kubeeye repo rules
-    command: ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=app", "--cov-report=term-missing"]
+    command: ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=.", "--cov-report=term-missing"]
     profiles: ["test"]
-
-volumes:
-  kubeeye-data:
-    driver: local
 
 networks:
   default:

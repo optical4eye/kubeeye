@@ -153,7 +153,7 @@ async def get_cluster_nodes(cluster_name: str):
             raise HTTPException(status_code=400, detail="Kubeconfig not configured for this cluster")
 
         k8s_client = K8sClient(kubeconfig)
-        nodes_result = k8s_client.get_nodes()
+        nodes_result = await asyncio.to_thread(k8s_client.get_nodes)
 
         if nodes_result.get("status") == "error":
             raise HTTPException(status_code=500, detail=nodes_result.get("error", "Failed to get nodes"))
@@ -327,7 +327,7 @@ async def test_cluster_kubeconfig(cluster_name: str, request: Optional[TestKubec
             return {"success": False, "message": "Kubeconfig not configured"}
 
         k8s_client = K8sClient(kubeconfig)
-        success, message = k8s_client.test_connection()
+        success, message = await asyncio.to_thread(k8s_client.test_connection)
 
         return {"success": success, "message": message}
     except HTTPException:

@@ -41,7 +41,6 @@ class TestNetworkValidation:
 class TestNetworkConnectivityResult:
     """Test NetworkConnectivityResult class"""
 
-
     def test_add_check(self):
         """Test adding check results"""
         result = NetworkConnectivityResult("test-cluster", "192.168.1.1", 80)
@@ -51,7 +50,7 @@ class TestNetworkConnectivityResult:
             "response_time": 0.5,
             "node_ip": "10.0.0.1",
             "target_ip": "192.168.1.1",
-            "target_port": 80
+            "target_port": 80,
         }
 
         result.add_check(check_result)
