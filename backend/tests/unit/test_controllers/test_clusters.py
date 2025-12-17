@@ -120,7 +120,7 @@ class TestClustersController:
             name="test-cluster",
             nodes=[{"ip": "192.168.1.1", "port": 22, "name": "node1"}],
             prometheus_config={"enabled": True, "url": "http://prometheus:9090"},
-            kubeconfig="test-kubeconfig",
+            kubeconfig="YXBpVmVyc2lvbjogdjEKY2x1c3RlcnM6Ci0gY2x1c3RlcjoKICAgIGNlcnRpZmljYXRlLWF1dGhvcml0eS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQKICAgIHNlcnZlcjogaHR0cHM6Ly9leGFtcGxlLmNvbQogIG5hbWU6IHRlc3QtY2x1c3Rlcgpjb250ZXh0czoKLSBjb250ZXh0OgogICAgY2x1c3RlcjogdGVzdC1jbHVzdGVyCiAgICB1c2VyOiB0ZXN0LXVzZXIKICBuYW1lOiB0ZXN0LWNvbnRleHQKY3VycmVudC1jb250ZXh0OiB0ZXN0LWNvbnRleHQKa2luZDogQ29uZmlnCnByZWZlcmVuY2VzOiB7fQp1c2VyczoKLSBuYW1lOiB0ZXN0LXVzZXIKICB1c2VyOgogICAgY2xpZW50LWNlcnRpZmljYXRlLWRhdGE6IExTMHRMUzFDUlVkSlRpQkRSVkpVU1VaSlEwRlVSUzB0TFMwdAogICAgY2xpZW50LWtleS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQK",
         )
 
         result = await create_cluster(cluster_data)
@@ -162,7 +162,7 @@ class TestClustersController:
             name="test-cluster",
             nodes=[{"ip": "192.168.1.1", "port": 22, "name": "node1"}],
             prometheus_config={"enabled": True, "url": "http://prometheus:9090"},
-            kubeconfig="updated-kubeconfig",
+            kubeconfig="YXBpVmVyc2lvbjogdjEKY2x1c3RlcnM6Ci0gY2x1c3RlcjoKICAgIGNlcnRpZmljYXRlLWF1dGhvcml0eS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQKICAgIHNlcnZlcjogaHR0cHM6Ly9leGFtcGxlLmNvbQogIG5hbWU6IHRlc3QtY2x1c3Rlcgpjb250ZXh0czoKLSBjb250ZXh0OgogICAgY2x1c3RlcjogdGVzdC1jbHVzdGVyCiAgICB1c2VyOiB0ZXN0LXVzZXIKICBuYW1lOiB0ZXN0LWNvbnRleHQKY3VycmVudC1jb250ZXh0OiB0ZXN0LWNvbnRleHQKa2luZDogQ29uZmlnCnByZWZlcmVuY2VzOiB7fQp1c2VyczoKLSBuYW1lOiB0ZXN0LXVzZXIKICB1c2VyOgogICAgY2xpZW50LWNlcnRpZmljYXRlLWRhdGE6IExTMHRMUzFDUlVkSlRpQkRSVkpVU1VaSlEwRlVSUzB0TFMwdAogICAgY2xpZW50LWtleS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQK",
         )
 
         from api.clusters import update_cluster
@@ -174,7 +174,9 @@ class TestClustersController:
         mock_cluster_config.update_prometheus.assert_called_once_with(
             {"enabled": True, "url": "http://prometheus:9090"}
         )
-        mock_cluster_config.update_kubeconfig.assert_called_once_with("updated-kubeconfig")
+        mock_cluster_config.update_kubeconfig.assert_called_once_with(
+            "YXBpVmVyc2lvbjogdjEKY2x1c3RlcnM6Ci0gY2x1c3RlcjoKICAgIGNlcnRpZmljYXRlLWF1dGhvcml0eS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQKICAgIHNlcnZlcjogaHR0cHM6Ly9leGFtcGxlLmNvbQogIG5hbWU6IHRlc3QtY2x1c3Rlcgpjb250ZXh0czoKLSBjb250ZXh0OgogICAgY2x1c3RlcjogdGVzdC1jbHVzdGVyCiAgICB1c2VyOiB0ZXN0LXVzZXIKICBuYW1lOiB0ZXN0LWNvbnRleHQKY3VycmVudC1jb250ZXh0OiB0ZXN0LWNvbnRleHQKa2luZDogQ29uZmlnCnByZWZlcmVuY2VzOiB7fQp1c2VyczoKLSBuYW1lOiB0ZXN0LXVzZXIKICB1c2VyOgogICAgY2xpZW50LWNlcnRpZmljYXRlLWRhdGE6IExTMHRMUzFDUlVkSlRpQkRSVkpVU1VaSlEwRlVSUzB0TFMwdAogICAgY2xpZW50LWtleS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQK"
+        )
 
     @pytest.mark.asyncio
     @patch("api.clusters.delete_cluster")

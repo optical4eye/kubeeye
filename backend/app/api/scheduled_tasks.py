@@ -65,10 +65,15 @@ async def create_scheduled_task(task: ScheduledTaskCreate):
 async def remove_scheduled_task(task_id: str):
     """Delete scheduled task"""
     try:
+        # Validate task_id parameter
+        from .validation_middleware import validate_task_id
+
+        validated_task_id = validate_task_id(task_id)
+
         from infrastructure.tasks.schedule_manager import delete_schedule
 
-        if delete_schedule(task_id):
-            return {"message": f"Task {task_id} deleted"}
+        if delete_schedule(validated_task_id):
+            return {"message": f"Task {validated_task_id} deleted"}
         else:
             raise HTTPException(status_code=404, detail="Task not found")
     except HTTPException:
@@ -81,22 +86,27 @@ async def remove_scheduled_task(task_id: str):
 async def run_scheduled_task(task_id: str):
     """Run scheduled task"""
     try:
+        # Validate task_id parameter
+        from .validation_middleware import validate_task_id
+
+        validated_task_id = validate_task_id(task_id)
+
         from infrastructure.tasks.schedule_manager import (
             run_inspection,
             update_task_status,
         )
 
-        success, message, results = run_inspection(task_id, return_results=True)
+        success, message, results = run_inspection(validated_task_id, return_results=True)
         if success:
-            update_task_status(task_id, last_status="success")
+            update_task_status(validated_task_id, last_status="success")
             return {"message": message, "results": results}
         else:
-            update_task_status(task_id, last_status="failed")
+            update_task_status(validated_task_id, last_status="failed")
             raise HTTPException(status_code=500, detail=message)
     except HTTPException:
         raise
     except Exception as e:
-        update_task_status(task_id, last_status="failed")
+        update_task_status(validated_task_id, last_status="failed")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -104,6 +114,11 @@ async def run_scheduled_task(task_id: str):
 async def update_scheduled_task(task_id: str, task: ScheduledTaskCreate):
     """Update scheduled task"""
     try:
+        # Validate task_id parameter
+        from .validation_middleware import validate_task_id
+
+        validated_task_id = validate_task_id(task_id)
+
         from infrastructure.tasks.schedule_manager import (
             load_schedules,
             delete_schedule,
@@ -113,16 +128,16 @@ async def update_scheduled_task(task_id: str, task: ScheduledTaskCreate):
 
         # Find existing task
         tasks = load_schedules()
-        existing_task = next((t for t in tasks if t.task_id == task_id), None)
+        existing_task = next((t for t in tasks if t.task_id == validated_task_id), None)
         if not existing_task:
             raise HTTPException(status_code=404, detail="Task not found")
 
         # Delete old task
-        delete_schedule(task_id)
+        delete_schedule(validated_task_id)
 
         # Create updated task
         updated_task = ScheduleTask(
-            task_id=task_id,
+            task_id=validated_task_id,
             cluster=task.cluster,
             name=task.name,
             description=task.description,

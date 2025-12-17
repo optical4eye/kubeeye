@@ -4,6 +4,7 @@
 Node inspector with centralized SSH connection error management
 """
 
+import asyncio
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -12,9 +13,10 @@ from typing import Dict, List, Any, Optional, Tuple, Union
 from services.inspectors.base_inspector import BaseInspector
 from infrastructure.results.inspection_result import InspectionResult
 from infrastructure.rules.rule_loader import Rule
-from infrastructure.cluster.node_connection import NodeConnection, test_node_connection
+from infrastructure.cluster.node_connection import NodeConnection, test_node_connection, async_test_node_connection
 from infrastructure.security.command_security import CommandSecurityChecker
 from infrastructure.results.result_formatter import ResultFormatter
+from infrastructure.dependency_injection.container import get_service
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -103,12 +105,15 @@ class SSHConnectionErrorManager:
         node_port = node.get("port", 22)
 
         # Create dummy rule for formatting
-        class ConnectionRule:
-            id = "ssh_connection"
-            name = "SSH connection"
-            solution = "Resolve network connection or SSH configuration issues"
+        from infrastructure.rules.rule_loader import Rule
 
-        rule = ConnectionRule()
+        rule_data = {
+            "id": "ssh_connection",
+            "name": "SSH connection",
+            "solution": "Resolve network connection or SSH configuration issues",
+            "config": {"extractors": [], "assertions": []},
+        }
+        rule = Rule(rule_data)
 
         formatted_details = f"""Connection error to node {node_name} ({node_ip}:{node_port})
 
@@ -197,7 +202,7 @@ class NodeInspector(BaseInspector):
             "failed_executions": 0,
             "blocked_by_security": 0,
             "security_warnings": 0,
-            "total_time": 0,
+            "total_time": 0.0,  # Changed to float
         }
 
         source_type = "GitOps" if use_gitops else "local"
@@ -207,7 +212,7 @@ class NodeInspector(BaseInspector):
     def inspector_type(self) -> str:
         return "node"
 
-    async def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
+    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None) -> InspectionResult:
         """
         Run inspection with guaranteed unified SSH error display
         """
@@ -221,7 +226,7 @@ class NodeInspector(BaseInspector):
         self.connection_status_cache = {}
 
         # Perform SSH connection check and determine available nodes
-        available_nodes = self._check_all_node_connections()
+        available_nodes = await self._check_all_node_connections()
         self.execution_stats["available_nodes"] = len(available_nodes)
         self.execution_stats["unavailable_nodes"] = len(self.nodes) - len(available_nodes)
 
@@ -235,7 +240,7 @@ class NodeInspector(BaseInspector):
             return result
 
         # Execute inspection rules only on available nodes
-        result = await super().run_inspection(cluster_name, rule_ids)
+        result = await super().run_inspection(cluster_name, rule_ids or [])
 
         # Add SSH connection errors to the beginning of the report
         ssh_errors = self.ssh_error_manager.get_all_connection_errors()
@@ -250,96 +255,113 @@ class NodeInspector(BaseInspector):
 
         return result
 
-    def _check_all_node_connections(self) -> List[Dict]:
+    async def _check_all_node_connections(self) -> List[Dict]:
         """
-        Check SSH connection to all nodes in parallel using ThreadPoolExecutor
+        Check SSH connection to all nodes using connection pool and async operations
         Returns list of available nodes
         """
-        logger.info("Checking SSH connection to all nodes in parallel...")
+        logger.info("Checking SSH connection to all nodes using connection pool...")
 
-        import concurrent.futures
         import os
 
         available_nodes = []
 
         # Get configurable SSH timeout and max concurrent checks
         ssh_timeout = int(os.getenv("KUBEYE_SSH_CONNECTION_TIMEOUT", "10"))
-        max_concurrent_checks = int(os.getenv("KUBEYE_SSH_MAX_CONCURRENT_CHECKS", "10"))
+        max_concurrent_checks = int(os.getenv("KUBEYE_SSH_MAX_CONCURRENT_CHECKS", "20"))  # Increased from 10 to 20
 
         # Calculate derived timeouts based on base SSH timeout
         connection_check_timeout = ssh_timeout * 1.5  # 15s for 10s base
-        total_check_timeout = ssh_timeout * 2  # 20s for 10s base
 
-        max_workers = min(max_concurrent_checks, len(self.nodes))
+        # Create semaphore to limit concurrent connections
+        semaphore = asyncio.Semaphore(max_concurrent_checks)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all connection checks
-            future_to_node = {}
-            for node in self.nodes:
+        async def check_single_node(node):
+            async with semaphore:
                 node_key = self.ssh_error_manager._get_node_key(node)
                 node_name = node.get("name", node["ip"])
 
                 # Check if there was already an error for this node
                 if self.ssh_error_manager.has_connection_error(node):
                     logger.debug(f"Node {node_name} already has SSH error, skipping")
-                    continue
+                    return None
 
                 # Check status cache
                 if node_key in self.connection_status_cache:
                     status = self.connection_status_cache[node_key]
                     node["connection_status"] = status
                     if status["success"]:
-                        available_nodes.append(node)
+                        return node
                     else:
                         # Register error in manager
                         self.ssh_error_manager.register_connection_error(node, status["message"])
-                    continue
+                        return None
 
-                # Submit connection check to thread pool
-                future = executor.submit(self._check_single_node_connection_with_timeout, node)
-                future_to_node[future] = node
-
-            # Collect results as they complete
-            for future in concurrent.futures.as_completed(future_to_node):
-                node = future_to_node[future]
-                node_key = self.ssh_error_manager._get_node_key(node)
-                node_name = node.get("name", node["ip"])
-
+                # Check connection using pool
                 try:
-                    success, message = future.result(timeout=total_check_timeout)
+                    # First try to get connection from pool
+                    ssh_pool = await get_service("ssh_pool")
+                    client = await ssh_pool.get_connection(node)
+                    if client:
+                        # Connection successful
+                        status = {"success": True, "message": f"Connection to {node_name} successful"}
+                        self.connection_status_cache[node_key] = status
+                        node["connection_status"] = status
 
-                    # Save status
-                    status = {"success": success, "message": message}
-                    self.connection_status_cache[node_key] = status
-                    node["connection_status"] = status
+                        # Return connection to pool
+                        await ssh_pool.return_connection(node, client)
 
-                    if success:
-                        available_nodes.append(node)
-                        logger.info(f"SSH connection to node {node_name} successful")
+                        logger.info(f"SSH connection to node {node_name} successful (using pool)")
+                        return node
                     else:
-                        logger.error(f"SSH connection to node {node_name} unavailable: {message}")
-                        # Register error in manager
-                        self.ssh_error_manager.register_connection_error(node, message)
+                        # Pool connection failed, try direct test
+                        success, message = await async_test_node_connection(node)
+                        status = {"success": success, "message": message}
+                        self.connection_status_cache[node_key] = status
+                        node["connection_status"] = status
 
-                except concurrent.futures.TimeoutError:
-                    error_msg = f"Connection check timeout (20s) for node {node_name}"
+                        if success:
+                            logger.info(f"SSH connection to node {node_name} successful (direct test)")
+                            return node
+                        else:
+                            logger.error(f"SSH connection to node {node_name} unavailable: {message}")
+                            # Register error in manager
+                            self.ssh_error_manager.register_connection_error(node, message)
+                            return None
+
+                except asyncio.TimeoutError:
+                    error_msg = f"Connection check timeout ({connection_check_timeout}s) for node {node_name}"
                     logger.error(error_msg)
                     self.ssh_error_manager.register_connection_error(node, error_msg)
+                    return None
                 except Exception as e:
                     error_msg = f"Connection check error for node {node_name}: {str(e)}"
                     logger.error(error_msg)
                     self.ssh_error_manager.register_connection_error(node, error_msg)
+                    return None
+
+        # Create tasks for all nodes
+        tasks = [check_single_node(node) for node in self.nodes]
+
+        # Wait for all tasks to complete
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Unexpected error during connection check: {str(result)}")
+            elif result is not None:
+                available_nodes.append(result)
 
         logger.info(
             f"Connection check completed. Available: {len(available_nodes)}, Unavailable: {len(self.nodes) - len(available_nodes)}"
         )
         return available_nodes
 
-    def _check_single_node_connection_with_timeout(self, node: Dict) -> Tuple[bool, str]:
+    async def _check_single_node_connection_with_timeout(self, node: Dict) -> Tuple[bool, str]:
         """
-        Check connection to single node with timeout
+        Check connection to single node with timeout using connection pool
         """
-        import concurrent.futures
         import os
 
         node_name = node.get("name", node["ip"])
@@ -349,13 +371,21 @@ class NodeInspector(BaseInspector):
         connection_check_timeout = ssh_timeout * 1.5  # 15s for 10s base
 
         try:
-            # Run connection test with timeout using ThreadPoolExecutor
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(test_node_connection, node)
-                success, message = future.result(timeout=connection_check_timeout)
+            ssh_pool = await get_service("ssh_pool")
+            # First try to get connection from pool
+            client = await asyncio.wait_for(ssh_pool.get_connection(node), timeout=connection_check_timeout)
+            if client:
+                # Connection successful, return to pool
+                await ssh_pool.return_connection(node, client)
+                return True, f"Connection to {node_name} successful (using pool)"
+            else:
+                # Pool connection failed, try direct test
+                success, message = await asyncio.wait_for(
+                    async_test_node_connection(node), timeout=connection_check_timeout
+                )
                 return success, message
 
-        except concurrent.futures.TimeoutError:
+        except asyncio.TimeoutError:
             return (
                 False,
                 f"Connection timeout ({connection_check_timeout}s) for node {node_name}",
@@ -423,56 +453,80 @@ class NodeInspector(BaseInspector):
 
         # Execute rule on available nodes
         if self.enable_concurrent and len(available_nodes) > 1:
-            node_results = self._execute_rule_concurrently(rule, command, assertions, available_nodes)
+            node_results = await self._execute_rule_concurrently(rule, command, assertions, available_nodes)
         else:
-            node_results = self._execute_rule_sequentially(rule, command, assertions, available_nodes)
+            node_results = await self._execute_rule_sequentially_async(rule, command, assertions, available_nodes)
 
         # Update statistics
         rule_duration = time.time() - rule_start_time
         self.execution_stats["total_node_executions"] += len(available_nodes)
-        self.execution_stats["total_time"] += rule_duration
+        self.execution_stats["total_time"] = self.execution_stats["total_time"] + rule_duration
 
         logger.info(f"Rule {rule.id} executed in {rule_duration:.2f}sec")
         return node_results
 
-    def _execute_rule_concurrently(
+    async def _execute_rule_concurrently(
         self, rule: Rule, command: str, assertions: List[Dict], target_nodes: List[Dict]
     ) -> List[Dict]:
-        """Concurrent rule execution only on available nodes"""
+        """Concurrent rule execution only on available nodes using asyncio"""
         node_results = []
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            future_to_node = {}
-            for node in target_nodes:
+        # Create semaphore to limit concurrent executions
+        semaphore = asyncio.Semaphore(self.max_workers)
+
+        async def execute_single_node_async(node):
+            async with semaphore:
                 # Additional check before execution
                 if self.ssh_error_manager.has_connection_error(node):
-                    continue
+                    return None
 
-                future = executor.submit(self._execute_rule_on_single_node, rule, command, assertions, node)
-                future_to_node[future] = node
-
-            for future in as_completed(future_to_node, timeout=self.timeout * len(target_nodes)):
-                node = future_to_node[future]
                 try:
-                    result = future.result(timeout=self.timeout)
+                    # Execute command in thread pool to avoid blocking
+                    result = await asyncio.to_thread(self._execute_rule_on_single_node, rule, command, assertions, node)
                     if result:
-                        node_results.append(result)
                         self.execution_stats["successful_executions"] += 1
+                    return result
                 except Exception as e:
                     logger.error(f"Execution error on node {node.get('name', node['ip'])}: {str(e)}")
                     # Do not create execution error for nodes with SSH error
                     if not self.ssh_error_manager.has_connection_error(node):
                         error_result = self._format_execution_error_result(rule, node, str(e))
                         if error_result:
-                            node_results.append(error_result)
-                    self.execution_stats["failed_executions"] += 1
+                            self.execution_stats["failed_executions"] += 1
+                            return error_result
+                    else:
+                        self.execution_stats["failed_executions"] += 1
+                    return None
+
+        # Create tasks for all nodes
+        tasks = [execute_single_node_async(node) for node in target_nodes]
+
+        # Wait for all tasks to complete with timeout
+        try:
+            results = await asyncio.wait_for(
+                asyncio.gather(*tasks, return_exceptions=True), timeout=self.timeout * len(target_nodes)
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Concurrent execution timeout after {self.timeout * len(target_nodes)} seconds")
+            # Cancel remaining tasks
+            for task in tasks:
+                if not asyncio.iscoroutine(task) and hasattr(task, "cancel"):
+                    task.cancel()
+            results = []
+
+        # Process results
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Task execution error: {str(result)}")
+            elif result is not None:
+                node_results.append(result)
 
         return node_results
 
-    def _execute_rule_sequentially(
+    async def _execute_rule_sequentially_async(
         self, rule: Rule, command: str, assertions: List[Dict], target_nodes: List[Dict]
     ) -> List[Dict]:
-        """Sequential rule execution only on available nodes"""
+        """Sequential rule execution only on available nodes using async operations"""
         node_results = []
 
         for node in target_nodes:
@@ -481,7 +535,8 @@ class NodeInspector(BaseInspector):
                 continue
 
             try:
-                result = self._execute_rule_on_single_node(rule, command, assertions, node)
+                # Execute command asynchronously
+                result = await self._execute_rule_on_single_node_async(rule, command, assertions, node)
                 if result:
                     node_results.append(result)
                     self.execution_stats["successful_executions"] += 1
@@ -496,10 +551,10 @@ class NodeInspector(BaseInspector):
 
         return node_results
 
-    def _execute_rule_on_single_node(
+    async def _execute_rule_on_single_node_async(
         self, rule: Rule, command: str, assertions: List[Dict], node: Dict
     ) -> Optional[Dict]:
-        """Execute rule on single node (only if node is available)"""
+        """Execute rule on single node (only if node is available) using async operations"""
         node_name = node.get("name", node["ip"])
 
         # Final check: ensure no SSH connection error
@@ -507,8 +562,37 @@ class NodeInspector(BaseInspector):
             logger.warning(f"Node {node_name} has SSH error, skipping execution")
             return None
 
-        # Execute command
-        output, error = self._execute_command(command, node)
+        # Execute command asynchronously
+        output, error = await self._execute_command_async(command, node)
+
+        if error:
+            # If SSH error occurred, register it and don't execute rules on this node anymore
+            if self._is_ssh_connection_error(error):
+                self.ssh_error_manager.register_connection_error(node, error)
+                return None
+            return self._format_execution_error_result(rule, node, error)
+        else:
+            # Evaluate assertions
+            variables = {
+                "output": output.strip(),
+                "node_ip": node["ip"],
+                "node_name": node_name,
+            }
+            return self._evaluate_assertions(rule, assertions, variables, node)
+
+    def _execute_rule_on_single_node(
+        self, rule: Rule, command: str, assertions: List[Dict], node: Dict
+    ) -> Optional[Dict]:
+        """Execute rule on single node (only if node is available) - legacy sync method"""
+        node_name = node.get("name", node["ip"])
+
+        # Final check: ensure no SSH connection error
+        if self.ssh_error_manager.has_connection_error(node):
+            logger.warning(f"Node {node_name} has SSH error, skipping execution")
+            return None
+
+        # Execute command synchronously (this method is called from asyncio.to_thread)
+        output, error = self._execute_command_sync(command, node)
 
         if error:
             # If SSH error occurred, register it and don't execute rules on this node anymore
@@ -545,8 +629,8 @@ class NodeInspector(BaseInspector):
         error_lower = error_msg.lower()
         return any(keyword in error_lower for keyword in ssh_keywords)
 
-    def _execute_command(self, command: str, node: Dict) -> Tuple[str, str]:
-        """Execute command on node (only if node is available)"""
+    async def _execute_command_async(self, command: str, node: Dict) -> Tuple[str, str]:
+        """Execute command on node (only if node is available) using asynchronous operations"""
         try:
             node_name = node.get("name", node["ip"])
 
@@ -562,23 +646,122 @@ class NodeInspector(BaseInspector):
                     logger.error(f"Node {node_name}: {error_msg}")
                     return "", error_msg
 
-            # Execute command via SSH
-            with NodeConnection(node) as conn:
-                if not conn.connected:
-                    error_msg = "SSH connection failed"
+            # Execute command via SSH using asynchronous connection pool
+            ssh_pool = await get_service("ssh_pool")
+            client = await ssh_pool.get_connection(node)
+            if not client:
+                error_msg = "Failed to get SSH connection from pool"
+                logger.error(f"Node {node_name}: {error_msg}")
+                self.ssh_error_manager.register_connection_error(node, error_msg)
+                return "", error_msg
+
+            try:
+                # Execute command with timeout using asyncio
+                import os
+
+                ssh_timeout = int(os.getenv("KUBEYE_SSH_CONNECTION_TIMEOUT", "10"))
+                command_timeout = ssh_timeout * 6  # 60s for 10s base
+
+                # Use asyncio.to_thread for the blocking SSH operations
+                stdin, stdout, stderr = await asyncio.wait_for(
+                    asyncio.to_thread(client.exec_command, command, timeout=command_timeout), timeout=command_timeout
+                )
+
+                # Read output asynchronously
+                stdout_data, stderr_data = await asyncio.wait_for(
+                    asyncio.to_thread(lambda: (stdout.read().decode("utf-8"), stderr.read().decode("utf-8"))),
+                    timeout=command_timeout,
+                )
+
+                # Get exit status
+                exit_status = await asyncio.wait_for(
+                    asyncio.to_thread(stdout.channel.recv_exit_status), timeout=command_timeout
+                )
+
+                if exit_status == 0:
+                    return stdout_data, ""
+                else:
+                    # Check if error is SSH-related
+                    if self._is_ssh_connection_error(stderr_data):
+                        self.ssh_error_manager.register_connection_error(node, stderr_data)
+                    return stdout_data, stderr_data
+
+            finally:
+                # Return connection to pool
+                await ssh_pool.return_connection(node, client)
+
+        except asyncio.TimeoutError:
+            error_msg = f"Command execution timeout for node {node.get('name', node['ip'])}"
+            logger.error(error_msg)
+            return "", error_msg
+        except Exception as e:
+            error_msg = f"Command execution error: {str(e)}"
+            logger.error(f"Node {node.get('name', node['ip'])}: {error_msg}")
+
+            # Check if exception is SSH-related
+            if self._is_ssh_connection_error(error_msg):
+                self.ssh_error_manager.register_connection_error(node, error_msg)
+
+            return "", error_msg
+
+    def _execute_command_sync(self, command: str, node: Dict) -> Tuple[str, str]:
+        """Execute command on node (only if node is available) using synchronous operations - legacy method"""
+        try:
+            node_name = node.get("name", node["ip"])
+
+            # Final check before execution
+            if self.ssh_error_manager.has_connection_error(node):
+                return "", "SSH connection unavailable"
+
+            # Command security check
+            if self.enable_security_check:
+                is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
+                if not is_safe:
+                    error_msg = f"Command blocked by security: {risk_desc}"
                     logger.error(f"Node {node_name}: {error_msg}")
-                    # Register SSH error
+                    return "", error_msg
+
+            # Execute command via SSH using synchronous connection pool
+            import asyncio
+
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                ssh_pool = loop.run_until_complete(get_service("ssh_pool"))
+                client = loop.run_until_complete(ssh_pool.get_connection(node))
+                if not client:
+                    error_msg = "Failed to get SSH connection from pool"
+                    logger.error(f"Node {node_name}: {error_msg}")
                     self.ssh_error_manager.register_connection_error(node, error_msg)
                     return "", error_msg
 
-                success, stdout, stderr = conn.execute_command(command)
-                if success:
-                    return stdout, ""
-                else:
-                    # Check if error is SSH-related
-                    if self._is_ssh_connection_error(stderr):
-                        self.ssh_error_manager.register_connection_error(node, stderr)
-                    return stdout, stderr
+                try:
+                    # Execute command with timeout
+                    import os
+
+                    ssh_timeout = int(os.getenv("KUBEYE_SSH_CONNECTION_TIMEOUT", "10"))
+                    command_timeout = ssh_timeout * 6  # 60s for 10s base
+
+                    stdin, stdout, stderr = client.exec_command(command, timeout=command_timeout)
+                    exit_status = stdout.channel.recv_exit_status()
+
+                    # Read output
+                    stdout_data = stdout.read().decode("utf-8")
+                    stderr_data = stderr.read().decode("utf-8")
+
+                    if exit_status == 0:
+                        return stdout_data, ""
+                    else:
+                        # Check if error is SSH-related
+                        if self._is_ssh_connection_error(stderr_data):
+                            self.ssh_error_manager.register_connection_error(node, stderr_data)
+                        return stdout_data, stderr_data
+
+                finally:
+                    # Return connection to pool
+                    loop.run_until_complete(ssh_pool.return_connection(node, client))
+            finally:
+                loop.close()
 
         except Exception as e:
             error_msg = f"Command execution error: {str(e)}"
@@ -716,7 +899,7 @@ class NodeInspector(BaseInspector):
         )
 
         if stats["total_node_executions"] > 0:
-            stats["success_rate"] = stats["successful_executions"] / stats["total_node_executions"] * 100
+            stats["success_rate"] = stats["successful_executions"] / stats["total_node_executions"] * 100.0
         else:
             stats["success_rate"] = 0
 

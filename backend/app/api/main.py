@@ -10,13 +10,14 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncContextManager
+from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 
 # Third-party imports
 import uvicorn
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional
 
 # Local imports
 from infrastructure.common.version import VERSION
@@ -97,8 +98,9 @@ def _start_scheduler():
 async def _start_task_queue():
     """Initialize and start the async task queue"""
     try:
-        from infrastructure.tasks.task_queue import task_queue
+        from infrastructure.dependency_injection.container import get_service
 
+        task_queue = await get_service("task_queue")
         await task_queue.start()
         logger.info("Async task queue initialized on application startup")
     except Exception as e:
@@ -135,8 +137,9 @@ def _start_cleanup_worker():
 async def _shutdown_task_queue():
     """Stop the async task queue on shutdown"""
     try:
-        from infrastructure.tasks.task_queue import task_queue
+        from infrastructure.dependency_injection.container import get_service
 
+        task_queue = await get_service("task_queue")
         await task_queue.stop()
         logger.info("Async task queue stopped on application shutdown")
     except Exception as e:
@@ -146,17 +149,29 @@ async def _shutdown_task_queue():
 async def _close_ssh_pool():
     """Close SSH connection pool on shutdown"""
     try:
-        from infrastructure.security.ssh_connection_pool import ssh_pool
+        from infrastructure.dependency_injection.container import get_service
 
+        ssh_pool = await get_service("ssh_pool")
         await ssh_pool.close_all()
         logger.info("SSH connection pool closed on application shutdown")
     except Exception as e:
         logger.error(f"Failed to close SSH connection pool on shutdown: {e}")
 
 
+async def _cleanup_services():
+    """Cleanup all DI services on shutdown"""
+    try:
+        from infrastructure.dependency_injection.container import cleanup_services
+
+        await cleanup_services()
+        logger.info("DI services cleaned up on application shutdown")
+    except Exception as e:
+        logger.error(f"Failed to cleanup DI services on shutdown: {e}")
+
+
 # Lifespan context manager for startup and shutdown events
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncContextManager[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Handle application startup and shutdown events"""
     # Startup
     _start_scheduler()
@@ -168,6 +183,7 @@ async def lifespan(app: FastAPI) -> AsyncContextManager[None]:
     # Shutdown
     await _shutdown_task_queue()
     await _close_ssh_pool()
+    await _cleanup_services()
 
 
 app = FastAPI(
@@ -270,6 +286,11 @@ async def log_requests(request: Request, call_next):
         raise
 
 
+# Add validation middleware
+from .validation_middleware import ValidationMiddleware
+
+app.add_middleware(ValidationMiddleware, max_query_length=1000)
+
 # CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
@@ -351,8 +372,9 @@ async def health_check():
         health_info = get_system_health()
 
         # Check task queue status
-        from infrastructure.tasks.task_queue import task_queue
+        from infrastructure.dependency_injection.container import get_service
 
+        task_queue = await get_service("task_queue")
         queue_status = {
             "running": task_queue.running,
             "queue_size": task_queue.queue.qsize(),
@@ -374,11 +396,13 @@ async def health_check():
 
 # Task queue management endpoints
 @app.get("/api/queue/status")
+@log_api_request
 async def get_queue_status():
     """Get task queue status"""
     try:
-        from infrastructure.tasks.task_queue import task_queue
+        from infrastructure.dependency_injection.container import get_service
 
+        task_queue = await get_service("task_queue")
         return {
             "running": task_queue.running,
             "max_workers": task_queue.max_workers,
@@ -388,24 +412,46 @@ async def get_queue_status():
             "total_tasks": len(task_queue.tasks),
         }
     except Exception as e:
+        logger.error(f"Failed to get queue status: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get queue status: {str(e)}")
 
 
 @app.get("/api/queue/tasks")
-async def get_queue_tasks(limit: int = 50):
+@log_api_request
+async def get_queue_tasks(
+    limit: int = Query(default=50, ge=1, le=1000, description="Maximum number of tasks to return (1-1000)"),
+    status_filter: Optional[str] = Query(
+        default=None, description="Filter tasks by status (pending, running, completed, failed)"
+    ),
+):
     """Get recent tasks from queue"""
     try:
-        from infrastructure.tasks.task_queue import task_queue
+        from infrastructure.dependency_injection.container import get_service
 
+        # Validate parameters using our validation functions
+        from .validation_middleware import validate_limit_param, validate_status_filter
+
+        validated_limit = validate_limit_param(limit)
+        validated_status_filter = validate_status_filter(status_filter)
+
+        task_queue = await get_service("task_queue")
         # Get tasks sorted by creation time (newest first)
         tasks = list(task_queue.tasks.values())
         tasks.sort(key=lambda t: t.created_at, reverse=True)
 
+        # Apply status filter if provided
+        if validated_status_filter:
+            tasks = [t for t in tasks if t.status.value == validated_status_filter]
+
         return {
-            "tasks": [task.to_dict() for task in tasks[:limit]],
+            "tasks": [task.to_dict() for task in tasks[:validated_limit]],
             "total": len(tasks),
+            "filtered": validated_status_filter is not None,
         }
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Failed to get tasks: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get tasks: {str(e)}")
 
 

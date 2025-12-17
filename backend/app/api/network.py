@@ -200,7 +200,20 @@ async def get_network_check_results(cluster_name: Optional[str] = None, limit: i
         limit: maximum number of results to return
     """
     try:
-        results = list_network_check_results(cluster_name=cluster_name, limit=limit)
+        # Validate limit parameter
+        from .validation_middleware import validate_limit_param
+
+        validated_limit = validate_limit_param(limit)
+
+        # Validate cluster_name if provided
+        if cluster_name:
+            from .validation_middleware import validate_cluster_name
+
+            validated_cluster_name = validate_cluster_name(cluster_name)
+        else:
+            validated_cluster_name = None
+
+        results = list_network_check_results(cluster_name=validated_cluster_name, limit=validated_limit)
         return {"results": results}
     except Exception as e:
         logger.error(f"Failed to get network check results: {str(e)}", exc_info=True)
@@ -214,7 +227,12 @@ async def get_network_check_result(result_id: str):
     Get specific network connectivity check result by ID
     """
     try:
-        result = load_network_check_result(result_id)
+        # Validate result_id parameter
+        from .validation_middleware import validate_task_id  # Reuse task_id validation for result_id
+
+        validated_result_id = validate_task_id(result_id)
+
+        result = load_network_check_result(validated_result_id)
         if not result:
             raise HTTPException(status_code=404, detail="Network check result not found")
 
@@ -233,6 +251,11 @@ async def delete_network_check_result(result_id: str):
     Delete network connectivity check result
     """
     try:
+        # Validate result_id parameter
+        from .validation_middleware import validate_task_id  # Reuse task_id validation for result_id
+
+        validated_result_id = validate_task_id(result_id)
+
         from pathlib import Path
         import os
 
@@ -242,10 +265,10 @@ async def delete_network_check_result(result_id: str):
         for file_path in data_dir.rglob("exports/*/network_reports/*.json"):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
-                    data = load_network_check_result(result_id)
-                    if data and data.get("result_id") == result_id:
+                    data = load_network_check_result(validated_result_id)
+                    if data and data.get("result_id") == validated_result_id:
                         os.remove(file_path)
-                        return {"message": f"Network check result {result_id} deleted"}
+                        return {"message": f"Network check result {validated_result_id} deleted"}
             except Exception:
                 continue
 
@@ -265,7 +288,17 @@ async def delete_network_check_result(result_id: str):
 async def export_network_check_result(result_id: str, format: str):
     """Export network connectivity check result"""
     try:
-        success, file_path = export_network_report(result_id, format)
+        # Validate result_id parameter
+        from .validation_middleware import validate_task_id  # Reuse task_id validation for result_id
+
+        validated_result_id = validate_task_id(result_id)
+
+        # Validate format parameter
+        valid_formats = ["json", "csv", "excel", "pdf"]
+        if format not in valid_formats:
+            raise HTTPException(status_code=400, detail=f"Format must be one of: {', '.join(valid_formats)}")
+
+        success, file_path = export_network_report(validated_result_id, format)
         if not success:
             raise HTTPException(status_code=500, detail=file_path)
 

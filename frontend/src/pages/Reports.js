@@ -144,6 +144,17 @@ const Reports = () => {
   useEffect(() => {
     loadReports();
     loadCleanupConfig();
+
+    // Listen for new report events
+    const handleNewReport = () => {
+      loadReports();
+    };
+
+    window.addEventListener('newReportAvailable', handleNewReport);
+
+    return () => {
+      window.removeEventListener('newReportAvailable', handleNewReport);
+    };
   }, []);
 
   useEffect(() => {

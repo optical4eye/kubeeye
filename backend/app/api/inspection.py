@@ -95,10 +95,15 @@ async def run_async_inspection(request: AsyncInspectionRequest):
 async def get_inspection_task_status(task_id: str):
     """Get status of async inspection task"""
     try:
-        logger.info(f"Getting status for task: {task_id}")
+        # Validate task_id using our validation function
+        from .validation_middleware import validate_task_id
+
+        validated_task_id = validate_task_id(task_id)
+
+        logger.info(f"Getting status for task: {validated_task_id}")
 
         task_queue = await get_task_queue()
-        task_status = await task_queue.get_task_status(task_id)
+        task_status = await task_queue.get_task_status(validated_task_id)
 
         if not task_status:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -115,10 +120,15 @@ async def get_inspection_task_status(task_id: str):
 async def cancel_inspection_task(task_id: str):
     """Cancel async inspection task"""
     try:
-        logger.info(f"Cancelling task: {task_id}")
+        # Validate task_id using our validation function
+        from .validation_middleware import validate_task_id
+
+        validated_task_id = validate_task_id(task_id)
+
+        logger.info(f"Cancelling task: {validated_task_id}")
 
         task_queue = await get_task_queue()
-        cancelled = await task_queue.cancel_task(task_id)
+        cancelled = await task_queue.cancel_task(validated_task_id)
 
         if not cancelled:
             raise HTTPException(
@@ -126,7 +136,7 @@ async def cancel_inspection_task(task_id: str):
                 detail="Task cannot be cancelled (may be running or completed)",
             )
 
-        logger.info(f"Task cancelled successfully: {task_id}")
+        logger.info(f"Task cancelled successfully: {validated_task_id}")
         return {"message": "Task cancelled successfully"}
     except HTTPException:
         raise

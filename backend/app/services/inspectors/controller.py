@@ -50,12 +50,12 @@ class InspectionController:
         """
         return list(self.inspectors.keys())
 
-    def run_inspection(
+    async def run_inspection(
         self,
         cluster_name: str,
         inspector_types: Optional[List[str]] = None,
         rule_ids: Optional[Dict[str, List[str]]] = None,
-    ) -> Dict[str, InspectionResult]:
+    ) -> Dict[str, Any]:
         """
         Execute inspection
 
@@ -88,16 +88,19 @@ class InspectionController:
                     inspector_rule_ids = rule_ids[inspector_type]
 
                 logger.info(f"Executing {inspector_type} inspection...")
-                result = inspector.run_inspection(cluster_name, inspector_rule_ids)
+                result = await inspector.run_inspection(cluster_name, inspector_rule_ids or [])
                 results[inspector_type] = result
-                logger.info(f"{inspector_type} inspection completed, found {len(result.items)} results")
+                if hasattr(result, "items"):
+                    logger.info(f"{inspector_type} inspection completed, found {len(result.items)} results")
+                else:
+                    logger.info(f"{inspector_type} inspection completed")
 
             except Exception as e:
                 logger.exception(f"Error executing {inspector_type} inspection: {str(e)}")
 
         return results
 
-    def _calculate_statistics(self, all_results: Dict[str, InspectionResult]) -> Tuple[int, int, int, int, int]:
+    def _calculate_statistics(self, all_results: Dict[str, Any]) -> Tuple[int, int, int, int, int]:
         """Calculate inspection statistics efficiently"""
         total_items = 0
         total_passed = 0
@@ -106,7 +109,14 @@ class InspectionController:
         total_error = 0
 
         for result in all_results.values():
-            if hasattr(result, "items"):
+            # Handle tuple format (success, result_object) from InspectionCoordinator
+            if isinstance(result, tuple) and len(result) >= 2:
+                success, result_obj = result
+                if hasattr(result_obj, "items"):
+                    items = result_obj.items
+                else:
+                    items = []
+            elif hasattr(result, "items"):
                 items = result.items
             else:
                 items = []
@@ -154,12 +164,19 @@ class InspectionController:
             return item.get("severity", "unknown")
         return "unknown"
 
-    def _serialize_inspection_results(self, all_results: Dict[str, InspectionResult]) -> Dict[str, Dict]:
+    def _serialize_inspection_results(self, all_results: Dict[str, Any]) -> Dict[str, Dict]:
         """Serialize inspection results efficiently"""
         serialized_results = {}
 
         for inspector_type, result in all_results.items():
-            if hasattr(result, "items"):
+            # Handle tuple format (success, result_object) from InspectionCoordinator
+            if isinstance(result, tuple) and len(result) >= 2:
+                success, result_obj = result
+                if hasattr(result_obj, "items"):
+                    items = result_obj.items
+                else:
+                    items = []
+            elif hasattr(result, "items"):
                 items = result.items
             else:
                 items = []
@@ -204,9 +221,9 @@ class InspectionController:
                 "solution": "",
             }
 
-    def save_inspection_result(
+    async def save_inspection_result(
         self,
-        all_results: Dict[str, InspectionResult],
+        all_results: Dict[str, Any],
         cluster_name: str,
         inspection_type: str = "immediate",
     ) -> str:

@@ -197,13 +197,17 @@ def get_schedule(task_id):
 
 def update_task_status(task_id, last_run=None, last_status=None):
     """Update task status"""
-    task = get_schedule(task_id)
-    if task:
-        task.last_run = last_run or dt.now().isoformat()
-        task.last_status = last_status
-        return add_schedule(task)
+    tasks = load_schedules()
+    for i, task in enumerate(tasks):
+        if task.task_id == task_id:
+            task.last_run = last_run or dt.now().isoformat()
+            task.last_status = last_status
+            tasks[i] = task
+            return save_schedules(tasks)
     return False
 
+
+import asyncio
 
 def run_inspection_bg(task):
     """Execute inspection in background"""
@@ -212,14 +216,23 @@ def run_inspection_bg(task):
         update_task_status(task.task_id, last_status="running")
         from services.components.inspection_engine import execute_inspection_unified
 
-        success, message, _ = execute_inspection_unified(
-            cluster_name=task.cluster,
-            selected_rules=task.rules,
-            inspection_type="scheduled",
-            show_progress=False,
-            show_ui_feedback=False,
-            use_gitops=False,
-        )
+        # Run async function in event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            success, message, _ = loop.run_until_complete(
+                execute_inspection_unified(
+                    cluster_name=task.cluster,
+                    selected_rules=task.rules,
+                    inspection_type="scheduled",
+                    show_progress=False,
+                    show_ui_feedback=False,
+                    use_gitops=True,
+                )
+            )
+        finally:
+            loop.close()
+
         if success:
             update_task_status(task.task_id, last_status="success")
             logger.info(f"Task completed: {task.name} ({task.task_id})")
@@ -243,16 +256,43 @@ def run_inspection(task_id, return_results=False):
         return False, "Task not found", None
     try:
         if return_results:
+            # Import the function first
             from services.components.inspection_engine import execute_inspection_unified
 
-            success, message, results = execute_inspection_unified(
-                cluster_name=task.cluster,
-                selected_rules=task.rules,
-                inspection_type="scheduled",
-                show_progress=True,
-                show_ui_feedback=False,
-                use_gitops=False,
-            )
+            # Check if we're already in an event loop
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context, create a task
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    def run_in_thread():
+                        return asyncio.run(execute_inspection_unified(
+                            cluster_name=task.cluster,
+                            selected_rules=task.rules,
+                            inspection_type="scheduled",
+                            show_progress=True,
+                            show_ui_feedback=False,
+                            use_gitops=True,
+                        ))
+                    future = executor.submit(run_in_thread)
+                    success, message, results = future.result()
+            except RuntimeError:
+                # No running loop, create a new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    success, message, results = loop.run_until_complete(
+                        execute_inspection_unified(
+                            cluster_name=task.cluster,
+                            selected_rules=task.rules,
+                            inspection_type="scheduled",
+                            show_progress=True,
+                            show_ui_feedback=False,
+                            use_gitops=True,
+                        )
+                    )
+                finally:
+                    loop.close()
             return success, message, results
         else:
             threading.Thread(target=lambda: run_inspection_bg(task)).start()

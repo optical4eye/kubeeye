@@ -12,8 +12,56 @@ import yaml
 import logging
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+import re
 
 logger = logging.getLogger(__name__)
+
+
+def mask_sensitive_data(data: str, mask_char: str = "*", visible_chars: int = 4) -> str:
+    """
+    Маскирует чувствительные данные, оставляя только первые visible_chars символов.
+
+    Args:
+        data: Строка с чувствительными данными
+        mask_char: Символ для маскирования
+        visible_chars: Количество видимых символов в начале строки
+
+    Returns:
+        Замаскированная строка
+    """
+    if not data or len(data) <= visible_chars:
+        return mask_char * 8  # Возвращаем маску если данных нет или они слишком короткие
+
+    return data[:visible_chars] + mask_char * (len(data) - visible_chars)
+
+
+def mask_url_with_credentials(url: str) -> str:
+    """
+    Маскирует учетные данные в URL.
+
+    Args:
+        url: URL который может содержать учетные данные
+
+    Returns:
+        URL с замаскированными учетными данными
+    """
+    if not url:
+        return url
+
+    # Маскируем учетные данные в URL формата https://username:token@domain.com
+    pattern = r"^(https?://)([^:@]+):([^@]+)@(.+)$"
+    masked_url = re.sub(
+        pattern,
+        lambda m: f"{m.group(1)}{mask_sensitive_data(m.group(2))}:{mask_sensitive_data(m.group(3))}@{m.group(4)}",
+        url,
+    )
+
+    # Маскируем токен в URL формата https://token@domain.com
+    pattern = r"^(https?://)([^@]+)@(.+)$"
+    masked_url = re.sub(pattern, lambda m: f"{m.group(1)}{mask_sensitive_data(m.group(2))}@{m.group(3)}", masked_url)
+
+    return masked_url
+
 
 # GitOps configuration
 GITOPS_CONFIG_FILE = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent))) / "gitops_config.json"
@@ -162,7 +210,10 @@ class GitOpsRuleManager:
                     current_url = origin.url
                     if current_url != auth_url:
                         origin.set_url(auth_url)
-                        logger.debug(f"Updated remote URL from {current_url} to {auth_url}")
+                        # Маскируем URL в логах для предотвращения утечки токенов
+                        masked_current = mask_url_with_credentials(current_url)
+                        masked_auth = mask_url_with_credentials(auth_url)
+                        logger.debug(f"Updated remote URL from {masked_current} to {masked_auth}")
 
                     # Add options for insecure connection
                     pull_kwargs = {}
@@ -306,10 +357,12 @@ class GitOpsRuleManager:
         for key, env_var in GITOPS_ENV_VARS.items():
             value = os.getenv(env_var)
             if value:
-                if "token" in key and len(value) > 4:
-                    info[env_var] = value[:4] + "***"
-                elif "username" in key and len(value) > 4:
-                    info[env_var] = value[:4] + "***"
+                # Маскируем все чувствительные данные: токены, пароли, имена пользователей
+                if any(
+                    sensitive_word in key.lower()
+                    for sensitive_word in ["token", "password", "username", "secret", "key"]
+                ):
+                    info[env_var] = mask_sensitive_data(value)
                 else:
                     info[env_var] = value
             else:

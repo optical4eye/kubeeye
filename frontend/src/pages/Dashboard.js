@@ -43,6 +43,17 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboardData();
+
+    // Listen for new report events
+    const handleNewReport = () => {
+      loadDashboardData();
+    };
+
+    window.addEventListener('newReportAvailable', handleNewReport);
+
+    return () => {
+      window.removeEventListener('newReportAvailable', handleNewReport);
+    };
   }, []);
 
   if (loading || !dashboardData) {

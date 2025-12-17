@@ -208,5 +208,6 @@ class SSHConnectionPool:
             logger.info("Closed all connections in pool")
 
 
-# Global connection pool instance
-ssh_pool = SSHConnectionPool()
+# SSH connection pool is now managed by DI container
+# Use: from infrastructure.dependency_injection.container import get_service
+# ssh_pool = await get_service("ssh_pool")

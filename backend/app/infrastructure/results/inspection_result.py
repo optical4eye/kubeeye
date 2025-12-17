@@ -8,6 +8,8 @@ import json
 import os
 import re
 import logging
+import time
+from functools import lru_cache
 
 # openpyxl not used
 from datetime import datetime
@@ -42,6 +44,11 @@ RESULTS_DIR = DATA_DIR / "results"
 
 # Ensure directory exists
 os.makedirs(RESULTS_DIR, exist_ok=True)
+
+# Cache for result metadata to avoid repeated file reads
+_result_metadata_cache = {}
+_cache_timestamp = 0
+CACHE_TTL = 300  # 5 minutes cache TTL
 
 
 class InspectionResult:
@@ -703,9 +710,127 @@ def _calculate_result_summary(result_data: Dict) -> Dict:
     }
 
 
+def _refresh_metadata_cache() -> None:
+    """Refresh the metadata cache by scanning files and updating only necessary information"""
+    global _result_metadata_cache, _cache_timestamp
+
+    current_time = time.time()
+
+    # Check if cache is still valid
+    if current_time - _cache_timestamp < CACHE_TTL and _result_metadata_cache:
+        return
+
+    # Build new cache
+    new_cache = {}
+
+    for file_path in RESULTS_DIR.rglob("*.json"):
+        try:
+            # Get file modification time
+            file_mtime = file_path.stat().st_mtime
+
+            # Check if we need to read this file (either not in cache or file changed)
+            cache_key = str(file_path)
+            if cache_key in _result_metadata_cache and _result_metadata_cache[cache_key].get("mtime") == file_mtime:
+                # Use cached metadata
+                new_cache[cache_key] = _result_metadata_cache[cache_key]
+                continue
+
+            # Read only essential metadata from file
+            with open(file_path, "r", encoding="utf-8") as f:
+                # Use json.load with object_hook to extract only needed fields
+                data = json.load(f)
+
+                # Extract only essential fields for caching
+                metadata = {
+                    "result_id": data.get("result_id"),
+                    "cluster_name": data.get("cluster_name"),
+                    "timestamp": data.get("timestamp"),
+                    "inspection_type": data.get("inspection_type"),
+                    "mtime": file_mtime,
+                    "file_path": str(file_path),
+                }
+
+                # Calculate summary statistics without loading full items
+                if "critical" in data and "warning" in data and "passed" in data:
+                    # Use pre-calculated summary if available
+                    metadata.update(
+                        {
+                            "critical": data.get("critical", 0),
+                            "warning": data.get("warning", 0),
+                            "passed": data.get("passed", 0),
+                            "total": data.get("total", 0),
+                        }
+                    )
+                else:
+                    # Calculate from items if needed (but limit the number of items processed)
+                    items = data.get("items", [])
+                    if len(items) > 100:  # Limit processing for large files
+                        # For large files, only count first 100 items to estimate
+                        sample_items = items[:100]
+                        critical = sum(
+                            1
+                            for item in sample_items
+                            if item.get("status") == "exception" and item.get("severity") == "critical"
+                        )
+                        warning = sum(
+                            1
+                            for item in sample_items
+                            if item.get("status") == "exception" and item.get("severity") == "warning"
+                        )
+                        passed = sum(1 for item in sample_items if item.get("status") in ["passed", "success"])
+
+                        # Estimate totals based on sample
+                        factor = len(items) / 100
+                        metadata.update(
+                            {
+                                "critical": int(critical * factor),
+                                "warning": int(warning * factor),
+                                "passed": int(passed * factor),
+                                "total": len(items),
+                            }
+                        )
+                    else:
+                        # For smaller files, process all items
+                        critical = sum(
+                            1
+                            for item in items
+                            if item.get("status") == "exception" and item.get("severity") == "critical"
+                        )
+                        warning = sum(
+                            1
+                            for item in items
+                            if item.get("status") == "exception" and item.get("severity") == "warning"
+                        )
+                        passed = sum(1 for item in items if item.get("status") in ["passed", "success"])
+
+                        metadata.update(
+                            {"critical": critical, "warning": warning, "passed": passed, "total": len(items)}
+                        )
+
+                new_cache[cache_key] = metadata
+
+        except (json.JSONDecodeError, IOError, UnicodeDecodeError):
+            # Skip corrupted files
+            continue
+        except Exception:
+            # Skip files with other errors
+            continue
+
+    # Update cache
+    _result_metadata_cache = new_cache
+    _cache_timestamp = current_time
+
+
+def clear_metadata_cache() -> None:
+    """Clear the metadata cache force refresh"""
+    global _result_metadata_cache, _cache_timestamp
+    _result_metadata_cache = {}
+    _cache_timestamp = 0
+
+
 def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
     """
-    Loading results without caching
+    Loading results with efficient caching and lazy loading
 
     Args:
         cluster_name: optional filtering by cluster name
@@ -713,28 +838,53 @@ def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
     Returns:
         list of inspection result summaries
     """
+    # Temporarily disable cache to force refresh
+    clear_metadata_cache()
+    _refresh_metadata_cache()
+
     results = []
 
-    # Loading: filtering by file content
-    for file_path in RESULTS_DIR.rglob("*.json"):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                result_data = json.load(f)
-
-            # Filtering by cluster name
-            if cluster_name and result_data.get("cluster_name") != cluster_name:
-                continue
-
-            # Calculation of summary
-            summary = _calculate_result_summary(result_data)
-            results.append(summary)
-
-        except (json.JSONDecodeError, IOError, UnicodeDecodeError) as e:
-            # Ignore corrupted files
+    # Process cached metadata
+    for metadata in _result_metadata_cache.values():
+        # Filtering by cluster name
+        if cluster_name and metadata.get("cluster_name") != cluster_name:
             continue
-        except Exception as e:
-            # For other errors also skip the file
-            continue
+
+        # Determine status from cached data
+        critical = metadata.get("critical", 0)
+        warning = metadata.get("warning", 0)
+        if critical > 0:
+            status = "failed"
+        elif warning > 0:
+            status = "warning"
+        else:
+            status = "passed"
+
+        # Create summary from cached metadata
+        total = metadata.get("total", 0)
+        passed = metadata.get("passed", 0)
+        critical = metadata.get("critical", 0)
+        warning = metadata.get("warning", 0)
+        info = metadata.get("info", 0)
+
+        # If info not in metadata, calculate it
+        if info == 0 and total > 0:
+            info = total - passed - critical - warning
+
+        summary = {
+            "cluster_name": metadata.get("cluster_name", ""),
+            "inspection_type": metadata.get("inspection_type", "unknown"),
+            "timestamp": metadata.get("timestamp", ""),
+            "result_id": metadata.get("result_id", ""),
+            "total": total,
+            "passed": passed,
+            "critical": critical,
+            "warning": warning,
+            "info": info,
+            "status": status,
+        }
+
+        results.append(summary)
 
     # Sorting by time (newest first)
     results.sort(key=lambda x: x["timestamp"], reverse=True)

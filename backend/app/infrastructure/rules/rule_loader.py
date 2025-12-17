@@ -7,8 +7,9 @@ Rule loading module - supports GitOps mode
 import yaml
 import logging
 import os
+import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from functools import lru_cache
 
 # Log setup
@@ -105,20 +106,68 @@ class Rule:
         return self.config.get("execution", {})
 
 
-@lru_cache(maxsize=32)
-def _load_rules_cached(
-    rule_type: str = None,
-    include_disabled: bool = False,
-    use_gitops: bool = False,
-    cache_key: int = 0,
-) -> tuple:
-    """Cached version of rule loading - returns tuple for hashing"""
-    # Implementation moved to _load_rules_impl
-    rules = _load_rules_impl(rule_type, include_disabled, use_gitops)
-    return tuple(rule.id for rule in rules)
+# Global cache for rules with metadata
+_rules_cache = {}
+_cache_metadata = {}
 
 
-def _load_rules_impl(rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False) -> List[Rule]:
+@lru_cache(maxsize=128)
+def _get_directory_hash_cached(base_dir: Path) -> int:
+    """Cached version of directory hash calculation"""
+    return _get_directory_hash(base_dir)
+
+
+def _is_cache_valid(rule_type: Optional[str], include_disabled: bool, use_gitops: bool) -> bool:
+    """Check if cache is valid for given parameters"""
+    cache_key = f"{rule_type}_{include_disabled}_{use_gitops}"
+
+    if cache_key not in _rules_cache:
+        return False
+
+    # Check if directory has changed
+    base_dir = GIT_RULES_DIR if use_gitops else RULES_DIR
+    current_hash = _get_directory_hash_cached(base_dir)
+
+    cache_entry = _cache_metadata.get(cache_key, {})
+    cached_hash = cache_entry.get("directory_hash", 0)
+
+    return current_hash == cached_hash
+
+
+def _update_cache(rule_type: Optional[str], include_disabled: bool, use_gitops: bool, rules: List[Rule]) -> None:
+    """Update cache with new rules"""
+    cache_key = f"{rule_type}_{include_disabled}_{use_gitops}"
+
+    # Store rules in cache
+    _rules_cache[cache_key] = rules.copy()
+
+    # Update cache metadata
+    base_dir = GIT_RULES_DIR if use_gitops else RULES_DIR
+    directory_hash = _get_directory_hash_cached(base_dir)
+
+    _cache_metadata[cache_key] = {"directory_hash": directory_hash, "timestamp": time.time(), "rule_count": len(rules)}
+
+    logger.info(f"Updated cache for {cache_key}: {len(rules)} rules")
+
+
+def _get_cached_rules(rule_type: Optional[str], include_disabled: bool, use_gitops: bool) -> Optional[List[Rule]]:
+    """Get rules from cache if available and valid"""
+    cache_key = f"{rule_type}_{include_disabled}_{use_gitops}"
+
+    if not _is_cache_valid(rule_type, include_disabled, use_gitops):
+        return None
+
+    rules = _rules_cache.get(cache_key)
+    if rules:
+        logger.info(f"Using cached rules for {cache_key}: {len(rules)} rules")
+        return rules.copy()
+
+    return None
+
+
+def _load_rules_impl(
+    rule_type: Optional[str] = None, include_disabled: bool = False, use_gitops: bool = False
+) -> List[Rule]:
     """Internal implementation of rule loading"""
     rules = []
 
@@ -274,9 +323,9 @@ def _get_directory_hash(base_dir: Path) -> int:
     return int(hasher.hexdigest(), 16) % 2**32
 
 
-def load_rules(rule_type: str = None, include_disabled: bool = False, use_gitops: bool = False) -> List[Rule]:
+def load_rules(rule_type: Optional[str] = None, include_disabled: bool = False, use_gitops: bool = False) -> List[Rule]:
     """
-    Load rules of specified type
+    Load rules of specified type with efficient caching
 
     Args:
         rule_type: rule type, e.g. node, opa, prometheus, if None, load all rules
@@ -286,21 +335,21 @@ def load_rules(rule_type: str = None, include_disabled: bool = False, use_gitops
     Returns:
         List of rules
     """
-    # Generate cache key based on directory contents
-    base_dir = GIT_RULES_DIR if use_gitops else RULES_DIR
-    cache_key = _get_directory_hash(base_dir)
+    # Try to get from cache first
+    cached_rules = _get_cached_rules(rule_type, include_disabled, use_gitops)
+    if cached_rules is not None:
+        return cached_rules
 
-    # Check cache first
-    cached_ids = _load_rules_cached(rule_type, include_disabled, use_gitops, cache_key)
-    if cached_ids:
-        # If we have cached result, load fresh rules and filter by cached IDs
-        all_rules = _load_rules_impl(rule_type, include_disabled, use_gitops)
-        # Filter rules by cached IDs to maintain order and ensure consistency
-        id_to_rule = {rule.id: rule for rule in all_rules}
-        return [id_to_rule[rule_id] for rule_id in cached_ids if rule_id in id_to_rule]
+    # Load rules from disk
+    logger.info(
+        f"Loading rules from disk for {rule_type}, include_disabled={include_disabled}, use_gitops={use_gitops}"
+    )
+    rules = _load_rules_impl(rule_type, include_disabled, use_gitops)
 
-    # If no cache, load normally
-    return _load_rules_impl(rule_type, include_disabled, use_gitops)
+    # Update cache
+    _update_cache(rule_type, include_disabled, use_gitops, rules)
+
+    return rules
 
 
 def load_rule_from_file(file_path: str) -> Optional[Rule]:
@@ -366,7 +415,7 @@ def save_rule(rule: Rule) -> bool:
             yaml.dump(rule_dict, f, default_flow_style=False, allow_unicode=True)
 
         # Clear cache after saving
-        _load_rules_cached.cache_clear()
+        clear_rules_cache()
 
         logger.info(f"Rule {rule.id} successfully saved to file {file_path}")
         return True
@@ -378,5 +427,21 @@ def save_rule(rule: Rule) -> bool:
 
 def clear_rules_cache():
     """Clear the rules loading cache"""
-    _load_rules_cached.cache_clear()
+    # Clear LRU cache
+    _get_directory_hash_cached.cache_clear()
+
+    # Clear in-memory cache
+    _rules_cache.clear()
+    _cache_metadata.clear()
+
     logger.info("Rules cache cleared")
+
+
+def get_cache_stats() -> Dict:
+    """Get cache statistics for monitoring"""
+    return {
+        "cached_entries": len(_rules_cache),
+        "cache_metadata_entries": len(_cache_metadata),
+        "total_cached_rules": sum(len(rules) for rules in _rules_cache.values()),
+        "cache_keys": list(_rules_cache.keys()),
+    }

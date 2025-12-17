@@ -30,19 +30,66 @@ _CACHE_TTL = 300  # 5 minutes
 
 def validate_kubeconfig(kubeconfig: str) -> bool:
     """Validate kubeconfig format"""
+    print(f"[DEBUG] Validating kubeconfig (first 50 chars): {kubeconfig[:50]}...")
+    print(f"[DEBUG] Kubeconfig length: {len(kubeconfig)}")
+    print(f"[DEBUG] Kubeconfig type: {type(kubeconfig)}")
+
     if not kubeconfig or not isinstance(kubeconfig, str):
+        print("[DEBUG] kubeconfig is empty or not str")
         return False
-    try:
-        # Decode base64
-        decoded = base64.b64decode(kubeconfig).decode('utf-8')
-        config = yaml.safe_load(decoded)
-    except Exception:
-        return False
+
+    # Check if the string looks like YAML (not base64)
+    # If it starts with typical YAML keywords, treat it as YAML directly
+    if kubeconfig.strip().startswith(("apiVersion:", "kind:", "clusters:", "users:", "contexts:")):
+        print("[DEBUG] Detected YAML format, treating as direct YAML")
+        try:
+            config = yaml.safe_load(kubeconfig)
+            print(f"[DEBUG] YAML loaded directly: {type(config)}")
+        except Exception as yaml_err:
+            print(f"[DEBUG] Direct YAML parsing error: {yaml_err}")
+            return False
+    else:
+        # Check if the string looks like base64 (basic validation)
+        # Base64 strings should have length divisible by 4 (after padding)
+        # and only contain valid base64 characters
+        import re
+
+        if not re.match(r"^[A-Za-z0-9+/]*={0,2}$", kubeconfig):
+            print("[DEBUG] kubeconfig contains invalid base64 characters and doesn't look like YAML")
+            return False
+
+        try:
+            # Add padding if needed (base64 strings should have length divisible by 4)
+            padded_kubeconfig = kubeconfig
+            padding_needed = (4 - len(kubeconfig) % 4) % 4
+            if padding_needed:
+                padded_kubeconfig = kubeconfig + ("=" * padding_needed)
+                print(f"[DEBUG] Added {padding_needed} padding characters")
+
+            # Decode base64
+            decoded = base64.b64decode(padded_kubeconfig).decode("utf-8")
+            print(f"[DEBUG] Decoded successfully (first 50 chars): {decoded[:50]}...")
+            config = yaml.safe_load(decoded)
+            print(f"[DEBUG] YAML loaded: {type(config)}")
+        except Exception as decode_err:
+            print(f"[DEBUG] Decode/YAML error: {decode_err}")
+            return False
+
     if not isinstance(config, dict):
+        print("[DEBUG] Not a dict after YAML load")
         return False
     # Check for required fields
-    if "apiVersion" not in config or "clusters" not in config or "users" not in config:
+    missing_fields = []
+    if "apiVersion" not in config:
+        missing_fields.append("apiVersion")
+    if "clusters" not in config:
+        missing_fields.append("clusters")
+    if "users" not in config:
+        missing_fields.append("users")
+    if missing_fields:
+        print(f"[DEBUG] Missing fields: {missing_fields}")
         return False
+    print("[DEBUG] kubeconfig VALID")
     return True
 
 
@@ -180,10 +227,17 @@ async def update_cluster(cluster_name: str, cluster: ClusterCreate):
 async def remove_cluster(cluster_name: str):
     """Delete cluster"""
     try:
-        await asyncio.to_thread(delete_cluster, cluster_name)
+        # Validate cluster_name using our validation function
+        from .validation_middleware import validate_cluster_name
+
+        validated_cluster_name = validate_cluster_name(cluster_name)
+
+        await asyncio.to_thread(delete_cluster, validated_cluster_name)
         # Invalidate cache
         _clusters_cache.pop("clusters", None)
-        return {"message": f"Cluster {cluster_name} deleted"}
+        return {"message": f"Cluster {validated_cluster_name} deleted"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -192,12 +246,17 @@ async def remove_cluster(cluster_name: str):
 async def get_cluster_details(cluster_name: str):
     """Get cluster details"""
     try:
-        cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
+        # Validate cluster_name using our validation function
+        from .validation_middleware import validate_cluster_name
+
+        validated_cluster_name = validate_cluster_name(cluster_name)
+
+        cluster_config = await asyncio.to_thread(get_cluster, validated_cluster_name)
         if not cluster_config:
             raise HTTPException(status_code=404, detail="Cluster not found")
 
         return {
-            "name": cluster_name,
+            "name": validated_cluster_name,
             "nodes": cluster_config.get_nodes(),
             "prometheus_config": cluster_config.get_prometheus_config(),
             "kubeconfig": cluster_config.get_kubeconfig(),
@@ -212,7 +271,12 @@ async def get_cluster_details(cluster_name: str):
 async def get_cluster_nodes(cluster_name: str):
     """Get cluster nodes information"""
     try:
-        cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
+        # Validate cluster_name using our validation function
+        from .validation_middleware import validate_cluster_name
+
+        validated_cluster_name = validate_cluster_name(cluster_name)
+
+        cluster_config = await asyncio.to_thread(get_cluster, validated_cluster_name)
         if not cluster_config:
             raise HTTPException(status_code=404, detail="Cluster not found")
 
@@ -289,7 +353,12 @@ def _test_single_node(node: Dict) -> Dict:
 async def test_cluster_nodes(cluster_name: str, request: Optional[TestNodesRequest] = None):
     """Test connection to all cluster nodes"""
     try:
-        nodes = await _get_nodes_for_testing(cluster_name, request)
+        # Validate cluster_name using our validation function
+        from .validation_middleware import validate_cluster_name
+
+        validated_cluster_name = validate_cluster_name(cluster_name)
+
+        nodes = await _get_nodes_for_testing(validated_cluster_name, request)
 
         # Test nodes asynchronously in parallel with individual timeouts
         async def test_with_timeout(node):
@@ -382,11 +451,16 @@ async def test_cluster_nodes(cluster_name: str, request: Optional[TestNodesReque
 async def test_cluster_kubeconfig(cluster_name: str, request: Optional[TestKubeconfigRequest] = None):
     """Test cluster kubeconfig validity"""
     try:
+        # Validate cluster_name using our validation function
+        from .validation_middleware import validate_cluster_name
+
+        validated_cluster_name = validate_cluster_name(cluster_name)
+
         # If kubeconfig passed in request, use it, otherwise get from infrastructure.config
         if request and request.kubeconfig:
             kubeconfig = request.kubeconfig
         else:
-            cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
+            cluster_config = await asyncio.to_thread(get_cluster, validated_cluster_name)
             if not cluster_config:
                 raise HTTPException(status_code=404, detail="Cluster not found")
             kubeconfig = cluster_config.get_kubeconfig()

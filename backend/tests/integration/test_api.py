@@ -73,13 +73,14 @@ class TestAPIIntegration:
         assert "Read-only operations only" in security
 
     @patch("api.main.get_system_health")
-    @patch("infrastructure.tasks.task_queue.task_queue")
-    def test_health_check_endpoint(self, mock_task_queue, mock_get_health, client):
+    @patch("infrastructure.dependency_injection.container.get_service")
+    def test_health_check_endpoint(self, mock_get_service, mock_get_health, client):
         """Test health check endpoint"""
         # Mock system health
         mock_get_health.return_value = {"cpu_usage": 45.2, "memory_usage": 67.8, "disk_usage": 23.1}
 
         # Mock task queue
+        mock_task_queue = Mock()
         mock_task_queue.running = True
         mock_task_queue.queue.qsize.return_value = 2
         mock_task_queue.tasks = {
@@ -87,6 +88,7 @@ class TestAPIIntegration:
             "task2": Mock(status=Mock(value="pending")),
             "task3": Mock(status=Mock(value="completed")),
         }
+        mock_get_service.return_value = mock_task_queue
 
         response = client.get("/api/health")
 
@@ -105,9 +107,10 @@ class TestAPIIntegration:
         assert queue_info["active_workers"] == 1  # One running task
         assert queue_info["pending_tasks"] == 1
 
-    @patch("infrastructure.tasks.task_queue.task_queue")
-    def test_queue_status_endpoint(self, mock_task_queue, client):
+    @patch("infrastructure.dependency_injection.container.get_service")
+    def test_queue_status_endpoint(self, mock_get_service, client):
         """Test queue status endpoint"""
+        mock_task_queue = Mock()
         mock_task_queue.running = True
         mock_task_queue.max_workers = 5
         mock_task_queue.queue.qsize.return_value = 3
@@ -116,6 +119,7 @@ class TestAPIIntegration:
             "task2": Mock(status=Mock(value="running")),
             "task3": Mock(status=Mock(value="pending")),
         }
+        mock_get_service.return_value = mock_task_queue
 
         response = client.get("/api/queue/status")
 
@@ -129,8 +133,8 @@ class TestAPIIntegration:
         assert data["pending_tasks"] == 1
         assert data["total_tasks"] == 3
 
-    @patch("infrastructure.tasks.task_queue.task_queue")
-    def test_queue_tasks_endpoint(self, mock_task_queue, client):
+    @patch("infrastructure.dependency_injection.container.get_service")
+    def test_queue_tasks_endpoint(self, mock_get_service, client):
         """Test queue tasks endpoint"""
         # Create mock tasks with creation times
         mock_task1 = Mock()
@@ -141,7 +145,9 @@ class TestAPIIntegration:
         mock_task2.created_at = 2000
         mock_task2.to_dict.return_value = {"id": "task2", "status": "pending"}
 
+        mock_task_queue = Mock()
         mock_task_queue.tasks = {"task1": mock_task1, "task2": mock_task2}
+        mock_get_service.return_value = mock_task_queue
 
         response = client.get("/api/queue/tasks")
 
@@ -157,8 +163,8 @@ class TestAPIIntegration:
         assert tasks[0]["id"] == "task2"  # Newer task first
         assert tasks[1]["id"] == "task1"
 
-    @patch("infrastructure.tasks.task_queue.task_queue")
-    def test_queue_tasks_endpoint_with_limit(self, mock_task_queue, client):
+    @patch("infrastructure.dependency_injection.container.get_service")
+    def test_queue_tasks_endpoint_with_limit(self, mock_get_service, client):
         """Test queue tasks endpoint with limit parameter"""
         # Create many mock tasks
         mock_tasks = {}
@@ -168,7 +174,9 @@ class TestAPIIntegration:
             mock_task.to_dict.return_value = {"id": f"task{i}", "status": "pending"}
             mock_tasks[f"task{i}"] = mock_task
 
+        mock_task_queue = Mock()
         mock_task_queue.tasks = mock_tasks
+        mock_get_service.return_value = mock_task_queue
 
         response = client.get("/api/queue/tasks?limit=3")
 
@@ -245,7 +253,7 @@ class TestAPIIntegration:
             "name": "new-cluster",
             "nodes": [{"ip": "192.168.1.100", "port": 22, "name": "node1"}],
             "prometheus_config": {"enabled": True, "url": "http://prometheus:9090"},
-            "kubeconfig": "base64-encoded-config",
+            "kubeconfig": "YXBpVmVyc2lvbjogdjEKY2x1c3RlcnM6Ci0gY2x1c3RlcjoKICAgIGNlcnRpZmljYXRlLWF1dGhvcml0eS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQKICAgIHNlcnZlcjogaHR0cHM6Ly9leGFtcGxlLmNvbQogIG5hbWU6IHRlc3QtY2x1c3Rlcgpjb250ZXh0czoKLSBjb250ZXh0OgogICAgY2x1c3RlcjogdGVzdC1jbHVzdGVyCiAgICB1c2VyOiB0ZXN0LXVzZXIKICBuYW1lOiB0ZXN0LWNvbnRleHQKY3VycmVudC1jb250ZXh0OiB0ZXN0LWNvbnRleHQKa2luZDogQ29uZmlnCnByZWZlcmVuY2VzOiB7fQp1c2VyczoKLSBuYW1lOiB0ZXN0LXVzZXIKICB1c2VyOgogICAgY2xpZW50LWNlcnRpZmljYXRlLWRhdGE6IExTMHRMUzFDUlVkSlRpQkRSVkpVU1VaSlEwRlVSUzB0TFMwdAogICAgY2xpZW50LWtleS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQK",
         }
 
         response = client.post("/api/clusters", json=cluster_data)
@@ -257,7 +265,9 @@ class TestAPIIntegration:
         # Verify cluster methods were called
         mock_cluster.update_node.assert_called_once()
         mock_cluster.update_prometheus.assert_called_once_with({"enabled": True, "url": "http://prometheus:9090"})
-        mock_cluster.update_kubeconfig.assert_called_once_with("base64-encoded-config")
+        mock_cluster.update_kubeconfig.assert_called_once_with(
+            "YXBpVmVyc2lvbjogdjEKY2x1c3RlcnM6Ci0gY2x1c3RlcjoKICAgIGNlcnRpZmljYXRlLWF1dGhvcml0eS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQKICAgIHNlcnZlcjogaHR0cHM6Ly9leGFtcGxlLmNvbQogIG5hbWU6IHRlc3QtY2x1c3Rlcgpjb250ZXh0czoKLSBjb250ZXh0OgogICAgY2x1c3RlcjogdGVzdC1jbHVzdGVyCiAgICB1c2VyOiB0ZXN0LXVzZXIKICBuYW1lOiB0ZXN0LWNvbnRleHQKY3VycmVudC1jb250ZXh0OiB0ZXN0LWNvbnRleHQKa2luZDogQ29uZmlnCnByZWZlcmVuY2VzOiB7fQp1c2VyczoKLSBuYW1lOiB0ZXN0LXVzZXIKICB1c2VyOgogICAgY2xpZW50LWNlcnRpZmljYXRlLWRhdGE6IExTMHRMUzFDUlVkSlRpQkRSVkpVU1VaSlEwRlVSUzB0TFMwdAogICAgY2xpZW50LWtleS1kYXRhOiBMUzB0TFMxQ1JVZEpUaUJEUlZKVVNVWkpRMEZVUlMwdExTMHQK"
+        )
 
     @patch("api.clusters.get_cluster")
     def test_create_cluster_endpoint_error(self, mock_get_cluster, client):

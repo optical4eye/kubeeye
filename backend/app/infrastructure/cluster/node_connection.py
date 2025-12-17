@@ -10,7 +10,7 @@ import socket
 import logging
 from typing import Dict, Tuple
 import os
-from infrastructure.security.ssh_connection_pool import ssh_pool
+from infrastructure.dependency_injection.container import get_service
 
 
 class AsyncNodeConnection:
@@ -269,6 +269,7 @@ class NodeConnection:
     async def _execute_command_async(self, command: str) -> Tuple[bool, str, str]:
         """Execute command asynchronously"""
         # Get connection from pool
+        ssh_pool = await get_service("ssh_pool")
         client = await ssh_pool.get_connection(self.node_info)
         if not client:
             return False, "", "Failed to get connection from pool"

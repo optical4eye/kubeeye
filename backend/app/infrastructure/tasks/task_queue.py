@@ -267,13 +267,11 @@ class AsyncTaskQueue:
         }
 
 
-# Global task queue instance
-task_queue = AsyncTaskQueue(max_workers=3, queue_size=50)
-
-
 async def get_task_queue() -> AsyncTaskQueue:
-    """Get the global task queue instance"""
-    return task_queue
+    """Get the task queue instance from DI container"""
+    from infrastructure.dependency_injection.container import get_service
+
+    return await get_service("task_queue")
 
 
 async def submit_inspection_task(
@@ -284,6 +282,7 @@ async def submit_inspection_task(
     progress_callback: Optional[Callable] = None,
 ) -> str:
     """Submit an inspection task to the queue"""
+    task_queue = await get_task_queue()
     payload = {
         "cluster_name": cluster_name,
         "selected_rules": selected_rules,
@@ -296,4 +295,5 @@ async def submit_inspection_task(
 
 async def submit_cleanup_task(progress_callback: Optional[Callable] = None) -> str:
     """Submit a cleanup task to the queue"""
+    task_queue = await get_task_queue()
     return await task_queue.submit_task("cleanup", {}, progress_callback)

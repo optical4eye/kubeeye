@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Tabs, Select, Button, message, Space, Checkbox, Tag, List, Typography } from 'antd';
+import { Card, Tabs, Select, Button, message, Space, Checkbox, Tag, List, Typography, Progress } from 'antd';
 import { PlayCircleOutlined, SyncOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { getClusters, runInspectionAsync, getInspectionTaskStatus, cancelInspectionTask, getRules } from '../services/api';
 import ScheduledInspection from '../components/ScheduledInspection';
@@ -80,15 +80,36 @@ const Inspection = () => {
           delete pollingIntervals.current[taskId];
 
           if (task.status === 'completed') {
-            message.success(`Задача ${taskId} завершена успешно`);
+            message.success(`Задача ${taskId} завершена успешно. Отчет доступен в разделе "Отчеты"`);
+
+            // Trigger a custom event to notify other components about the new report
+            window.dispatchEvent(new CustomEvent('newReportAvailable', {
+              detail: {
+                taskId,
+                result: task.result
+              }
+            }));
           } else {
             message.error(`Задача ${taskId} завершилась с ошибкой: ${task.error}`);
           }
         }
       } catch (error) {
         console.error(`Error polling task ${taskId}:`, error);
+
+        // Check if it's a 404 error (task not found)
+        if (error.response?.status === 404) {
+          message.error(`Задача ${taskId} не найдена. Возможно, она была удалена или истек срок действия.`);
+        } else {
+          message.error(`Ошибка при проверке статуса задачи ${taskId}: ${error.message}`);
+        }
+
         clearInterval(pollingIntervals.current[taskId]);
         delete pollingIntervals.current[taskId];
+
+        // Update task status to show error in UI
+        setActiveTasks(prev => prev.map(t =>
+          t.task_id === taskId ? { ...t, status: 'failed', error: error.message } : t
+        ));
       }
     }, 2000); // Poll every 2 seconds
 
@@ -305,17 +326,31 @@ const Inspection = () => {
                     <List.Item.Meta
                       avatar={getTaskStatusIcon(task.status)}
                       title={
-                        <Space>
-                          <Typography.Text strong>
-                            Задача {task.task_id.split('_')[1]}
-                          </Typography.Text>
-                          <Tag className={`status-${task.status}`}>
-                            {task.status === 'pending' && 'Ожидает'}
-                            {task.status === 'running' && 'Выполняется'}
-                            {task.status === 'completed' && 'Завершена'}
-                            {task.status === 'failed' && 'Ошибка'}
-                            {task.status === 'cancelled' && 'Отменена'}
-                          </Tag>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                          <Space>
+                            <Typography.Text strong>
+                              Задача {task.task_id.split('_')[1]}
+                            </Typography.Text>
+                            <Tag className={`status-${task.status}`}>
+                              {task.status === 'pending' && 'Ожидает'}
+                              {task.status === 'running' && 'Выполняется'}
+                              {task.status === 'completed' && 'Завершена'}
+                              {task.status === 'failed' && 'Ошибка'}
+                              {task.status === 'cancelled' && 'Отменена'}
+                            </Tag>
+                          </Space>
+                          {task.status === 'running' && (
+                            <Progress
+                              percent={100}
+                              status="active"
+                              showInfo={false}
+                              size="small"
+                              strokeColor={{
+                                '0%': '#108ee9',
+                                '100%': '#87d068',
+                              }}
+                            />
+                          )}
                         </Space>
                       }
                       description={
