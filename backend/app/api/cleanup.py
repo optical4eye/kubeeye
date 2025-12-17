@@ -4,6 +4,7 @@
 Cleanup management routes
 """
 
+import asyncio
 from fastapi import APIRouter, HTTPException
 from scripts.cleanup_reports import load_cleanup_config
 
@@ -14,7 +15,7 @@ router = APIRouter()
 async def get_cleanup_status():
     """Get cleanup status"""
     try:
-        config = load_cleanup_config()
+        config = await asyncio.to_thread(load_cleanup_config)
         return {
             "enabled": config.get("enabled", False),
             "max_age_days": config.get("max_age_days", 30),
@@ -29,7 +30,7 @@ async def get_cleanup_status():
 async def get_cleanup_config():
     """Get auto cleanup config for reports"""
     try:
-        config = load_cleanup_config()
+        config = await asyncio.to_thread(load_cleanup_config)
         return config
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

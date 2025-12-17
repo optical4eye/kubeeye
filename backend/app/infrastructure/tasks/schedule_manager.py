@@ -284,6 +284,7 @@ def _scheduler_loop():
                         schedule.clear(task.task_id)
         except Exception as e:
             logger.error(f"Error in scheduler loop: {e}", exc_info=True)
+        # TODO: Replace with asyncio.sleep when converting to async scheduler
         time.sleep(30)
 
 

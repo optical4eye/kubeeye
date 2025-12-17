@@ -138,7 +138,7 @@ class PrometheusClient:
 
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        connector = aiohttp.TCPConnector(verify_ssl=verify_ssl)
+        connector = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=10, limit_per_host=5)
         async with aiohttp.ClientSession(connector=connector) as session:
             while retries < max_retries:
                 try:
@@ -204,7 +204,7 @@ class PrometheusClient:
         # Determine whether to verify SSL based on URL protocol
         verify_ssl = self.url.lower().startswith("https://")
 
-        connector = aiohttp.TCPConnector(verify_ssl=verify_ssl)
+        connector = aiohttp.TCPConnector(verify_ssl=verify_ssl, limit=10, limit_per_host=5)
         async with aiohttp.ClientSession(connector=connector) as session:
             try:
                 async with session.get(

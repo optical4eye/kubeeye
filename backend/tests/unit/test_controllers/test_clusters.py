@@ -281,25 +281,27 @@ class TestClustersController:
         assert exc_info.value.status_code == 500
         assert "K8s connection failed" in str(exc_info.value.detail)
 
+    @pytest.mark.asyncio
     @patch("api.clusters.get_cluster")
-    def test_get_nodes_for_testing_with_request(self, mock_get_cluster):
+    async def test_get_nodes_for_testing_with_request(self, mock_get_cluster):
         """Test _get_nodes_for_testing with explicit nodes in request"""
         request = Mock()
         request.nodes = [{"ip": "192.168.1.1", "port": 22}]
 
-        result = _get_nodes_for_testing("test-cluster", request)
+        result = await _get_nodes_for_testing("test-cluster", request)
 
         assert result == [{"ip": "192.168.1.1", "port": 22}]
         mock_get_cluster.assert_not_called()
 
+    @pytest.mark.asyncio
     @patch("api.clusters.get_cluster")
-    def test_get_nodes_for_testing_from_cluster(self, mock_get_cluster):
+    async def test_get_nodes_for_testing_from_cluster(self, mock_get_cluster):
         """Test _get_nodes_for_testing getting nodes from cluster config"""
         mock_cluster_config = Mock()
         mock_cluster_config.get_nodes.return_value = [{"ip": "192.168.1.1", "port": 22}]
         mock_get_cluster.return_value = mock_cluster_config
 
-        result = _get_nodes_for_testing("test-cluster", None)
+        result = await _get_nodes_for_testing("test-cluster", None)
 
         assert result == [{"ip": "192.168.1.1", "port": 22}]
         mock_get_cluster.assert_called_once_with("test-cluster")

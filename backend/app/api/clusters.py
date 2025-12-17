@@ -7,6 +7,9 @@ Cluster management routes
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Optional
 import asyncio
+import time
+import yaml
+import base64
 
 from infrastructure.cluster.cluster_config import (
     list_clusters,
@@ -19,6 +22,43 @@ from infrastructure.cluster.k8s_client import K8sClient
 from .models import ClusterCreate, TestNodesRequest, TestKubeconfigRequest
 
 router = APIRouter()
+
+# Simple in-memory cache for clusters data
+_clusters_cache = {}
+_CACHE_TTL = 300  # 5 minutes
+
+
+def validate_kubeconfig(kubeconfig: str) -> bool:
+    """Validate kubeconfig format"""
+    if not kubeconfig or not isinstance(kubeconfig, str):
+        return False
+    try:
+        # Decode base64
+        decoded = base64.b64decode(kubeconfig).decode('utf-8')
+        config = yaml.safe_load(decoded)
+    except Exception:
+        return False
+    if not isinstance(config, dict):
+        return False
+    # Check for required fields
+    if "apiVersion" not in config or "clusters" not in config or "users" not in config:
+        return False
+    return True
+
+
+def validate_ssh_key(ssh_key: str) -> bool:
+    """Validate SSH key format"""
+    if not ssh_key or not isinstance(ssh_key, str):
+        return False
+    # Basic check for SSH key format
+    lines = ssh_key.strip().split("\n")
+    if not lines:
+        return False
+    first_line = lines[0].strip()
+    # Should start with ssh-rsa, ssh-ed25519, etc.
+    if not first_line.startswith("ssh-") or " " not in first_line:
+        return False
+    return True
 
 
 @router.get("/dashboard")
@@ -36,15 +76,20 @@ async def get_dashboard():
 async def get_clusters():
     """Get list of clusters"""
     try:
-        clusters = list_clusters()
+        # Check cache
+        current_time = time.time()
+        if "clusters" in _clusters_cache and current_time - _clusters_cache["clusters"]["timestamp"] < _CACHE_TTL:
+            return _clusters_cache["clusters"]["data"]
+
+        clusters = await asyncio.to_thread(list_clusters)
         cluster_data = []
         for cluster_name in clusters:
-            cluster_config = get_cluster(cluster_name)
+            cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
             if cluster_config:
                 kubeconfig = cluster_config.get_kubeconfig()
                 cert_status = None
                 if kubeconfig:
-                    cert_status = get_cluster_cert_status(cluster_name, kubeconfig)
+                    cert_status = await asyncio.to_thread(get_cluster_cert_status, cluster_name, kubeconfig)
 
                 cluster_data.append(
                     {
@@ -55,7 +100,11 @@ async def get_clusters():
                         "cert_expiry_days": (cert_status.get("days_remaining") if cert_status else None),
                     }
                 )
-        return {"clusters": cluster_data}
+
+        result = {"clusters": cluster_data}
+        # Cache the result only on success
+        _clusters_cache["clusters"] = {"data": result, "timestamp": current_time}
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -64,9 +113,13 @@ async def get_clusters():
 async def create_cluster(cluster: ClusterCreate):
     """Create new cluster"""
     try:
-        cluster_config = get_cluster(cluster.name)
+        cluster_config = await asyncio.to_thread(get_cluster, cluster.name)
         # Add nodes
         for node in cluster.nodes:
+            ssh_key = getattr(node, "ssh_key", node.get("ssh_key"))
+            if ssh_key and not validate_ssh_key(ssh_key):
+                node_name = getattr(node, "name", node.get("name", "unknown"))
+                raise HTTPException(status_code=400, detail=f"Invalid SSH key format for node {node_name}")
             cluster_config.update_node(node)
 
         # Prometheus config
@@ -75,8 +128,12 @@ async def create_cluster(cluster: ClusterCreate):
 
         # Kubeconfig
         if cluster.kubeconfig:
+            if not validate_kubeconfig(cluster.kubeconfig):
+                raise HTTPException(status_code=400, detail="Invalid kubeconfig format")
             cluster_config.update_kubeconfig(cluster.kubeconfig)
 
+        # Invalidate cache
+        _clusters_cache.pop("clusters", None)
         return {"message": f"Cluster {cluster.name} created successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -86,13 +143,17 @@ async def create_cluster(cluster: ClusterCreate):
 async def update_cluster(cluster_name: str, cluster: ClusterCreate):
     """Update cluster"""
     try:
-        cluster_config = get_cluster(cluster_name)
+        cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
 
         # Clear existing nodes
         cluster_config.config["nodes"] = []
 
         # Add new nodes
         for node in cluster.nodes:
+            ssh_key = getattr(node, "ssh_key", node.get("ssh_key"))
+            if ssh_key and not validate_ssh_key(ssh_key):
+                node_name = getattr(node, "name", node.get("name", "unknown"))
+                raise HTTPException(status_code=400, detail=f"Invalid SSH key format for node {node_name}")
             cluster_config.update_node(node)
 
         # Prometheus config
@@ -103,8 +164,13 @@ async def update_cluster(cluster_name: str, cluster: ClusterCreate):
             cluster_config.update_prometheus({"enabled": False})
 
         # Kubeconfig
+        if cluster.kubeconfig:
+            if not validate_kubeconfig(cluster.kubeconfig):
+                raise HTTPException(status_code=400, detail="Invalid kubeconfig format")
         cluster_config.update_kubeconfig(cluster.kubeconfig or "")
 
+        # Invalidate cache
+        _clusters_cache.pop("clusters", None)
         return {"message": f"Cluster {cluster_name} updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -114,7 +180,9 @@ async def update_cluster(cluster_name: str, cluster: ClusterCreate):
 async def remove_cluster(cluster_name: str):
     """Delete cluster"""
     try:
-        delete_cluster(cluster_name)
+        await asyncio.to_thread(delete_cluster, cluster_name)
+        # Invalidate cache
+        _clusters_cache.pop("clusters", None)
         return {"message": f"Cluster {cluster_name} deleted"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -124,7 +192,7 @@ async def remove_cluster(cluster_name: str):
 async def get_cluster_details(cluster_name: str):
     """Get cluster details"""
     try:
-        cluster_config = get_cluster(cluster_name)
+        cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
         if not cluster_config:
             raise HTTPException(status_code=404, detail="Cluster not found")
 
@@ -144,7 +212,7 @@ async def get_cluster_details(cluster_name: str):
 async def get_cluster_nodes(cluster_name: str):
     """Get cluster nodes information"""
     try:
-        cluster_config = get_cluster(cluster_name)
+        cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
         if not cluster_config:
             raise HTTPException(status_code=404, detail="Cluster not found")
 
@@ -165,12 +233,12 @@ async def get_cluster_nodes(cluster_name: str):
         raise HTTPException(status_code=500, detail=f"Failed to get cluster nodes: {str(e)}")
 
 
-def _get_nodes_for_testing(cluster_name: str, request: Optional[TestNodesRequest] = None) -> List[Dict]:
+async def _get_nodes_for_testing(cluster_name: str, request: Optional[TestNodesRequest] = None) -> List[Dict]:
     """Get list of nodes for testing"""
     if request and request.nodes:
         return request.nodes
 
-    cluster_config = get_cluster(cluster_name)
+    cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
     if not cluster_config:
         raise HTTPException(status_code=404, detail="Cluster not found")
     return cluster_config.get_nodes()
@@ -221,7 +289,7 @@ def _test_single_node(node: Dict) -> Dict:
 async def test_cluster_nodes(cluster_name: str, request: Optional[TestNodesRequest] = None):
     """Test connection to all cluster nodes"""
     try:
-        nodes = _get_nodes_for_testing(cluster_name, request)
+        nodes = await _get_nodes_for_testing(cluster_name, request)
 
         # Test nodes asynchronously in parallel with individual timeouts
         async def test_with_timeout(node):
@@ -318,7 +386,7 @@ async def test_cluster_kubeconfig(cluster_name: str, request: Optional[TestKubec
         if request and request.kubeconfig:
             kubeconfig = request.kubeconfig
         else:
-            cluster_config = get_cluster(cluster_name)
+            cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
             if not cluster_config:
                 raise HTTPException(status_code=404, detail="Cluster not found")
             kubeconfig = cluster_config.get_kubeconfig()

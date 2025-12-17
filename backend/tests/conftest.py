@@ -67,3 +67,11 @@ def test_app(mock_env_vars):
     from scripts.api import app
 
     return app
+
+
+@pytest.fixture(autouse=True)
+def clear_clusters_cache():
+    """Clear clusters cache before each test"""
+    from api.clusters import _clusters_cache
+
+    _clusters_cache.clear()
