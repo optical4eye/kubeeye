@@ -8,7 +8,6 @@ services:
     volumes:
       - ./backend:/app
       - ./backend/data:/app/data
-      - ./backend/test-results:/app/test-results
       - ./backend/logs:/app/logs
     environment:
       - PYTHONPATH=/app
@@ -22,7 +21,7 @@ services:
       - KUBEYE_GITOPS_REPO_USERNAME=optical4eye
       - KUBEYE_GITOPS_REPO_TOKEN=""
       - KUBEYE_GITOPS_REPO_DESCRIPTION=kubeeye repo rules
-    command: ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=scripts", "--cov=controllers", "--cov=services", "--cov=infrastructure", "--cov-report=term-missing", "--cov-report=html:/app/test-results/coverage"]
+    command: ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=app", "--cov-report=term-missing"]
     profiles: ["test"]
 
 volumes:

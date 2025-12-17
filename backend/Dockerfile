@@ -54,7 +54,7 @@ RUN set -eux; \
     mv opa /usr/local/bin/opa
 
 # Copy project files
-COPY . /app/
+COPY app /app/
 
 
 # Create data directories
@@ -66,7 +66,7 @@ RUN mkdir -p /app/data/clusters \
              /app/data/git_rules
 
 # Initialize application
-RUN python scripts/init.py
+RUN python app/scripts/init.py
 
 # Add user for security
 RUN addgroup -S kubeeye --gid 1001 && adduser -u 1001 -S kubeeye -G kubeeye
@@ -82,4 +82,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
 # Start FastAPI
-CMD ["uvicorn", "scripts.api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.scripts.api:app", "--host", "0.0.0.0", "--port", "8000"]

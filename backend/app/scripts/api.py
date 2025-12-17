@@ -4,7 +4,7 @@
 Main API entry point - imports from controllers modules
 """
 
-from controllers.main import app
+from api.main import app
 
 if __name__ == "__main__":
     import uvicorn

@@ -66,6 +66,7 @@ junit-report.xml
 data/
 rules/
 helm/
+app/data
 
 # 多架构构建脚本
 build-multiarch.sh

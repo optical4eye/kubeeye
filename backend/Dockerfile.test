@@ -66,20 +66,16 @@ RUN set -eux; \
     chmod +x opa && \
     mv opa /usr/local/bin/opa
 
-# Copy project files
-COPY . /app/
+# Project files will be mounted via volume in docker-compose
 
 # Create data directories
 RUN mkdir -p /app/data/clusters \
-             /app/data/results \
-             /app/data/exports \
-             /app/data/logs \
-             /app/data/schedules \
-             /app/data/git_rules \
-             /app/test-results
+              /app/data/results \
+              /app/data/exports \
+              /app/data/logs \
+              /app/data/schedules \
+              /app/data/git_rules
 
-# Initialize application
-RUN python scripts/init.py
 
 # Expose API port
 EXPOSE 8000
@@ -89,4 +85,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
 # Default command for testing
-CMD ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=backend", "--cov-report=term-missing", "--cov-report=html:/app/test-results/coverage"]
+CMD ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=app", "--cov-report=term-missing"]

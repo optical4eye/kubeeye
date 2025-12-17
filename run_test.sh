@@ -85,16 +85,7 @@ done
 echo -e "${BLUE}🚀 Starting KubeEye Test Suite${NC}"
 echo "================================="
 
-# Clean up previous test results
-echo -e "${YELLOW}🧹 Cleaning up previous test results...${NC}"
-if [ -d "backend/test-results" ]; then
-    rm -rf backend/test-results/*
-    echo -e "${GREEN}✅ Previous results cleaned${NC}"
-else
-    mkdir -p backend/test-results
-    echo -e "${GREEN}✅ Test results directory created${NC}"
-fi
-echo ""
+# Clean up previous test results (removed)
 
 # Function to run command with error handling
 run_cmd() {
@@ -138,7 +129,7 @@ if [ "$RUN_LINT" = true ]; then
 
     # Auto-format code with Black
     echo -e "${YELLOW}🔧 Auto-formatting code with Black...${NC}"
-    if docker compose -f docker-compose.test.yaml run --rm test-runner sh -c "cd /app && python -m black --line-length=120 scripts controllers services infrastructure"; then
+    if docker compose -f docker-compose.test.yaml run --rm test-runner sh -c "cd /app && python -m black --line-length=120 app"; then
         echo -e "${GREEN}✅ Code formatted successfully${NC}"
     else
         echo -e "${RED}❌ Code formatting failed${NC}"
@@ -147,14 +138,14 @@ if [ "$RUN_LINT" = true ]; then
     echo ""
 
     # Flake8 linting (uses .flake8 config for line length and ignores)
-    if ! run_cmd "docker compose -f docker-compose.test.yaml run --rm test-runner sh -c \"cd /app && python -m flake8 scripts controllers services infrastructure\"" "Flake8 linting"; then
+    if ! run_cmd "docker compose -f docker-compose.test.yaml run --rm test-runner sh -c \"cd /app && python -m flake8 app\"" "Flake8 linting"; then
         ((FAILED_TESTS++))
         echo -e "${RED}❌ Flake8 linting failed. Fix linting issues before proceeding.${NC}"
         exit 1
     fi
 
     # Pylint static analysis (focus on import errors and basic issues)
-    if ! run_cmd "docker compose -f docker-compose.test.yaml run --rm test-runner sh -c \"cd /app && python -m pylint --disable=all --enable=import-error,unused-import,no-name-in-module scripts controllers services infrastructure\"" "Pylint import checks"; then
+    if ! run_cmd "docker compose -f docker-compose.test.yaml run --rm test-runner sh -c \"cd /app && python -m pylint --disable=all --enable=import-error,unused-import,no-name-in-module app\"" "Pylint import checks"; then
         ((FAILED_TESTS++))
         echo -e "${RED}❌ Pylint import checks failed. Fix import issues before proceeding.${NC}"
         exit 1
@@ -179,7 +170,7 @@ if [ "$RUN_UNIT" = true ] || [ "$RUN_INTEGRATION" = true ]; then
     # Coverage options
     COVERAGE_OPTS=""
     if [ "$RUN_COVERAGE" = true ]; then
-        COVERAGE_OPTS="--cov=scripts --cov=controllers --cov=services --cov=infrastructure --cov-report=term-missing --cov-report=html:test-results/coverage"
+        COVERAGE_OPTS="--cov=app --cov-report=term-missing"
     fi
 
     # Run tests
@@ -201,18 +192,7 @@ if [ $FAILED_TESTS -eq 0 ]; then
     echo ""
 
 
-    # Get the correct path for the current OS
-    if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
-        # Windows (Git Bash/MSYS)
-        REPORTS_PATH="$(pwd)/backend/test-results"
-        REPORTS_URL="file:///$(pwd | sed 's|\\|/|g' | sed 's|^\([A-Za-z]\):|/\\1|')/backend/test-results"
-    else
-        # Unix-like systems
-        REPORTS_PATH="$(pwd)/backend/test-results"
-        REPORTS_URL="file://$(pwd)/backend/test-results"
-    fi
-
-    echo -e "${BLUE}📊 Test Results & Reports:${NC}"
+    echo -e "${BLUE}📊 All tests passed!${NC}"
     exit 0
 else
     echo -e "${RED}💥 $FAILED_TESTS test/check groups failed!${NC}"
