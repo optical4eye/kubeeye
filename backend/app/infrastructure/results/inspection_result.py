@@ -838,8 +838,6 @@ def list_results_cached(cluster_name: Optional[str] = None) -> List[Dict]:
     Returns:
         list of inspection result summaries
     """
-    # Temporarily disable cache to force refresh
-    clear_metadata_cache()
     _refresh_metadata_cache()
 
     results = []

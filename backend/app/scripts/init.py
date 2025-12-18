@@ -29,7 +29,7 @@ def ensure_data_directories():
     ]
 
     for directory in directories:
-        directory.mkdir(parents=True, exist_ok=True)
+        os.makedirs(str(directory), exist_ok=True)
         logger.info(f"Ensure directory exists: {directory}")
 
 

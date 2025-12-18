@@ -62,10 +62,17 @@ def get_dashboard_data_api() -> Dict:
     recent_issues = 0
 
     for result in recent_results:
+        logger.debug(f"DEBUG: processing result: {result}, type of timestamp: {type(result.get('timestamp'))}")
         timestamp = datetime.fromisoformat(result["timestamp"]).timestamp()
+        logger.debug(
+            f"DEBUG: timestamp: {timestamp}, type: {type(timestamp)}, cutoff_time: {cutoff_time}, type: {type(cutoff_time)}"
+        )
         if timestamp > cutoff_time:
             recent_scans += 1
             recent_issues += result.get("critical", 0) + result.get("warning", 0)
+            logger.debug(f"DEBUG: recent_scans incremented to {recent_scans}")
+        else:
+            logger.debug(f"DEBUG: timestamp {timestamp} not > cutoff_time {cutoff_time}")
 
     # Last inspection time
     latest_scan_time = "No data"

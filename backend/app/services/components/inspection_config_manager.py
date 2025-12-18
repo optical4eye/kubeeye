@@ -172,13 +172,16 @@ async def get_inspection_config(types=None):
     """Get inspection configuration for specified types"""
     try:
         use_gitops = RuleManager.should_use_gitops()
+        logger.info(f"DEBUG: use_gitops in get_inspection_config: {use_gitops}")
         if types:
             result = {}
             for rule_type in types:
                 try:
                     rules = RuleManager.get_enabled_rules(rule_type, use_gitops)
+                    logger.info(f"DEBUG: rules for {rule_type}: {rules}")
                     result[rule_type] = [{"name": rule.id, "enabled": rule.enabled} for rule in rules]
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Error getting rules for {rule_type}: {str(e)}")
                     result[rule_type] = []
             return result
         else:
@@ -188,8 +191,10 @@ async def get_inspection_config(types=None):
             for rule_type in rule_types:
                 try:
                     rules = RuleManager.get_enabled_rules(rule_type, use_gitops)
+                    logger.info(f"DEBUG: rules for {rule_type}: {rules}")
                     result[rule_type] = [{"name": rule.id, "enabled": rule.enabled} for rule in rules]
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Error getting rules for {rule_type}: {str(e)}")
                     result[rule_type] = []
             return result
     except Exception as e:
@@ -221,13 +226,16 @@ async def get_default_inspection_config():
     """Get default inspection configuration"""
     try:
         use_gitops = RuleManager.should_use_gitops()
+        logger.info(f"DEBUG: use_gitops in get_default_inspection_config: {use_gitops}")
         rule_types = ["node", "prometheus", "opa"]
         result = {}
         for rule_type in rule_types:
             try:
                 rules = RuleManager.get_enabled_rules(rule_type, use_gitops)
+                logger.info(f"DEBUG: rules for {rule_type}: {rules}")
                 result[rule_type] = [{"name": rule.id, "enabled": rule.enabled} for rule in rules]
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error getting rules for {rule_type}: {str(e)}")
                 result[rule_type] = []
         return result
     except Exception as e:

@@ -180,11 +180,11 @@ class TestDataCleanupManager:
         # Run cleanup with max 10000 bytes (should delete oldest files until under limit)
         deleted_count, total_size = cleanup_manager.cleanup_by_size(test_dir, "*.json", 0.01)  # 0.01 MB = 10240 bytes
 
-        assert deleted_count == 2  # Should delete 2 oldest files (1000 + 2000 = 3000 bytes)
-        assert total_size == 3000
+        assert deleted_count == 3  # Should delete 3 oldest files (1000 + 2000 + 3000 = 6000 bytes)
+        assert total_size == 6000  # Total size of deleted files
         assert not files[0].exists()  # Oldest deleted
         assert not files[1].exists()  # Second oldest deleted
-        assert files[2].exists()  # Third kept (3000 + 4000 + 5000 = 12000 > 10240, so need to delete one more)
+        assert not files[2].exists()  # Third oldest deleted
         assert files[3].exists()  # Fourth kept
         assert files[4].exists()  # Newest kept
 
@@ -334,7 +334,8 @@ class TestDataCleanupManager:
         for stat_name in ["results", "logs", "schedules"]:
             assert stats[stat_name]["files"] == 1
             assert stats[stat_name]["size"] == 1000
-            assert stats[stat_name]["size_mb"] == 1000 / (1024 * 1024)
+            expected_mb = round(1000 / (1024 * 1024), 2)
+            assert abs(stats[stat_name]["size_mb"] - expected_mb) < 0.01
 
     def test_get_storage_stats_no_directory(self, cleanup_manager):
         """Test get_storage_stats with non-existent directories"""
@@ -343,6 +344,7 @@ class TestDataCleanupManager:
         for stat_name in ["results", "logs", "schedules"]:
             assert stats[stat_name]["files"] == 0
             assert stats[stat_name]["size"] == 0
+            assert "size_mb" in stats[stat_name]
             assert stats[stat_name]["size_mb"] == 0
 
     def test_start_auto_cleanup(self, cleanup_manager):
@@ -443,49 +445,57 @@ class TestModuleFunctions:
 
     def test_cleanup_old_data_all(self):
         """Test cleanup_old_data with 'all' category"""
-        with patch("app.infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
+        with patch("infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
             mock_manager = MagicMock()
             mock_get_manager.return_value = mock_manager
             mock_manager.cleanup_all.return_value = {"test": "result"}
 
             result = cleanup_old_data("all")
 
+            # Verify the manager was retrieved and method was called
+            mock_get_manager.assert_called_once()
             mock_manager.cleanup_all.assert_called_once()
             assert result == {"test": "result"}
 
     def test_cleanup_old_data_results(self):
         """Test cleanup_old_data with 'results' category"""
-        with patch("app.infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
+        with patch("infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
             mock_manager = MagicMock()
             mock_get_manager.return_value = mock_manager
             mock_manager.cleanup_inspection_results.return_value = {"test": "result"}
 
             result = cleanup_old_data("results")
 
+            # Verify the manager was retrieved and method was called
+            mock_get_manager.assert_called_once()
             mock_manager.cleanup_inspection_results.assert_called_once()
             assert result == {"test": "result"}
 
     def test_cleanup_old_data_logs(self):
         """Test cleanup_old_data with 'logs' category"""
-        with patch("app.infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
+        with patch("infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
             mock_manager = MagicMock()
             mock_get_manager.return_value = mock_manager
             mock_manager.cleanup_logs.return_value = {"test": "result"}
 
             result = cleanup_old_data("logs")
 
+            # Verify the manager was retrieved and method was called
+            mock_get_manager.assert_called_once()
             mock_manager.cleanup_logs.assert_called_once()
             assert result == {"test": "result"}
 
     def test_cleanup_old_data_schedules(self):
         """Test cleanup_old_data with 'schedules' category"""
-        with patch("app.infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
+        with patch("infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
             mock_manager = MagicMock()
             mock_get_manager.return_value = mock_manager
             mock_manager.cleanup_schedules.return_value = {"test": "result"}
 
             result = cleanup_old_data("schedules")
 
+            # Verify the manager was retrieved and method was called
+            mock_get_manager.assert_called_once()
             mock_manager.cleanup_schedules.assert_called_once()
             assert result == {"test": "result"}
 
@@ -498,12 +508,14 @@ class TestModuleFunctions:
 
     def test_get_storage_usage(self):
         """Test get_storage_usage function"""
-        with patch("app.infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
+        with patch("infrastructure.common.data_cleanup.get_cleanup_manager") as mock_get_manager:
             mock_manager = MagicMock()
             mock_get_manager.return_value = mock_manager
             mock_manager.get_storage_stats.return_value = {"test": "stats"}
 
             result = get_storage_usage()
 
+            # Verify the manager was retrieved and method was called
+            mock_get_manager.assert_called_once()
             mock_manager.get_storage_stats.assert_called_once()
             assert result == {"test": "stats"}

@@ -226,7 +226,7 @@ class DataCleanupManager:
         for name, config in self.cleanup_config.items():
             path = config["path"]
             if not path.exists():
-                stats[name] = {"files": 0, "size": 0}
+                stats[name] = {"files": 0, "size": 0, "size_mb": 0}
                 continue
 
             files = list(path.glob(config["pattern"]))

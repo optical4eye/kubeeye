@@ -115,18 +115,24 @@ async def sync_rules_from_gitops() -> bool:
         rule_manager = RuleManager()
 
         # Check if GitOps should be used
-        if not rule_manager.should_use_gitops():
+        should_use = rule_manager.should_use_gitops()
+        logger.info(f"DEBUG: should_use_gitops returned: {should_use}")
+        if not should_use:
+            logger.info("DEBUG: GitOps not enabled, returning False")
             return False
 
         # Get configuration
         config = gitops_manager.load_config()
         repository = config.get("repository")
+        logger.info(f"DEBUG: repository config: {repository}")
 
         if not repository:
+            logger.info("DEBUG: No repository configured, returning False")
             return False
 
         # Clone or update repository
-        success, _ = gitops_manager.clone_or_update_repo(repository)
+        success, message = gitops_manager.clone_or_update_repo(repository)
+        logger.info(f"DEBUG: clone_or_update_repo success: {success}, message: {message}")
         return success
     except Exception as e:
         logger.error(f"Error syncing rules from GitOps: {str(e)}")
@@ -178,11 +184,21 @@ async def get_gitops_status() -> dict:
         gitops_manager = GitOpsRuleManager()
         rule_manager = RuleManager()
 
+        logger.debug("About to call should_use_gitops")
         should_use_gitops = rule_manager.should_use_gitops()
+        logger.debug(f"should_use_gitops returned: {should_use_gitops}, type: {type(should_use_gitops)}")
+        logger.info(
+            f"DEBUG: should_use_gitops in get_gitops_status: {should_use_gitops}, type: {type(should_use_gitops)}"
+        )
         config = gitops_manager.load_config()
+        logger.info(f"DEBUG: config loaded: {config}, type: {type(config)}")
         repository = config.get("repository")
+        logger.info(f"DEBUG: repository in get_gitops_status: {repository}, type: {type(repository)}")
 
         result = {"configured": should_use_gitops and bool(repository), "repository": None}
+        logger.info(
+            f"DEBUG: result configured: {result['configured']}, should_use_gitops: {should_use_gitops}, bool(repository): {bool(repository)}"
+        )
 
         if repository:
             result["repository"] = {
@@ -190,7 +206,9 @@ async def get_gitops_status() -> dict:
                 "branch": repository.get("branch", "main"),
                 "last_sync": "Unknown",  # We don't track this in the current implementation
             }
+            logger.info(f"DEBUG: repository dict created: {result['repository']}")
 
+        logger.info(f"DEBUG: final result: {result}")
         return result
     except Exception as e:
         logger.error(f"Error getting GitOps status: {str(e)}")

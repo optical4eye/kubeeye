@@ -14,6 +14,7 @@ from infrastructure.results.inspection_result import (
     list_results,
     load_result,
     export_report,
+    clear_metadata_cache,
 )
 from services.inspectors.controller import InspectionController
 from infrastructure.dependency_injection.container import get_service
@@ -31,8 +32,6 @@ async def get_reports(limit: int = 100):
         validated_limit = validate_limit_param(limit)
 
         # Clear cache to ensure fresh data
-        from infrastructure.results.inspection_result import clear_metadata_cache
-
         clear_metadata_cache()
 
         reports = list_results(limit=validated_limit, order_by="timestamp DESC")

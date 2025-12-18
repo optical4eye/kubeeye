@@ -6,6 +6,15 @@ Scheduled tasks routes
 
 from fastapi import APIRouter, HTTPException
 from .models import ScheduledTaskCreate
+from infrastructure.tasks.schedule_manager import (
+    load_schedules,
+    ScheduleTask,
+    add_schedule,
+    delete_schedule,
+    run_inspection,
+    update_task_status,
+    schedule_tasks,
+)
 
 router = APIRouter()
 
@@ -14,8 +23,6 @@ router = APIRouter()
 async def get_scheduled_tasks():
     """Get scheduled tasks"""
     try:
-        from infrastructure.tasks.schedule_manager import load_schedules
-
         tasks = load_schedules()
         # Convert objects to dictionaries and add additional fields
         task_list = []
@@ -35,7 +42,6 @@ async def get_scheduled_tasks():
 async def create_scheduled_task(task: ScheduledTaskCreate):
     """Create scheduled task"""
     try:
-        from infrastructure.tasks.schedule_manager import ScheduleTask, add_schedule
         import time
 
         task_id = f"task_{int(time.time())}"
@@ -70,8 +76,6 @@ async def remove_scheduled_task(task_id: str):
 
         validated_task_id = validate_task_id(task_id)
 
-        from infrastructure.tasks.schedule_manager import delete_schedule
-
         if delete_schedule(validated_task_id):
             return {"message": f"Task {validated_task_id} deleted"}
         else:
@@ -90,11 +94,6 @@ async def run_scheduled_task(task_id: str):
         from .validation_middleware import validate_task_id
 
         validated_task_id = validate_task_id(task_id)
-
-        from infrastructure.tasks.schedule_manager import (
-            run_inspection,
-            update_task_status,
-        )
 
         success, message, results = run_inspection(validated_task_id, return_results=True)
         if success:
@@ -119,15 +118,10 @@ async def update_scheduled_task(task_id: str, task: ScheduledTaskCreate):
 
         validated_task_id = validate_task_id(task_id)
 
-        from infrastructure.tasks.schedule_manager import (
-            load_schedules,
-            delete_schedule,
-            ScheduleTask,
-            add_schedule,
-        )
-
         # Find existing task
         tasks = load_schedules()
+        if not isinstance(tasks, list):
+            tasks = []
         existing_task = next((t for t in tasks if t.task_id == validated_task_id), None)
         if not existing_task:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -150,8 +144,6 @@ async def update_scheduled_task(task_id: str, task: ScheduledTaskCreate):
 
         if add_schedule(updated_task):
             # Reschedule tasks to include the updated one
-            from infrastructure.tasks.schedule_manager import schedule_tasks
-
             schedule_tasks()
             return {"message": "Task updated successfully"}
         else:

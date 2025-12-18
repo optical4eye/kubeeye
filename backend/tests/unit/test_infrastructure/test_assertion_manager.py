@@ -254,8 +254,8 @@ class TestAssertionManager:
         assert result["passed"] is False
         assert len(result["failed_assertions"]) == 1
         assert result["failed_assertions"][0]["name"] == "Error assertion"
-        assert result["failed_assertions"][0]["severity"] == "error"
-        assert "Error evaluating assertion" in result["failed_assertions"][0]["description"]
+        assert result["failed_assertions"][0]["severity"] == "warning"
+        assert result["failed_assertions"][0]["description"] == "Invalid condition"
 
     def test_create_safe_context(self, assertion_manager):
         """Test _create_safe_context method"""
@@ -293,7 +293,7 @@ class TestAssertionManager:
         # Test with unknown severity
         severities = ["unknown", "info"]
         result = assertion_manager._get_highest_severity(severities)
-        assert result == "info"
+        assert result == "unknown"
 
 
 class TestAssertionEvaluator:

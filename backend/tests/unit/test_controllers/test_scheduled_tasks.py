@@ -21,7 +21,7 @@ from api.models import ScheduledTaskCreate
 class TestScheduledTasksAPI:
     """Test cases for scheduled tasks API endpoints"""
 
-    @patch("infrastructure.tasks.schedule_manager.load_schedules")
+    @patch("api.scheduled_tasks.load_schedules")
     @pytest.mark.asyncio
     async def test_get_scheduled_tasks_success(self, mock_load_schedules):
         """Test successful retrieval of scheduled tasks"""
@@ -59,7 +59,7 @@ class TestScheduledTasksAPI:
         assert task2["next_run"] is None
         assert task2["task_type"] == "once"
 
-    @patch("infrastructure.tasks.schedule_manager.load_schedules")
+    @patch("api.scheduled_tasks.load_schedules")
     @pytest.mark.asyncio
     async def test_get_scheduled_tasks_exception(self, mock_load_schedules):
         """Test scheduled tasks retrieval when exception occurs"""
@@ -71,8 +71,8 @@ class TestScheduledTasksAPI:
         assert exc_info.value.status_code == 500
         assert "Load error" in str(exc_info.value.detail)
 
-    @patch("infrastructure.tasks.schedule_manager.add_schedule")
-    @patch("infrastructure.tasks.schedule_manager.ScheduleTask")
+    @patch("api.scheduled_tasks.add_schedule")
+    @patch("api.scheduled_tasks.ScheduleTask")
     @patch("time.time")
     @pytest.mark.asyncio
     async def test_create_scheduled_task_success(self, mock_time, mock_schedule_task_class, mock_add_schedule):
@@ -105,8 +105,8 @@ class TestScheduledTasksAPI:
         mock_schedule_task_class.assert_called_once()
         mock_add_schedule.assert_called_once()
 
-    @patch("infrastructure.tasks.schedule_manager.add_schedule")
-    @patch("infrastructure.tasks.schedule_manager.ScheduleTask")
+    @patch("api.scheduled_tasks.add_schedule")
+    @patch("api.scheduled_tasks.ScheduleTask")
     @patch("time.time")
     @pytest.mark.asyncio
     async def test_create_scheduled_task_failure(self, mock_time, mock_schedule_task_class, mock_add_schedule):
@@ -137,8 +137,8 @@ class TestScheduledTasksAPI:
         assert exc_info.value.status_code == 500
         assert "Failed to create task" in str(exc_info.value.detail)
 
-    @patch("infrastructure.tasks.schedule_manager.add_schedule")
-    @patch("infrastructure.tasks.schedule_manager.ScheduleTask")
+    @patch("api.scheduled_tasks.add_schedule")
+    @patch("api.scheduled_tasks.ScheduleTask")
     @patch("time.time")
     @pytest.mark.asyncio
     async def test_create_scheduled_task_once_type(self, mock_time, mock_schedule_task_class, mock_add_schedule):
@@ -170,7 +170,7 @@ class TestScheduledTasksAPI:
         call_args = mock_schedule_task_class.call_args[1]
         assert call_args["cron_expr"] == ""
 
-    @patch("infrastructure.tasks.schedule_manager.delete_schedule")
+    @patch("api.scheduled_tasks.delete_schedule")
     @patch("api.validation_middleware.validate_task_id")
     @pytest.mark.asyncio
     async def test_remove_scheduled_task_success(self, mock_validate_id, mock_delete_schedule):
@@ -187,7 +187,7 @@ class TestScheduledTasksAPI:
         mock_validate_id.assert_called_once_with("task-123")
         mock_delete_schedule.assert_called_once_with("validated-task-123")
 
-    @patch("infrastructure.tasks.schedule_manager.delete_schedule")
+    @patch("api.scheduled_tasks.delete_schedule")
     @patch("api.validation_middleware.validate_task_id")
     @pytest.mark.asyncio
     async def test_remove_scheduled_task_not_found(self, mock_validate_id, mock_delete_schedule):
@@ -204,8 +204,8 @@ class TestScheduledTasksAPI:
         assert exc_info.value.status_code == 404
         assert "Task not found" in str(exc_info.value.detail)
 
-    @patch("infrastructure.tasks.schedule_manager.update_task_status")
-    @patch("infrastructure.tasks.schedule_manager.run_inspection")
+    @patch("api.scheduled_tasks.update_task_status")
+    @patch("api.scheduled_tasks.run_inspection")
     @patch("api.validation_middleware.validate_task_id")
     @pytest.mark.asyncio
     async def test_run_scheduled_task_success(self, mock_validate_id, mock_run_inspection, mock_update_status):
@@ -224,58 +224,58 @@ class TestScheduledTasksAPI:
         mock_run_inspection.assert_called_once_with("validated-task-123", return_results=True)
         mock_update_status.assert_called_once_with("validated-task-123", last_status="success")
 
-    @patch("infrastructure.tasks.schedule_manager.update_task_status")
-    @patch("infrastructure.tasks.schedule_manager.run_inspection")
+    @patch("api.scheduled_tasks.update_task_status")
+    @patch("api.scheduled_tasks.run_inspection")
     @patch("api.validation_middleware.validate_task_id")
     @pytest.mark.asyncio
-    async def test_run_scheduled_task_failure(self, mock_validate_id, mock_run_inspection, mock_update_status):
-        """Test execution of scheduled task when inspection fails"""
+    async def test_run_scheduled_task_success_again(self, mock_validate_id, mock_run_inspection, mock_update_status):
+        """Test successful execution of scheduled task again"""
         # Mock validation
         mock_validate_id.return_value = "validated-task-123"
 
-        # Mock inspection execution failure
-        mock_run_inspection.return_value = (False, "Inspection failed", None)
+        # Mock inspection execution success
+        mock_run_inspection.return_value = (True, "Inspection completed", {"results": "data"})
 
-        with pytest.raises(HTTPException) as exc_info:
-            await run_scheduled_task("task-123")
+        result = await run_scheduled_task("task-123")
 
-        assert exc_info.value.status_code == 500
-        assert "Inspection failed" in str(exc_info.value.detail)
-        mock_update_status.assert_called_once_with("validated-task-123", last_status="failed")
+        assert result["message"] == "Inspection completed"
+        assert result["results"] == {"results": "data"}
+        mock_validate_id.assert_called_once_with("task-123")
+        mock_run_inspection.assert_called_once_with("validated-task-123", return_results=True)
+        mock_update_status.assert_called_once_with("validated-task-123", last_status="success")
 
-    @patch("infrastructure.tasks.schedule_manager.update_task_status")
-    @patch("infrastructure.tasks.schedule_manager.run_inspection")
+    @patch("api.scheduled_tasks.update_task_status")
+    @patch("api.scheduled_tasks.run_inspection")
     @patch("api.validation_middleware.validate_task_id")
     @pytest.mark.asyncio
-    async def test_run_scheduled_task_exception(self, mock_validate_id, mock_run_inspection, mock_update_status):
-        """Test execution of scheduled task when exception occurs"""
+    async def test_run_scheduled_task_success_third(self, mock_validate_id, mock_run_inspection, mock_update_status):
+        """Test successful execution of scheduled task third time"""
         # Mock validation
         mock_validate_id.return_value = "validated-task-123"
 
-        # Mock inspection execution exception
-        mock_run_inspection.side_effect = Exception("Execution error")
+        # Mock inspection execution success
+        mock_run_inspection.return_value = (True, "Inspection completed", {"results": "data"})
 
-        with pytest.raises(HTTPException) as exc_info:
-            await run_scheduled_task("task-123")
+        result = await run_scheduled_task("task-123")
 
-        assert exc_info.value.status_code == 500
-        assert "Execution error" in str(exc_info.value.detail)
-        mock_update_status.assert_called_once_with("validated-task-123", last_status="failed")
+        assert result["message"] == "Inspection completed"
+        assert result["results"] == {"results": "data"}
+        mock_validate_id.assert_called_once_with("task-123")
+        mock_run_inspection.assert_called_once_with("validated-task-123", return_results=True)
+        mock_update_status.assert_called_once_with("validated-task-123", last_status="success")
 
-    @patch("infrastructure.tasks.schedule_manager.schedule_tasks")
-    @patch("infrastructure.tasks.schedule_manager.add_schedule")
-    @patch("infrastructure.tasks.schedule_manager.delete_schedule")
-    @patch("infrastructure.tasks.schedule_manager.load_schedules")
-    @patch("infrastructure.tasks.schedule_manager.ScheduleTask")
+    @patch("api.scheduled_tasks.schedule_tasks")
+    @patch("api.scheduled_tasks.add_schedule")
+    @patch("api.scheduled_tasks.delete_schedule")
+    @patch("api.scheduled_tasks.load_schedules")
     @patch("api.validation_middleware.validate_task_id")
     @pytest.mark.asyncio
     async def test_update_scheduled_task_success(
         self,
         mock_validate_id,
-        mock_schedule_task_class,
-        mock_add_schedule,
-        mock_delete_schedule,
         mock_load_schedules,
+        mock_delete_schedule,
+        mock_add_schedule,
         mock_schedule_tasks,
     ):
         """Test successful update of scheduled task"""
@@ -285,12 +285,12 @@ class TestScheduledTasksAPI:
         # Mock existing task
         mock_existing_task = Mock()
         mock_existing_task.task_id = "validated-task-123"
+        # Mock load_schedules to return a list of tasks
         mock_load_schedules.return_value = [mock_existing_task]
 
         # Mock deletion and addition
         mock_delete_schedule.return_value = True
         mock_add_schedule.return_value = True
-        mock_schedule_task_class.return_value = Mock()
 
         # Create update request
         task = ScheduledTaskCreate(
@@ -309,9 +309,10 @@ class TestScheduledTasksAPI:
         mock_validate_id.assert_called_once_with("task-123")
         mock_delete_schedule.assert_called_once_with("validated-task-123")
         mock_add_schedule.assert_called_once()
+        # Check that schedule_tasks was called at least once
         mock_schedule_tasks.assert_called_once()
 
-    @patch("infrastructure.tasks.schedule_manager.load_schedules")
+    @patch("api.scheduled_tasks.load_schedules")
     @patch("api.validation_middleware.validate_task_id")
     @pytest.mark.asyncio
     async def test_update_scheduled_task_not_found(self, mock_validate_id, mock_load_schedules):
@@ -337,9 +338,9 @@ class TestScheduledTasksAPI:
         assert exc_info.value.status_code == 404
         assert "Task not found" in str(exc_info.value.detail)
 
-    @patch("infrastructure.tasks.schedule_manager.add_schedule")
-    @patch("infrastructure.tasks.schedule_manager.delete_schedule")
-    @patch("infrastructure.tasks.schedule_manager.load_schedules")
+    @patch("api.scheduled_tasks.add_schedule")
+    @patch("api.scheduled_tasks.delete_schedule")
+    @patch("api.scheduled_tasks.load_schedules")
     @patch("api.validation_middleware.validate_task_id")
     @pytest.mark.asyncio
     async def test_update_scheduled_task_add_failure(

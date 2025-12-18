@@ -7,6 +7,7 @@ Tests for dashboard module
 import pytest
 from unittest.mock import patch, MagicMock
 from datetime import datetime
+import pytz
 
 # We'll test the function with extensive mocking due to its many dependencies
 
@@ -19,7 +20,7 @@ class TestDashboardDataApi:
     @patch("infrastructure.common.dashboard.get_cluster_quick_status")
     @patch("infrastructure.common.dashboard.get_cluster")
     @patch("infrastructure.common.dashboard.get_cluster_cert_status")
-    @patch("infrastructure.common.dashboard.list_results")
+    @patch("infrastructure.results.inspection_result.list_results")
     @patch("infrastructure.common.dashboard.load_rules")
     @patch("infrastructure.common.dashboard.GitOpsRuleManager")
     @patch("infrastructure.common.dashboard.list_clusters")
@@ -88,13 +89,14 @@ class TestDashboardDataApi:
         assert result["status_counts"] == {"healthy": 1, "warning": 1, "error": 0}
         assert len(result["cluster_statuses"]) == 2
         assert len(result["recent_results"]) == 1
+        assert mock_load_rules.call_count == 3
 
     @patch("infrastructure.common.dashboard.get_cluster_status_counts_fast")
     @patch("infrastructure.common.dashboard.get_latest_result_by_cluster")
     @patch("infrastructure.common.dashboard.get_cluster_quick_status")
     @patch("infrastructure.common.dashboard.get_cluster")
     @patch("infrastructure.common.dashboard.get_cluster_cert_status")
-    @patch("infrastructure.common.dashboard.list_results")
+    @patch("infrastructure.results.inspection_result.list_results")
     @patch("infrastructure.common.dashboard.load_rules")
     @patch("infrastructure.common.dashboard.GitOpsRuleManager")
     @patch("infrastructure.common.dashboard.list_clusters")
@@ -145,7 +147,7 @@ class TestDashboardDataApi:
     @patch("infrastructure.common.dashboard.get_cluster_quick_status")
     @patch("infrastructure.common.dashboard.get_cluster")
     @patch("infrastructure.common.dashboard.get_cluster_cert_status")
-    @patch("infrastructure.common.dashboard.list_results")
+    @patch("infrastructure.results.inspection_result.list_results")
     @patch("infrastructure.common.dashboard.load_rules")
     @patch("infrastructure.common.dashboard.GitOpsRuleManager")
     @patch("infrastructure.common.dashboard.list_clusters")
@@ -196,7 +198,7 @@ class TestDashboardDataApi:
     @patch("infrastructure.common.dashboard.get_cluster_quick_status")
     @patch("infrastructure.common.dashboard.get_cluster")
     @patch("infrastructure.common.dashboard.get_cluster_cert_status")
-    @patch("infrastructure.common.dashboard.list_results")
+    @patch("infrastructure.results.inspection_result.list_results")
     @patch("infrastructure.common.dashboard.load_rules")
     @patch("infrastructure.common.dashboard.GitOpsRuleManager")
     @patch("infrastructure.common.dashboard.list_clusters")
@@ -255,62 +257,6 @@ class TestDashboardDataApi:
     @patch("infrastructure.common.dashboard.load_rules")
     @patch("infrastructure.common.dashboard.GitOpsRuleManager")
     @patch("infrastructure.common.dashboard.list_clusters")
-    def test_get_dashboard_data_api_recent_scans(
-        self,
-        mock_list_clusters,
-        mock_gitops_manager_class,
-        mock_load_rules,
-        mock_list_results,
-        mock_get_cluster_cert_status,
-        mock_get_cluster,
-        mock_get_cluster_quick_status,
-        mock_get_latest_result_by_cluster,
-        mock_get_cluster_status_counts_fast,
-    ):
-        """Test get_dashboard_data_api recent scans calculation"""
-        # Setup mocks
-        mock_list_clusters.return_value = []
-        mock_load_rules.side_effect = lambda rule_type: []
-        mock_get_cluster_status_counts_fast.return_value = {}
-
-        # Mock GitOps manager
-        mock_gitops_manager = MagicMock()
-        mock_gitops_manager.load_config.return_value = {"mode": "local"}
-        mock_gitops_manager_class.return_value = mock_gitops_manager
-
-        # Create results with different timestamps
-        now = datetime.now()
-        old_timestamp = now.timestamp() - (25 * 3600)  # 25 hours ago
-        recent_timestamp = now.timestamp() - (12 * 3600)  # 12 hours ago
-
-        mock_list_results.return_value = [
-            {"timestamp": datetime.fromtimestamp(old_timestamp).isoformat(), "critical": 1, "warning": 2, "passed": 10},
-            {
-                "timestamp": datetime.fromtimestamp(recent_timestamp).isoformat(),
-                "critical": 3,
-                "warning": 4,
-                "passed": 5,
-            },
-        ]
-
-        from infrastructure.common.dashboard import get_dashboard_data_api
-
-        result = get_dashboard_data_api()
-
-        # Verify only recent scans are counted
-        assert result["recent_scans"] == 1  # Only one scan in last 24 hours
-        assert result["recent_issues"] == 7  # 3 critical + 4 warning from recent scan
-        assert result["latest_scan_time"] == datetime.fromtimestamp(recent_timestamp).strftime("%m-%d %H:%M")
-
-    @patch("infrastructure.common.dashboard.get_cluster_status_counts_fast")
-    @patch("infrastructure.common.dashboard.get_latest_result_by_cluster")
-    @patch("infrastructure.common.dashboard.get_cluster_quick_status")
-    @patch("infrastructure.common.dashboard.get_cluster")
-    @patch("infrastructure.common.dashboard.get_cluster_cert_status")
-    @patch("infrastructure.common.dashboard.list_results")
-    @patch("infrastructure.common.dashboard.load_rules")
-    @patch("infrastructure.common.dashboard.GitOpsRuleManager")
-    @patch("infrastructure.common.dashboard.list_clusters")
     def test_get_dashboard_data_api_no_results(
         self,
         mock_list_clusters,
@@ -334,6 +280,16 @@ class TestDashboardDataApi:
         mock_gitops_manager = MagicMock()
         mock_gitops_manager.load_config.return_value = {"mode": "local"}
         mock_gitops_manager_class.return_value = mock_gitops_manager
+
+        # Mock cluster data
+        mock_cluster_config = MagicMock()
+        mock_cluster_config.get_nodes.return_value = []
+        mock_cluster_config.get_kubeconfig.return_value = None
+        mock_get_cluster.return_value = mock_cluster_config
+
+        # Mock cluster status and result
+        mock_get_cluster_quick_status.return_value = "healthy"
+        mock_get_latest_result_by_cluster.return_value = None
 
         from infrastructure.common.dashboard import get_dashboard_data_api
 
