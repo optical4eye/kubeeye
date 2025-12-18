@@ -14,7 +14,6 @@ from infrastructure.results.inspection_result import (
     list_results,
     load_result,
     export_report,
-    InspectionResult,
 )
 from services.inspectors.controller import InspectionController
 from infrastructure.dependency_injection.container import get_service
@@ -33,6 +32,7 @@ async def get_reports(limit: int = 100):
 
         # Clear cache to ensure fresh data
         from infrastructure.results.inspection_result import clear_metadata_cache
+
         clear_metadata_cache()
 
         reports = list_results(limit=validated_limit, order_by="timestamp DESC")
@@ -160,7 +160,7 @@ async def create_immediate_report():
                 success, result_obj = result
                 if hasattr(result_obj, "items"):
                     total_items += len(result_obj.items)
-            elif hasattr(result, "items"):
+            elif not isinstance(result, tuple) and hasattr(result, "items"):
                 total_items += len(result.items)
 
         return {
@@ -168,7 +168,7 @@ async def create_immediate_report():
             "result_id": result_id,
             "cluster_name": cluster_name,
             "timestamp": datetime.now().isoformat(),
-            "total_items": total_items
+            "total_items": total_items,
         }
 
     except HTTPException:

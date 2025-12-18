@@ -209,6 +209,7 @@ def update_task_status(task_id, last_run=None, last_status=None):
 
 import asyncio
 
+
 def run_inspection_bg(task):
     """Execute inspection in background"""
     try:
@@ -264,16 +265,21 @@ def run_inspection(task_id, return_results=False):
                 loop = asyncio.get_running_loop()
                 # We're in an async context, create a task
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as executor:
+
                     def run_in_thread():
-                        return asyncio.run(execute_inspection_unified(
-                            cluster_name=task.cluster,
-                            selected_rules=task.rules,
-                            inspection_type="scheduled",
-                            show_progress=True,
-                            show_ui_feedback=False,
-                            use_gitops=True,
-                        ))
+                        return asyncio.run(
+                            execute_inspection_unified(
+                                cluster_name=task.cluster,
+                                selected_rules=task.rules,
+                                inspection_type="scheduled",
+                                show_progress=True,
+                                show_ui_feedback=False,
+                                use_gitops=True,
+                            )
+                        )
+
                     future = executor.submit(run_in_thread)
                     success, message, results = future.result()
             except RuntimeError:

@@ -40,7 +40,9 @@ class InspectionRequest(BaseModel):
     cluster_name: Annotated[str, StringConstraints(min_length=1, max_length=100, strip_whitespace=True)] = Field(
         ..., description="Name of the cluster to inspect"
     )
-    selected_rules: Optional[Dict[str, List[str]]] = Field(None, description="Rules to apply by type (node, prometheus, opa)")
+    selected_rules: Optional[Dict[str, List[str]]] = Field(
+        None, description="Rules to apply by type (node, prometheus, opa)"
+    )
     inspection_type: str = Field("immediate", description="Type of inspection: immediate or scheduled")
 
     @field_validator("cluster_name")

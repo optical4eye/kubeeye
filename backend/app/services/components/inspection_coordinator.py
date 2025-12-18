@@ -12,6 +12,7 @@ from infrastructure.results.inspection_result import InspectionResult
 from services.inspectors.node.node_inspector import NodeInspector
 from services.inspectors.prometheus.prometheus_inspector import PrometheusInspector
 from services.inspectors.opa.opa_inspector import OpaInspector
+from services.inspectors.controller import InspectionController
 
 logger = logging.getLogger(__name__)
 
@@ -62,26 +63,29 @@ class InspectionCoordinator:
         if run_node_check:
             node_rules = selected_rules.get("node") if selected_rules else None
             # Extract the actual list of rule IDs if it's a dict with 'rules' key
-            if node_rules and isinstance(node_rules, dict) and 'rules' in node_rules:
-                node_rules = node_rules['rules']
+            if node_rules and isinstance(node_rules, dict) and hasattr(node_rules, "get") and "rules" in node_rules:
+                node_rules = node_rules.get("rules")
             tasks.append(self._execute_node_inspection(cluster_name, nodes, node_rules, show_progress))
 
         if run_prometheus_check:
             prometheus_rules = selected_rules.get("prometheus") if selected_rules else None
             # Extract the actual list of rule IDs if it's a dict with 'rules' key
-            if prometheus_rules and isinstance(prometheus_rules, dict) and 'rules' in prometheus_rules:
-                prometheus_rules = prometheus_rules['rules']
+            if (
+                prometheus_rules
+                and isinstance(prometheus_rules, dict)
+                and hasattr(prometheus_rules, "get")
+                and "rules" in prometheus_rules
+            ):
+                prometheus_rules = prometheus_rules.get("rules")
             tasks.append(
-                self._execute_prometheus_inspection(
-                    cluster_name, prometheus_config, prometheus_rules, show_progress
-                )
+                self._execute_prometheus_inspection(cluster_name, prometheus_config, prometheus_rules, show_progress)
             )
 
         if run_opa_check:
             opa_rules = selected_rules.get("opa") if selected_rules else None
             # Extract the actual list of rule IDs if it's a dict with 'rules' key
-            if opa_rules and isinstance(opa_rules, dict) and 'rules' in opa_rules:
-                opa_rules = opa_rules['rules']
+            if opa_rules and isinstance(opa_rules, dict) and hasattr(opa_rules, "get") and "rules" in opa_rules:
+                opa_rules = opa_rules.get("rules")
             tasks.append(self._execute_opa_inspection(cluster_name, kubeconfig, opa_rules, show_progress))
 
         # Wait for all inspections to complete
@@ -144,9 +148,14 @@ class InspectionCoordinator:
             )
             # Add SSH connection errors if available
             if node_inspector and hasattr(node_inspector, "ssh_error_manager"):
-                ssh_errors = node_inspector.ssh_error_manager.get_all_connection_errors()
-                for error in ssh_errors:
-                    error_result.add_item(error)
+                try:
+                    ssh_errors = node_inspector.ssh_error_manager.get_all_connection_errors()
+                    if asyncio.iscoroutine(ssh_errors):
+                        ssh_errors = await ssh_errors
+                    for error in ssh_errors:
+                        error_result.add_item(error)
+                except Exception as e:
+                    logger.error(f"Error getting SSH errors: {e}")
             return True, error_result
 
     async def _execute_prometheus_inspection(

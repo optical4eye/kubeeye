@@ -11,6 +11,7 @@ import json
 import logging
 from pathlib import Path
 from datetime import datetime, timedelta
+from typing import Optional
 
 # Add root directory to path
 ROOT_DIR = Path(os.environ.get("KUBEEYE_DATA_DIR", str(Path(__file__).parent.parent))).parent  # backend/
@@ -157,6 +158,34 @@ Example:
             return
 
     run_cleanup()
+
+
+def cleanup_reports(days: Optional[int] = None, dry_run: bool = False) -> tuple[int, int]:
+    """
+    Cleanup old reports (function for tests)
+
+    Args:
+        days: number of days to keep files (overrides config)
+        dry_run: if True, only report what would be deleted
+
+    Returns:
+        tuple: (deleted_files, freed_space_in_bytes)
+    """
+    if days is None:
+        config = load_cleanup_config()
+        days = config.get("retention_days", DEFAULT_RETENTION_DAYS)
+
+    # Ensure days is an integer
+    if days is None:
+        days = DEFAULT_RETENTION_DAYS
+
+    if dry_run:
+        # In dry run mode, just count what would be deleted
+        logger.info(f"DRY RUN: Would clean up files older than {days} days")
+        # For now, return 0,0 since we're not actually deleting
+        return 0, 0
+
+    return cleanup_old_reports(days)
 
 
 if __name__ == "__main__":

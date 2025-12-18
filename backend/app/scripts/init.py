@@ -9,6 +9,7 @@ import os
 import sys
 import logging
 from pathlib import Path
+from typing import Optional
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -121,6 +122,45 @@ def main():
     except Exception as e:
         logger.error(f"Initialization failed: {e}")
         sys.exit(1)
+
+
+def initialize(force: bool = False, config_path: Optional[str] = None, verbose: bool = False) -> bool:
+    """
+    Initialize KubeEye (function for tests)
+
+    Args:
+        force: force initialization even if already initialized
+        config_path: custom configuration path
+        verbose: enable verbose logging
+
+    Returns:
+        True if initialization was successful, False otherwise
+    """
+    try:
+        # Setup logging for init script
+        log_level = logging.INFO if verbose else logging.WARNING
+        logging.basicConfig(
+            level=log_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+        logger.info("KubeEye initialization started...")
+
+        # Validate environment
+        if not validate_environment():
+            return False
+
+        # Ensure data directories
+        ensure_data_directories()
+
+        # Ensure OPA binary
+        ensure_opa_binary()
+
+        logger.info("KubeEye initialization completed!")
+        return True
+
+    except Exception as e:
+        logger.error(f"Initialization failed: {e}")
+        return False
 
 
 if __name__ == "__main__":

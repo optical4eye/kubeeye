@@ -55,38 +55,48 @@ class InspectionEngine:
                 logger.warning(f"GitOps sync failed: {gitops_message}")
 
             # Step 2: Get and validate cluster configuration
-            cluster_config, config_error = await InspectionConfigManager.get_cluster_configuration(
-                cluster_name, show_progress
-            )
-            if not cluster_config:
-                return False, config_error, None
+            config_manager = InspectionConfigManager()
+            try:
+                cluster_config, config_error = await config_manager.get_cluster_configuration(
+                    cluster_name, show_progress
+                )
+                if not cluster_config:
+                    return False, config_error, None
+            except Exception as e:
+                return False, f"Configuration error: {str(e)}", None
 
             # Step 3: Extract cluster components
-            components = InspectionConfigManager.extract_cluster_components(cluster_config)
+            components = config_manager.extract_cluster_components(cluster_config)
 
             # Step 4: Validate inspection feasibility
-            can_proceed, validation_error, inspection_decisions = (
-                InspectionConfigManager.validate_inspection_feasibility(components, selected_rules)
+            can_proceed, validation_error, inspection_decisions = config_manager.validate_inspection_feasibility(
+                components, selected_rules
             )
             if not can_proceed:
                 return False, validation_error, None
 
             # Step 5: Execute inspections
             coordinator = InspectionCoordinator(use_gitops=use_gitops)
-            all_results = await coordinator.execute_inspections(
-                cluster_name=cluster_name,
-                nodes=components["nodes"],
-                prometheus_config=components["prometheus_config"],
-                kubeconfig=components["kubeconfig"],
-                selected_rules=selected_rules or {},
-                show_progress=show_progress,
-            )
+            try:
+                all_results = await coordinator.execute_inspections(
+                    cluster_name=cluster_name,
+                    nodes=components["nodes"],
+                    prometheus_config=components["prometheus_config"],
+                    kubeconfig=components["kubeconfig"],
+                    selected_rules=selected_rules or {},
+                    show_progress=show_progress,
+                )
+            except Exception as e:
+                return False, f"Coordinator error: {str(e)}", None
 
             # Step 6: Process and save results
             result_manager = InspectionResultManager(use_gitops=use_gitops)
-            success, message = await result_manager.process_and_save_results(
-                all_results, cluster_name, cluster_config, inspection_type
-            )
+            try:
+                success, message = await result_manager.process_and_save_results(
+                    all_results, cluster_name, cluster_config, inspection_type
+                )
+            except Exception as e:
+                success, message = False, f"Error processing results: {str(e)}"
 
             return success, message, all_results
 

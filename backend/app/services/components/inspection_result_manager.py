@@ -39,7 +39,9 @@ class InspectionResultManager:
             has_successful_results = self._has_successful_results(all_results)
 
             # Save results
-            result_path = await self._save_inspection_results(all_results, cluster_name, cluster_config, inspection_type)
+            result_path = await self._save_inspection_results(
+                all_results, cluster_name, cluster_config, inspection_type
+            )
 
             if has_successful_results:
                 return True, f"Inspection completed successfully, results saved: {result_path}"
@@ -73,7 +75,9 @@ class InspectionResultManager:
                     items = result_obj.items
                     successful_items = []
                     for item in items:
-                        item_dict = item if isinstance(item, dict) else item.__dict__ if hasattr(item, "__dict__") else {}
+                        item_dict = (
+                            item if isinstance(item, dict) else item.__dict__ if hasattr(item, "__dict__") else {}
+                        )
                         if item_dict.get("status") != "error":
                             successful_items.append(item)
                     if successful_items:
