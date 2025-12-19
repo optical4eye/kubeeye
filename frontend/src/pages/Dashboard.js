@@ -3,6 +3,7 @@ import { Card, Row, Col, Statistic, Button, Table, Progress, message } from 'ant
 import { ReloadOutlined, ClusterOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { getDashboardData } from '../services/api';
+import { fetchData } from '../utils/apiErrorHandler';
 
 const chartColors = {
   success: 'var(--success-color)',
@@ -17,13 +18,63 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Утилитарные функции для преобразования статусов
+  const getStatusName = React.useCallback((key) => {
+    const statusMap = {
+      healthy: 'Успешно',
+      warning: 'Предупреждения',
+      critical: 'Критические ошибки'
+    };
+    return statusMap[key] || 'Неизвестно';
+  }, []);
+
+  // Подготовка данных для круговой диаграммы с мемоизацией
+  const pieData = React.useMemo(() => {
+    if (!dashboardData) return [];
+    return Object.entries(dashboardData.status_counts).map(([key, value]) => ({
+      name: getStatusName(key),
+      value,
+      color: COLORS[Object.keys(dashboardData.status_counts).indexOf(key)]
+    }));
+  }, [dashboardData, getStatusName]);
+
+  // Подготовка данных для линейного графика трендов с мемоизацией
+  const trendData = React.useMemo(() => {
+    if (!dashboardData) return [];
+    return dashboardData.recent_results.slice(0, 7).map(result => ({
+      date: new Date(result.timestamp).toLocaleDateString(),
+      critical: result.critical || 0,
+      warning: result.warning || 0,
+      info: result.info || 0,
+      passed: dashboardData.total_rules - (result.critical || 0) - (result.warning || 0) - (result.info || 0)
+    }));
+  }, [dashboardData]);
+
+  // Расчет общего количества passed проверок с мемоизацией
+  const totalPassed = React.useMemo(() => {
+    if (!dashboardData) return 0;
+    return dashboardData.recent_results.reduce((sum, r) => sum + (dashboardData.total_rules - (r.critical || 0) - (r.warning || 0) - (r.info || 0)), 0);
+  }, [dashboardData]);
+
+  // Подготовка данных для столбчатой диаграммы с мемоизацией
+  const barData = React.useMemo(() => {
+    if (!dashboardData) return [];
+    return [
+      { name: 'Критические ошибки', value: dashboardData.cluster_statuses.reduce((sum, cs) => sum + (cs.critical_count || 0), 0), color: chartColors.error },
+      { name: 'Предупреждения', value: dashboardData.cluster_statuses.reduce((sum, cs) => sum + (cs.warning_count || 0), 0), color: chartColors.warning },
+      { name: 'Успешно', value: dashboardData.cluster_statuses.reduce((sum, cs) => sum + (cs.passed_count || 0), 0), color: chartColors.success }
+    ];
+  }, [dashboardData]);
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await getDashboardData();
-      setDashboardData(response.data);
+      await fetchData(
+        getDashboardData,
+        'Ошибка загрузки данных dashboard',
+        (data) => setDashboardData(data)
+      );
     } catch (error) {
-      message.error('Ошибка загрузки данных dashboard');
       console.error(error);
       // Set default data to prevent white screen
       setDashboardData({
@@ -36,6 +87,7 @@ const Dashboard = () => {
         latest_scan_time: 'Нет данных',
         total_rules: 0
       });
+      message.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -61,32 +113,6 @@ const Dashboard = () => {
   }
 
   const { status_counts, cluster_statuses, recent_results, total_clusters, recent_scans, recent_issues, latest_scan_time, total_rules } = dashboardData;
-
-  // Подготовка данных для круговой диаграммы
-  const pieData = Object.entries(status_counts).map(([key, value]) => ({
-    name: key === 'healthy' ? 'Успешно' : key === 'warning' ? 'Предупреждения' : key === 'critical' ? 'Критические ошибки' : 'Неизвестно',
-    value,
-    color: COLORS[Object.keys(status_counts).indexOf(key)]
-  }));
-
-  // Подготовка данных для линейного графика трендов
-  const trendData = recent_results.slice(0, 7).map(result => ({
-    date: new Date(result.timestamp).toLocaleDateString(),
-    critical: result.critical || 0,
-    warning: result.warning || 0,
-    info: result.info || 0,
-    passed: total_rules - (result.critical || 0) - (result.warning || 0) - (result.info || 0)
-  }));
-
-  // Расчет общего количества passed проверок
-  const totalPassed = recent_results.reduce((sum, r) => sum + (total_rules - (r.critical || 0) - (r.warning || 0) - (r.info || 0)), 0);
-
-  // Подготовка данных для столбчатой диаграммы
-  const barData = [
-    { name: 'Критические ошибки', value: cluster_statuses.reduce((sum, cs) => sum + (cs.critical_count || 0), 0), color: chartColors.error },
-    { name: 'Предупреждения', value: cluster_statuses.reduce((sum, cs) => sum + (cs.warning_count || 0), 0), color: chartColors.warning },
-    { name: 'Успешно', value: cluster_statuses.reduce((sum, cs) => sum + (cs.passed_count || 0), 0), color: chartColors.success }
-  ];
 
   const clusterColumns = [
     { title: 'Кластер', dataIndex: 'name', key: 'name' },
