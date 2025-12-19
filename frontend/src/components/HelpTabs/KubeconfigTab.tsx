@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Row, Col, Typography } from 'antd';
+import CodeHighlighter from '../CodeHighlighter';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -17,7 +18,7 @@ const KubeconfigSection = ({ title, description, whyImportant, steps, code, lang
           <Text strong>Шаги:</Text> <span dangerouslySetInnerHTML={{__html: steps}} />
         </Paragraph>
         <div role="code" aria-label={`Пример кода на ${language === "yaml" ? "YAML" : language === "bash" ? "Bash" : "YAML"}`}>
-          <pre><code>{code}</code></pre>
+          <CodeHighlighter code={code} language={language} />
         </div>
       </Card>
     </Col>

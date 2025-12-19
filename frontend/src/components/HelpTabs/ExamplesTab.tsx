@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Row, Col, Typography } from 'antd';
 import { DISK_USAGE_RULE, HOST_NETWORK_RULE, POD_RESOURCES_RULE } from './constants';
+import CodeHighlighter from '../CodeHighlighter';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -21,7 +22,7 @@ const RuleExample = ({ title, description, whyImportant, problems, howToApply, c
           <Text strong>Как применять в KubeEye:</Text> {howToApply}
         </Paragraph>
         <div role="code" aria-label={`Пример кода на ${language === "yaml" ? "YAML" : "Rego"}`}>
-          <pre><code>{code}</code></pre>
+          <CodeHighlighter code={code} language={language} />
         </div>
       </Card>
     </Col>
