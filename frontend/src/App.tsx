@@ -68,7 +68,7 @@ function App() {
         <div className="logo logo-container">
           <span>Kube</span><span>Eye</span>
         </div>
-        <VersionDisplay version="3.1.0" />
+        <VersionDisplay version="3.1" />
         <Menu
           theme="dark"
           mode="inline"
