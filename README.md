@@ -277,6 +277,11 @@ def mock_ssh_connection():    # Mock SSH соединения
 def test_app():               # FastAPI тестовое приложение
 ```
 
+## Документация
+
+- **[Backend README](backend/README.md)**: Подробная информация о серверной части приложения.
+- **[Frontend README](frontend/README.md)**: Подробная информация о клиентской части приложения.
+
 ## Быстрый старт
 
 ### Метод 1: Docker Compose (Рекомендуется)
