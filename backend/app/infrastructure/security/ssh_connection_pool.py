@@ -37,7 +37,8 @@ class SSHConnectionPool:
         self.max_connections = max_connections
         self.connection_timeout = connection_timeout
         self.pools: Dict[str, list] = {}  # node_key -> list of ConnectionInfo
-        self._lock = asyncio.Lock()
+        # Remove global lock to avoid event loop binding issues
+        # self._lock = asyncio.Lock()
 
     def _get_node_key(self, node_info: Dict) -> str:
         """Generate unique key for node"""
@@ -55,7 +56,9 @@ class SSHConnectionPool:
         """
         node_key = self._get_node_key(node_info)
 
-        async with self._lock:
+        # Use local lock to avoid event loop binding issues
+        lock = asyncio.Lock()
+        async with lock:
             # Clean expired connections
             await self._clean_expired_connections(node_key)
 
@@ -92,7 +95,9 @@ class SSHConnectionPool:
         """
         node_key = self._get_node_key(node_info)
 
-        async with self._lock:
+        # Use local lock to avoid event loop binding issues
+        lock = asyncio.Lock()
+        async with lock:
             # Clean expired connections
             await self._clean_expired_connections(node_key)
 
@@ -197,7 +202,9 @@ class SSHConnectionPool:
 
     async def close_all(self):
         """Close all connections in pool"""
-        async with self._lock:
+        # Use local lock to avoid event loop binding issues
+        lock = asyncio.Lock()
+        async with lock:
             for node_key, connections in self.pools.items():
                 for conn_info in connections:
                     try:
