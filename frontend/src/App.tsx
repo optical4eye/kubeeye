@@ -9,6 +9,7 @@ import {
   QuestionCircleOutlined,
   WifiOutlined
 } from '@ant-design/icons';
+import VersionDisplay from './components/VersionDisplay';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ClusterManagement = lazy(() => import('./pages/ClusterManagement'));
@@ -67,6 +68,7 @@ function App() {
         <div className="logo logo-container">
           <span>Kube</span><span>Eye</span>
         </div>
+        <VersionDisplay version="3.1.0" />
         <Menu
           theme="dark"
           mode="inline"

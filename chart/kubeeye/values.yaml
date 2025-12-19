@@ -71,7 +71,7 @@ backend:
     - name: KUBEYE_SSH_MAX_CONCURRENT_CHECKS
       value: '10'
     - name: GIT_SSL_NO_VERIFY
-      value: 'false'
+      value: '0'
 
   resources:
     limits:
