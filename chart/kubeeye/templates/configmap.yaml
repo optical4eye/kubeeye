@@ -25,10 +25,6 @@ data:
         include       /etc/nginx/mime.types;
         default_type  application/octet-stream;
 
-        # Logging
-        access_log syslog:server=unix:/dev/log,facility=local6,tag=nginx,severity=info;
-        error_log syslog:server=unix:/dev/log,facility=local6,tag=nginx,severity=error;
-
         # Gzip compression
         gzip on;
         gzip_vary on;
