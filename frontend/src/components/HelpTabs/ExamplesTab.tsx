@@ -1,8 +1,6 @@
 import React from 'react';
 import { Card, Row, Col, Typography } from 'antd';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { DISK_USAGE_RULE, HOST_NETWORK_RULE, POD_RESOURCES_RULE } from './constants';
-import customSyntaxStyle from './syntaxStyles';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -23,9 +21,7 @@ const RuleExample = ({ title, description, whyImportant, problems, howToApply, c
           <Text strong>Как применять в KubeEye:</Text> {howToApply}
         </Paragraph>
         <div role="code" aria-label={`Пример кода на ${language === "yaml" ? "YAML" : "Rego"}`}>
-          <SyntaxHighlighter language={language} style={customSyntaxStyle}>
-            {code}
-          </SyntaxHighlighter>
+          <pre><code>{code}</code></pre>
         </div>
       </Card>
     </Col>

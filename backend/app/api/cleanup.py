@@ -5,9 +5,16 @@ Cleanup management routes
 """
 
 from fastapi import APIRouter, HTTPException
+import os
 from scripts.cleanup_reports import load_cleanup_config
 
 router = APIRouter()
+
+
+def get_cleanup_source():
+    """Determine the source of cleanup configuration"""
+    env_retention = os.getenv("KUBEYE_REPORT_RETENTION_DAYS")
+    return "environment" if env_retention is not None else "default"
 
 
 @router.get("/cleanup")
@@ -46,6 +53,7 @@ async def get_cleanup_config():
     """Get auto cleanup config for reports"""
     try:
         config = load_cleanup_config()
+        source = get_cleanup_source()
 
         # Sanitize config to remove any potentially sensitive information
         if isinstance(config, dict):
@@ -54,15 +62,20 @@ async def get_cleanup_config():
                 if key == "last_cleanup":
                     # Keep timestamp as is
                     sanitized_config[key] = value
-                elif key in ["enabled", "max_age_days", "cleanup_interval_hours"]:
+                elif key in ["enabled", "max_age_days", "cleanup_interval_hours", "retention_days"]:
                     # Validate numeric/boolean values
                     if key == "enabled":
                         sanitized_config[key] = bool(value) if isinstance(value, bool) else False
-                    elif key in ["max_age_days", "cleanup_interval_hours"]:
-                        if isinstance(value, int) and 1 <= value <= (365 if key == "max_age_days" else 168):
+                    elif key in ["max_age_days", "cleanup_interval_hours", "retention_days"]:
+                        if isinstance(value, int) and 1 <= value <= (
+                            365 if key in ["max_age_days", "retention_days"] else 168
+                        ):
                             sanitized_config[key] = value
                         else:
-                            sanitized_config[key] = 30 if key == "max_age_days" else 24
+                            sanitized_config[key] = 30 if key in ["max_age_days", "retention_days"] else 24
+                elif key == "source":
+                    # Use the determined source
+                    sanitized_config[key] = source
                 else:
                     # Skip unknown keys for security
                     continue

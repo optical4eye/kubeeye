@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional, TypeVar, Type, Callable
 from dataclasses import dataclass
 from contextvars import ContextVar
 import asyncio
+import inspect
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +109,7 @@ class DIContainer:
     async def _create_instance(self, service_def: ServiceDefinition) -> Any:
         """Create service instance"""
         try:
-            if asyncio.iscoroutinefunction(service_def.factory):
+            if inspect.iscoroutinefunction(service_def.factory):
                 return await service_def.factory()
             else:
                 return service_def.factory()
@@ -132,7 +133,7 @@ class DIContainer:
         for name, service_def in self._services.items():
             if service_def.instance and hasattr(service_def.instance, "cleanup"):
                 try:
-                    if asyncio.iscoroutinefunction(service_def.instance.cleanup):
+                    if inspect.iscoroutinefunction(service_def.instance.cleanup):
                         await service_def.instance.cleanup()
                     else:
                         service_def.instance.cleanup()

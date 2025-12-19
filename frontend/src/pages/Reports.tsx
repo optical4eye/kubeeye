@@ -343,8 +343,8 @@ const Reports = () => {
                 <div>
                   <p>Система автоматически удаляет старые отчеты для освобождения дискового пространства.</p>
                   <ul className="margin-top-space-2">
-                    <li><strong>Период хранения:</strong> {cleanupConfig.retention_days || 14} дней</li>
-                    <li><strong>Источник настроек:</strong> {cleanupConfig.source === 'env' ? 'Переменная окружения' : cleanupConfig.source === 'file' ? 'Файл конфигурации' : 'По умолчанию'}</li>
+                    <li><strong>Период хранения:</strong> {cleanupConfig.retention_days || 30} дней</li>
+                    <li><strong>Источник настроек:</strong> {cleanupConfig.source === 'environment' ? 'Переменная окружения' : 'По умолчанию'}</li>
                   </ul>
                   <p className="margin-top-space-2"><strong>Примечание:</strong> Автоочистка выполняется автоматически в фоновом режиме. Изменить настройки можно через переменную окружения <code>KUBEYE_REPORT_RETENTION_DAYS</code> или файл конфигурации.</p>
                 </div>

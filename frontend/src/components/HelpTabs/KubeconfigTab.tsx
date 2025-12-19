@@ -1,7 +1,5 @@
 import React from 'react';
 import { Card, Row, Col, Typography } from 'antd';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import customSyntaxStyle from './syntaxStyles';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -19,9 +17,7 @@ const KubeconfigSection = ({ title, description, whyImportant, steps, code, lang
           <Text strong>Шаги:</Text> <span dangerouslySetInnerHTML={{__html: steps}} />
         </Paragraph>
         <div role="code" aria-label={`Пример кода на ${language === "yaml" ? "YAML" : language === "bash" ? "Bash" : "YAML"}`}>
-          <SyntaxHighlighter language={language} style={customSyntaxStyle}>
-            {code}
-          </SyntaxHighlighter>
+          <pre><code>{code}</code></pre>
         </div>
       </Card>
     </Col>

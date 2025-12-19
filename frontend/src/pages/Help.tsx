@@ -1,7 +1,11 @@
-import React from 'react';
-import { Tabs } from 'antd';
+import React, { Suspense, lazy } from 'react';
+import { Tabs, Spin } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
-import { IntroductionTab, ExamplesTab, SecurityTab, KubeconfigTab } from '../components/HelpTabs';
+
+const IntroductionTab = lazy(() => import('../components/HelpTabs/IntroductionTab'));
+const ExamplesTab = lazy(() => import('../components/HelpTabs/ExamplesTab'));
+const SecurityTab = lazy(() => import('../components/HelpTabs/SecurityTab'));
+const KubeconfigTab = lazy(() => import('../components/HelpTabs/KubeconfigTab'));
 
 const Help = () => {
   return (
@@ -14,19 +18,27 @@ const Help = () => {
 
       <Tabs defaultActiveKey="1" aria-label="Разделы справки KubeEye">
         <Tabs.TabPane tab="Введение в Open Policy Agent" key="1" aria-label="Введение в OPA">
-          <IntroductionTab />
+          <Suspense fallback={<Spin />}>
+            <IntroductionTab />
+          </Suspense>
         </Tabs.TabPane>
 
         <Tabs.TabPane tab="Примеры правил" key="2" aria-label="Примеры правил инспекции">
-          <ExamplesTab />
+          <Suspense fallback={<Spin />}>
+            <ExamplesTab />
+          </Suspense>
         </Tabs.TabPane>
 
         <Tabs.TabPane tab="Запрещенные команды" key="3" aria-label="Безопасность и запрещенные команды">
-          <SecurityTab />
+          <Suspense fallback={<Spin />}>
+            <SecurityTab />
+          </Suspense>
         </Tabs.TabPane>
 
         <Tabs.TabPane tab="Настройка Kubeconfig" key="4" aria-label="Настройка kubeconfig для KubeEye">
-          <KubeconfigTab />
+          <Suspense fallback={<Spin />}>
+            <KubeconfigTab />
+          </Suspense>
         </Tabs.TabPane>
       </Tabs>
     </div>

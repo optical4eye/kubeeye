@@ -33,25 +33,17 @@ def load_cleanup_config() -> dict:
     """Load cleanup configuration"""
     # Check environment variable first
     env_retention = os.getenv(ENV_RETENTION_DAYS)
+    source = "environment" if env_retention is not None else "default"
+    retention_days = DEFAULT_RETENTION_DAYS
     if env_retention is not None:
         try:
-            retention_days = int(env_retention)
-            if retention_days >= 0:
-                return {"retention_days": retention_days, "source": "env"}
+            parsed = int(env_retention)
+            if parsed >= 0:
+                retention_days = parsed
         except ValueError:
             pass
 
-    # Fall back to config file
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                config = json.load(f)
-                config["source"] = "file"
-                return config
-        except Exception:
-            pass
-
-    return {"retention_days": DEFAULT_RETENTION_DAYS, "source": "default"}
+    return {"retention_days": retention_days, "source": source}
 
 
 def save_cleanup_config(config: dict):
