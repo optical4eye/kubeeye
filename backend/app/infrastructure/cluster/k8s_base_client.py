@@ -9,10 +9,62 @@ import tempfile
 import os
 import logging
 from typing import Tuple
+import re
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
 logger = logging.getLogger(__name__)
+
+
+def _add_padding(base64_str: str) -> str:
+    """
+    Add padding to base64 string if needed.
+
+    Args:
+        base64_str: Base64 string
+
+    Returns:
+        Padded base64 string
+    """
+    # Remove any existing padding
+    base64_str = base64_str.rstrip('=')
+    # Add padding
+    padding_needed = (4 - len(base64_str) % 4) % 4
+    return base64_str + '=' * padding_needed
+
+
+def clean_base64_in_kubeconfig(kubeconfig_str: str) -> str:
+    """
+    Clean whitespace from base64-encoded fields in kubeconfig string to prevent decoding errors.
+
+    Args:
+        kubeconfig_str: Kubeconfig as string
+
+    Returns:
+        Cleaned kubeconfig string
+    """
+    # Fields to clean
+    fields = ['certificate-authority-data', 'client-certificate-data', 'client-key-data']
+
+    for field in fields:
+        # Pattern: field: |\n<multiline value>\n
+        pattern = rf'({field}:\s*\|\s*\n)((?:.*?\n)*?)(\n|$)'
+        kubeconfig_str = re.sub(
+            pattern,
+            lambda m: m.group(1) + _add_padding(''.join(m.group(2).split())) + m.group(3),
+            kubeconfig_str,
+            flags=re.MULTILINE
+        )
+
+        # Also handle single line: field: <value>
+        pattern_single = rf'({field}:\s*)([^\s\n]+)'
+        kubeconfig_str = re.sub(
+            pattern_single,
+            lambda m: m.group(1) + _add_padding(m.group(2)),
+            kubeconfig_str
+        )
+
+    return kubeconfig_str
 
 
 class K8sBaseClient:
@@ -38,9 +90,12 @@ class K8sBaseClient:
         """
         try:
             if self.kubeconfig_content:
-                # Create temporary file to store kubeconfig
+                # Clean base64 fields in kubeconfig string
+                cleaned_kubeconfig = clean_base64_in_kubeconfig(self.kubeconfig_content)
+
+                # Create temporary file to store cleaned kubeconfig
                 self.temp_config = tempfile.NamedTemporaryFile(delete=False)
-                self.temp_config.write(self.kubeconfig_content.encode())
+                self.temp_config.write(cleaned_kubeconfig.encode())
                 self.temp_config.flush()
                 config.load_kube_config(self.temp_config.name)
             else:

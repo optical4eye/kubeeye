@@ -71,7 +71,7 @@ RUN python scripts/init.py
 # Add user for security
 RUN addgroup -S kubeeye --gid 1001 && adduser -u 1001 -S kubeeye -G kubeeye
 
-RUN chown -R kubeeye:kubeeye /app /usr/local/bin/opa
+RUN chown -R kubeeye:kubeeye /app /usr/local/bin/opa /tmp
 
 USER kubeeye
 
