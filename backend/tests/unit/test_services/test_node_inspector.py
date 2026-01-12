@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 
 from services.inspectors.node.node_inspector import NodeInspector, SSHConnectionErrorManager
-from infrastructure.results.inspection_result import InspectionResult
+from infra.results.inspection_result import InspectionResult
 
 
 class TestSSHConnectionErrorManager:
@@ -94,7 +94,7 @@ class TestSSHConnectionErrorManager:
 class TestNodeInspector:
     """Test cases for node inspector"""
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     def test_init(self, mock_security_checker):
         """Test inspector initialization"""
         nodes_config = [
@@ -109,7 +109,7 @@ class TestNodeInspector:
         assert len(inspector.nodes) == 2
         assert isinstance(inspector.ssh_error_manager, SSHConnectionErrorManager)
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     @patch("services.inspectors.node.node_inspector.NodeInspector._check_all_node_connections")
     @patch("services.inspectors.base_inspector.BaseInspector.run_inspection")
     @pytest.mark.asyncio
@@ -135,7 +135,7 @@ class TestNodeInspector:
         assert result.inspection_type == "node"  # Fix: it's inspection_type, not inspector_type
         mock_check_connections.assert_called_once()
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     @patch("services.inspectors.node.node_inspector.NodeInspector._check_all_node_connections")
     @pytest.mark.asyncio
     async def test_run_inspection_no_available_nodes(self, mock_check_connections, mock_security_checker):
@@ -155,7 +155,7 @@ class TestNodeInspector:
         assert len(result.items) == 1  # Should have SSH error
         assert result.items[0]["connection_error"] is True
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     def test_filter_nodes_by_selector(self, mock_security_checker):
         """Test filtering nodes by selector"""
         nodes_config = [
@@ -179,7 +179,7 @@ class TestNodeInspector:
         filtered = inspector._filter_nodes_by_selector(nodes_config, {})
         assert len(filtered) == 2
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     def test_is_ssh_connection_error(self, mock_security_checker):
         """Test SSH connection error detection"""
         inspector = NodeInspector([])
@@ -194,15 +194,15 @@ class TestNodeInspector:
         ]
 
         for error in ssh_errors:
-            assert inspector._is_ssh_connection_error(error)
+            assert inspector.ssh_execution_manager.is_ssh_connection_error(error)
 
         # Test non-SSH errors
         non_ssh_errors = ["command not found", "permission denied", "file not found"]
 
         for error in non_ssh_errors:
-            assert not inspector._is_ssh_connection_error(error)
+            assert not inspector.ssh_execution_manager.is_ssh_connection_error(error)
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     def test_get_execution_stats(self, mock_security_checker):
         """Test getting execution statistics"""
         nodes_config = [{"ip": "192.168.1.1", "port": 22, "name": "node1"}]
@@ -220,7 +220,7 @@ class TestNodeInspector:
         assert stats["success_rate"] == 50.0
         assert stats["ssh_connection_errors"] == 0
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     def test_create_optimized_small_cluster(self, mock_security_checker):
         """Test creating optimized inspector for small cluster"""
         nodes_config = [{"ip": "192.168.1.1", "port": 22, "name": "node1"}]
@@ -231,7 +231,7 @@ class TestNodeInspector:
         assert inspector.enable_concurrent is False
         assert inspector.timeout == 30
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     def test_create_optimized_medium_cluster(self, mock_security_checker):
         """Test creating optimized inspector for medium cluster"""
         nodes_config = [{"ip": f"192.168.1.{i}", "port": 22, "name": f"node{i}"} for i in range(1, 8)]
@@ -242,7 +242,7 @@ class TestNodeInspector:
         assert inspector.enable_concurrent is True
         assert inspector.timeout == 25
 
-    @patch("services.inspectors.node.node_inspector.CommandSecurityChecker")
+    @patch("infra.security.command_security.CommandSecurityChecker")
     def test_create_optimized_large_cluster(self, mock_security_checker):
         """Test creating optimized inspector for large cluster"""
         nodes_config = [{"ip": f"192.168.1.{i}", "port": 22, "name": f"node{i}"} for i in range(1, 25)]

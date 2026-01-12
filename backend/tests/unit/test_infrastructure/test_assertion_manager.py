@@ -6,7 +6,7 @@ Tests for assertion manager module
 
 import pytest
 from unittest.mock import patch, MagicMock
-from infrastructure.common.assertion_manager import AssertionManager, AssertionEvaluator
+from core.common.assertion_manager import AssertionManager
 
 
 class TestAssertionManager:
@@ -294,15 +294,3 @@ class TestAssertionManager:
         severities = ["unknown", "info"]
         result = assertion_manager._get_highest_severity(severities)
         assert result == "unknown"
-
-
-class TestAssertionEvaluator:
-    """Test cases for AssertionEvaluator alias"""
-
-    def test_assertion_evaluator_alias(self):
-        """Test that AssertionEvaluator is an alias for AssertionManager"""
-        assert AssertionEvaluator == AssertionManager
-
-        # Test that we can create an instance
-        evaluator = AssertionEvaluator()
-        assert isinstance(evaluator, AssertionManager)

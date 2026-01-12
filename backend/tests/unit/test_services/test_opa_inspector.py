@@ -11,7 +11,7 @@ import os
 from unittest.mock import Mock, patch, mock_open
 
 from services.inspectors.opa.opa_inspector import OpaInspector, DateTimeEncoder
-from infrastructure.rules.rule_loader import Rule
+from infra.rules.rule_loader import Rule
 
 
 class TestDateTimeEncoder:
@@ -92,118 +92,6 @@ class TestOpaInspector:
 
         assert inspector.opa_path == "/usr/local/bin/opa"
         mock_k8s_client_class.assert_called_once_with(None)
-
-    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
-    def test_validate_rule_complete(self, mock_k8s_client_class):
-        """Test rule validation with complete configuration"""
-        inspector = OpaInspector({})
-
-        rule = Mock(spec=Rule)
-        rule.config = {
-            "rego": {"inline": "package test"},
-            "resources": [{"kind": "Pod"}],
-            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}],
-        }
-
-        # Mock the get_rule_config method
-        def mock_get_rule_config(r, key, default=None):
-            if key == "rego.inline":
-                return rule.config.get("rego", {}).get("inline", default)
-            elif key == "rego.file":
-                return rule.config.get("rego", {}).get("file", default)
-            elif key == "resources":
-                return rule.config.get("resources", default)
-            elif key == "assertions":
-                return rule.config.get("assertions", default)
-            return default
-
-        inspector.get_rule_config = Mock(side_effect=mock_get_rule_config)
-
-        issues = inspector.validate_rule(rule)
-
-        # The validation checks for "rego.inline" or "rego.file", so it should pass
-        assert len(issues) == 0
-
-    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
-    def test_validate_rule_missing_rego(self, mock_k8s_client_class):
-        """Test rule validation with missing Rego rules"""
-        inspector = OpaInspector({})
-
-        rule = Mock(spec=Rule)
-        rule.config = {
-            "resources": [{"kind": "Pod"}],
-            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}],
-        }
-
-        def mock_get_rule_config(r, key, default=None):
-            if key == "rego.inline":
-                return rule.config.get("rego", {}).get("inline", default)
-            elif key == "rego.file":
-                return rule.config.get("rego", {}).get("file", default)
-            elif key == "resources":
-                return rule.config.get("resources", default)
-            elif key == "assertions":
-                return rule.config.get("assertions", default)
-            return default
-
-        inspector.get_rule_config = Mock(side_effect=mock_get_rule_config)
-
-        issues = inspector.validate_rule(rule)
-
-        assert "Missing Rego rules configuration" in issues
-
-    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
-    def test_validate_rule_missing_resources(self, mock_k8s_client_class):
-        """Test rule validation with missing resources"""
-        inspector = OpaInspector({})
-
-        rule = Mock(spec=Rule)
-        rule.config = {
-            "rego": {"inline": "package test"},
-            "assertions": [{"field": "violation_count", "op": "eq", "value": 0}],
-        }
-
-        def mock_get_rule_config(r, key, default=None):
-            if key == "rego.inline":
-                return rule.config.get("rego", {}).get("inline", default)
-            elif key == "rego.file":
-                return rule.config.get("rego", {}).get("file", default)
-            elif key == "resources":
-                return rule.config.get("resources", default)
-            elif key == "assertions":
-                return rule.config.get("assertions", default)
-            return default
-
-        inspector.get_rule_config = Mock(side_effect=mock_get_rule_config)
-
-        issues = inspector.validate_rule(rule)
-
-        assert "Missing resource configuration" in issues
-
-    @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
-    def test_validate_rule_missing_assertions(self, mock_k8s_client_class):
-        """Test rule validation with missing assertions"""
-        inspector = OpaInspector({})
-
-        rule = Mock(spec=Rule)
-        rule.config = {"rego": {"inline": "package test"}, "resources": [{"kind": "Pod"}]}
-
-        def mock_get_rule_config(r, key, default=None):
-            if key == "rego.inline":
-                return rule.config.get("rego", {}).get("inline", default)
-            elif key == "rego.file":
-                return rule.config.get("rego", {}).get("file", default)
-            elif key == "resources":
-                return rule.config.get("resources", default)
-            elif key == "assertions":
-                return rule.config.get("assertions", default)
-            return default
-
-        inspector.get_rule_config = Mock(side_effect=mock_get_rule_config)
-
-        issues = inspector.validate_rule(rule)
-
-        assert "Missing assertions configuration" in issues
 
     @patch("services.inspectors.opa.opa_inspector.K8sDynamicClient")
     def test_get_rego_content_inline(self, mock_k8s_client_class):

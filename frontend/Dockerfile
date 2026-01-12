@@ -1,4 +1,4 @@
-# Frontend Dockerfile - React application
+# Frontend Dockerfile - Production build
 FROM node:24-slim AS build
 
 WORKDIR /app
@@ -6,7 +6,7 @@ WORKDIR /app
 # Copy package files
 COPY ./package*.json ./
 
-# Install dependencies
+# Install all dependencies (including dev for build)
 RUN npm install
 
 # Copy source code

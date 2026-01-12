@@ -1,0 +1,235 @@
+/* ===== THEME VARIABLES ===== */
+/* Ant Design v6 Semantic Tokens - Standard Ant Design dark theme colors */
+/* Color tokens - стандартные цвета Ant Design для темной темы */
+:root {
+  /* Additional custom tokens */
+  --color-primary-alpha-15: rgba(77, 171, 247, 0.15);
+  --font-size-4xl: clamp(2rem, 6vw, 2.5rem);
+  --font-size-3xl: clamp(1.5rem, 5vw, 2rem);
+  --font-size-2xl: clamp(1.25rem, 4vw, 1.5rem);
+  --font-size-xl: clamp(1rem, 3vw, 1.125rem);
+  --font-size-base: clamp(0.75rem, 2vw, 0.875rem);
+  --font-size-sm: clamp(0.625rem, 1.5vw, 0.75rem);
+  --space-1: clamp(2px, 1vw, 4px);
+  --space-2: clamp(6px, 2vw, 8px);
+  --space-3: clamp(12px, 4vw, 16px);
+  --space-4: clamp(18px, 6vw, 24px);
+  --grid-min-width: 300px;
+  --modal-width-medium: 800px;
+  --modal-width-large: 1800px;
+  --min-width-tag: 60px;
+  --min-width-button: 120px;
+  --max-height-textarea: 300px;
+  --width-menu: 200px;
+  --width-100: 100px;
+  --width-120: 120px;
+  --width-150: 150px;
+  --width-200: 200px;
+  --width-250: 250px;
+  --transform-hover: -1px;
+  --transform-animation: -4px;
+  --border-width-thin: 1px;
+  --border-width-focus: 2px;
+  --z-dropdown: 1000;
+  --z-sticky: 1010;
+  --z-fixed: 1020;
+  --z-modal-backdrop: 1030;
+  --z-modal: 1040;
+  --z-popover: 1050;
+  --z-tooltip: 1060;
+  --z-toast: 1070;
+  --duration-fast: 0.15s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* Spacing tokens - Fluid spacing with clamp() */
+  --ant-margin-xs: clamp(2px, 1vw, 4px);
+  --ant-margin-sm: clamp(6px, 2vw, 8px);
+  --ant-margin: clamp(12px, 4vw, 16px);
+  --ant-margin-lg: clamp(18px, 6vw, 24px);
+  --ant-margin-xl: clamp(24px, 8vw, 32px);
+  --ant-margin-xxl: clamp(36px, 12vw, 48px);
+  --ant-margin-xxxl: clamp(48px, 16vw, 64px);
+
+  --ant-padding-xs: clamp(2px, 1vw, 4px);
+  --ant-padding-sm: clamp(6px, 2vw, 8px);
+  --ant-padding: clamp(12px, 4vw, 16px);
+  --ant-padding-lg: clamp(18px, 6vw, 24px);
+  --ant-padding-xl: clamp(24px, 8vw, 32px);
+  --ant-padding-xxl: clamp(36px, 12vw, 48px);
+  --ant-padding-xxxl: clamp(48px, 16vw, 64px);
+
+  /* Border radius tokens */
+  --ant-border-radius-sm: 4px;
+  --ant-border-radius: 6px;
+  --ant-border-radius-lg: 8px;
+
+  /* Box shadow tokens */
+  --ant-box-shadow: 0 4px 6px rgb(0 0 0 / 10%);
+  --ant-box-shadow-secondary: 0 1px 2px rgb(0 0 0 / 5%);
+
+  /* Typography tokens - Fluid typography with clamp() */
+  --ant-font-size-sm: clamp(0.625rem, 1.5vw, 0.75rem); /* 10px to 12px */
+  --ant-font-size: clamp(0.75rem, 2vw, 0.875rem); /* 12px to 14px */
+  --ant-font-size-lg: clamp(0.875rem, 2.5vw, 1rem); /* 14px to 16px */
+  --ant-font-size-xl: clamp(1rem, 3vw, 1.125rem); /* 16px to 18px */
+  --ant-font-size-xxl: clamp(1.125rem, 3.5vw, 1.25rem); /* 18px to 20px */
+  --ant-font-size-xxxl: clamp(1.25rem, 4vw, 1.5rem); /* 20px to 24px */
+  --ant-font-size-heading1: clamp(2rem, 6vw, 2.5rem); /* 32px to 40px */
+  --ant-font-size-heading2: clamp(1.5rem, 5vw, 2rem); /* 24px to 32px */
+  --ant-font-size-heading3: clamp(1.25rem, 4vw, 1.5rem); /* 20px to 24px */
+  --ant-font-size-heading4: clamp(1.125rem, 3.5vw, 1.25rem); /* 18px to 20px */
+  --ant-font-size-heading5: clamp(1rem, 3vw, 1.125rem); /* 16px to 18px */
+  --ant-line-height: 1.5714285714285714;
+  --ant-line-height-sm: 1.6666666666666667;
+  --ant-line-height-lg: 1.5;
+  --ant-font-weight-strong: 600;
+
+  /* Additional Ant Design v6 tokens */
+  /* Space unit */
+  --ant-space-unit: clamp(2px, 1vw, 4px);
+
+  /* Control heights */
+  --ant-control-height-sm: 24px;
+  --ant-control-height: 32px;
+  --ant-control-height-lg: 40px;
+
+  /* Element sizes */
+  --checkbox-size: 18px;
+  --table-min-width: 600px;
+  --font-size-code: 13px;
+
+  /* Additional Ant Design semantic tokens */
+  --ant-color-text-description: rgba(255, 255, 255, 0.45);
+  --ant-color-text-disabled: rgba(255, 255, 255, 0.25);
+  --ant-color-border-secondary: #303030;
+  --ant-color-bg-spotlight: rgba(255, 255, 255, 0.04);
+  --ant-color-fill-alter: rgba(255, 255, 255, 0.02);
+  --ant-color-fill-content: rgba(255, 255, 255, 0.03);
+  --ant-color-fill-secondary: rgba(255, 255, 255, 0.06);
+  --ant-control-outline: rgba(77, 171, 247, 0.12);
+  --ant-color-link: #40a9ff;
+  --ant-color-link-hover: #69c0ff;
+  --ant-color-link-active: #0958d9;
+}
+
+/* ===== BASE STYLES ===== */
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--ant-color-bg-layout);
+  color: var(--ant-color-text);
+  line-height: 1.6;
+}
+
+* {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  color: var(--ant-color-text);
+  box-sizing: border-box;
+}
+
+code {
+  font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* ===== TYPOGRAPHY SCALE ===== */
+h1 {
+  font-size: var(--font-size-4xl);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 var(--space-4) 0;
+}
+
+h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 0 var(--space-3) 0;
+}
+
+h3 {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 0 var(--space-3) 0;
+}
+
+h4 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 0 var(--space-3) 0;
+}
+
+p {
+  font-size: var(--font-size-base);
+  font-weight: 400;
+  line-height: 1.6;
+  margin: 0 0 var(--space-4) 0;
+}
+
+small {
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* ===== SEMANTIC TOKEN USAGE ===== */
+/* Link styles */
+a {
+  color: var(--ant-color-link);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+}
+
+a:hover {
+  color: var(--ant-color-link-hover);
+}
+
+a:active {
+  color: var(--ant-color-link-active);
+}
+
+/* Text variants */
+.text-description {
+  color: var(--ant-color-text-description);
+}
+
+.text-disabled {
+  color: var(--ant-color-text-disabled);
+}
+
+/* Border variants */
+.border-secondary {
+  border-color: var(--ant-color-border-secondary);
+}
+
+/* Background variants */
+.bg-spotlight {
+  background-color: var(--ant-color-bg-spotlight);
+}
+
+.fill-alter {
+  background-color: var(--ant-color-fill-alter);
+}
+
+.fill-content {
+  background-color: var(--ant-color-fill-content);
+}
+
+.fill-secondary {
+  background-color: var(--ant-color-fill-secondary);
+}
+
+/* Control outline */
+.control-outline {
+  outline: var(--ant-control-outline) solid 1px;
+}

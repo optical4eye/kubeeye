@@ -5,7 +5,7 @@ Tests for custom exceptions
 """
 
 import pytest
-from infrastructure.common.exceptions import (
+from core.common.exceptions import (
     KubeEyeException,
     ClusterNotFoundError,
     InspectorError,

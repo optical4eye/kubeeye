@@ -1,5 +1,12 @@
-# Test Dockerfile - Complete test environment for KubeEye backend
+# Test Dockerfile - Complete test environment for KubeEye backend with uv
 FROM python:3.14-alpine
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV KUBEEYE_DATA_DIR=/app/data
+ENV UV_CACHE_DIR=/tmp/uv-cache
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies
 RUN apk update && \
@@ -10,9 +17,31 @@ RUN apk update && \
     openssl-dev \
     openssh-client \
     curl \
-    git \
+    libgit2-dev \
     font-dejavu \
-    font-liberation
+    font-liberation \
+    tzdata && \
+    apk del --no-cache apk-tools
+
+# Download OPA and Popeye binaries for the correct architecture
+RUN set -eux; \
+    ARCH=$(uname -m); \
+    case "${ARCH}" in \
+        x86_64) RELEASE_ARCH="amd64" ;; \
+        aarch64) RELEASE_ARCH="arm64" ;; \
+        arm*) RELEASE_ARCH="arm" ;; \
+        *) echo "Unsupported architecture: ${ARCH}"; exit 1 ;; \
+    esac; \
+    OPA_VERSION="v1.12.2"; \
+    curl -sSL "https://github.com/open-policy-agent/opa/releases/download/${OPA_VERSION}/opa_linux_${RELEASE_ARCH}_static" -o opa && \
+    chmod +x opa && \
+    mv opa /usr/local/bin/opa; \
+    POPEYE_VERSION="v0.22.1"; \
+    curl -L "https://github.com/derailed/popeye/releases/download/${POPEYE_VERSION}/popeye_linux_${RELEASE_ARCH}.tar.gz" -o popeye.tar.gz && \
+    tar -xzf popeye.tar.gz && \
+    chmod +x popeye && \
+    mv popeye /usr/local/bin/popeye && \
+    rm popeye.tar.gz
 
 # Set working directory
 WORKDIR /app
@@ -20,61 +49,22 @@ WORKDIR /app
 # First copy requirements.txt to utilize Docker cache
 COPY requirements.txt /app/
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Install uv
+RUN pip install --no-cache-dir uv
 
-# Install additional test dependencies
-RUN pip install --no-cache-dir \
+# Install Python dependencies with uv
+RUN uv pip install --system --no-cache-dir -r requirements.txt
+
+# Install additional test dependencies with uv
+RUN uv pip install --system --no-cache-dir \
     pytest>=9.0.2 \
     pytest-cov>=7.0.0 \
     pytest-mock>=3.15.1 \
-    httpx>=0.28.1 \
+    pytest-timeout>=2.4.0 \
     pytest-asyncio>=1.3.0 \
-    black>=25.12.0 \
-    locust>=2.42.6 \
+    black>=26.1.0 \
     flake8>=7.3.0 \
     pylint>=4.0.4
-
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV KUBEEYE_DATA_DIR=/app/data
-
-# Download OPA binary for the correct architecture
-RUN set -eux; \
-    # Determine architecture using uname
-    ARCH=$(uname -m); \
-    case "${ARCH}" in \
-        x86_64) \
-            OPA_ARCH="amd64"; \
-            ;; \
-        aarch64) \
-            OPA_ARCH="arm64"; \
-            ;; \
-        arm*) \
-            OPA_ARCH="arm"; \
-            ;; \
-        *) \
-            echo "Unsupported architecture: ${ARCH}"; \
-            exit 1; \
-            ;; \
-    esac; \
-    echo "Detected architecture: ${ARCH}, using OPA arch: ${OPA_ARCH}"; \
-    OPA_VERSION="v1.11.0"; \
-    curl -sSL "https://github.com/open-policy-agent/opa/releases/download/${OPA_VERSION}/opa_linux_${OPA_ARCH}_static" -o opa && \
-    chmod +x opa && \
-    mv opa /usr/local/bin/opa
-
-# Project files will be mounted via volume in docker-compose
-
-# Create data directories
-RUN mkdir -p /app/data/clusters \
-              /app/data/results \
-              /app/data/exports \
-              /app/data/logs \
-              /app/data/schedules \
-              /app/data/git_rules
-
 
 # Expose API port
 EXPOSE 8000

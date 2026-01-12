@@ -1,376 +1,297 @@
+﻿#!/usr/bin/env python3
+from core.logging import get_logger
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Unit tests for scheduled tasks API controller
+Unit tests for scheduled tasks controller with new task_manager API
 """
 
 import pytest
-from unittest.mock import patch, Mock, AsyncMock
+import logging
+from unittest.mock import Mock, patch, AsyncMock
 from fastapi import HTTPException
 
 from api.scheduled_tasks import (
     get_scheduled_tasks,
+    get_scheduled_task,
     create_scheduled_task,
     remove_scheduled_task,
     run_scheduled_task,
     update_scheduled_task,
 )
-from api.models import ScheduledTaskCreate
+
+logger = get_logger(__name__)
 
 
-class TestScheduledTasksAPI:
-    """Test cases for scheduled tasks API endpoints"""
+@pytest.fixture
+def mock_task_manager():
+    """Mock task manager"""
+    manager = Mock()
+    manager.get_all_tasks = AsyncMock()
+    manager.get_task = AsyncMock()
+    manager.create_task = AsyncMock()
+    manager.delete_task = AsyncMock()
+    manager.run_task_now = AsyncMock()
+    manager.update_task = AsyncMock()
+    return manager
 
-    @patch("api.scheduled_tasks.load_schedules")
+
+@pytest.fixture
+def sample_task():
+    """Sample task data"""
+    return {
+        "task_id": "task_123",
+        "cluster": "test-cluster",
+        "name": "Test Task",
+        "description": "Test description",
+        "cron_expr": "0 0 * * *",
+        "enabled": True,
+        "rules": ["rule1", "rule2"],
+        "task_type": "cron",
+    }
+
+
+@pytest.fixture
+def sample_task_create():
+    """Sample task create data"""
+    from api.models import ScheduledTaskCreate
+
+    return ScheduledTaskCreate(
+        cluster="test-cluster",
+        name="Test_Task",
+        description="Test description",
+        cron_expr="0 0 * * *",
+        enabled=True,
+        rules={"node": ["rule1"], "opa": ["rule2"]},
+        task_type="cron",
+    )
+
+
+class TestScheduledTasksController:
+    """Test cases for scheduled tasks controller"""
+
     @pytest.mark.asyncio
-    async def test_get_scheduled_tasks_success(self, mock_load_schedules):
-        """Test successful retrieval of scheduled tasks"""
-        # Mock tasks
-        mock_task1 = Mock()
-        mock_task1.task_id = "task1"
-        mock_task1.name = "Task 1"
-        mock_task1.cron_expr = "0 0 * * *"
-        mock_next_run = Mock()
-        mock_next_run.isoformat.return_value = "2023-01-01T12:00:00Z"
-        mock_task1.get_next_run = Mock(return_value=mock_next_run)
+    @patch("api.scheduled_tasks.get_service")
+    async def test_get_scheduled_tasks_success(self, mock_get_service, mock_task_manager, sample_task):
+        """Test successful get scheduled tasks"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.get_all_tasks.return_value = [sample_task]
 
-        mock_task2 = Mock()
-        mock_task2.task_id = "task2"
-        mock_task2.name = "Task 2"
-        mock_task2.cron_expr = ""
-        mock_task2.get_next_run = Mock(return_value=None)
-
-        mock_load_schedules.return_value = [mock_task1, mock_task2]
-
-        result = await get_scheduled_tasks()
+        with patch("api.scheduled_tasks.calculate_next_run", return_value="2024-01-01 00:00:00"):
+            result = await get_scheduled_tasks()
 
         assert "tasks" in result
-        assert len(result["tasks"]) == 2
+        assert len(result["tasks"]) == 1
+        assert result["tasks"][0]["task_id"] == "task_123"
+        assert result["tasks"][0]["next_run"] == "2024-01-01 00:00:00"
+        mock_task_manager.get_all_tasks.assert_called_once()
 
-        task1 = result["tasks"][0]
-        assert task1["task_id"] == "task1"
-        assert task1["name"] == "Task 1"
-        assert task1["next_run"] == "2023-01-01T12:00:00Z"
-        assert task1["task_type"] == "cron"
-
-        task2 = result["tasks"][1]
-        assert task2["task_id"] == "task2"
-        assert task2["name"] == "Task 2"
-        assert task2["next_run"] is None
-        assert task2["task_type"] == "once"
-
-    @patch("api.scheduled_tasks.load_schedules")
     @pytest.mark.asyncio
-    async def test_get_scheduled_tasks_exception(self, mock_load_schedules):
-        """Test scheduled tasks retrieval when exception occurs"""
-        mock_load_schedules.side_effect = Exception("Load error")
+    @patch("api.scheduled_tasks.get_service")
+    async def test_get_scheduled_tasks_error(self, mock_get_service, mock_task_manager):
+        """Test get scheduled tasks error handling"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.get_all_tasks.side_effect = Exception("Database error")
 
         with pytest.raises(HTTPException) as exc_info:
             await get_scheduled_tasks()
 
         assert exc_info.value.status_code == 500
-        assert "Load error" in str(exc_info.value.detail)
+        assert "Database error" in str(exc_info.value.detail)
 
-    @patch("api.scheduled_tasks.add_schedule")
-    @patch("api.scheduled_tasks.ScheduleTask")
-    @patch("time.time")
     @pytest.mark.asyncio
-    async def test_create_scheduled_task_success(self, mock_time, mock_schedule_task_class, mock_add_schedule):
-        """Test successful creation of scheduled task"""
-        # Mock time
-        mock_time.return_value = 1672531200  # 2023-01-01 00:00:00 UTC
+    @patch("api.scheduled_tasks.get_service")
+    async def test_get_scheduled_task_success(self, mock_get_service, mock_task_manager, sample_task):
+        """Test successful get specific scheduled task"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.get_task.return_value = sample_task
 
-        # Mock task creation
-        mock_schedule_task_class.return_value = Mock()
+        with patch("api.scheduled_tasks.calculate_next_run", return_value="2024-01-01 00:00:00"):
+            result = await get_scheduled_task("task_123")
 
-        # Mock schedule addition
-        mock_add_schedule.return_value = True
+        assert result["task_id"] == "task_123"
+        assert result["next_run"] == "2024-01-01 00:00:00"
+        mock_task_manager.get_task.assert_called_once_with("task_123")
 
-        # Create request
-        task = ScheduledTaskCreate(
-            name="Test_Task",
-            cluster="test-cluster",
-            description="Test description",
-            cron_expr="0 0 * * *",
-            enabled=True,
-            rules={"node": ["rule1"]},
-            task_type="cron",
-        )
-
-        result = await create_scheduled_task(task)
-
-        assert result["message"] == "Task created successfully"
-        assert "task_id" in result
-        assert result["task_id"].startswith("task_")
-        mock_schedule_task_class.assert_called_once()
-        mock_add_schedule.assert_called_once()
-
-    @patch("api.scheduled_tasks.add_schedule")
-    @patch("api.scheduled_tasks.ScheduleTask")
-    @patch("time.time")
     @pytest.mark.asyncio
-    async def test_create_scheduled_task_failure(self, mock_time, mock_schedule_task_class, mock_add_schedule):
-        """Test scheduled task creation when add_schedule fails"""
-        # Mock time
-        mock_time.return_value = 1672531200
-
-        # Mock task creation
-        mock_schedule_task_class.return_value = Mock()
-
-        # Mock schedule addition failure
-        mock_add_schedule.return_value = False
-
-        # Create request
-        task = ScheduledTaskCreate(
-            name="Test_Task",
-            cluster="test-cluster",
-            description="Test description",
-            cron_expr="0 0 * * *",
-            enabled=True,
-            rules={"node": ["rule1"]},
-            task_type="cron",
-        )
+    @patch("api.scheduled_tasks.get_service")
+    async def test_get_scheduled_task_not_found(self, mock_get_service, mock_task_manager):
+        """Test get scheduled task not found"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.get_task.return_value = None
 
         with pytest.raises(HTTPException) as exc_info:
-            await create_scheduled_task(task)
+            await get_scheduled_task("task_123")
+
+        assert exc_info.value.status_code == 404
+        assert "Task not found" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_get_scheduled_task_validation_error(self, mock_get_service, mock_task_manager):
+        """Test get scheduled task with invalid task_id"""
+        mock_get_service.return_value = mock_task_manager
+
+        with patch("api.scheduled_tasks.validate_task_id", side_effect=ValueError("Invalid task ID")):
+            with pytest.raises(HTTPException) as exc_info:
+                await get_scheduled_task("invalid-task-id")
+
+            assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_create_scheduled_task_success(self, mock_get_service, mock_task_manager, sample_task_create):
+        """Test successful create scheduled task"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.create_task.return_value = {
+            "task_id": "task_1234567890",
+            "cluster": "test-cluster",
+            "name": "Test Task",
+        }
+
+        result = await create_scheduled_task(sample_task_create)
+
+        assert result["message"] == "Task created successfully"
+        assert result["task_id"] == "task_1234567890"
+        mock_task_manager.create_task.assert_called_once()
+
+        # Verify task data structure
+        call_args = mock_task_manager.create_task.call_args[0][0]
+        assert call_args["cluster"] == "test-cluster"
+        assert call_args["name"] == "Test_Task"
+        assert call_args["cron_expr"] == "0 0 * * *"
+        assert call_args["enabled"] is True
+        assert call_args["task_type"] == "cron"
+
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_create_scheduled_task_failure(self, mock_get_service, mock_task_manager, sample_task_create):
+        """Test create scheduled task failure"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.create_task.return_value = None
+
+        with pytest.raises(HTTPException) as exc_info:
+            await create_scheduled_task(sample_task_create)
 
         assert exc_info.value.status_code == 500
         assert "Failed to create task" in str(exc_info.value.detail)
 
-    @patch("api.scheduled_tasks.add_schedule")
-    @patch("api.scheduled_tasks.ScheduleTask")
-    @patch("time.time")
     @pytest.mark.asyncio
-    async def test_create_scheduled_task_once_type(self, mock_time, mock_schedule_task_class, mock_add_schedule):
-        """Test creation of one-time scheduled task"""
-        # Mock time
-        mock_time.return_value = 1672531200
+    @patch("api.scheduled_tasks.get_service")
+    async def test_remove_scheduled_task_success(self, mock_get_service, mock_task_manager):
+        """Test successful remove scheduled task"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.delete_task.return_value = True
 
-        # Mock task creation
-        mock_schedule_task_class.return_value = Mock()
+        result = await remove_scheduled_task("task_123")
 
-        # Mock schedule addition
-        mock_add_schedule.return_value = True
+        assert result["message"] == "Task task_123 deleted"
+        mock_task_manager.delete_task.assert_called_once_with("task_123")
 
-        # Create request for once type (should have empty cron_expr)
-        task = ScheduledTaskCreate(
-            name="One_time_Task",
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_remove_scheduled_task_not_found(self, mock_get_service, mock_task_manager):
+        """Test remove scheduled task not found"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.delete_task.return_value = False
+
+        with pytest.raises(HTTPException) as exc_info:
+            await remove_scheduled_task("task_123")
+
+        assert exc_info.value.status_code == 404
+        assert "Task not found" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_run_scheduled_task_success(self, mock_get_service, mock_task_manager):
+        """Test successful run scheduled task"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.run_task_now.return_value = {
+            "success": True,
+            "message": "Task executed successfully",
+            "results": {"some": "data"},
+        }
+
+        result = await run_scheduled_task("task_123")
+
+        assert result["message"] == "Task executed successfully"
+        assert result["results"] == {"some": "data"}
+        mock_task_manager.run_task_now.assert_called_once_with("task_123")
+
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_run_scheduled_task_failure(self, mock_get_service, mock_task_manager):
+        """Test run scheduled task failure"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.run_task_now.return_value = {"success": False, "message": "Task execution failed"}
+
+        with pytest.raises(HTTPException) as exc_info:
+            await run_scheduled_task("task_123")
+
+        assert exc_info.value.status_code == 500
+        assert "Task execution failed" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_update_scheduled_task_success(self, mock_get_service, mock_task_manager, sample_task_create):
+        """Test successful update scheduled task"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.update_task.return_value = True
+
+        result = await update_scheduled_task("task_123", sample_task_create)
+
+        assert result["message"] == "Task updated successfully"
+        mock_task_manager.update_task.assert_called_once_with(
+            "task_123",
+            {
+                "cluster": "test-cluster",
+                "name": "Test_Task",
+                "description": "Test description",
+                "cron_expr": "0 0 * * *",
+                "enabled": True,
+                "rules": {"node": ["rule1"], "opa": ["rule2"]},
+                "task_type": "cron",
+                "run_datetime": None,
+            },
+        )
+
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_update_scheduled_task_not_found(self, mock_get_service, mock_task_manager, sample_task_create):
+        """Test update scheduled task not found"""
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.update_task.return_value = False
+
+        with pytest.raises(HTTPException) as exc_info:
+            await update_scheduled_task("task_123", sample_task_create)
+
+        assert exc_info.value.status_code == 404
+        assert "Task not found" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    @patch("api.scheduled_tasks.get_service")
+    async def test_create_scheduled_task_once_type(self, mock_get_service, mock_task_manager):
+        """Test create scheduled task with once type"""
+        from api.models import ScheduledTaskCreate
+
+        mock_get_service.return_value = mock_task_manager
+        mock_task_manager.create_task.return_value = {"task_id": "task_123"}
+
+        task_create = ScheduledTaskCreate(
             cluster="test-cluster",
-            description="Test description",
-            cron_expr="",  # Empty for once type
+            name="One_time_Task",
+            description="Test one-time task",
+            cron_expr="",  # Empty cron for once type
             enabled=True,
             rules={"node": ["rule1"]},
             task_type="once",
+            run_datetime="2024-01-01T00:00:00Z",
         )
 
-        result = await create_scheduled_task(task)
+        result = await create_scheduled_task(task_create)
 
         assert result["message"] == "Task created successfully"
-        # Verify ScheduleTask was created with empty cron_expr
-        call_args = mock_schedule_task_class.call_args[1]
-        assert call_args["cron_expr"] == ""
-
-    @patch("api.scheduled_tasks.delete_schedule")
-    @patch("api.validation_middleware.validate_task_id")
-    @pytest.mark.asyncio
-    async def test_remove_scheduled_task_success(self, mock_validate_id, mock_delete_schedule):
-        """Test successful deletion of scheduled task"""
-        # Mock validation
-        mock_validate_id.return_value = "validated-task-123"
-
-        # Mock deletion
-        mock_delete_schedule.return_value = True
-
-        result = await remove_scheduled_task("task-123")
-
-        assert result["message"] == "Task validated-task-123 deleted"
-        mock_validate_id.assert_called_once_with("task-123")
-        mock_delete_schedule.assert_called_once_with("validated-task-123")
-
-    @patch("api.scheduled_tasks.delete_schedule")
-    @patch("api.validation_middleware.validate_task_id")
-    @pytest.mark.asyncio
-    async def test_remove_scheduled_task_not_found(self, mock_validate_id, mock_delete_schedule):
-        """Test deletion of non-existent scheduled task"""
-        # Mock validation
-        mock_validate_id.return_value = "validated-task-123"
-
-        # Mock deletion failure
-        mock_delete_schedule.return_value = False
-
-        with pytest.raises(HTTPException) as exc_info:
-            await remove_scheduled_task("task-123")
-
-        assert exc_info.value.status_code == 404
-        assert "Task not found" in str(exc_info.value.detail)
-
-    @patch("api.scheduled_tasks.update_task_status")
-    @patch("api.scheduled_tasks.run_inspection")
-    @patch("api.validation_middleware.validate_task_id")
-    @pytest.mark.asyncio
-    async def test_run_scheduled_task_success(self, mock_validate_id, mock_run_inspection, mock_update_status):
-        """Test successful execution of scheduled task"""
-        # Mock validation
-        mock_validate_id.return_value = "validated-task-123"
-
-        # Mock inspection execution
-        mock_run_inspection.return_value = (True, "Inspection completed", {"results": "data"})
-
-        result = await run_scheduled_task("task-123")
-
-        assert result["message"] == "Inspection completed"
-        assert result["results"] == {"results": "data"}
-        mock_validate_id.assert_called_once_with("task-123")
-        mock_run_inspection.assert_called_once_with("validated-task-123", return_results=True)
-        mock_update_status.assert_called_once_with("validated-task-123", last_status="success")
-
-    @patch("api.scheduled_tasks.update_task_status")
-    @patch("api.scheduled_tasks.run_inspection")
-    @patch("api.validation_middleware.validate_task_id")
-    @pytest.mark.asyncio
-    async def test_run_scheduled_task_success_again(self, mock_validate_id, mock_run_inspection, mock_update_status):
-        """Test successful execution of scheduled task again"""
-        # Mock validation
-        mock_validate_id.return_value = "validated-task-123"
-
-        # Mock inspection execution success
-        mock_run_inspection.return_value = (True, "Inspection completed", {"results": "data"})
-
-        result = await run_scheduled_task("task-123")
-
-        assert result["message"] == "Inspection completed"
-        assert result["results"] == {"results": "data"}
-        mock_validate_id.assert_called_once_with("task-123")
-        mock_run_inspection.assert_called_once_with("validated-task-123", return_results=True)
-        mock_update_status.assert_called_once_with("validated-task-123", last_status="success")
-
-    @patch("api.scheduled_tasks.update_task_status")
-    @patch("api.scheduled_tasks.run_inspection")
-    @patch("api.validation_middleware.validate_task_id")
-    @pytest.mark.asyncio
-    async def test_run_scheduled_task_success_third(self, mock_validate_id, mock_run_inspection, mock_update_status):
-        """Test successful execution of scheduled task third time"""
-        # Mock validation
-        mock_validate_id.return_value = "validated-task-123"
-
-        # Mock inspection execution success
-        mock_run_inspection.return_value = (True, "Inspection completed", {"results": "data"})
-
-        result = await run_scheduled_task("task-123")
-
-        assert result["message"] == "Inspection completed"
-        assert result["results"] == {"results": "data"}
-        mock_validate_id.assert_called_once_with("task-123")
-        mock_run_inspection.assert_called_once_with("validated-task-123", return_results=True)
-        mock_update_status.assert_called_once_with("validated-task-123", last_status="success")
-
-    @patch("api.scheduled_tasks.schedule_tasks")
-    @patch("api.scheduled_tasks.add_schedule")
-    @patch("api.scheduled_tasks.delete_schedule")
-    @patch("api.scheduled_tasks.load_schedules")
-    @patch("api.validation_middleware.validate_task_id")
-    @pytest.mark.asyncio
-    async def test_update_scheduled_task_success(
-        self,
-        mock_validate_id,
-        mock_load_schedules,
-        mock_delete_schedule,
-        mock_add_schedule,
-        mock_schedule_tasks,
-    ):
-        """Test successful update of scheduled task"""
-        # Mock validation
-        mock_validate_id.return_value = "validated-task-123"
-
-        # Mock existing task
-        mock_existing_task = Mock()
-        mock_existing_task.task_id = "validated-task-123"
-        # Mock load_schedules to return a list of tasks
-        mock_load_schedules.return_value = [mock_existing_task]
-
-        # Mock deletion and addition
-        mock_delete_schedule.return_value = True
-        mock_add_schedule.return_value = True
-
-        # Create update request
-        task = ScheduledTaskCreate(
-            name="Updated_Task",
-            cluster="test-cluster",
-            description="Updated description",
-            cron_expr="0 12 * * *",
-            enabled=True,
-            rules={"node": ["rule1"]},
-            task_type="cron",
-        )
-
-        result = await update_scheduled_task("task-123", task)
-
-        assert result["message"] == "Task updated successfully"
-        mock_validate_id.assert_called_once_with("task-123")
-        mock_delete_schedule.assert_called_once_with("validated-task-123")
-        mock_add_schedule.assert_called_once()
-        # Check that schedule_tasks was called at least once
-        mock_schedule_tasks.assert_called_once()
-
-    @patch("api.scheduled_tasks.load_schedules")
-    @patch("api.validation_middleware.validate_task_id")
-    @pytest.mark.asyncio
-    async def test_update_scheduled_task_not_found(self, mock_validate_id, mock_load_schedules):
-        """Test update of non-existent scheduled task"""
-        # Mock validation
-        mock_validate_id.return_value = "validated-task-123"
-
-        # Mock empty task list
-        mock_load_schedules.return_value = []
-
-        with pytest.raises(HTTPException) as exc_info:
-            await update_scheduled_task(
-                "task-123",
-                ScheduledTaskCreate(
-                    name="Test_Task",
-                    description="Test Description",
-                    cluster="test-cluster",
-                    cron_expr="0 9 * * 1",
-                    rules={"node": ["rule1", "rule2"]},
-                ),
-            )
-
-        assert exc_info.value.status_code == 404
-        assert "Task not found" in str(exc_info.value.detail)
-
-    @patch("api.scheduled_tasks.add_schedule")
-    @patch("api.scheduled_tasks.delete_schedule")
-    @patch("api.scheduled_tasks.load_schedules")
-    @patch("api.validation_middleware.validate_task_id")
-    @pytest.mark.asyncio
-    async def test_update_scheduled_task_add_failure(
-        self, mock_validate_id, mock_load_schedules, mock_delete_schedule, mock_add_schedule
-    ):
-        """Test update of scheduled task when add_schedule fails"""
-        # Mock validation
-        mock_validate_id.return_value = "validated-task-123"
-
-        # Mock existing task
-        mock_existing_task = Mock()
-        mock_existing_task.task_id = "validated-task-123"
-        mock_load_schedules.return_value = [mock_existing_task]
-
-        # Mock deletion success but addition failure
-        mock_delete_schedule.return_value = True
-        mock_add_schedule.return_value = False
-
-        with patch("infrastructure.tasks.schedule_manager.ScheduleTask", return_value=Mock()):
-            with pytest.raises(HTTPException) as exc_info:
-                await update_scheduled_task(
-                    "task-123",
-                    ScheduledTaskCreate(
-                        name="Test_Task",
-                        description="Test Description",
-                        cluster="test-cluster",
-                        cron_expr="0 9 * * 1",
-                        rules={"node": ["rule1", "rule2"]},
-                    ),
-                )
-
-            assert exc_info.value.status_code == 500
-            assert "Failed to update task" in str(exc_info.value.detail)
+        call_args = mock_task_manager.create_task.call_args[0][0]
+        assert call_args["task_type"] == "once"
+        assert call_args["run_datetime"] == "2024-01-01T00:00:00Z"

@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python3
+from core.logging import get_logger
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -12,7 +15,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class TestInitScript:
@@ -97,7 +100,8 @@ class TestInitScript:
         # Check if the script has an initialize function
         assert hasattr(scripts.init, "initialize")
 
-    def test_initialize_function_with_mock(self):
+    @pytest.mark.asyncio
+    async def test_initialize_function_with_mock(self):
         """Test initialize function with mocked dependencies"""
         import scripts.init
 
@@ -111,14 +115,15 @@ class TestInitScript:
             mock_open.return_value.__enter__.return_value = mock_file
 
             # Call the initialize function
-            scripts.init.initialize(force=False, config_path=None, verbose=False)
+            await scripts.init.initialize(force=False, config_path=None, verbose=False)
 
             logger.info(f"makedirs call count: {mock_makedirs.call_count}")
             logger.info(f"makedirs call args: {mock_makedirs.call_args_list}")
             # Verify directories were created
             mock_makedirs.assert_called()
 
-    def test_initialize_function_with_force(self):
+    @pytest.mark.asyncio
+    async def test_initialize_function_with_force(self):
         """Test initialize function with force option"""
         import scripts.init
 
@@ -132,14 +137,15 @@ class TestInitScript:
             mock_open.return_value.__enter__.return_value = mock_file
 
             # Call the initialize function with force
-            scripts.init.initialize(force=True, config_path=None, verbose=False)
+            await scripts.init.initialize(force=True, config_path=None, verbose=False)
 
             logger.info(f"makedirs call count force: {mock_makedirs.call_count}")
             logger.info(f"makedirs call args force: {mock_makedirs.call_args_list}")
             # Verify directories were created
             mock_makedirs.assert_called()
 
-    def test_initialize_function_with_config(self):
+    @pytest.mark.asyncio
+    async def test_initialize_function_with_config(self):
         """Test initialize function with custom config path"""
         import scripts.init
 
@@ -153,31 +159,12 @@ class TestInitScript:
             mock_open.return_value.__enter__.return_value = mock_file
 
             # Call the initialize function with custom config
-            scripts.init.initialize(force=False, config_path="/custom/config", verbose=False)
+            await scripts.init.initialize(force=False, config_path="/custom/config", verbose=False)
 
             logger.info(f"makedirs call count config: {mock_makedirs.call_count}")
             logger.info(f"makedirs call args config: {mock_makedirs.call_args_list}")
             # Verify directories were created
             mock_makedirs.assert_called()
-
-    def test_initialize_function_with_exception(self):
-        """Test initialize function with exception"""
-        import scripts.init
-
-        # Mock the dependencies to raise an exception
-        with patch("scripts.init.os.path.exists", side_effect=Exception("Test error")), patch(
-            "scripts.init.os.makedirs"
-        ) as mock_makedirs:
-
-            # Call the initialize function
-            try:
-                scripts.init.initialize(force=False, config_path=None, verbose=False)
-            except Exception:
-                pass  # Expected to raise an exception
-
-            # Verify makedirs was not called when an exception occurs
-            # Some implementations might still call makedirs
-            assert mock_makedirs.call_count >= 0
 
     def test_create_default_config_function(self):
         """Test create_default_config function if it exists"""

@@ -1,22 +1,23 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Inspection coordinator - manages execution of different inspection types
 """
 
 import asyncio
-import logging
 from typing import Dict, List, Any, Optional, Tuple
 
-from infrastructure.results.inspection_result import InspectionResult
+from infra.results.inspection_result import InspectionResult
+from infra.dependency_injection.container import injectable
 from services.inspectors.node.node_inspector import NodeInspector
-from services.inspectors.prometheus.prometheus_inspector import PrometheusInspector
 from services.inspectors.opa.opa_inspector import OpaInspector
 from services.inspectors.controller import InspectionController
+from core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
+@injectable()
 class InspectionCoordinator:
     """Coordinates execution of different inspection types"""
 
@@ -27,9 +28,9 @@ class InspectionCoordinator:
         self,
         cluster_name: str,
         nodes: List[Dict],
-        prometheus_config: Dict,
         kubeconfig: str,
-        selected_rules: Dict[str, List[str]],
+        selected_rules: Optional[Dict[str, List[str]]] = None,
+        selected_tags: Optional[Dict[str, List[str]]] = None,
         show_progress: bool = False,
     ) -> Dict[str, Any]:
         """
@@ -44,73 +45,54 @@ class InspectionCoordinator:
         # If no selected_rules provided (None or empty dict), run all available inspections
         if not selected_rules:
             run_node_check = bool(nodes)
-            run_prometheus_check = bool(prometheus_config and prometheus_config.get("enabled", False))
             run_opa_check = bool(kubeconfig)
         else:
             run_node_check = bool(nodes) and selected_rules.get("node")
-            run_prometheus_check = bool(
-                prometheus_config and prometheus_config.get("enabled", False)
-            ) and selected_rules.get("prometheus")
             run_opa_check = bool(kubeconfig) and selected_rules.get("opa")
 
-        logger.info(
-            f"Inspection decisions - nodes: {run_node_check}, Prometheus: {run_prometheus_check}, OPA: {run_opa_check}"
-        )
+        logger.info(f"Inspection decisions - nodes: {run_node_check}, OPA: {run_opa_check}")
 
         # Execute inspections in parallel where possible
         tasks = []
 
         if run_node_check:
             node_rules = selected_rules.get("node") if selected_rules else None
+            node_tags = selected_tags.get("node") if selected_tags else None
             # Extract the actual list of rule IDs if it's a dict with 'rules' key
             if node_rules and isinstance(node_rules, dict) and hasattr(node_rules, "get") and "rules" in node_rules:
                 node_rules = node_rules.get("rules")
-            tasks.append(self._execute_node_inspection(cluster_name, nodes, node_rules, show_progress))
-
-        if run_prometheus_check:
-            prometheus_rules = selected_rules.get("prometheus") if selected_rules else None
-            # Extract the actual list of rule IDs if it's a dict with 'rules' key
-            if (
-                prometheus_rules
-                and isinstance(prometheus_rules, dict)
-                and hasattr(prometheus_rules, "get")
-                and "rules" in prometheus_rules
-            ):
-                prometheus_rules = prometheus_rules.get("rules")
-            tasks.append(
-                self._execute_prometheus_inspection(cluster_name, prometheus_config, prometheus_rules, show_progress)
-            )
+            tasks.append(self._execute_node_inspection(cluster_name, nodes, node_rules, node_tags, show_progress))
 
         if run_opa_check:
             opa_rules = selected_rules.get("opa") if selected_rules else None
+            opa_tags = selected_tags.get("opa") if selected_tags else None
             # Extract the actual list of rule IDs if it's a dict with 'rules' key
             if opa_rules and isinstance(opa_rules, dict) and hasattr(opa_rules, "get") and "rules" in opa_rules:
                 opa_rules = opa_rules.get("rules")
-            tasks.append(self._execute_opa_inspection(cluster_name, kubeconfig, opa_rules, show_progress))
+            tasks.append(self._execute_opa_inspection(cluster_name, kubeconfig, opa_rules, opa_tags, show_progress))
 
-        # Wait for all inspections to complete
+        # Wait for all inspections to complete using TaskGroup for better exception handling
         if tasks:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            # Map results back to inspection types
             inspection_types = []
             if run_node_check:
                 inspection_types.append("node")
-            if run_prometheus_check:
-                inspection_types.append("prometheus")
             if run_opa_check:
                 inspection_types.append("opa")
 
-            for i, inspection_type in enumerate(inspection_types):
-                if i < len(results):
-                    result = results[i]
-                    if isinstance(result, Exception):
-                        logger.error(f"{inspection_type} inspection failed: {result}")
-                        all_results[inspection_type] = self._create_error_result(
-                            cluster_name, inspection_type, str(result)
+            # Map tasks to inspection types
+            task_map = dict(zip(inspection_types, tasks))
+
+            try:
+                async with asyncio.TaskGroup() as tg:
+                    for inspection_type, task in task_map.items():
+                        tg.create_task(
+                            self._run_inspection_with_error_handling(cluster_name, inspection_type, task, all_results)
                         )
-                    else:
-                        all_results[inspection_type] = result
+            except* Exception as eg:
+                # Handle multiple exceptions from TaskGroup
+                for exc in eg.exceptions:
+                    logger.error(f"Inspection task failed: {exc}")
+                # Results are already populated by _run_inspection_with_error_handling
 
         return all_results
 
@@ -119,6 +101,7 @@ class InspectionCoordinator:
         cluster_name: str,
         nodes: List[Dict],
         selected_rules: Optional[List[str]],
+        selected_tags: Optional[List[str]],
         show_progress: bool,
     ) -> Tuple[bool, Any]:
         """Execute node inspection"""
@@ -128,7 +111,7 @@ class InspectionCoordinator:
 
             if show_progress:
                 logger.info("Executing node inspection...")
-            result = await node_inspector.run_inspection(cluster_name, selected_rules or [])
+            result = await node_inspector.run_inspection(cluster_name, selected_rules or [], selected_tags)
             if show_progress:
                 logger.info("Node inspection completed")
             return True, result
@@ -158,48 +141,12 @@ class InspectionCoordinator:
                     logger.error(f"Error getting SSH errors: {e}")
             return True, error_result
 
-    async def _execute_prometheus_inspection(
-        self,
-        cluster_name: str,
-        prometheus_config: Dict,
-        selected_rules: Optional[List[str]],
-        show_progress: bool,
-    ) -> Tuple[bool, Any]:
-        """Execute Prometheus inspection"""
-        try:
-            if prometheus_config and prometheus_config.get("enabled", False):
-                prometheus_inspector = PrometheusInspector(prometheus_config, use_gitops=self.use_gitops)
-                if show_progress:
-                    logger.info("Executing Prometheus metrics inspection...")
-                result = await prometheus_inspector.run_inspection(cluster_name, selected_rules or [])
-                if show_progress:
-                    logger.info("Prometheus metrics inspection completed")
-                return True, result
-            else:
-                if show_progress:
-                    logger.info("Prometheus inspection skipped (no configuration)")
-                return True, None
-        except Exception as e:
-            logger.error(f"Prometheus metrics inspection error: {e}")
-            # Create error result
-            error_result = InspectionResult(cluster_name, "prometheus")
-            error_result.add_item(
-                {
-                    "name": "Prometheus inspection failed",
-                    "status": "error",
-                    "description": f"Prometheus inspection could not be completed: {str(e)}",
-                    "severity": "critical",
-                    "details": str(e),
-                    "solution": "Check Prometheus server connectivity and configuration",
-                }
-            )
-            return True, error_result
-
     async def _execute_opa_inspection(
         self,
         cluster_name: str,
         kubeconfig: str,
         selected_rules: Optional[List[str]],
+        selected_tags: Optional[List[str]],
         show_progress: bool,
     ) -> Tuple[bool, Any]:
         """Execute OPA inspection"""
@@ -212,7 +159,7 @@ class InspectionCoordinator:
                 opa_inspector = OpaInspector(opa_config, use_gitops=self.use_gitops)
                 if show_progress:
                     logger.info("Executing OPA compliance inspection...")
-                result = await opa_inspector.run_inspection(cluster_name, selected_rules or [])
+                result = await opa_inspector.run_inspection(cluster_name, selected_rules or [], selected_tags)
                 if show_progress:
                     logger.info("OPA compliance inspection completed")
                 return True, result
@@ -235,6 +182,25 @@ class InspectionCoordinator:
                 }
             )
             return True, error_result
+
+    async def _run_inspection_with_error_handling(
+        self, cluster_name: str, inspection_type: str, task, all_results: Dict[str, Any]
+    ) -> None:
+        """Run inspection task with error handling for TaskGroup"""
+        try:
+            result = await task
+            # Check if result is a coroutine and await it
+            if hasattr(result, "__await__"):
+                result = await result
+
+            if isinstance(result, Exception):
+                logger.error(f"{inspection_type} inspection failed: {result}")
+                all_results[inspection_type] = self._create_error_result(cluster_name, inspection_type, str(result))
+            else:
+                all_results[inspection_type] = result
+        except Exception as e:
+            logger.error(f"Error in {inspection_type} inspection: {str(e)}")
+            all_results[inspection_type] = self._create_error_result(cluster_name, inspection_type, str(e))
 
     def _create_error_result(self, cluster_name: str, inspection_type: str, error_message: str) -> InspectionResult:
         """Create error result for failed inspection"""

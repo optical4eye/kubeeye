@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Base inspector class, defines common interfaces and basic functions for all inspectors
@@ -6,15 +6,17 @@ Base inspector class, defines common interfaces and basic functions for all insp
 
 from abc import ABC, abstractmethod
 import asyncio
-import logging
 from typing import Dict, List, Any, Optional, Union
 
-from infrastructure.results.inspection_result import InspectionResult
-from infrastructure.rules.rule_loader import Rule, load_rules
+from infra.results.inspection_result import InspectionResult
+from infra.rules.rule_loader import Rule, load_rules
 from services.inspectors.rule_processor import RuleProcessor
+from core.common.unified_validation import ValidationManager
+from core.common.unified_error_handler import ErrorHandler
+from core.logging import get_logger
 
 # Logging setup
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class BaseInspector(ABC):
@@ -37,7 +39,7 @@ class BaseInspector(ABC):
     @property
     @abstractmethod
     def inspector_type(self) -> str:
-        """Returns inspector type, e.g. 'node', 'opa', 'prometheus'"""
+        """Returns inspector type, e.g. 'node', 'opa'"""
         pass
 
     def _load_rules(self):
@@ -50,6 +52,19 @@ class BaseInspector(ABC):
         self.rules = yaml_rules  # Include all rules, enabled and disabled
         source_type = "GitOps" if self.use_gitops else "local"
         logger.info(f"Loaded {len(self.rules)} {source_type} rules for {self.inspector_type} inspection")
+
+        # Log rule details for debugging
+        enabled_rules = [rule for rule in self.rules if rule.enabled]
+        disabled_rules = [rule for rule in self.rules if not rule.enabled]
+        logger.info(f"Rules breakdown: {len(enabled_rules)} enabled, {len(disabled_rules)} disabled")
+        if enabled_rules:
+            logger.info("Enabled rules:")
+            for rule in enabled_rules:
+                logger.info(f"  - {rule.id}: {rule.name}")
+        if disabled_rules:
+            logger.info("Disabled rules:")
+            for rule in disabled_rules:
+                logger.info(f"  - {rule.id}: {rule.name}")
 
     @abstractmethod
     async def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
@@ -80,13 +95,179 @@ class BaseInspector(ABC):
                 return rule
         return None
 
-    async def run_inspection(self, cluster_name: str, rule_ids: List[str] = None) -> InspectionResult:
+    def _filter_active_rules(
+        self, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None
+    ) -> List[Rule]:
+        """
+        Filter and return active (enabled) rules to execute
+
+        Args:
+            rule_ids: list of rule IDs to execute, if None, execute all rules
+            selected_tags: list of tags to filter rules, if None, no tag filtering
+
+        Returns:
+            List of active rules to execute
+        """
+        # Start with enabled rules
+        active_rules = [rule for rule in self.rules if rule.enabled]
+
+        # Filter by rule IDs if specified
+        if rule_ids:
+            active_rules = [rule for rule in active_rules if rule.id in rule_ids]
+            logger.info(f"Number of rules after filtering by specified IDs: {len(active_rules)}")
+
+        # Filter by tags if specified
+        if selected_tags:
+            active_rules = [rule for rule in active_rules if any(tag in rule.tags for tag in selected_tags)]
+            logger.info(f"Number of rules after filtering by tags {selected_tags}: {len(active_rules)}")
+
+        if not rule_ids and not selected_tags:
+            logger.info(f"Using all enabled rules: {len(active_rules)}")
+
+        if active_rules:
+            logger.info(f"Preparing to execute {len(active_rules)} rules:")
+            for rule in active_rules:
+                logger.info(f"  - {rule.id}: {rule.name}")
+
+        return active_rules
+
+    async def _execute_single_rule(self, rule: Rule, context: Dict) -> Optional[Dict]:
+        """
+        Execute a single rule with proper error handling
+
+        Args:
+            rule: rule to execute
+            context: inspection context
+
+        Returns:
+            Formatted result dict or None if rule should be skipped
+        """
+        try:
+            logger.info(f"Starting execution of rule {rule.id}: {rule.name}")
+
+            # Validate rule configuration
+            validation_issues = self._validate_rule_config(rule)
+            if validation_issues:
+                logger.error(f"Rule {rule.id} has invalid configuration: {validation_issues}")
+                return self._format_invalid_result(
+                    rule,
+                    "Rule configuration is invalid",
+                    f"The following configuration issues prevent rule execution: {', '.join(validation_issues)}",
+                )
+
+            logger.info(f"Rule {rule.id} passed configuration validation")
+
+            # Check if rule is applicable to current environment
+            should_apply = self._should_apply_rule(rule, context)
+            logger.info(f"Rule {rule.id} applicability check: {should_apply}")
+
+            if not should_apply:
+                logger.info(f"Rule {rule.id} is not applicable to current environment")
+                return self._format_not_applicable_result(rule, "Rule is not applicable to current environment")
+
+            # Apply the rule
+            logger.info(f"Applying rule {rule.id}")
+            inspection_result = await self._apply_rule(rule, context)
+
+            # Ensure inspection_result is not a coroutine
+            if asyncio.iscoroutine(inspection_result):
+                inspection_result = await inspection_result
+
+            if inspection_result:
+                return await self._process_rule_result(rule, inspection_result)
+            else:
+                logger.info(f"Rule {rule.id} returned None or empty result, skipping")
+                return None
+
+        except Exception as e:
+            logger.exception(f"Error executing rule {rule.id}: {str(e)}")
+            return self._format_error_result(rule, f"Rule execution error: {str(e)}", str(e))
+
+    async def _process_rule_result(self, rule: Rule, inspection_result: Any) -> Optional[Union[Dict, List[Dict]]]:
+        """
+        Process the result returned by a rule application
+
+        Args:
+            rule: rule that was executed
+            inspection_result: result returned by _apply_rule
+
+        Returns:
+            Processed result dict, list of results, or None
+        """
+        logger.debug(
+            "Rule %s applied, result type: %s, is coroutine: %s",
+            rule.id,
+            type(inspection_result),
+            asyncio.iscoroutine(inspection_result),
+        )
+
+        # Handle single result or list of results
+        if isinstance(inspection_result, list):
+            logger.debug(f"Rule {rule.id} returned list of results, length: {len(inspection_result)}")
+            # For node inspector, return all results from the list
+            # For other inspectors, return first item as before for backward compatibility
+            if inspection_result:
+                if self.inspector_type == "node":
+                    # For node inspector, return all results
+                    processed_results = []
+                    for item in inspection_result:
+                        if asyncio.iscoroutine(item):
+                            item = await item
+                        if item:  # Only add non-None results
+                            processed_results.append(item)
+                    return processed_results if processed_results else None
+                else:
+                    # For other inspectors, return first item as before
+                    item = inspection_result[0]
+                    if asyncio.iscoroutine(item):
+                        item = await item
+                    return item
+        else:
+            logger.debug(
+                "Rule %s returned single result, type: %s, is coroutine: %s",
+                rule.id,
+                type(inspection_result),
+                asyncio.iscoroutine(inspection_result),
+            )
+
+            if isinstance(inspection_result, dict):
+                if "items" in inspection_result:
+                    logger.debug(f"inspection_result is dict with 'items', type: {type(inspection_result)}")
+                    # Return first item from items list
+                    return inspection_result["items"][0] if inspection_result["items"] else None
+                elif "results" in inspection_result:
+                    logger.debug(f"inspection_result is dict with 'results', type: {type(inspection_result)}")
+                    # For node inspector, return all results from the results list
+                    results_list = inspection_result["results"]
+                    if self.inspector_type == "node":
+                        # For node inspector, return all results
+                        processed_results = []
+                        for item in results_list:
+                            if asyncio.iscoroutine(item):
+                                item = await item
+                            if item:  # Only add non-None results
+                                processed_results.append(item)
+                        return processed_results if processed_results else None
+                    else:
+                        # For other inspectors, return first item as before
+                        return results_list[0] if results_list else None
+                else:
+                    return inspection_result
+            else:
+                return inspection_result
+
+        return None
+
+    async def run_inspection(
+        self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None
+    ) -> InspectionResult:
         """
         Run inspection
 
         Args:
             cluster_name: cluster name
             rule_ids: list of rule IDs to execute, if None, execute all rules
+            selected_tags: list of tags to filter rules, if None, no tag filtering
 
         Returns:
             Inspection result object
@@ -95,118 +276,39 @@ class BaseInspector(ABC):
         logger.info(
             f"BaseInspector.run_inspection started - inspector type: {self.inspector_type}, cluster: {cluster_name}, source: {source_type}"
         )
-        logger.info(f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}")
+        logger.info(
+            f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}, selected tags: {selected_tags}"
+        )
 
         result = InspectionResult(cluster_name, self.inspector_type)
 
         # Determine rules to execute
-        if rule_ids:
-            active_rules = [
-                rule for rule in self.rules if rule.id in rule_ids and rule.enabled
-            ]  # Only execute enabled rules
-            logger.info(f"Number of rules after filtering by specified IDs: {len(active_rules)}")
-        else:
-            active_rules = [rule for rule in self.rules if rule.enabled]  # Only execute enabled rules
-            logger.info(f"Using all enabled rules: {len(active_rules)}")
+        active_rules = self._filter_active_rules(rule_ids, selected_tags)
 
         if not active_rules:
             logger.warning("No executable rules, inspection completed")
             return result
 
-        logger.info(f"Preparing to execute {len(active_rules)} rules:")
-        for rule in active_rules:
-            logger.info(f"  - {rule.id}: {rule.name}")
-
-        # Execute rules
+        # Prepare context
         context = self._prepare_context(cluster_name)
         logger.info(f"Context prepared: {context}")
 
+        # Execute rules
         executed_count = 0
         for rule in active_rules:
-            try:
-                logger.info(f"Starting execution of rule {rule.id}: {rule.name}")
-
-                # Validate rule configuration
-                validation_issues = self._validate_rule_config(rule)
-                if validation_issues:
-                    logger.error(f"Rule {rule.id} has invalid configuration: {validation_issues}")
-                    # Rule configuration is invalid
-                    result.add_item(
-                        self._format_invalid_result(
-                            rule,
-                            "Rule configuration is invalid",
-                            f"The following configuration issues prevent rule execution: {', '.join(validation_issues)}",
-                        )
-                    )
-                    continue
-
+            rule_result = await self._execute_single_rule(rule, context)
+            if rule_result:
+                # Handle both single results and lists of results
+                if isinstance(rule_result, list):
+                    for item in rule_result:
+                        result.add_item(item)
+                    logger.info(f"Rule {rule.id} added {len(rule_result)} results")
                 else:
-                    logger.info(f"Rule {rule.id} passed configuration validation")
-                # Check if rule is applicable to current environment
-                should_apply = self._should_apply_rule(rule, context)
-                logger.info(f"Rule {rule.id} applicability check: {should_apply}")
+                    result.add_item(rule_result)
+                    logger.info(f"Rule {rule.id} added 1 result")
 
-                if should_apply:
-                    logger.info(f"Applying rule {rule.id}")
-                    inspection_result = await self._apply_rule(rule, context)
-                    logger.error(
-                        "Rule %s applied, result type: %s, is coroutine: %s",
-                        rule.id,
-                        type(inspection_result),
-                        asyncio.iscoroutine(inspection_result),
-                    )
-
-                    # Ensure inspection_result is not a coroutine
-                    if asyncio.iscoroutine(inspection_result):
-                        inspection_result = await inspection_result
-
-                    if inspection_result:
-                        # Handle single result or list of results
-                        if isinstance(inspection_result, list):
-                            logger.error(f"Rule {rule.id} returned list of results, length: {len(inspection_result)}")
-                            for item in inspection_result:
-                                logger.error(
-                                    f"Adding item type: {type(item)}, is coroutine: {asyncio.iscoroutine(item)}"
-                                )
-                                if asyncio.iscoroutine(item):
-                                    logger.error("Item is coroutine, awaiting...")
-                                    item = await item
-                                    logger.error(f"After await, item type: {type(item)}")
-                                result.add_item(item)
-                        else:
-                            logger.error(
-                                "Rule %s returned single result, type: %s, is coroutine: %s",
-                                rule.id,
-                                type(inspection_result),
-                                asyncio.iscoroutine(inspection_result),
-                            )
-                            if asyncio.iscoroutine(inspection_result):
-                                logger.error("inspection_result is coroutine, awaiting...")
-                                inspection_result = await inspection_result
-                                logger.error(f"After await, inspection_result type: {type(inspection_result)}")
-                            if isinstance(inspection_result, dict) and "items" in inspection_result:
-                                logger.error(f"inspection_result is dict with 'items', type: {type(inspection_result)}")
-                                for item in inspection_result["items"]:
-                                    result.add_item(item)
-                            else:
-                                result.add_item(inspection_result)
-                            logger.error(f"Added item to result, result.items length: {len(result.items)}")
-                    else:
-                        logger.warning(f"Rule {rule.id} returned empty result")
-                else:
-                    logger.info(f"Rule {rule.id} is not applicable to current environment")
-                    # Rule is not applicable to current environment
-                    result.add_item(
-                        self._format_not_applicable_result(rule, "Rule is not applicable to current environment")
-                    )
-
-                executed_count += 1
-                logger.info(f"Rule {rule.id} executed ({executed_count}/{len(active_rules)})")
-
-            except Exception as e:
-                logger.exception(f"Error executing rule {rule.id}: {str(e)}")
-                error_result = self._format_error_result(rule, f"Rule execution error: {str(e)}", str(e))
-                result.add_item(error_result)
+            executed_count += 1
+            logger.info(f"Rule {rule.id} executed ({executed_count}/{len(active_rules)})")
 
         logger.info(
             f"BaseInspector.run_inspection completed - inspector: {self.inspector_type}, rules executed: {executed_count}, results: {len(result.items)}"
@@ -250,8 +352,8 @@ class BaseInspector(ABC):
         Returns:
             List of configuration issues, returns empty list if no issues
         """
-        # Subclasses should override this method to implement validation logic for specific rule types
-        return []
+        # Use ValidationManager for centralized validation
+        return ValidationManager.validate_rule_config(self.inspector_type, rule.config)
 
     def get_rule_config(self, rule: Rule, path: str, default_value: Any = None) -> Any:
         """
@@ -309,7 +411,7 @@ class BaseInspector(ABC):
 
     def _format_error_result(self, rule: Rule, description: str, error: str) -> Dict:
         """
-        Format result for rule with error (delegated to ResultFormatter)
+        Format result for rule with error (using ErrorHandler)
 
         Args:
             rule: rule object
@@ -319,4 +421,4 @@ class BaseInspector(ABC):
         Returns:
             Formatted result dictionary
         """
-        return self.rule_processor.result_formatter.error_result(rule, error, description)
+        return ErrorHandler.create_error_result(rule, error, description)

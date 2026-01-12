@@ -281,8 +281,8 @@ class TestInspectionAPI:
         mock_validate_id.assert_called_once_with("task-123")
         mock_task_queue.get_task_status.assert_called_once_with("validated-task-123")
 
-    @patch("infrastructure.tasks.task_queue.get_task_queue")
-    @patch("api.validation_middleware.validate_task_id")
+    @patch("infra.tasks.task_queue.get_task_queue")
+    @patch("api.unified_middleware.validate_task_id")
     @pytest.mark.asyncio
     async def test_get_inspection_task_status_not_found(self, mock_validate_id, mock_get_queue):
         """Test task status retrieval when task not found"""
@@ -348,8 +348,8 @@ class TestInspectionAPI:
         mock_validate_id.assert_called_once_with("task-123")
         mock_task_queue.cancel_task.assert_called_once_with("validated-task-123")
 
-    @patch("infrastructure.tasks.task_queue.get_task_queue")
-    @patch("api.validation_middleware.validate_task_id")
+    @patch("infra.tasks.task_queue.get_task_queue")
+    @patch("api.unified_middleware.validate_task_id")
     @pytest.mark.asyncio
     async def test_cancel_inspection_task_cannot_cancel(self, mock_validate_id, mock_get_queue):
         """Test task cancellation when task cannot be cancelled"""

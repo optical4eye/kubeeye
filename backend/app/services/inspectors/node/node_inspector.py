@@ -1,196 +1,175 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Node inspector with centralized SSH connection error management
+Refactored Node Inspector - simplified version with separated concerns
 """
 
+from core.logging import get_logger
+from core.config.settings import settings
+
 import asyncio
-import logging
+import os
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Any, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Dict, List, Any, Optional, Tuple
 
 from services.inspectors.base_inspector import BaseInspector
-from infrastructure.results.inspection_result import InspectionResult
-from infrastructure.rules.rule_loader import Rule
-from infrastructure.cluster.node_connection import NodeConnection, test_node_connection, async_test_node_connection
-from infrastructure.security.command_security import CommandSecurityChecker
-from infrastructure.results.result_formatter import ResultFormatter
-from infrastructure.dependency_injection.container import get_service
+from infra.results.inspection_result import InspectionResult
+from infra.rules.rule_loader import Rule
+from infra.cluster.node_connection import async_test_node_connection
+from infra.results.result_formatter import ResultFormatter
+from infra.dependency_injection.container import get_service
+from infra.security.ssh_service import SSHService
+from infra.security.command_security import CommandSecurityChecker
+from .ssh_connection_manager import SSHConnectionErrorManager
+from core.common.unified_validation import ValidationManager
+from core.common.unified_error_handler import ErrorHandler
 
-# Logging setup
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
-class SSHConnectionErrorManager:
-    """
-    Centralized SSH connection error manager
-    Ensures each host error is displayed only once
-    """
+@dataclass
+class NodeInspectorConfig:
+    """Node inspector configuration"""
 
-    def __init__(self):
-        self._errors_registry = {}  # {node_key: error_data}
-        self._result_formatter = ResultFormatter()
+    # Parallelism management
+    max_workers: int = 5  # Maximum number of parallel threads
+    timeout: int = 30  # Command execution timeout for one node (seconds)
 
-    def reset_for_inspection(self):
-        """Reset error registry before new inspection"""
-        self._errors_registry = {}
-        logger.info("SSH connection error registry reset for new inspection")
+    # Connection configuration
+    connection_timeout: int = 10  # SSH connection timeout (seconds)
+    retry_attempts: int = 2  # Number of retry attempts on failed connection
+    retry_delay: int = 1  # Interval between retry attempts (seconds)
 
-    def register_connection_error(self, node: Dict, error_message: str) -> str:
-        """
-        Register connection error for node
-        """
-        node_key = self._get_node_key(node)
+    # Performance optimization
+    enable_connection_pool: bool = True  # Enable connection pool
+    pool_size: int = 10  # Connection pool size
+    keep_alive: bool = True  # Keep connection alive
 
-        # If error already registered, don't register again
-        if node_key in self._errors_registry:
-            return node_key
+    # Logging configuration
+    verbose_logging: bool = False  # Verbose logging
+    log_command_output: bool = False  # Log command output
 
-        # Register new error
-        self._errors_registry[node_key] = {
-            "node": node.copy(),
-            "error_message": error_message,
-            "timestamp": time.time(),
-            "formatted_result": None,
-        }
-
-        logger.warning(f"SSH error registered for node {node_key}: {error_message}")
-        return node_key
-
-    def has_connection_error(self, node: Dict) -> bool:
-        """Check for connection error for node"""
-        node_key = self._get_node_key(node)
-        return node_key in self._errors_registry
-
-    def get_connection_error_result(self, node: Dict) -> Optional[Dict]:
-        """Get formatted error result for node"""
-        node_key = self._get_node_key(node)
-        if node_key not in self._errors_registry:
-            return None
-
-        error_data = self._errors_registry[node_key]
-
-        # Create formatted result on first request
-        if error_data["formatted_result"] is None:
-            error_data["formatted_result"] = self._format_connection_error_result(
-                error_data["node"], error_data["error_message"]
-            )
-
-        return error_data["formatted_result"]
-
-    def get_all_connection_errors(self) -> List[Dict]:
-        """Get all registered connection errors"""
-        errors = []
-        for error_data in self._errors_registry.values():
-            if error_data["formatted_result"] is None:
-                error_data["formatted_result"] = self._format_connection_error_result(
-                    error_data["node"], error_data["error_message"]
-                )
-            errors.append(error_data["formatted_result"])
-
-        logger.info(f"Retrieved {len(errors)} SSH connection errors from registry")
-        return errors
-
-    def get_error_count(self) -> int:
-        """Get number of registered errors"""
-        return len(self._errors_registry)
-
-    def _format_connection_error_result(self, node: Dict, error_msg: str) -> Dict:
-        """
-        Format result with connection error
-        """
-        node_name = node.get("name", node["ip"])
-        node_ip = node["ip"]
-        node_port = node.get("port", 22)
-
-        # Create dummy rule for formatting
-        from infrastructure.rules.rule_loader import Rule
-
-        rule_data = {
-            "id": "ssh_connection",
-            "name": "SSH connection",
-            "solution": "Resolve network connection or SSH configuration issues",
-            "config": {"extractors": [], "assertions": []},
-        }
-        rule = Rule(rule_data)
-
-        formatted_details = f"""Connection error to node {node_name} ({node_ip}:{node_port})
-
-Error message: {error_msg}
-
-Diagnostics:
-• Check port {node_port} availability: telnet {node_ip} {node_port} or nc -zv {node_ip} {node_port}
-• Ensure SSH service is running on the node
-• Check credentials correctness (username, password/SSH key)
-• Check firewall settings and network policies
-• Check DNS name resolution correctness
-
-Recommended actions:
-1. Check SSH service status on the node
-2. Check authentication settings
-3. Check SSH logs on the target node
-4. Check network availability of port {node_port}"""
-
-        result = self._result_formatter.error_result(
-            rule, error_msg, f"Failed to establish SSH connection with node {node_name}"
+    @classmethod
+    def from_env(cls) -> "NodeInspectorConfig":
+        """Create configuration from environment variables"""
+        return cls(
+            max_workers=settings.node_inspector_max_workers,
+            timeout=settings.node_inspector_timeout,
+            connection_timeout=settings.node_inspector_connection_timeout,
+            retry_attempts=settings.node_inspector_retry_attempts,
+            retry_delay=settings.node_inspector_retry_delay,
+            enable_connection_pool=settings.node_inspector_connection_pool,
+            pool_size=settings.node_inspector_pool_size,
+            keep_alive=settings.node_inspector_keep_alive,
+            verbose_logging=settings.node_inspector_verbose,
+            log_command_output=settings.node_inspector_log_output,
         )
 
-        # Supplement result with specific information
-        result.update(
-            {
-                "name": f"SSH connection - {node_name}",
-                "details": formatted_details,
-                "node": {"ip": node_ip, "name": node_name, "port": node_port},
-                "connection_error": True,
-                "inspector_type": "node_connection",
-                "error_source": "ssh_connection_manager",
-            }
+    @classmethod
+    def adaptive(cls, node_count: int) -> "NodeInspectorConfig":
+        """Adaptive configuration based on node count"""
+        if node_count <= 3:
+            max_workers = node_count
+            timeout = 30
+        elif node_count <= 10:
+            max_workers = min(8, node_count)
+            timeout = 25
+        elif node_count <= 20:
+            max_workers = min(15, node_count)
+            timeout = 20
+        else:
+            max_workers = min(25, node_count)
+            timeout = 15
+
+        return cls(
+            max_workers=max_workers,
+            timeout=timeout,
+            connection_timeout=min(10, timeout // 3),
+            retry_attempts=2 if node_count <= 10 else 1,
+            verbose_logging=node_count <= 5,  # Enable verbose logging for small node counts
         )
 
-        return result
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            "max_workers": self.max_workers,
+            "timeout": self.timeout,
+            "connection_timeout": self.connection_timeout,
+            "retry_attempts": self.retry_attempts,
+            "retry_delay": self.retry_delay,
+            "enable_connection_pool": self.enable_connection_pool,
+            "pool_size": self.pool_size,
+            "keep_alive": self.keep_alive,
+            "verbose_logging": self.verbose_logging,
+            "log_command_output": self.log_command_output,
+        }
 
-    @staticmethod
-    def _get_node_key(node: Dict) -> str:
-        """Generate unique key for node"""
-        return f"{node['ip']}:{node.get('port', 22)}"
+    def validate(self) -> List[str]:
+        """Validate configuration"""
+        issues = []
+
+        if self.max_workers < 1:
+            issues.append("max_workers must be greater than 0")
+        if self.max_workers > 20:
+            issues.append("max_workers should not exceed 20, may cause resource overload")
+
+        if self.timeout < 5:
+            issues.append("timeout should not be less than 5 seconds")
+        if self.timeout > 300:
+            issues.append("timeout should not exceed 5 minutes")
+
+        if self.connection_timeout < 1:
+            issues.append("connection_timeout must be greater than 0")
+
+        if self.retry_attempts < 0:
+            issues.append("retry_attempts cannot be less than 0")
+        if self.retry_attempts > 5:
+            issues.append("retry_attempts should not exceed 5 times")
+
+        return issues
 
 
 class NodeInspector(BaseInspector):
     """
-    Node inspector with guaranteed unified SSH error display
+    Refactored Node Inspector with separated concerns
     """
 
     def __init__(
         self,
         config: List[Dict[str, Any]],
-        enable_concurrent: bool = True,
-        max_workers: int = 5,
-        timeout: int = 30,
+        inspector_config: Optional[NodeInspectorConfig] = None,
         enable_security_check: bool = True,
         use_gitops: bool = False,
     ):
         """
-        Initialize node inspector
+        Initialize refactored node inspector
         """
-        inspector_config = {"nodes": config}
-        super().__init__(inspector_config, use_gitops=use_gitops)
+        if inspector_config is None:
+            inspector_config = NodeInspectorConfig.adaptive(len(config))
+
+        inspector_config_dict = {"nodes": config}
+        super().__init__(inspector_config_dict, use_gitops=use_gitops)
 
         self.nodes = config
-        self.enable_concurrent = enable_concurrent
-        self.max_workers = min(max_workers, len(config)) if enable_concurrent else 1
-        self.timeout = timeout
+        self.inspector_config = inspector_config
+        self.enable_concurrent = len(config) > 1
+        self.max_workers = min(inspector_config.max_workers, len(config)) if self.enable_concurrent else 1
+        self.timeout = inspector_config.timeout
         self.enable_security_check = enable_security_check
 
         # SSH error manager
         self.ssh_error_manager = SSHConnectionErrorManager()
 
-        # Security check
-        self.security_checker = CommandSecurityChecker()
-        logger.info("Security check forcibly enabled")
+        # SSH service and security checker
+        self.ssh_service: Optional[SSHService] = None
+        self.security_checker = CommandSecurityChecker() if enable_security_check else None
 
         # Local connection status cache for current inspection
         self.connection_status_cache = {}
+
+        # Track reported unavailable nodes to avoid duplicates
+        self.unavailable_nodes_reported = set()
 
         # Execution statistics
         self.execution_stats = {
@@ -202,22 +181,33 @@ class NodeInspector(BaseInspector):
             "failed_executions": 0,
             "blocked_by_security": 0,
             "security_warnings": 0,
-            "total_time": 0.0,  # Changed to float
+            "total_time": 0.0,
         }
 
         source_type = "GitOps" if use_gitops else "local"
-        logger.info(f"Node inspector initialized - nodes: {len(config)}, rules: {source_type}")
+        logger.info(f"Refactored Node inspector initialized - nodes: {len(config)}, rules: {source_type}")
 
     @property
     def inspector_type(self) -> str:
         return "node"
 
-    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None) -> InspectionResult:
+    async def run_inspection(
+        self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None
+    ) -> InspectionResult:
         """
-        Run inspection with guaranteed unified SSH error display
+        Run inspection with simplified architecture
         """
+        import time
+
+        inspection_start_time = time.time()
+
         source_type = "GitOps" if self.use_gitops else "local"
-        logger.info(f"Start node inspection - cluster: {cluster_name}, rules: {source_type}")
+        logger.info(f"Start refactored node inspection - cluster: {cluster_name}, rules: {source_type}")
+
+        # Log configured nodes
+        logger.info(f"Configured nodes: {len(self.nodes)}")
+        for node in self.nodes:
+            logger.info(f"  Node: {node.get('name', node['ip'])} ({node['ip']}:{node.get('port', 22)})")
 
         # Reset error registry before new inspection
         self.ssh_error_manager.reset_for_inspection()
@@ -230,27 +220,37 @@ class NodeInspector(BaseInspector):
         self.execution_stats["available_nodes"] = len(available_nodes)
         self.execution_stats["unavailable_nodes"] = len(self.nodes) - len(available_nodes)
 
-        # If no available nodes, return only SSH errors
+        logger.info(
+            f"SSH connection check results: {len(available_nodes)} available, {len(self.nodes) - len(available_nodes)} unavailable"
+        )
+
+        # If no available nodes, log and continue with rule execution (unavailable nodes will be reported in _apply_rule)
         if not available_nodes:
-            logger.error("No available nodes for inspection")
-            ssh_errors = self.ssh_error_manager.get_all_connection_errors()
-            result = InspectionResult(cluster_name, self.inspector_type)
-            for error in ssh_errors:
-                result.add_item(error)
-            return result
+            logger.error("No available nodes for inspection - unavailable nodes will be reported per rule")
+
+        # Log available nodes
+        logger.info(f"Available nodes for rule execution: {[node.get('name', node['ip']) for node in available_nodes]}")
 
         # Execute inspection rules only on available nodes
-        result = await super().run_inspection(cluster_name, rule_ids or [])
+        result = await super().run_inspection(cluster_name, rule_ids or [], selected_tags)
 
-        # Add SSH connection errors to the beginning of the report
-        ssh_errors = self.ssh_error_manager.get_all_connection_errors()
-        if ssh_errors:
-            result.items = ssh_errors + result.items
-            logger.info(f"Added {len(ssh_errors)} SSH connection errors to report")
+        # Ensure all unavailable nodes are reported
+        for node in self.nodes:
+            if self.ssh_error_manager.has_connection_error(node):
+                node_key = self.ssh_error_manager._get_node_key(node)
+                if node_key not in self.unavailable_nodes_reported:
+                    result.add_item(self._format_unavailable_node_result(node))
+                    self.unavailable_nodes_reported.add(node_key)
 
+        inspection_duration = time.time() - inspection_start_time
         logger.info(f"Inspection completed - total results: {len(result.items)}")
         logger.info(
             f"Statistics: {self.execution_stats['available_nodes']} available, {self.execution_stats['unavailable_nodes']} unavailable nodes"
+        )
+        logger.info(
+            f"Inspection performance: total_time={inspection_duration:.2f}s, "
+            f"node_executions={self.execution_stats['total_node_executions']}, "
+            f"success_rate={self.execution_stats.get('success_rate', 0):.1f}%"
         )
 
         return result
@@ -267,8 +267,8 @@ class NodeInspector(BaseInspector):
         available_nodes = []
 
         # Get configurable SSH timeout and max concurrent checks
-        ssh_timeout = int(os.getenv("KUBEYE_SSH_CONNECTION_TIMEOUT", "10"))
-        max_concurrent_checks = int(os.getenv("KUBEYE_SSH_MAX_CONCURRENT_CHECKS", "20"))  # Increased from 10 to 20
+        ssh_timeout = settings.kubeeye_ssh_connection_timeout
+        max_concurrent_checks = settings.kubeeye_ssh_max_concurrent_checks
 
         # Calculate derived timeouts based on base SSH timeout
         connection_check_timeout = ssh_timeout * 1.5  # 15s for 10s base
@@ -299,35 +299,21 @@ class NodeInspector(BaseInspector):
 
                 # Check connection using pool
                 try:
-                    # First try to get connection from pool
-                    ssh_pool = await get_service("ssh_pool")
-                    client = await ssh_pool.get_connection(node)
-                    if client:
-                        # Connection successful
-                        status = {"success": True, "message": f"Connection to {node_name} successful"}
-                        self.connection_status_cache[node_key] = status
-                        node["connection_status"] = status
+                    success, message = await asyncio.wait_for(
+                        async_test_node_connection(node), timeout=connection_check_timeout
+                    )
+                    status = {"success": success, "message": message}
+                    self.connection_status_cache[node_key] = status
+                    node["connection_status"] = status
 
-                        # Return connection to pool
-                        await ssh_pool.return_connection(node, client)
-
-                        logger.info(f"SSH connection to node {node_name} successful (using pool)")
+                    if success:
+                        logger.info(f"SSH connection to node {node_name} successful")
                         return node
                     else:
-                        # Pool connection failed, try direct test
-                        success, message = await async_test_node_connection(node)
-                        status = {"success": success, "message": message}
-                        self.connection_status_cache[node_key] = status
-                        node["connection_status"] = status
-
-                        if success:
-                            logger.info(f"SSH connection to node {node_name} successful (direct test)")
-                            return node
-                        else:
-                            logger.error(f"SSH connection to node {node_name} unavailable: {message}")
-                            # Register error in manager
-                            self.ssh_error_manager.register_connection_error(node, message)
-                            return None
+                        logger.error(f"SSH connection to node {node_name} unavailable: {message}")
+                        # Register error in manager
+                        self.ssh_error_manager.register_connection_error(node, message)
+                        return None
 
                 except asyncio.TimeoutError:
                     error_msg = f"Connection check timeout ({connection_check_timeout}s) for node {node_name}"
@@ -358,49 +344,15 @@ class NodeInspector(BaseInspector):
         )
         return available_nodes
 
-    async def _check_single_node_connection_with_timeout(self, node: Dict) -> Tuple[bool, str]:
-        """
-        Check connection to single node with timeout using connection pool
-        """
-        import os
-
-        node_name = node.get("name", node["ip"])
-
-        # Get configurable SSH timeout
-        ssh_timeout = int(os.getenv("KUBEYE_SSH_CONNECTION_TIMEOUT", "10"))
-        connection_check_timeout = ssh_timeout * 1.5  # 15s for 10s base
-
-        try:
-            ssh_pool = await get_service("ssh_pool")
-            # First try to get connection from pool
-            client = await asyncio.wait_for(ssh_pool.get_connection(node), timeout=connection_check_timeout)
-            if client:
-                # Connection successful, return to pool
-                await ssh_pool.return_connection(node, client)
-                return True, f"Connection to {node_name} successful (using pool)"
-            else:
-                # Pool connection failed, try direct test
-                success, message = await asyncio.wait_for(
-                    async_test_node_connection(node), timeout=connection_check_timeout
-                )
-                return success, message
-
-        except asyncio.TimeoutError:
-            return (
-                False,
-                f"Connection timeout ({connection_check_timeout}s) for node {node_name}",
-            )
-        except Exception as e:
-            return False, f"Connection check error for node {node_name}: {str(e)}"
-
-    async def _apply_rule(self, rule: Rule, context: Dict) -> Union[Dict, List[Dict], None]:
+    async def _apply_rule(self, rule: Rule, context: Dict) -> Optional[Dict]:
         """
         Apply inspection rule only to available nodes
         """
         logger.info(f"Applying rule: {rule.id} - {rule.name}")
+        logger.debug(f"Rule config: extractors={len(rule.extractors)}, assertions={len(rule.assertions)}")
         rule_start_time = time.time()
 
-        # Get rule configuration - use extractors from rule object
+        # Get rule configuration
         extractors = rule.extractors
         assertions = rule.assertions
 
@@ -410,14 +362,6 @@ class NodeInspector(BaseInspector):
             command_extractor = next((e for e in extractors if e.get("type") == "command"), None)
             if command_extractor:
                 command = command_extractor.get("command", "")
-
-        # Command security check
-        if self.enable_security_check and command:
-            is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
-            if not is_safe:
-                logger.error(f"Rule {rule.id} blocked by security: {risk_desc}")
-                self.execution_stats["blocked_by_security"] += 1
-                return self._format_security_blocked_result(rule, risk_desc, command)
 
         # Filter nodes by selector
         node_selector = self.get_rule_config(rule, "scope.node_selector", {})
@@ -446,24 +390,56 @@ class NodeInspector(BaseInspector):
 
         logger.info(f"Rule {rule.id} - available nodes: {len(available_nodes)} out of {len(target_nodes)}")
 
-        # If no available nodes, rule is not executed
-        if not available_nodes:
-            logger.warning(f"Rule {rule.id} - no available nodes for execution")
-            return self._format_no_nodes_result(rule, "No available nodes for rule execution")
+        # Initialize results list
+        node_results = []
 
-        # Execute rule on available nodes
-        if self.enable_concurrent and len(available_nodes) > 1:
-            node_results = await self._execute_rule_concurrently(rule, command, assertions, available_nodes)
-        else:
-            node_results = await self._execute_rule_sequentially_async(rule, command, assertions, available_nodes)
+        # If no available nodes, add results for unavailable nodes
+        if not available_nodes:
+            logger.info(f"Rule {rule.id} - no nodes for execution, adding unavailable results")
+            node_results = []
+            for node in target_nodes:
+                if self.ssh_error_manager.has_connection_error(node):
+                    node_key = self.ssh_error_manager._get_node_key(node)
+                    if node_key not in self.unavailable_nodes_reported:
+                        result = self._format_unavailable_node_result(node)
+                        node_results.append(result)
+                        self.unavailable_nodes_reported.add(node_key)
+            return {
+                "rule_id": rule.id,
+                "rule_name": rule.name,
+                "results": node_results,
+                "total_nodes": len(target_nodes),
+                "executed_nodes": 0,
+                "execution_time": 0.0,
+            }
+
+        # Execute rule on available nodes and add to results
+        if available_nodes:
+            if self.enable_concurrent and len(available_nodes) > 1:
+                available_results = await self._execute_rule_concurrently(rule, command, assertions, available_nodes)
+            else:
+                available_results = await self._execute_rule_sequentially_async(
+                    rule, command, assertions, available_nodes
+                )
+            node_results.extend(available_results)
 
         # Update statistics
         rule_duration = time.time() - rule_start_time
         self.execution_stats["total_node_executions"] += len(available_nodes)
         self.execution_stats["total_time"] = self.execution_stats["total_time"] + rule_duration
 
-        logger.info(f"Rule {rule.id} executed in {rule_duration:.2f}sec")
-        return node_results
+        logger.info(
+            f"Rule {rule.id} executed in {rule_duration:.2f}s on {len(available_nodes)} nodes, "
+            f"avg_time_per_node={rule_duration / max(len(available_nodes), 1):.2f}s"
+        )
+        return {
+            "rule_id": rule.id,
+            "rule_name": rule.name,
+            "results": node_results,
+            "total_nodes": len(target_nodes),
+            "executed_nodes": len(node_results),
+            "execution_time": time.time() - rule_start_time,
+        }
 
     async def _execute_rule_concurrently(
         self, rule: Rule, command: str, assertions: List[Dict], target_nodes: List[Dict]
@@ -481,25 +457,51 @@ class NodeInspector(BaseInspector):
                     return None
 
                 try:
-                    # Execute command in thread pool to avoid blocking
-                    result = await asyncio.to_thread(self._execute_rule_on_single_node, rule, command, assertions, node)
-                    if result:
-                        self.execution_stats["successful_executions"] += 1
-                    return result
+                    # Get SSH service
+                    if not self.ssh_service:
+                        self.ssh_service = await get_service("ssh_service")
+
+                    # Security check
+                    if self.security_checker and command:
+                        is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
+                        if not is_safe:
+                            error_msg = f"Command blocked by security: {risk_desc}"
+                            logger.error(f"Node {node.get('name', node['ip'])}: {error_msg}")
+                            return self._format_execution_error_result(rule, node, error_msg)
+
+                    # Execute command using SSH service
+                    if self.ssh_service:
+                        output, error = await self.ssh_service.execute_command(
+                            node_info=node,
+                            command=command,
+                            timeout=self.timeout,
+                            enable_security_check=False,  # Security check already done above
+                        )
+                        if error:
+                            # If SSH error occurred, register it
+                            if self.ssh_service.is_ssh_connection_error(error):
+                                self.ssh_error_manager.register_connection_error(node, error)
+                                return None
+                            return self._format_execution_error_result(rule, node, error)
+                        else:
+                            # Evaluate assertions
+                            variables = {
+                                "output": output.strip(),
+                                "node_ip": node["ip"],
+                                "node_name": node.get("name", node["ip"]),
+                            }
+                            return self._evaluate_assertions(rule, assertions, variables, node)
                 except Exception as e:
                     logger.error(f"Execution error on node {node.get('name', node['ip'])}: {str(e)}")
                     # Do not create execution error for nodes with SSH error
                     if not self.ssh_error_manager.has_connection_error(node):
                         error_result = self._format_execution_error_result(rule, node, str(e))
                         if error_result:
-                            self.execution_stats["failed_executions"] += 1
-                            return error_result
-                    else:
-                        self.execution_stats["failed_executions"] += 1
+                            node_results.append(error_result)
                     return None
 
         # Create tasks for all nodes
-        tasks = [execute_single_node_async(node) for node in target_nodes]
+        tasks = [asyncio.create_task(execute_single_node_async(node)) for node in target_nodes]
 
         # Wait for all tasks to complete with timeout
         try:
@@ -510,7 +512,7 @@ class NodeInspector(BaseInspector):
             logger.warning(f"Concurrent execution timeout after {self.timeout * len(target_nodes)} seconds")
             # Cancel remaining tasks
             for task in tasks:
-                if not asyncio.iscoroutine(task) and hasattr(task, "cancel"):
+                if not task.done():
                     task.cancel()
             results = []
 
@@ -535,11 +537,48 @@ class NodeInspector(BaseInspector):
                 continue
 
             try:
-                # Execute command asynchronously
-                result = await self._execute_rule_on_single_node_async(rule, command, assertions, node)
-                if result:
-                    node_results.append(result)
-                    self.execution_stats["successful_executions"] += 1
+                # Get SSH service
+                if not self.ssh_service:
+                    self.ssh_service = await get_service("ssh_service")
+
+                # Security check
+                if self.security_checker and command:
+                    is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
+                    if not is_safe:
+                        error_msg = f"Command blocked by security: {risk_desc}"
+                        logger.error(f"Node {node.get('name', node['ip'])}: {error_msg}")
+                        error_result = self._format_execution_error_result(rule, node, error_msg)
+                        if error_result:
+                            node_results.append(error_result)
+                        continue
+
+                # Execute command using SSH service
+                if self.ssh_service:
+                    output, error = await self.ssh_service.execute_command(
+                        node_info=node,
+                        command=command,
+                        timeout=self.timeout,
+                        enable_security_check=False,  # Security check already done above
+                    )
+                    if error:
+                        # If SSH error occurred, register it
+                        if self.ssh_service.is_ssh_connection_error(error):
+                            self.ssh_error_manager.register_connection_error(node, error)
+                            continue
+                        error_result = self._format_execution_error_result(rule, node, error)
+                        if error_result:
+                            node_results.append(error_result)
+                    else:
+                        # Evaluate assertions
+                        variables = {
+                            "output": output.strip(),
+                            "node_ip": node["ip"],
+                            "node_name": node.get("name", node["ip"]),
+                        }
+                        result = self._evaluate_assertions(rule, assertions, variables, node)
+                        if result:
+                            node_results.append(result)
+                            self.execution_stats["successful_executions"] += 1
             except Exception as e:
                 logger.error(f"Execution error on node {node.get('name', node['ip'])}: {str(e)}")
                 # Do not create execution error for nodes with SSH error
@@ -551,228 +590,6 @@ class NodeInspector(BaseInspector):
 
         return node_results
 
-    async def _execute_rule_on_single_node_async(
-        self, rule: Rule, command: str, assertions: List[Dict], node: Dict
-    ) -> Optional[Dict]:
-        """Execute rule on single node (only if node is available) using async operations"""
-        node_name = node.get("name", node["ip"])
-
-        # Final check: ensure no SSH connection error
-        if self.ssh_error_manager.has_connection_error(node):
-            logger.warning(f"Node {node_name} has SSH error, skipping execution")
-            return None
-
-        # Execute command asynchronously
-        output, error = await self._execute_command_async(command, node)
-
-        if error:
-            # If SSH error occurred, register it and don't execute rules on this node anymore
-            if self._is_ssh_connection_error(error):
-                self.ssh_error_manager.register_connection_error(node, error)
-                return None
-            return self._format_execution_error_result(rule, node, error)
-        else:
-            # Evaluate assertions
-            variables = {
-                "output": output.strip(),
-                "node_ip": node["ip"],
-                "node_name": node_name,
-            }
-            return self._evaluate_assertions(rule, assertions, variables, node)
-
-    def _execute_rule_on_single_node(
-        self, rule: Rule, command: str, assertions: List[Dict], node: Dict
-    ) -> Optional[Dict]:
-        """Execute rule on single node (only if node is available) - legacy sync method"""
-        node_name = node.get("name", node["ip"])
-
-        # Final check: ensure no SSH connection error
-        if self.ssh_error_manager.has_connection_error(node):
-            logger.warning(f"Node {node_name} has SSH error, skipping execution")
-            return None
-
-        # Execute command synchronously (this method is called from asyncio.to_thread)
-        output, error = self._execute_command_sync(command, node)
-
-        if error:
-            # If SSH error occurred, register it and don't execute rules on this node anymore
-            if self._is_ssh_connection_error(error):
-                self.ssh_error_manager.register_connection_error(node, error)
-                return None
-            return self._format_execution_error_result(rule, node, error)
-        else:
-            # Evaluate assertions
-            variables = {
-                "output": output.strip(),
-                "node_ip": node["ip"],
-                "node_name": node_name,
-            }
-            return self._evaluate_assertions(rule, assertions, variables, node)
-
-    def _is_ssh_connection_error(self, error_msg: str) -> bool:
-        """Checks if error is related to SSH connection"""
-        ssh_keywords = [
-            "connection",
-            "connect",
-            "ssh",
-            "timeout",
-            "refused",
-            "authentication",
-            "auth",
-            "handshake",
-            "socket",
-            "network",
-            "unreachable",
-            "closed",
-            "reset",
-        ]
-        error_lower = error_msg.lower()
-        return any(keyword in error_lower for keyword in ssh_keywords)
-
-    async def _execute_command_async(self, command: str, node: Dict) -> Tuple[str, str]:
-        """Execute command on node (only if node is available) using asynchronous operations"""
-        try:
-            node_name = node.get("name", node["ip"])
-
-            # Final check before execution
-            if self.ssh_error_manager.has_connection_error(node):
-                return "", "SSH connection unavailable"
-
-            # Command security check
-            if self.enable_security_check:
-                is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
-                if not is_safe:
-                    error_msg = f"Command blocked by security: {risk_desc}"
-                    logger.error(f"Node {node_name}: {error_msg}")
-                    return "", error_msg
-
-            # Execute command via SSH using asynchronous connection pool
-            ssh_pool = await get_service("ssh_pool")
-            client = await ssh_pool.get_connection(node)
-            if not client:
-                error_msg = "Failed to get SSH connection from pool"
-                logger.error(f"Node {node_name}: {error_msg}")
-                self.ssh_error_manager.register_connection_error(node, error_msg)
-                return "", error_msg
-
-            try:
-                # Execute command with timeout using asyncio
-                import os
-
-                ssh_timeout = int(os.getenv("KUBEYE_SSH_CONNECTION_TIMEOUT", "10"))
-                command_timeout = ssh_timeout * 6  # 60s for 10s base
-
-                # Use asyncio.to_thread for the blocking SSH operations
-                stdin, stdout, stderr = await asyncio.wait_for(
-                    asyncio.to_thread(client.exec_command, command, timeout=command_timeout), timeout=command_timeout
-                )
-
-                # Read output asynchronously
-                stdout_data, stderr_data = await asyncio.wait_for(
-                    asyncio.to_thread(lambda: (stdout.read().decode("utf-8"), stderr.read().decode("utf-8"))),
-                    timeout=command_timeout,
-                )
-
-                # Get exit status
-                exit_status = await asyncio.wait_for(
-                    asyncio.to_thread(stdout.channel.recv_exit_status), timeout=command_timeout
-                )
-
-                if exit_status == 0:
-                    return stdout_data, ""
-                else:
-                    # Check if error is SSH-related
-                    if self._is_ssh_connection_error(stderr_data):
-                        self.ssh_error_manager.register_connection_error(node, stderr_data)
-                    return stdout_data, stderr_data
-
-            finally:
-                # Return connection to pool
-                await ssh_pool.return_connection(node, client)
-
-        except asyncio.TimeoutError:
-            error_msg = f"Command execution timeout for node {node.get('name', node['ip'])}"
-            logger.error(error_msg)
-            return "", error_msg
-        except Exception as e:
-            error_msg = f"Command execution error: {str(e)}"
-            logger.error(f"Node {node.get('name', node['ip'])}: {error_msg}")
-
-            # Check if exception is SSH-related
-            if self._is_ssh_connection_error(error_msg):
-                self.ssh_error_manager.register_connection_error(node, error_msg)
-
-            return "", error_msg
-
-    def _execute_command_sync(self, command: str, node: Dict) -> Tuple[str, str]:
-        """Execute command on node (only if node is available) using synchronous operations - legacy method"""
-        try:
-            node_name = node.get("name", node["ip"])
-
-            # Final check before execution
-            if self.ssh_error_manager.has_connection_error(node):
-                return "", "SSH connection unavailable"
-
-            # Command security check
-            if self.enable_security_check:
-                is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
-                if not is_safe:
-                    error_msg = f"Command blocked by security: {risk_desc}"
-                    logger.error(f"Node {node_name}: {error_msg}")
-                    return "", error_msg
-
-            # Execute command via SSH using synchronous connection pool
-            import asyncio
-
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                ssh_pool = loop.run_until_complete(get_service("ssh_pool"))
-                client = loop.run_until_complete(ssh_pool.get_connection(node))
-                if not client:
-                    error_msg = "Failed to get SSH connection from pool"
-                    logger.error(f"Node {node_name}: {error_msg}")
-                    self.ssh_error_manager.register_connection_error(node, error_msg)
-                    return "", error_msg
-
-                try:
-                    # Execute command with timeout
-                    import os
-
-                    ssh_timeout = int(os.getenv("KUBEYE_SSH_CONNECTION_TIMEOUT", "10"))
-                    command_timeout = ssh_timeout * 6  # 60s for 10s base
-
-                    stdin, stdout, stderr = client.exec_command(command, timeout=command_timeout)
-                    exit_status = stdout.channel.recv_exit_status()
-
-                    # Read output
-                    stdout_data = stdout.read().decode("utf-8")
-                    stderr_data = stderr.read().decode("utf-8")
-
-                    if exit_status == 0:
-                        return stdout_data, ""
-                    else:
-                        # Check if error is SSH-related
-                        if self._is_ssh_connection_error(stderr_data):
-                            self.ssh_error_manager.register_connection_error(node, stderr_data)
-                        return stdout_data, stderr_data
-
-                finally:
-                    # Return connection to pool
-                    loop.run_until_complete(ssh_pool.return_connection(node, client))
-            finally:
-                loop.close()
-
-        except Exception as e:
-            error_msg = f"Command execution error: {str(e)}"
-            logger.error(f"Node {node.get('name', node['ip'])}: {error_msg}")
-
-            # Check if exception is SSH-related
-            if self._is_ssh_connection_error(error_msg):
-                self.ssh_error_manager.register_connection_error(node, error_msg)
-
-            return "", error_msg
-
     def _evaluate_assertions(self, rule: Rule, assertions: List[Dict], variables: Dict[str, Any], node: Dict) -> Dict:
         """Evaluate rule assertions"""
         assertion_result = self.rule_processor.evaluate_assertions(assertions, variables)
@@ -781,7 +598,7 @@ class NodeInspector(BaseInspector):
             status = "passed"
             severity = "info"
             description = f"{rule.name}: check passed"
-            # Use the name from the first assertion if available, otherwise use default message
+            # Use name from the first assertion if available, otherwise use default message
             details = (
                 assertions[0].get("name", "System state meets requirements")
                 if assertions
@@ -835,38 +652,19 @@ class NodeInspector(BaseInspector):
 
     def _validate_rule_config(self, rule: Rule) -> List[str]:
         """Validate rule configuration"""
-        issues = []
-        command = self.get_rule_config(rule, "execution.command", "")
-        if not command:
-            issues.append("Missing execution command")
-        else:
-            if self.enable_security_check:
-                is_safe, risk_level, risk_desc = self.security_checker.check_command_security(command)
-                if not is_safe:
-                    issues.append(f"Security check failed: {risk_desc}")
+        # Use ValidationManager with security checker
+        security_checker = self.security_checker if self.enable_security_check else None
 
-        assertions = self.get_rule_config(rule, "assertions", [])
-        if not assertions:
-            issues.append("Missing assertions")
-
-        return issues
+        return ValidationManager.validate_node_rule_config(rule.config, security_checker)
 
     def _should_apply_rule(self, rule: Rule, context: Dict) -> bool:
         """Determine rule applicability"""
         node_selector = self.get_rule_config(rule, "scope.node_selector", {})
         return not node_selector or any(self._filter_nodes_by_selector(self.nodes, node_selector))
 
-    def _format_security_blocked_result(self, rule: Rule, risk_desc: str, command: str) -> Dict:
-        """Format security blocked result"""
-        return self.rule_processor.result_formatter.error_result(
-            rule,
-            f"Command contains security risks: {risk_desc}",
-            "Security check failed",
-        )
-
     def _format_execution_error_result(self, rule: Rule, node: Dict, error_msg: str) -> Optional[Dict]:
         """Format execution error result"""
-        # Do not create execution error for nodes with SSH connection error
+        # Do not create execution error for nodes with SSH error
         if self.ssh_error_manager.has_connection_error(node):
             return None
 
@@ -883,6 +681,28 @@ class NodeInspector(BaseInspector):
         result = self.rule_processor.result_formatter.error_result(rule, reason, f"Rule execution skipped: {reason}")
         result["status"] = "skipped"
         result["severity"] = "info"
+        return result
+
+    def _format_unavailable_node_result(self, node: Dict) -> Dict:
+        """Format result for unavailable node using dummy rule"""
+        node_name = node.get("name", node["ip"])
+        rule_data = {
+            "id": "node_unavailable",
+            "name": "Node unavailable",
+            "solution": "Resolve SSH connection issues",
+            "config": {"extractors": [], "assertions": []},
+        }
+        rule = Rule(rule_data)
+        error_msg = f"Node {node_name} is unavailable for inspection due to SSH connection failure"
+        result = self.rule_processor.result_formatter.error_result(rule, error_msg, f"Node {node_name} unavailable")
+        result["node"] = {"ip": node["ip"], "name": node_name}
+        result["name"] = f"Node {node_name} unavailable"
+        result["status"] = "exception"
+        result["severity"] = "critical"
+        result["details"] = (
+            f"SSH connection to node {node_name} ({node['ip']}:{node.get('port', 22)}) failed. "
+            "The node was not accessible during the inspection period."
+        )
         return result
 
     def get_execution_stats(self) -> Dict:
@@ -908,7 +728,7 @@ class NodeInspector(BaseInspector):
     def print_execution_summary(self):
         """Print execution summary"""
         stats = self.get_execution_stats()
-        logger.info("=== Node inspection execution summary ===")
+        logger.info("=== Refactored Node inspection execution summary ===")
         logger.info(f"Total nodes: {stats['total_nodes']}")
         logger.info(f"Available nodes: {stats['available_nodes']}")
         logger.info(f"Unavailable nodes: {stats['unavailable_nodes']}")
@@ -922,24 +742,9 @@ class NodeInspector(BaseInspector):
     @classmethod
     def create_optimized(cls, config: List[Dict[str, Any]], use_gitops: bool = False) -> "NodeInspector":
         """Create optimized inspector"""
-        node_count = len(config)
-        if node_count <= 3:
-            max_workers = node_count
-            timeout = 30
-        elif node_count <= 10:
-            max_workers = min(8, node_count)  # Increased from 5 to 8
-            timeout = 25
-        elif node_count <= 20:
-            max_workers = min(15, node_count)  # Support for medium clusters
-            timeout = 20
-        else:
-            max_workers = min(25, node_count)  # Support for large clusters
-            timeout = 15  # Reduced timeout for large clusters
-
+        inspector_config = NodeInspectorConfig.adaptive(len(config))
         return cls(
             config=config,
+            inspector_config=inspector_config,
             use_gitops=use_gitops,
-            enable_concurrent=node_count > 1,
-            max_workers=max_workers,
-            timeout=timeout,
         )

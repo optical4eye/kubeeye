@@ -13,22 +13,15 @@ class TestInspectionCoordinator:
     """Test cases for inspection coordinator"""
 
     @patch("services.components.inspection_coordinator.NodeInspector")
-    @patch("services.components.inspection_coordinator.PrometheusInspector")
     @patch("services.components.inspection_coordinator.OpaInspector")
     @pytest.mark.asyncio
-    async def test_execute_inspections_all_types(
-        self, mock_opa_inspector, mock_prometheus_inspector, mock_node_inspector
-    ):
+    async def test_execute_inspections_all_types(self, mock_opa_inspector, mock_node_inspector):
         """Test execution of all inspection types"""
         # Setup mocks
         mock_node_instance = AsyncMock()
         mock_node_instance.run_inspection.return_value = {"node": "results"}
         mock_node_inspector.return_value = mock_node_instance
 
-        mock_prometheus_instance = AsyncMock()
-        mock_prometheus_instance.run_inspection.return_value = {"prometheus": "results"}
-        mock_prometheus_inspector.return_value = mock_prometheus_instance
-
         mock_opa_instance = AsyncMock()
         mock_opa_instance.run_inspection.return_value = {"opa": "results"}
         mock_opa_inspector.return_value = mock_opa_instance
@@ -38,38 +31,26 @@ class TestInspectionCoordinator:
         coordinator = InspectionCoordinator(use_gitops=False)
 
         nodes = [{"name": "node1"}]
-        prometheus_config = {"enabled": True, "url": "http://prometheus:9090"}
         kubeconfig = "/path/to/kubeconfig"
-        selected_rules = {"node": ["rule1"], "prometheus": ["rule2"], "opa": ["rule3"]}
+        selected_rules = {"node": ["rule1"], "opa": ["rule3"]}
 
-        result = await coordinator.execute_inspections(
-            "test-cluster", nodes, prometheus_config, kubeconfig, selected_rules
-        )
+        result = await coordinator.execute_inspections("test-cluster", nodes, kubeconfig, selected_rules)
 
         assert "node" in result
-        assert "prometheus" in result
         assert "opa" in result
         mock_node_instance.run_inspection.assert_called_once_with("test-cluster", ["rule1"])
-        mock_prometheus_instance.run_inspection.assert_called_once_with("test-cluster", ["rule2"])
         mock_opa_instance.run_inspection.assert_called_once_with("test-cluster", ["rule3"])
 
     @patch("services.components.inspection_coordinator.NodeInspector")
-    @patch("services.components.inspection_coordinator.PrometheusInspector")
     @patch("services.components.inspection_coordinator.OpaInspector")
     @pytest.mark.asyncio
-    async def test_execute_inspections_no_selected_rules(
-        self, mock_opa_inspector, mock_prometheus_inspector, mock_node_inspector
-    ):
+    async def test_execute_inspections_no_selected_rules(self, mock_opa_inspector, mock_node_inspector):
         """Test execution with no selected rules (should run all available)"""
         # Setup mocks
         mock_node_instance = AsyncMock()
         mock_node_instance.run_inspection.return_value = {"node": "results"}
         mock_node_inspector.return_value = mock_node_instance
 
-        mock_prometheus_instance = AsyncMock()
-        mock_prometheus_instance.run_inspection.return_value = {"prometheus": "results"}
-        mock_prometheus_inspector.return_value = mock_prometheus_instance
-
         mock_opa_instance = AsyncMock()
         mock_opa_instance.run_inspection.return_value = {"opa": "results"}
         mock_opa_inspector.return_value = mock_opa_instance
@@ -79,57 +60,38 @@ class TestInspectionCoordinator:
         coordinator = InspectionCoordinator(use_gitops=False)
 
         nodes = [{"name": "node1"}]
-        prometheus_config = {"enabled": True, "url": "http://prometheus:9090"}
         kubeconfig = "/path/to/kubeconfig"
         selected_rules = None
 
-        result = await coordinator.execute_inspections(
-            "test-cluster", nodes, prometheus_config, kubeconfig, selected_rules
-        )
+        result = await coordinator.execute_inspections("test-cluster", nodes, kubeconfig, selected_rules)
 
         assert "node" in result
-        assert "prometheus" in result
         assert "opa" in result
         mock_node_instance.run_inspection.assert_called_once_with("test-cluster", [])
-        mock_prometheus_instance.run_inspection.assert_called_once_with("test-cluster", [])
         mock_opa_instance.run_inspection.assert_called_once_with("test-cluster", [])
 
     @patch("services.components.inspection_coordinator.NodeInspector")
-    @patch("services.components.inspection_coordinator.PrometheusInspector")
-    @patch("services.components.inspection_coordinator.OpaInspector")
     @pytest.mark.asyncio
-    async def test_execute_inspections_partial_types(
-        self, mock_opa_inspector, mock_prometheus_inspector, mock_node_inspector
-    ):
+    async def test_execute_inspections_partial_types(self, mock_node_inspector):
         """Test execution of only some inspection types"""
         # Setup mocks
         mock_node_instance = AsyncMock()
         mock_node_instance.run_inspection.return_value = {"node": "results"}
         mock_node_inspector.return_value = mock_node_instance
 
-        mock_prometheus_instance = AsyncMock()
-        mock_prometheus_instance.run_inspection.return_value = {"prometheus": "results"}
-        mock_prometheus_inspector.return_value = mock_prometheus_instance
-
         from services.components.inspection_coordinator import InspectionCoordinator
 
         coordinator = InspectionCoordinator(use_gitops=False)
 
         nodes = [{"name": "node1"}]
-        prometheus_config = {"enabled": True, "url": "http://prometheus:9090"}
         kubeconfig = "/path/to/kubeconfig"
-        selected_rules = {"node": ["rule1"], "prometheus": ["rule2"]}  # No OPA
+        selected_rules = {"node": ["rule1"]}  # No OPA
 
-        result = await coordinator.execute_inspections(
-            "test-cluster", nodes, prometheus_config, kubeconfig, selected_rules
-        )
+        result = await coordinator.execute_inspections("test-cluster", nodes, kubeconfig, selected_rules)
 
         assert "node" in result
-        assert "prometheus" in result
         assert "opa" not in result
         mock_node_instance.run_inspection.assert_called_once_with("test-cluster", ["rule1"])
-        mock_prometheus_instance.run_inspection.assert_called_once_with("test-cluster", ["rule2"])
-        mock_opa_inspector.assert_not_called()
 
     @patch("services.components.inspection_coordinator.NodeInspector")
     @pytest.mark.asyncio
@@ -171,65 +133,6 @@ class TestInspectionCoordinator:
         assert result[0] is True  # success (error handled)
         assert result[1] == mock_result_instance
         mock_node_inspector.assert_called_once_with([{"name": "node1"}], use_gitops=False)
-        mock_result_instance.add_item.assert_called_once()
-
-    @patch("services.components.inspection_coordinator.PrometheusInspector")
-    @pytest.mark.asyncio
-    async def test_execute_prometheus_inspection_success(self, mock_prometheus_inspector):
-        """Test successful prometheus inspection"""
-        mock_prometheus_instance = AsyncMock()
-        mock_prometheus_instance.run_inspection.return_value = {"prometheus": "results"}
-        mock_prometheus_inspector.return_value = mock_prometheus_instance
-
-        from services.components.inspection_coordinator import InspectionCoordinator
-
-        coordinator = InspectionCoordinator(use_gitops=True)
-
-        prometheus_config = {"enabled": True, "url": "http://prometheus:9090"}
-        result = await coordinator._execute_prometheus_inspection("test-cluster", prometheus_config, ["rule1"], True)
-
-        assert result[0] is True  # success
-        assert result[1] == {"prometheus": "results"}
-        mock_prometheus_inspector.assert_called_once_with(prometheus_config, use_gitops=True)
-        mock_prometheus_instance.run_inspection.assert_called_once_with("test-cluster", ["rule1"])
-
-    @patch("services.components.inspection_coordinator.PrometheusInspector")
-    @pytest.mark.asyncio
-    async def test_execute_prometheus_inspection_disabled(self, mock_prometheus_inspector):
-        """Test prometheus inspection when disabled"""
-        from services.components.inspection_coordinator import InspectionCoordinator
-
-        coordinator = InspectionCoordinator(use_gitops=False)
-
-        prometheus_config = {"enabled": False}
-        result = await coordinator._execute_prometheus_inspection("test-cluster", prometheus_config, ["rule1"], True)
-
-        assert result[0] is True  # success
-        assert result[1] is None
-        mock_prometheus_inspector.assert_not_called()
-
-    @patch("services.components.inspection_coordinator.PrometheusInspector")
-    @patch("services.components.inspection_coordinator.InspectionResult")
-    @pytest.mark.asyncio
-    async def test_execute_prometheus_inspection_failure(self, mock_inspection_result, mock_prometheus_inspector):
-        """Test prometheus inspection with failure"""
-        mock_prometheus_instance = AsyncMock()
-        mock_prometheus_instance.run_inspection.side_effect = Exception("Prometheus inspection failed")
-        mock_prometheus_inspector.return_value = mock_prometheus_instance
-
-        mock_result_instance = Mock()
-        mock_inspection_result.return_value = mock_result_instance
-
-        from services.components.inspection_coordinator import InspectionCoordinator
-
-        coordinator = InspectionCoordinator(use_gitops=False)
-
-        prometheus_config = {"enabled": True, "url": "http://prometheus:9090"}
-        result = await coordinator._execute_prometheus_inspection("test-cluster", prometheus_config, ["rule1"], True)
-
-        assert result[0] is True  # success (error handled)
-        assert result[1] == mock_result_instance
-        mock_prometheus_inspector.assert_called_once_with(prometheus_config, use_gitops=False)
         mock_result_instance.add_item.assert_called_once()
 
     @patch("services.components.inspection_coordinator.OpaInspector")
@@ -335,7 +238,7 @@ class TestInspectionCoordinator:
         selected_rules = {"node": {"rules": ["rule1", "rule2"]}}  # Dict with rules key
 
         result = await coordinator.execute_inspections(
-            "test-cluster", nodes, prometheus_config, kubeconfig, selected_rules
+            "test-cluster", nodes, kubeconfig, selected_rules, show_progress=False
         )
 
         assert "node" in result
@@ -364,7 +267,7 @@ class TestInspectionCoordinator:
         selected_rules = {"node": ["rule1"]}
 
         result = await coordinator.execute_inspections(
-            "test-cluster", nodes, prometheus_config, kubeconfig, selected_rules
+            "test-cluster", nodes, kubeconfig, selected_rules, show_progress=False
         )
 
         assert "node" in result

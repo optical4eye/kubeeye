@@ -94,6 +94,8 @@ spec:
               value: "/app/data"
             - name: PYTHONPATH
               value: "/app"
+            - name: DB_HOST
+              value: "{{ .Release.Name }}-postgresql"
             {{- .Values.backend.env | toYaml | nindent 12 }}
           livenessProbe:
             httpGet:
@@ -112,8 +114,10 @@ spec:
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           volumeMounts:
+            {{- if .Values.backend.persistence.enabled }}
             - name: data-volume
               mountPath: /app/data
+            {{- end }}
             {{- range .Values.backend.LocalRules }}
             - name: {{ .name }}
               mountPath: /app/rules/{{ .type }}/{{ .name }}.yaml
@@ -122,9 +126,11 @@ spec:
 
 
       volumes:
+        {{- if .Values.backend.persistence.enabled }}
         - name: data-volume
           persistentVolumeClaim:
             claimName: {{ include "kubeeye.fullname" . }}-pvc
+        {{- end }}
         {{- range .Values.backend.LocalRules }}
         - name: {{ .name }}
           configMap:

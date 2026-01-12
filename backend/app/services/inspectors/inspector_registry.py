@@ -1,16 +1,16 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Inspector registry for dynamic inspector management
 """
 
-import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from abc import ABC, abstractmethod
 
 from services.inspectors.base_inspector import BaseInspector
+from core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class InspectorFactory(ABC):
@@ -51,20 +51,6 @@ class OpaInspectorFactory(InspectorFactory):
         return OpaInspector(config["opa"], use_gitops=use_gitops)
 
 
-class PrometheusInspectorFactory(InspectorFactory):
-    """Factory for PrometheusInspector"""
-
-    def can_create(self, config: Dict[str, Any]) -> bool:
-        return "prometheus" in config
-
-    def create_inspector(self, config: Dict[str, Any], use_gitops: bool = False) -> BaseInspector:
-        from services.inspectors.prometheus.prometheus_inspector import (
-            PrometheusInspector,
-        )
-
-        return PrometheusInspector(config["prometheus"], use_gitops=use_gitops)
-
-
 class InspectorRegistry:
     """Registry for inspector factories"""
 
@@ -76,14 +62,13 @@ class InspectorRegistry:
         """Register default inspector factories"""
         self.register_factory("node", NodeInspectorFactory())
         self.register_factory("opa", OpaInspectorFactory())
-        self.register_factory("prometheus", PrometheusInspectorFactory())
 
     def register_factory(self, inspector_type: str, factory: InspectorFactory):
         """Register an inspector factory"""
         self._factories[inspector_type] = factory
         logger.info(f"Registered factory for inspector type: {inspector_type}")
 
-    def get_available_types(self) -> list[str]:
+    def get_available_types(self) -> List[str]:
         """Get list of available inspector types"""
         return list(self._factories.keys())
 

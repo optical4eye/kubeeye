@@ -24,7 +24,6 @@ class TestInspectorRegistry:
         available_types = registry.get_available_types()
         assert "node" in available_types
         assert "opa" in available_types
-        assert "prometheus" in available_types
 
     def test_register_factory(self):
         """Test registering a factory"""
@@ -51,7 +50,6 @@ class TestInspectorRegistry:
         assert isinstance(available_types, list)
         assert "node" in available_types
         assert "opa" in available_types
-        assert "prometheus" in available_types
 
     def test_create_inspectors(self):
         """Test creating inspectors"""
@@ -120,7 +118,7 @@ class TestInspectorRegistry:
         # Mock the factories to return False for can_create
         with patch.object(registry._factories["node"], "can_create", return_value=False), patch.object(
             registry._factories["opa"], "can_create", return_value=False
-        ), patch.object(registry._factories["prometheus"], "can_create", return_value=False):
+        ):
 
             config = {}
             inspectors = registry.create_inspectors(config)
@@ -238,60 +236,6 @@ class TestOpaInspectorFactory:
 
             assert inspector == mock_inspector
             mock_opa_inspector.assert_called_once_with({}, use_gitops=True)
-
-
-class TestPrometheusInspectorFactory:
-    """Test cases for PrometheusInspectorFactory"""
-
-    def test_can_create(self):
-        """Test PrometheusInspectorFactory.can_create"""
-        from services.inspectors.inspector_registry import PrometheusInspectorFactory
-
-        factory = PrometheusInspectorFactory()
-
-        # Test with prometheus config
-        config = {"prometheus": {}}
-        assert factory.can_create(config) is True
-
-        # Test without prometheus config
-        config = {"nodes": [{"name": "node1"}]}
-        assert factory.can_create(config) is False
-
-    def test_create_inspector(self):
-        """Test PrometheusInspectorFactory.create_inspector"""
-        from services.inspectors.inspector_registry import PrometheusInspectorFactory
-
-        factory = PrometheusInspectorFactory()
-
-        with patch(
-            "services.inspectors.prometheus.prometheus_inspector.PrometheusInspector"
-        ) as mock_prometheus_inspector:
-            mock_inspector = Mock()
-            mock_prometheus_inspector.return_value = mock_inspector
-
-            config = {"prometheus": {}}
-            inspector = factory.create_inspector(config)
-
-            assert inspector == mock_inspector
-            mock_prometheus_inspector.assert_called_once_with({}, use_gitops=False)
-
-    def test_create_inspector_with_gitops(self):
-        """Test PrometheusInspectorFactory.create_inspector with GitOps"""
-        from services.inspectors.inspector_registry import PrometheusInspectorFactory
-
-        factory = PrometheusInspectorFactory()
-
-        with patch(
-            "services.inspectors.prometheus.prometheus_inspector.PrometheusInspector"
-        ) as mock_prometheus_inspector:
-            mock_inspector = Mock()
-            mock_prometheus_inspector.return_value = mock_inspector
-
-            config = {"prometheus": {}}
-            inspector = factory.create_inspector(config, use_gitops=True)
-
-            assert inspector == mock_inspector
-            mock_prometheus_inspector.assert_called_once_with({}, use_gitops=True)
 
 
 class TestInspectorFactory:

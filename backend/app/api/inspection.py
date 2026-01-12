@@ -1,19 +1,20 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Inspection routes with async queue processing
 """
 
-import logging
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from services.components.inspection_engine import execute_inspection_unified
-from infrastructure.tasks.task_queue import submit_inspection_task, get_task_queue
+from infra.tasks.task_queue import submit_inspection_task, get_task_queue
+from core.common.unified_validation import validate_task_id
 from .models import InspectionRequest
 
-logger = logging.getLogger(__name__)
+from core.logging import get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -22,24 +23,26 @@ class AsyncInspectionRequest(BaseModel):
 
     cluster_name: str
     selected_rules: Optional[Dict[str, Any]] = None
+    selected_tags: Optional[Dict[str, Any]] = None
     inspection_type: str = "immediate"
     use_gitops: bool = False
 
 
 @router.post("/inspection")
 async def run_immediate_inspection(request: InspectionRequest, background_tasks: BackgroundTasks):
-    """Run inspection synchronously (for backward compatibility)"""
+    """Run inspection synchronously"""
     try:
         logger.info(f"Starting synchronous inspection for cluster: {request.cluster_name}")
 
         # Determine whether to use GitOps rules
-        from infrastructure.rules.rule_manager import RuleManager
+        from infra.rules.rule_manager import RuleManager
 
         use_gitops = RuleManager.should_use_gitops()
 
         success, message, results = await execute_inspection_unified(
             cluster_name=request.cluster_name,
             selected_rules=request.selected_rules,
+            selected_tags=request.selected_tags,
             inspection_type=request.inspection_type,
             show_progress=False,
             show_ui_feedback=False,
@@ -52,8 +55,20 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
             logger.error(f"Inspection failed for cluster {request.cluster_name}: {message}")
             raise HTTPException(status_code=400, detail=message)
 
+        # Serialize InspectionResult objects for JSON response
+        results_serializable = {}
+        if results:
+            for inspector_name, inspection_result in results.items():
+                if hasattr(inspection_result, "get_summary"):
+                    results_serializable[inspector_name] = inspection_result.get_summary()
+                elif hasattr(inspection_result, "to_dict"):
+                    results_serializable[inspector_name] = inspection_result.to_dict()
+                else:
+                    # Fallback: convert to string representation
+                    results_serializable[inspector_name] = str(inspection_result)
+
         logger.info(f"Inspection completed successfully for cluster: {request.cluster_name}")
-        return {"message": message, "results": results}
+        return {"message": message, "results": results_serializable}
     except HTTPException:
         raise
     except Exception as e:
@@ -69,13 +84,14 @@ async def run_async_inspection(request: AsyncInspectionRequest):
 
         # Determine whether to use GitOps rules if not specified
         if not request.use_gitops:
-            from infrastructure.rules.rule_manager import RuleManager
+            from infra.rules.rule_manager import RuleManager
 
             request.use_gitops = RuleManager.should_use_gitops()
 
         task_id = await submit_inspection_task(
             cluster_name=request.cluster_name,
             selected_rules=request.selected_rules,
+            selected_tags=request.selected_tags,
             inspection_type=request.inspection_type,
             use_gitops=request.use_gitops,
         )
@@ -95,9 +111,7 @@ async def run_async_inspection(request: AsyncInspectionRequest):
 async def get_inspection_task_status(task_id: str):
     """Get status of async inspection task"""
     try:
-        # Validate task_id using our validation function
-        from .validation_middleware import validate_task_id
-
+        # Validate task_id using centralized validation
         validated_task_id = validate_task_id(task_id)
 
         logger.info(f"Getting status for task: {validated_task_id}")
@@ -120,9 +134,7 @@ async def get_inspection_task_status(task_id: str):
 async def cancel_inspection_task(task_id: str):
     """Cancel async inspection task"""
     try:
-        # Validate task_id using our validation function
-        from .validation_middleware import validate_task_id
-
+        # Validate task_id using centralized validation
         validated_task_id = validate_task_id(task_id)
 
         logger.info(f"Cancelling task: {validated_task_id}")

@@ -1,46 +1,41 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Rules management routes
 """
 
-import logging
+from typing import Dict, List, Optional
 from fastapi import APIRouter
-from infrastructure.rules.rule_manager import RuleManager
-from infrastructure.rules.rule_loader import load_rules
+from infra.rules.rule_manager import RuleManager
+from infra.rules.rule_loader import load_rules
+
+from core.logging import get_logger
 
 router = APIRouter()
 
-# Setup logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
-def _sync_gitops_repository() -> bool:
-    """Sync GitOps repository"""
+def _sync_gitops_repository(force: bool = False) -> bool:
+    """Sync GitOps repository with time-based caching"""
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsManager
 
-        gitops_manager = GitOpsRuleManager()
+        gitops_manager = GitOpsManager()
         config = gitops_manager.load_config()
         current_repo = config.get("repository")
 
         if not current_repo:
             return False
 
-        logger.debug(f"GitOps mode enabled, syncing repository {current_repo['name']}...")
-        success, message = gitops_manager.clone_or_update_repo(current_repo)
-        if success:
-            logger.debug(f"Repository synchronized: {message}")
-            return True
-        else:
-            logger.error(f"Failed to sync repository: {message}")
-            return False
+        success, message = gitops_manager.sync_repository_if_needed(current_repo, force=force)
+        return success
     except Exception as e:
         logger.error(f"GitOps sync failed: {str(e)}")
         return False
 
 
-def _load_rules_for_types(rule_types: list[str], use_gitops: bool) -> dict[str, list]:
+def _load_rules_for_types(rule_types: List[str], use_gitops: bool) -> Dict[str, List]:
     """Load rules for specified types"""
     rules = {}
     for rule_type in rule_types:
@@ -48,25 +43,17 @@ def _load_rules_for_types(rule_types: list[str], use_gitops: bool) -> dict[str, 
     return rules
 
 
-def _log_rules_statistics(rules: dict[str, list], use_gitops: bool) -> int:
+def _log_rules_statistics(rules: Dict[str, List], use_gitops: bool) -> int:
     """Log loaded rules statistics"""
-    total_rules = sum(len(rules.get(rule_type, [])) for rule_type in ["node", "prometheus", "opa"])
+    total_rules = sum(len(rules.get(rule_type, [])) for rule_type in ["node", "opa"])
     logger.debug(f"Loaded {total_rules} rules total (GitOps: {use_gitops})")
     for rule_type, rule_list in rules.items():
         logger.debug(f"{rule_type}: {len(rule_list)} rules")
     return total_rules
 
 
-def _fallback_to_local_rules() -> tuple[dict[str, list], bool]:
-    """Execute fallback to local rules"""
-    logger.debug("GitOps enabled but no rules found, trying local fallback")
-    local_rules = _load_rules_for_types(["node", "prometheus", "opa"], use_gitops=False)
-    local_total = _log_rules_statistics(local_rules, False)
-    return local_rules, local_total > 0
-
-
 @router.get("/rules")
-async def get_rules():
+async def get_rules(tags: Optional[str] = None):
     """Get rules"""
     try:
         use_gitops = RuleManager.should_use_gitops()
@@ -77,22 +64,59 @@ async def get_rules():
             use_gitops = False
 
         # Load rules
-        rules = _load_rules_for_types(["node", "prometheus", "opa"], use_gitops)
+        rules = _load_rules_for_types(["node", "opa"], use_gitops)
         total_rules = _log_rules_statistics(rules, use_gitops)
 
-        # Fallback to local rules if GitOps didn't work
-        if use_gitops and total_rules == 0:
-            rules, has_local_rules = _fallback_to_local_rules()
-            if has_local_rules:
-                use_gitops = False
-            else:
-                return {
-                    "rules": {"node": [], "prometheus": [], "opa": []},
-                    "use_gitops": False,
-                }
+        # Filter by tags if specified
+        if tags:
+            tag_filters = [tag.strip() for tag in tags.split(",") if tag.strip()]
+            if tag_filters:
+                filtered_rules = {}
+                for rule_type, rule_list in rules.items():
+                    filtered_rules[rule_type] = [
+                        rule for rule in rule_list if any(tag in rule.tags for tag in tag_filters)
+                    ]
+                rules = filtered_rules
+                logger.debug(
+                    f"Filtered rules by tags {tag_filters}: {sum(len(rules.get(rt, [])) for rt in ['node', 'opa'])} rules remaining"
+                )
 
         return {"rules": rules, "use_gitops": use_gitops}
     except Exception as e:
         logger.error(f"Failed to load rules: {str(e)}")
         # Return empty rules as fallback
-        return {"rules": {"node": [], "prometheus": [], "opa": []}, "use_gitops": False}
+        return {"rules": {"node": [], "opa": []}, "use_gitops": False}
+
+
+@router.get("/rules/tags")
+async def get_rule_tags():
+    """Get all unique tags from rules"""
+    try:
+        use_gitops = RuleManager.should_use_gitops()
+        logger.debug(f"GitOps mode: {use_gitops}")
+
+        # Sync GitOps repository if necessary
+        if use_gitops and not _sync_gitops_repository():
+            use_gitops = False
+
+        # Load rules
+        rules = _load_rules_for_types(["node", "opa"], use_gitops)
+
+        # Collect all unique tags with counts
+        tag_count = {}
+        for rule_type, rule_list in rules.items():
+            for rule in rule_list:
+                if rule.tags:
+                    for tag in rule.tags:
+                        tag_count[tag] = tag_count.get(tag, 0) + 1
+
+        # Sort tags by count descending
+        sorted_tags = sorted(tag_count.items(), key=lambda x: x[1], reverse=True)
+
+        logger.debug(f"Found {len(sorted_tags)} unique tags with counts: {sorted_tags}")
+
+        return {"tags": [{"tag": tag, "count": count} for tag, count in sorted_tags], "use_gitops": use_gitops}
+    except Exception as e:
+        logger.error(f"Failed to load rule tags: {str(e)}")
+        # Return empty tags as fallback
+        return {"tags": [], "use_gitops": False}

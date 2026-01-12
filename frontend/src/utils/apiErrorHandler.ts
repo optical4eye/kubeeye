@@ -14,7 +14,10 @@ export const handleApiError = (error, defaultMessage = 'Произошла ош�
       if (typeof responseData.detail === 'string') {
         errorMessage = responseData.detail;
       } else if (typeof responseData.detail === 'object') {
-        errorMessage = responseData.detail.message || responseData.detail.error || JSON.stringify(responseData.detail);
+        errorMessage =
+          responseData.detail.message ||
+          responseData.detail.error ||
+          JSON.stringify(responseData.detail);
       } else {
         errorMessage = String(responseData.detail);
       }
@@ -46,21 +49,23 @@ export const fetchData = async (fetchFn, errorMessage, onSuccess) => {
     return response.data;
   } catch (error) {
     const processedError = handleApiError(error, errorMessage);
-    console.error('API Error:', error);
     throw new Error(processedError);
   }
 };
 
-export const apiRequest = async (requestFn, successMessage = null, errorMessage = 'Произошла ошибка') => {
+export const apiRequest = async (
+  requestFn,
+  successMessage = null,
+  errorMessage = 'Произошла ошибка'
+) => {
   try {
     const response = await requestFn();
     if (successMessage) {
-      console.log(successMessage);
+      // Success message can be handled by UI components
     }
     return response.data;
   } catch (error) {
     const processedError = handleApiError(error, errorMessage);
-    console.error('API Request Error:', error);
     throw new Error(processedError);
   }
 };

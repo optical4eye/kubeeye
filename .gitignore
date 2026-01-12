@@ -2,9 +2,9 @@
 ._*
 
 data
-
+postgres_data
 backend/data/
-
+frontend/node_modules
 # OSX trash
 .DS_Store
 
@@ -17,7 +17,7 @@ backend/data/
 .idea/
 *.iml
 .bin/
-
+backend/app_backup
 # Vscode files
 .vscode
 

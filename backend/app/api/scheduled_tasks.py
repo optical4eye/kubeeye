@@ -6,59 +6,86 @@ Scheduled tasks routes
 
 from fastapi import APIRouter, HTTPException
 from .models import ScheduledTaskCreate
-from infrastructure.tasks.schedule_manager import (
-    load_schedules,
-    ScheduleTask,
-    add_schedule,
-    delete_schedule,
-    run_inspection,
-    update_task_status,
-    schedule_tasks,
-)
+from infra.dependency_injection.container import get_service
+from core.common.schedule_utils import calculate_next_run
+from core.common.metrics import count_requests, time_operation
+from core.common.unified_validation import validate_task_id
 
 router = APIRouter()
 
 
 @router.get("/scheduled-tasks")
+@count_requests("scheduled_tasks_list")
+@time_operation("api_get_scheduled_tasks")
 async def get_scheduled_tasks():
     """Get scheduled tasks"""
     try:
-        tasks = load_schedules()
-        # Convert objects to dictionaries and add additional fields
-        task_list = []
+        task_manager = await get_service("task_manager")
+        tasks = await task_manager.get_all_tasks()
+
+        # Add computed fields for compatibility
         for task in tasks:
-            task_dict = task.__dict__.copy()
-            # Add computed fields
-            next_run = task.get_next_run()
-            task_dict["next_run"] = next_run.isoformat() if next_run else None
-            task_dict["task_type"] = "cron" if task.cron_expr else "once"
-            task_list.append(task_dict)
-        return {"tasks": task_list}
+            # Calculate next_run if not present
+            if "next_run" not in task and task.get("cron_expr"):
+                task["next_run"] = calculate_next_run(task["cron_expr"])
+
+        return {"tasks": tasks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/scheduled-tasks/{task_id}")
+@count_requests("scheduled_tasks_get")
+@time_operation("api_get_scheduled_task")
+async def get_scheduled_task(task_id: str):
+    """Get specific scheduled task"""
+    try:
+        # Validate task_id parameter using centralized validation
+        validated_task_id = validate_task_id(task_id)
+
+        task_manager = await get_service("task_manager")
+        task = await task_manager.get_task(validated_task_id)
+
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        # Add computed fields for compatibility
+        if "next_run" not in task and task.get("cron_expr"):
+            task["next_run"] = calculate_next_run(task["cron_expr"])
+
+        return task
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/scheduled-tasks")
+@count_requests("scheduled_tasks_create")
+@time_operation("api_create_scheduled_task")
 async def create_scheduled_task(task: ScheduledTaskCreate):
     """Create scheduled task"""
     try:
         import time
 
-        task_id = f"task_{int(time.time())}"
-        schedule_task = ScheduleTask(
-            task_id=task_id,
-            cluster=task.cluster,
-            name=task.name,
-            description=task.description,
-            cron_expr=task.cron_expr if task.cron_expr else "",
-            enabled=task.enabled,
-            rules=task.rules,
-            task_type=task.task_type or ("cron" if task.cron_expr else "once"),
-            run_datetime=task.run_datetime if hasattr(task, "run_datetime") else None,
-        )
+        task_data = {
+            "task_id": f"task_{int(time.time())}",
+            "cluster": task.cluster,
+            "name": task.name,
+            "description": task.description,
+            "cron_expr": task.cron_expr if task.cron_expr else "",
+            "enabled": task.enabled,
+            "rules": task.rules,
+            "tags": task.tags,
+            "task_type": task.task_type or ("cron" if task.cron_expr else "once"),
+            "run_datetime": task.run_datetime if hasattr(task, "run_datetime") else None,
+        }
 
-        if add_schedule(schedule_task):
-            return {"message": "Task created successfully", "task_id": task_id}
+        task_manager = await get_service("task_manager")
+        created_task = await task_manager.create_task(task_data)
+
+        if created_task:
+            return {"message": "Task created successfully", "task_id": created_task["task_id"]}
         else:
             raise HTTPException(status_code=500, detail="Failed to create task")
     except HTTPException:
@@ -68,15 +95,16 @@ async def create_scheduled_task(task: ScheduledTaskCreate):
 
 
 @router.delete("/scheduled-tasks/{task_id}")
+@count_requests("scheduled_tasks_delete")
+@time_operation("api_delete_scheduled_task")
 async def remove_scheduled_task(task_id: str):
     """Delete scheduled task"""
     try:
-        # Validate task_id parameter
-        from .validation_middleware import validate_task_id
-
+        # Validate task_id parameter using centralized validation
         validated_task_id = validate_task_id(task_id)
 
-        if delete_schedule(validated_task_id):
+        task_manager = await get_service("task_manager")
+        if await task_manager.delete_task(validated_task_id):
             return {"message": f"Task {validated_task_id} deleted"}
         else:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -87,67 +115,54 @@ async def remove_scheduled_task(task_id: str):
 
 
 @router.post("/scheduled-tasks/{task_id}/run")
+@count_requests("scheduled_tasks_run")
+@time_operation("api_run_scheduled_task")
 async def run_scheduled_task(task_id: str):
     """Run scheduled task"""
     try:
-        # Validate task_id parameter
-        from .validation_middleware import validate_task_id
-
+        # Validate task_id parameter using centralized validation
         validated_task_id = validate_task_id(task_id)
 
-        success, message, results = run_inspection(validated_task_id, return_results=True)
-        if success:
-            update_task_status(validated_task_id, last_status="success")
-            return {"message": message, "results": results}
+        task_manager = await get_service("task_manager")
+        result = await task_manager.run_task_now(validated_task_id)
+
+        if result["success"]:
+            return {"message": result["message"], "results": result.get("results")}
         else:
-            update_task_status(validated_task_id, last_status="failed")
-            raise HTTPException(status_code=500, detail=message)
+            raise HTTPException(status_code=500, detail=result["message"])
     except HTTPException:
         raise
     except Exception as e:
-        update_task_status(validated_task_id, last_status="failed")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.put("/scheduled-tasks/{task_id}")
+@count_requests("scheduled_tasks_update")
+@time_operation("api_update_scheduled_task")
 async def update_scheduled_task(task_id: str, task: ScheduledTaskCreate):
     """Update scheduled task"""
     try:
-        # Validate task_id parameter
-        from .validation_middleware import validate_task_id
-
+        # Validate task_id parameter using centralized validation
         validated_task_id = validate_task_id(task_id)
 
-        # Find existing task
-        tasks = load_schedules()
-        if not isinstance(tasks, list):
-            tasks = []
-        existing_task = next((t for t in tasks if t.task_id == validated_task_id), None)
-        if not existing_task:
-            raise HTTPException(status_code=404, detail="Task not found")
+        # Prepare update data
+        update_data = {
+            "cluster": task.cluster,
+            "name": task.name,
+            "description": task.description,
+            "cron_expr": task.cron_expr if task.cron_expr else "",
+            "enabled": task.enabled,
+            "rules": task.rules,
+            "tags": task.tags,
+            "task_type": task.task_type or ("cron" if task.cron_expr else "once"),
+            "run_datetime": task.run_datetime,
+        }
 
-        # Delete old task
-        delete_schedule(validated_task_id)
-
-        # Create updated task
-        updated_task = ScheduleTask(
-            task_id=validated_task_id,
-            cluster=task.cluster,
-            name=task.name,
-            description=task.description,
-            cron_expr=task.cron_expr if task.cron_expr else "",
-            enabled=task.enabled,
-            rules=task.rules,
-            task_type=task.task_type or ("cron" if task.cron_expr else "once"),
-            run_datetime=task.run_datetime,
-        )
-
-        if add_schedule(updated_task):
-            # Reschedule tasks to include the updated one
-            schedule_tasks()
+        task_manager = await get_service("task_manager")
+        if await task_manager.update_task(validated_task_id, update_data):
             return {"message": "Task updated successfully"}
         else:
-            raise HTTPException(status_code=500, detail="Failed to update task")
+            raise HTTPException(status_code=404, detail="Task not found")
     except HTTPException:
         raise
     except Exception as e:

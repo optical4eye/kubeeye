@@ -1,5 +1,4 @@
 from . import (
-    cleanup,
     clusters,
     gitops,
     inspection,
@@ -9,4 +8,5 @@ from . import (
     reports,
     rules,
     scheduled_tasks,
+    report_cleanup,
 )

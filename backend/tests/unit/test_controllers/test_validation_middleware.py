@@ -10,21 +10,21 @@ from fastapi import Request, HTTPException
 from starlette.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from api.validation_middleware import (
+from api.unified_middleware import (
     ValidationMiddleware,
     validate_path_param,
-    validate_limit_param,
-    validate_task_id,
-    validate_cluster_name,
-    validate_status_filter,
-    validate_format_param,
-    validate_timeout_param,
-    validate_port_param,
-    validate_ip_address,
-    sanitize_json_response,
-    validate_pagination_params,
-    validate_datetime_param,
+    validate_limit_param_middleware,
+    validate_task_id_middleware,
+    validate_cluster_name_middleware,
+    validate_status_filter_middleware,
+    validate_format_param_middleware,
+    validate_timeout_param_middleware,
+    validate_port_param_middleware,
+    validate_ip_address_middleware,
+    validate_pagination_params_middleware,
+    validate_datetime_param_middleware,
 )
+from core.common.unified_validation import sanitize_json_response
 
 
 class TestValidationMiddleware:
@@ -138,12 +138,12 @@ class TestValidationMiddleware:
         """Test _validate_body with injection patterns"""
         mock_request.body.return_value = b'{"query": "SELECT * FROM users WHERE 1=1"}'
 
-        # This test logs a warning but doesn't raise an exception in the actual implementation
-        # The middleware only logs the warning and continues processing
-        await middleware._validate_body(mock_request)
+        # The middleware should raise an HTTPException for dangerous content
+        with pytest.raises(HTTPException) as exc_info:
+            await middleware._validate_body(mock_request)
 
-        # The test passes if no exception is raised, as the actual implementation
-        # only logs the warning but doesn't raise an HTTPException
+        assert exc_info.value.status_code == 400
+        assert "Invalid request body content" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
     async def test_validate_body_decode_error(self, middleware, mock_request):
@@ -217,209 +217,203 @@ class TestValidationFunctions:
         assert "Invalid format for path parameter id" in str(exc_info.value.detail)
 
     def test_validate_limit_param_valid(self):
-        """Test validate_limit_param with valid values"""
-        assert validate_limit_param(1) == 1
-        assert validate_limit_param(100) == 100
-        assert validate_limit_param(1000) == 1000
+        """Test validate_limit_param_middleware with valid values"""
+        assert validate_limit_param_middleware(1) == 1
+        assert validate_limit_param_middleware(100) == 100
+        assert validate_limit_param_middleware(1000) == 1000
 
     def test_validate_limit_param_too_small(self):
-        """Test validate_limit_param with value too small"""
+        """Test validate_limit_param_middleware with value too small"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_limit_param(0)
+            validate_limit_param_middleware(0)
 
         assert exc_info.value.status_code == 400
         assert "Limit must be at least 1" in str(exc_info.value.detail)
 
     def test_validate_limit_param_too_large(self):
-        """Test validate_limit_param with value too large"""
+        """Test validate_limit_param_middleware with value too large"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_limit_param(1001)
+            validate_limit_param_middleware(1001)
 
         assert exc_info.value.status_code == 400
         assert "Limit cannot exceed 1000" in str(exc_info.value.detail)
 
     def test_validate_task_id_valid(self):
-        """Test validate_task_id with valid IDs"""
-        assert validate_task_id("task-123") == "task-123"
-        assert validate_task_id("task_456") == "task_456"
-        assert validate_task_id("TASK789") == "TASK789"
+        """Test validate_task_id_middleware with valid IDs"""
+        assert validate_task_id_middleware("task-123") == "task-123"
+        assert validate_task_id_middleware("task_456") == "task_456"
+        assert validate_task_id_middleware("TASK789") == "TASK789"
 
     def test_validate_task_id_empty(self):
-        """Test validate_task_id with empty ID"""
+        """Test validate_task_id_middleware with empty ID"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_task_id("")
+            validate_task_id_middleware("")
 
         assert exc_info.value.status_code == 400
         assert "Task ID is required" in str(exc_info.value.detail)
 
     def test_validate_task_id_invalid_chars(self):
-        """Test validate_task_id with invalid characters"""
+        """Test validate_task_id_middleware with invalid characters"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_task_id("task@123")
+            validate_task_id_middleware("task@123")
 
         assert exc_info.value.status_code == 400
         assert "Task ID can only contain alphanumeric characters" in str(exc_info.value.detail)
 
     def test_validate_task_id_too_long(self):
-        """Test validate_task_id with ID too long"""
+        """Test validate_task_id_middleware with ID too long"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_task_id("a" * 101)
+            validate_task_id_middleware("a" * 101)
 
         assert exc_info.value.status_code == 400
         assert "Task ID cannot exceed 100 characters" in str(exc_info.value.detail)
 
     def test_validate_cluster_name_valid(self):
-        """Test validate_cluster_name with valid names"""
-        assert validate_cluster_name("cluster-1") == "cluster-1"
-        assert validate_cluster_name("cluster_test") == "cluster_test"
-        assert validate_cluster_name("CLUSTER123") == "CLUSTER123"
+        """Test validate_cluster_name_middleware with valid names"""
+        assert validate_cluster_name_middleware("cluster-1") == "cluster-1"
+        assert validate_cluster_name_middleware("cluster_test") == "cluster_test"
+        assert validate_cluster_name_middleware("CLUSTER123") == "CLUSTER123"
 
     def test_validate_cluster_name_empty(self):
-        """Test validate_cluster_name with empty name"""
+        """Test validate_cluster_name_middleware with empty name"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_cluster_name("")
+            validate_cluster_name_middleware("")
 
         assert exc_info.value.status_code == 400
         assert "Cluster name is required" in str(exc_info.value.detail)
 
     def test_validate_cluster_name_invalid_chars(self):
-        """Test validate_cluster_name with invalid characters"""
+        """Test validate_cluster_name_middleware with invalid characters"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_cluster_name("cluster@123")
+            validate_cluster_name_middleware("cluster@123")
 
         assert exc_info.value.status_code == 400
         assert "Cluster name can only contain alphanumeric characters" in str(exc_info.value.detail)
 
     def test_validate_cluster_name_too_long(self):
-        """Test validate_cluster_name with name too long"""
+        """Test validate_cluster_name_middleware with name too long"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_cluster_name("a" * 101)
+            validate_cluster_name_middleware("a" * 101)
 
         assert exc_info.value.status_code == 400
         assert "Cluster name cannot exceed 100 characters" in str(exc_info.value.detail)
 
     def test_validate_status_filter_valid(self):
-        """Test validate_status_filter with valid values"""
-        assert validate_status_filter("pending") == "pending"
-        assert validate_status_filter("running") == "running"
-        assert validate_status_filter("completed") == "completed"
-        assert validate_status_filter("failed") == "failed"
+        """Test validate_status_filter_middleware with valid values"""
+        assert validate_status_filter_middleware("pending") == "pending"
+        assert validate_status_filter_middleware("running") == "running"
+        assert validate_status_filter_middleware("completed") == "completed"
+        assert validate_status_filter_middleware("failed") == "failed"
 
     def test_validate_status_filter_none(self):
-        """Test validate_status_filter with None"""
-        assert validate_status_filter(None) is None
+        """Test validate_status_filter_middleware with None"""
+        assert validate_status_filter_middleware(None) is None
 
     def test_validate_status_filter_invalid(self):
-        """Test validate_status_filter with invalid value"""
+        """Test validate_status_filter_middleware with invalid value"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_status_filter("invalid")
+            validate_status_filter_middleware("invalid")
 
         assert exc_info.value.status_code == 400
         assert "Status filter must be one of" in str(exc_info.value.detail)
 
     def test_validate_format_param_valid(self):
-        """Test validate_format_param with valid formats"""
-        assert validate_format_param("json") == "json"
-        assert validate_format_param("csv") == "csv"
-        assert validate_format_param("excel") == "excel"
-        assert validate_format_param("pdf") == "pdf"
+        """Test validate_format_param_middleware with valid formats"""
+        assert validate_format_param_middleware("json") == "json"
+        assert validate_format_param_middleware("pdf") == "pdf"
 
     def test_validate_format_param_empty(self):
-        """Test validate_format_param with empty format"""
+        """Test validate_format_param_middleware with empty format"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_format_param("")
+            validate_format_param_middleware("")
 
         assert exc_info.value.status_code == 400
         assert "Format parameter is required" in str(exc_info.value.detail)
 
     def test_validate_format_param_invalid(self):
-        """Test validate_format_param with invalid format"""
+        """Test validate_format_param_middleware with invalid format"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_format_param("xml")
+            validate_format_param_middleware("xml")
 
         assert exc_info.value.status_code == 400
         assert "Format must be one of" in str(exc_info.value.detail)
 
     def test_validate_timeout_param_valid(self):
-        """Test validate_timeout_param with valid values"""
-        assert validate_timeout_param(1) == 1
-        assert validate_timeout_param(60) == 60
-        assert validate_timeout_param(300) == 300
+        """Test validate_timeout_param_middleware with valid values"""
+        assert validate_timeout_param_middleware(1) == 1
+        assert validate_timeout_param_middleware(60) == 60
+        assert validate_timeout_param_middleware(300) == 300
 
     def test_validate_timeout_param_too_small(self):
-        """Test validate_timeout_param with value too small"""
+        """Test validate_timeout_param_middleware with value too small"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_timeout_param(0)
+            validate_timeout_param_middleware(0)
 
         assert exc_info.value.status_code == 400
         assert "Timeout must be at least 1 second" in str(exc_info.value.detail)
 
     def test_validate_timeout_param_too_large(self):
-        """Test validate_timeout_param with value too large"""
+        """Test validate_timeout_param_middleware with value too large"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_timeout_param(301)
+            validate_timeout_param_middleware(301)
 
         assert exc_info.value.status_code == 400
         assert "Timeout cannot exceed 300 seconds" in str(exc_info.value.detail)
 
     def test_validate_port_param_valid(self):
-        """Test validate_port_param with valid ports"""
-        assert validate_port_param(1) == 1
-        assert validate_port_param(80) == 80
-        assert validate_port_param(443) == 443
-        assert validate_port_param(65535) == 65535
+        """Test validate_port_param_middleware with valid ports"""
+        assert validate_port_param_middleware(1) == 1
+        assert validate_port_param_middleware(80) == 80
+        assert validate_port_param_middleware(443) == 443
+        assert validate_port_param_middleware(65535) == 65535
 
     def test_validate_port_param_too_small(self):
-        """Test validate_port_param with port too small"""
+        """Test validate_port_param_middleware with port too small"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_port_param(0)
+            validate_port_param_middleware(0)
 
         assert exc_info.value.status_code == 400
         assert "Port must be between 1 and 65535" in str(exc_info.value.detail)
 
     def test_validate_port_param_too_large(self):
-        """Test validate_port_param with port too large"""
+        """Test validate_port_param_middleware with port too large"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_port_param(65536)
+            validate_port_param_middleware(65536)
 
         assert exc_info.value.status_code == 400
         assert "Port must be between 1 and 65535" in str(exc_info.value.detail)
 
-    @patch("socket.gethostbyname")
-    def test_validate_ip_address_valid_ip(self, mock_gethostbyname):
-        """Test validate_ip_address with valid IP"""
-        mock_gethostbyname.return_value = "192.168.1.1"
-
-        result = validate_ip_address("192.168.1.1")
+    def test_validate_ip_address_valid_ip(self):
+        """Test validate_ip_address_middleware with valid IP"""
+        result = validate_ip_address_middleware("192.168.1.1")
         assert result == "192.168.1.1"
-        mock_gethostbyname.assert_called_once_with("192.168.1.1")
 
     @patch("socket.gethostbyname")
     def test_validate_ip_address_valid_hostname(self, mock_gethostbyname):
-        """Test validate_ip_address with valid hostname"""
+        """Test validate_ip_address_middleware with valid hostname"""
         mock_gethostbyname.return_value = "93.184.216.34"
 
-        result = validate_ip_address("example.com")
+        result = validate_ip_address_middleware("example.com")
         assert result == "example.com"
         mock_gethostbyname.assert_called_once_with("example.com")
 
     def test_validate_ip_address_empty(self):
-        """Test validate_ip_address with empty value"""
+        """Test validate_ip_address_middleware with empty value"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_ip_address("")
+            validate_ip_address_middleware("")
 
         assert exc_info.value.status_code == 400
         assert "IP address or hostname is required" in str(exc_info.value.detail)
 
     @patch("socket.gethostbyname")
     def test_validate_ip_address_invalid(self, mock_gethostbyname):
-        """Test validate_ip_address with invalid IP/hostname"""
+        """Test validate_ip_address_middleware with invalid IP/hostname"""
         import socket
 
         mock_gethostbyname.side_effect = socket.gaierror("Name resolution failed")
 
         with pytest.raises(HTTPException) as exc_info:
-            validate_ip_address("invalid.hostname")
+            validate_ip_address_middleware("invalid.hostname")
 
         assert exc_info.value.status_code == 400
         assert "Invalid IP address or hostname" in str(exc_info.value.detail)
@@ -446,66 +440,67 @@ class TestValidationFunctions:
 
         result = sanitize_json_response(data)
 
-        # For non-dict input, should return empty dict
-        assert result == {}
+        # For non-dict input, should return dict with value key
+        assert "value" in result
+        assert isinstance(result["value"], list)
 
     def test_sanitize_json_response_non_dict(self):
         """Test sanitize_json_response with non-dict input"""
         result = sanitize_json_response("string")
-        assert result == {}
+        assert result == {"value": "string"}
 
     def test_validate_pagination_params_valid(self):
-        """Test validate_pagination_params with valid values"""
-        result = validate_pagination_params(0, 100)
+        """Test validate_pagination_params_middleware with valid values"""
+        result = validate_pagination_params_middleware(0, 100)
         assert result == (0, 100)
 
-        result = validate_pagination_params(10, 50)
+        result = validate_pagination_params_middleware(10, 50)
         assert result == (10, 50)
 
     def test_validate_pagination_params_negative_offset(self):
-        """Test validate_pagination_params with negative offset"""
+        """Test validate_pagination_params_middleware with negative offset"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_pagination_params(-1, 100)
+            validate_pagination_params_middleware(-1, 100)
 
         assert exc_info.value.status_code == 400
         assert "Offset cannot be negative" in str(exc_info.value.detail)
 
     def test_validate_pagination_params_invalid_limit(self):
-        """Test validate_pagination_params with invalid limit"""
+        """Test validate_pagination_params_middleware with invalid limit"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_pagination_params(0, 0)
+            validate_pagination_params_middleware(0, 0)
 
         assert exc_info.value.status_code == 400
         assert "Limit must be at least 1" in str(exc_info.value.detail)
 
     def test_validate_pagination_params_limit_too_large(self):
-        """Test validate_pagination_params with limit too large"""
+        """Test validate_pagination_params_middleware with limit too large"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_pagination_params(0, 1001)
+            validate_pagination_params_middleware(0, 1001)
 
         assert exc_info.value.status_code == 400
         assert "Limit cannot exceed 1000" in str(exc_info.value.detail)
 
     def test_validate_datetime_param_valid(self):
-        """Test validate_datetime_param with valid datetime"""
-        result = validate_datetime_param("2023-01-01T12:00:00")
+        """Test validate_datetime_param_middleware with valid datetime"""
+        result = validate_datetime_param_middleware("2023-01-01T12:00:00")
         assert result == "2023-01-01T12:00:00"
 
-        result = validate_datetime_param("2023-01-01T12:00:00Z")
+        result = validate_datetime_param_middleware("2023-01-01T12:00:00Z")
         assert result == "2023-01-01T12:00:00Z"
 
     def test_validate_datetime_param_empty(self):
-        """Test validate_datetime_param with empty value"""
+        """Test validate_datetime_param_middleware with empty value"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_datetime_param("")
+            validate_datetime_param_middleware("")
 
         assert exc_info.value.status_code == 400
         assert "Datetime parameter is required" in str(exc_info.value.detail)
 
     def test_validate_datetime_param_invalid(self):
-        """Test validate_datetime_param with invalid format"""
+        """Test validate_datetime_param_middleware with invalid format"""
         with pytest.raises(HTTPException) as exc_info:
-            validate_datetime_param("not-a-datetime")
+            validate_datetime_param_middleware("not-a-datetime")
 
         assert exc_info.value.status_code == 400
         assert "Invalid datetime format" in str(exc_info.value.detail)

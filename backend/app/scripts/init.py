@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 KubeEye initialization script
@@ -7,30 +7,59 @@ For initialization work when starting the Docker container
 
 import os
 import sys
-import logging
 from pathlib import Path
 from typing import Optional
 
+# Performance optimization: use uvloop for better asyncio performance
+try:
+    import uvloop
+except ImportError:
+    uvloop = None  # uvloop not available, use default asyncio
+
 # Setup logger
-logger = logging.getLogger(__name__)
+from core.logging import get_logger
+from core.config.settings import settings
+
+logger = get_logger(__name__)
 
 
 def ensure_data_directories():
     """Ensure data directories exist"""
-    data_dir = Path(os.environ.get("KUBEEYE_DATA_DIR", "/app/data"))
+    data_dir = Path(settings.kubeeye_data_dir)
 
-    # Create necessary directories
+    # Create only necessary directories for PostgreSQL + GitOps setup
+    # clusters, results, schedules are now stored in PostgreSQL
+    # Only git_rules remain in filesystem
     directories = [
-        data_dir / "clusters",
-        data_dir / "results",
-        data_dir / "logs",
-        data_dir / "schedules",
-        data_dir / "git_rules",
+        data_dir / "git_rules",  # GitOps rules from repositories
     ]
 
     for directory in directories:
         os.makedirs(str(directory), exist_ok=True)
         logger.info(f"Ensure directory exists: {directory}")
+
+
+async def ensure_database():
+    """Ensure database tables exist with retry mechanism"""
+    try:
+        from db.database import init_database, health_check
+
+        logger.info("Initializing database with retry mechanism...")
+
+        # РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р±Р°Р·С‹ РґР°РЅРЅС‹С…
+        await init_database()
+
+        # РџСЂРѕРІРµСЂРєР° СЃРѕСЃС‚РѕСЏРЅРёСЏ
+        health = await health_check()
+        if health.get("status") == "healthy":
+            logger.info("Database initialization completed successfully")
+        else:
+            logger.warning(f"Database initialization completed with warnings: {health.get('message')}")
+
+    except Exception as e:
+        logger.warning(f"Database initialization failed (this is normal during Docker build): {e}")
+        logger.warning("Database will be initialized when the application starts with retry mechanism")
+        # Don't raise exception during Docker build
 
 
 def ensure_opa_binary():
@@ -86,7 +115,10 @@ def validate_environment():
 
     missing_vars = []
     for var in required_env_vars:
-        if not os.environ.get(var):
+        if var == "KUBEEYE_DATA_DIR":
+            if not settings.kubeeye_data_dir:
+                missing_vars.append(var)
+        elif not os.environ.get(var):
             missing_vars.append(var)
 
     if missing_vars:
@@ -99,32 +131,43 @@ def validate_environment():
 
 def main():
     """Main initialization function"""
-    # Setup logging for init script
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    import asyncio
+
+    # Setup logging for init script - use centralized logging config
+    from core.logging import get_logger
+
+    logger = get_logger("init")
     logger.info("KubeEye initialization started...")
 
-    try:
-        # Validate environment
-        if not validate_environment():
+    async def run_init():
+        try:
+            # Validate environment
+            if not validate_environment():
+                sys.exit(1)
+
+            # Ensure data directories
+            ensure_data_directories()
+
+            # Ensure database
+            await ensure_database()
+
+            # Ensure OPA binary
+            ensure_opa_binary()
+
+            logger.info("KubeEye initialization completed!")
+
+        except Exception as e:
+            logger.error(f"Initialization failed: {e}")
             sys.exit(1)
 
-        # Ensure data directories
-        ensure_data_directories()
-
-        # Ensure OPA binary
-        ensure_opa_binary()
-
-        logger.info("KubeEye initialization completed!")
-
-    except Exception as e:
-        logger.error(f"Initialization failed: {e}")
-        sys.exit(1)
+    # Run async command with custom loop factory if uvloop is available
+    if uvloop is not None:
+        asyncio.run(run_init(), loop_factory=uvloop.new_event_loop)
+    else:
+        asyncio.run(run_init())
 
 
-def initialize(force: bool = False, config_path: Optional[str] = None, verbose: bool = False) -> bool:
+async def initialize(force: bool = False, config_path: Optional[str] = None, verbose: bool = False) -> bool:
     """
     Initialize KubeEye (function for tests)
 
@@ -137,12 +180,10 @@ def initialize(force: bool = False, config_path: Optional[str] = None, verbose: 
         True if initialization was successful, False otherwise
     """
     try:
-        # Setup logging for init script
-        log_level = logging.INFO if verbose else logging.WARNING
-        logging.basicConfig(
-            level=log_level,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
+        # Setup logging for init script - use centralized logging config
+        from core.logging import get_logger
+
+        logger = get_logger("init")
         logger.info("KubeEye initialization started...")
 
         # Validate environment
@@ -151,6 +192,9 @@ def initialize(force: bool = False, config_path: Optional[str] = None, verbose: 
 
         # Ensure data directories
         ensure_data_directories()
+
+        # Ensure database
+        await ensure_database()
 
         # Ensure OPA binary
         ensure_opa_binary()
