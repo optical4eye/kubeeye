@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, message, Modal, Form, Space, Button, Input, Collapse, Checkbox } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { getClusters, createCluster, updateCluster, deleteCluster, getClusterDetails, getClusterNodes, testClusterNodes, testClusterKubeconfig } from '../services/api';
+import { Card, Tabs, message, Modal, Form } from 'antd';
+import {
+  getClusters,
+  createCluster,
+  updateCluster,
+  deleteCluster,
+  getClusterDetails,
+  getClusterNodes,
+  testClusterNodes,
+  testClusterKubeconfig,
+} from '../services/api';
 import { parseNodesFromText, formatNodesForText } from '../utils/nodeParser';
-import { fetchData, handleApiError } from '../utils/apiErrorHandler';
+import { fetchData } from '../utils/apiErrorHandler';
 import ClusterList from '../components/ClusterList';
 import ClusterForm from '../components/ClusterForm';
 import ClusterDetailsModal from '../components/ClusterDetailsModal';
@@ -21,17 +29,14 @@ const ClusterManagement = () => {
   const [clusterNodes, setClusterNodes] = useState([]);
   const [nodesLoading, setNodesLoading] = useState(false);
   const [nodeFilter, setNodeFilter] = useState('all');
-  const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const [createForm] = Form.useForm();
 
   const loadClusters = async () => {
     try {
       setLoading(true);
-      await fetchData(
-        getClusters,
-        'Ошибка загрузки кластеров',
-        (data) => setClusters(data.clusters || [])
+      await fetchData(getClusters, 'Ошибка загрузки кластеров', data =>
+        setClusters(data.clusters || [])
       );
     } catch (error) {
       console.error(error);
@@ -45,19 +50,13 @@ const ClusterManagement = () => {
     loadClusters();
   }, []);
 
-  const handleCreateCluster = async (values) => {
+  const handleCreateCluster = async values => {
     try {
       const nodes = parseNodesFromText(values.nodes_text);
       const clusterData = {
         name: values.name,
         nodes: nodes,
-        prometheus_config: values.prometheus_enabled ? {
-          enabled: true,
-          url: values.prometheus_url,
-          username: values.prometheus_username,
-          password: values.prometheus_password
-        } : { enabled: false },
-        kubeconfig: values.kubeconfig
+        kubeconfig: values.kubeconfig,
       };
 
       await createCluster(clusterData);
@@ -71,7 +70,7 @@ const ClusterManagement = () => {
     }
   };
 
-  const handleDeleteCluster = async (clusterName) => {
+  const handleDeleteCluster = async clusterName => {
     try {
       await deleteCluster(clusterName);
       message.success('Кластер удален');
@@ -85,20 +84,16 @@ const ClusterManagement = () => {
     }
   };
 
-  const loadClusterDetails = async (clusterName) => {
+  const loadClusterDetails = async clusterName => {
     try {
-      const clusterData = await fetchData(
+      await fetchData(
         () => getClusterDetails(clusterName),
         'Ошибка загрузки данных кластера',
-        (data) => {
+        data => {
           const formData = {
             name: data.name,
             nodes_text: formatNodesForText(data.nodes),
-            prometheus_enabled: data.prometheus_config?.enabled || false,
-            prometheus_url: data.prometheus_config?.url || '',
-            prometheus_username: data.prometheus_config?.username || '',
-            prometheus_password: data.prometheus_config?.password || '',
-            kubeconfig: data.kubeconfig || ''
+            kubeconfig: data.kubeconfig || '',
           };
 
           editForm.setFieldsValue(formData);
@@ -112,19 +107,13 @@ const ClusterManagement = () => {
     }
   };
 
-  const handleEditCluster = async (values) => {
+  const handleEditCluster = async values => {
     try {
       const nodes = parseNodesFromText(values.nodes_text);
       const clusterData = {
         name: values.name,
         nodes: nodes,
-        prometheus_config: values.prometheus_enabled ? {
-          enabled: true,
-          url: values.prometheus_url,
-          username: values.prometheus_username,
-          password: values.prometheus_password
-        } : { enabled: false },
-        kubeconfig: values.kubeconfig
+        kubeconfig: values.kubeconfig,
       };
 
       await updateCluster(selectedCluster.name, clusterData);
@@ -210,7 +199,6 @@ const ClusterManagement = () => {
         errorMessage = error.message;
       }
 
-      const failedNodes = nodesToTest ? nodesToTest.map(node => `${node.ip}:${node.port}`).join(', ') : 'неизвестные узлы';
       message.error(`Ошибка проверки узлов: ${errorMessage}`);
     }
   };
@@ -244,7 +232,7 @@ const ClusterManagement = () => {
     }
   };
 
-  const loadClusterNodes = async (clusterName) => {
+  const loadClusterNodes = async clusterName => {
     try {
       setNodesLoading(true);
       const response = await getClusterNodes(clusterName);
@@ -273,7 +261,7 @@ const ClusterManagement = () => {
     }
   };
 
-  const handleShowClusterDetails = (cluster) => {
+  const handleShowClusterDetails = cluster => {
     setSelectedCluster(cluster);
     setClusterDetails(cluster);
     setDetailsModalVisible(true);
@@ -287,8 +275,12 @@ const ClusterManagement = () => {
 
   return (
     <div>
-      <h1 className="page-title" aria-label="Управление кластерами">Управление кластерами</h1>
-      <p className="page-subtitle" aria-label="Настройка подключений к Kubernetes кластерам">Настройка подключений к Kubernetes кластерам</p>
+      <h1 className="page-title" aria-label="Управление кластерами">
+        Управление кластерами
+      </h1>
+      <p className="page-subtitle" aria-label="Настройка подключений к Kubernetes кластерам">
+        Настройка подключений к Kubernetes кластерам
+      </p>
 
       <Tabs defaultActiveKey="1">
         <TabPane tab="Список кластеров" key="1">
@@ -297,11 +289,12 @@ const ClusterManagement = () => {
               clusters={clusters}
               loading={loading}
               onViewDetails={handleShowClusterDetails}
-              onEdit={(cluster) => {
+              onEdit={cluster => {
                 setSelectedCluster(cluster);
                 loadClusterDetails(cluster.name);
               }}
               onDelete={handleDeleteCluster}
+              onRefresh={() => {}}
             />
           </Card>
         </TabPane>

@@ -1,93 +1,55 @@
 // Constants for Help page content
 
-export const PROHIBITED_COMMANDS = [
-  {
-    category: "Операции с файлами и директориями",
-    commands: "rm, mv, cp (с перезаписью системных файлов), mkdir, rmdir, touch"
-  },
-  {
-    category: "Изменение прав доступа",
-    commands: "chmod, chown, chgrp"
-  },
-  {
-    category: "Управление системными сервисами",
-    commands: "systemctl (start, stop, restart, enable, disable и т.д.), service (start, stop, restart)"
-  },
-  {
-    category: "Системные операции",
-    commands: "init, shutdown, reboot, halt"
-  },
-  {
-    category: "Управление процессами",
-    commands: "kill, killall, pkill"
-  },
-  {
-    category: "Низкоуровневые дисковые операции",
-    commands: "dd (с записью), mkfs, mount, umount, fsck"
-  },
-  {
-    category: "Управление пакетами",
-    commands: "apt (install, remove, upgrade), apt-get, yum, dnf, pip install, npm install"
-  },
-  {
-    category: "Изменение сетевых настроек",
-    commands: "ifconfig (up/down), ip (addr/link/route add/del/set), iptables (добавление/удаление правил)"
-  },
-  {
-    category: "Планировщик задач",
-    commands: "crontab (редактирование), at"
-  },
-  {
-    category: "Перенаправление вывода",
-    commands: `команды с > или >> для записи в файлы`
-  },
-  {
-    category: "Удаленное выполнение и загрузка",
-    commands: "wget/curl с выполнением скриптов (wget | sh), scp, rsync"
-  },
-  {
-    category: "Компиляция и установка",
-    commands: "make install, ./configure"
-  },
-  {
-    category: "Изменение параметров ядра",
-    commands: "sysctl -w, echo в /proc/, modprobe, rmmod"
-  }
-];
-
 export const SAFE_COMMANDS = [
   {
-    category: "Просмотр файлов",
-    commands: "cat, less, more, head, tail"
+    category: 'Просмотр системных файлов',
+    commands:
+      'cat (для /proc/, /sys/, /etc/hostname, /etc/os-release), less, more, head, tail (для /var/log/, /proc/, /sys/, /etc/)',
   },
   {
-    category: "Поиск и фильтрация",
-    commands: "grep, awk, sed, find (только для поиска), locate"
+    category: 'Поиск и фильтрация',
+    commands:
+      'grep, awk, sed (для /var/log/, /proc/, /sys/), find (только для поиска файлов), locate, which, whereis',
   },
   {
-    category: "Информация о системе",
-    commands: "uname, hostname, whoami, id, date, uptime"
+    category: 'Информация о системе',
+    commands:
+      'uname, hostname, whoami, id, date, uptime, w, who, last, lastlog, history, env, printenv, echo (переменные), printf, sestatus',
   },
   {
-    category: "Информация о процессах",
-    commands: "ps, top, htop, pstree, pgrep"
+    category: 'Информация о процессах',
+    commands: 'ps, top, htop, pstree, pgrep',
   },
   {
-    category: "Информация о ресурсах",
-    commands: "free, vmstat, iostat, sar, df, du, lsblk, lsof"
+    category: 'Информация о ресурсах',
+    commands: 'free, vmstat, iostat, sar, df, du, lsblk, lsof, fuser',
   },
   {
-    category: "Сетевая информация",
-    commands: "netstat, ss, iptables -L (просмотр правил)"
+    category: 'Сетевая информация',
+    commands:
+      'netstat, ss, lsof -i, iptables -L (просмотр правил), ip (addr/link/route show), ifconfig (без параметров)',
   },
   {
-    category: "Логи",
-    commands: "journalctl (просмотр), dmesg"
+    category: 'Логи',
+    commands: 'journalctl (с параметрами просмотра), dmesg',
   },
   {
-    category: "Kubernetes команды",
-    commands: "kubectl get, describe, logs (только чтение)"
-  }
+    category: 'Kubernetes команды',
+    commands:
+      'kubectl get, describe, logs, explain, api-resources, api-versions, version, cluster-info',
+  },
+  {
+    category: 'Docker команды',
+    commands: 'docker ps, images, version, info, logs',
+  },
+  {
+    category: 'Системные сервисы (только чтение)',
+    commands: 'systemctl is-active, status, show; service status',
+  },
+  {
+    category: 'Другие утилиты',
+    commands: 'ls, awk, wc, tail, head, xargs, grep, sed, echo',
+  },
 ];
 
 export const DISK_USAGE_RULE = `---
@@ -211,6 +173,67 @@ tags:
   - network
   - hostNetwork`;
 
+export const PROHIBITED_COMMANDS = [
+  {
+    category: 'Файловые операции',
+    commands: 'rm, mv, cp (с перезаписью системных файлов), mkdir, rmdir, touch',
+  },
+  {
+    category: 'Права доступа',
+    commands: 'chmod, chown, chgrp',
+  },
+  {
+    category: 'Системные сервисы',
+    commands:
+      'systemctl (start/stop/restart/enable/disable/mask/unmask/kill/reset-failed), service (start/stop/restart)',
+  },
+  {
+    category: 'Системные команды',
+    commands: 'init, shutdown, reboot, halt',
+  },
+  {
+    category: 'Управление процессами',
+    commands: 'kill, killall, pkill',
+  },
+  {
+    category: 'Дисковые операции',
+    commands: 'dd (запись), mkfs, mount, umount, fsck',
+  },
+  {
+    category: 'Управление пакетами',
+    commands: 'apt (install/remove/purge/upgrade), apt-get, yum, dnf, pip install, npm install',
+  },
+  {
+    category: 'Сетевые изменения',
+    commands:
+      'ifconfig (up/down), ip (addr/link/route add/del/set), iptables (-A/-D/-I/-R/-F/-X), netplan apply',
+  },
+  {
+    category: 'Планировщик задач',
+    commands: 'crontab (-e/-r), at',
+  },
+  {
+    category: 'Перенаправления вывода',
+    commands: '> (перенаправление в файл), >> (добавление в файл)',
+  },
+  {
+    category: 'Скачивание и выполнение',
+    commands: 'wget|curl с | sh/bash/python/perl',
+  },
+  {
+    category: 'Удаленное копирование',
+    commands: 'scp, rsync',
+  },
+  {
+    category: 'Компиляция и установка',
+    commands: 'make (install/clean), ./configure',
+  },
+  {
+    category: 'Параметры ядра',
+    commands: 'sysctl -w, echo > /proc/, modprobe, rmmod',
+  },
+];
+
 export const POD_RESOURCES_RULE = `---
 # Правило - проверка наличия ресурсных лимитов у Pod
 id: pod-resources-limits
@@ -226,15 +249,16 @@ tier: basic
 config:
   # Выполнение - проверка через kubectl
   execution:
-    command: "kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.spec.containers[] | has(\"resources\") | not) | \"\\(.metadata.namespace)/\\(.metadata.name)\"' | head -10"
+    command: "kubectl get pods --all-namespaces -o json | jq -r '.items[] | select(.spec.containers[] | has("resources") | not) | "(.metadata.namespace)/(.metadata.name)"' | head -10"
     timeout: 10
 
   # Утверждения
   assertions:
     - name: "Все Pod имеют ресурсные лимиты"
-      condition: "output == \"\""
+      condition: 'output == ""'
       severity: warning
-      description: "Найдено Pod без ресурсных лимитов: {{ output }}"
+      # eslint-disable-next-line no-useless-escape
+      description: 'Найдено Pod без ресурсных лимитов {{ output }}'
 
 # Рекомендации по устранению
 solution: |

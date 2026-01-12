@@ -1,3 +1,6 @@
+﻿#!/usr/bin/env python3
+from core.logging import get_logger
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -9,7 +12,7 @@ from unittest.mock import patch, Mock, AsyncMock
 import json
 import logging
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class TestInspectionConfigManager:
@@ -53,19 +56,18 @@ class TestInspectionConfigManager:
 
         from services.components.inspection_config_manager import get_inspection_config
 
-        result = await get_inspection_config(["node", "prometheus"])
+        result = await get_inspection_config(["node", "opa"])
 
         logger.info(f"get_inspection_config with types result: {result}")
         assert "node" in result
-        assert "prometheus" in result
-        assert "opa" not in result
+        assert "opa" in result
         # Some implementations might return empty lists
         assert len(result["node"]) >= 0
-        assert len(result["prometheus"]) >= 0
+        assert len(result["opa"]) >= 0
         if len(result["node"]) > 0:
             assert result["node"][0]["name"] == "rule1"
-        if len(result["prometheus"]) > 0:
-            assert result["prometheus"][0]["name"] == "rule2"
+        if len(result["opa"]) > 0:
+            assert result["opa"][0]["name"] == "rule2"
         assert mock_rule_manager.get_enabled_rules.call_count == 2
 
     @patch("services.components.inspection_config_manager.RuleManager")
@@ -95,14 +97,14 @@ class TestInspectionConfigManager:
 
         from services.components.inspection_config_manager import validate_inspection_config
 
-        config = {"node": [{"name": "rule1", "enabled": True}], "prometheus": [{"name": "rule2", "enabled": True}]}
+        config = {"node": [{"name": "rule1", "enabled": True}], "opa": [{"name": "rule2", "enabled": True}]}
 
         is_valid, message = await validate_inspection_config(config)
 
         assert is_valid is True
         assert message == "Valid config"
 
-    @patch("infrastructure.rules.rule_manager.RuleManager")
+    @patch("infra.rules.rule_manager.RuleManager")
     @pytest.mark.asyncio
     async def test_validate_inspection_config_invalid(self, mock_rule_manager):
         """Test validation of invalid inspection config"""
@@ -113,7 +115,7 @@ class TestInspectionConfigManager:
 
         from services.components.inspection_config_manager import validate_inspection_config
 
-        config = {"node": [{"name": "rule1", "enabled": True}], "prometheus": [{"name": "rule2", "enabled": True}]}
+        config = {"node": [{"name": "rule1", "enabled": True}], "opa": [{"name": "rule2", "enabled": True}]}
 
         config = {"invalid": "config"}
         is_valid, message = await validate_inspection_config(config)
@@ -133,7 +135,7 @@ class TestInspectionConfigManager:
 
         from services.components.inspection_config_manager import validate_inspection_config
 
-        config = {"node": [{"name": "rule1", "enabled": True}], "prometheus": [{"name": "rule2", "enabled": True}]}
+        config = {"node": [{"name": "rule1", "enabled": True}], "opa": [{"name": "rule2", "enabled": True}]}
 
         is_valid, message = await validate_inspection_config(config)
 
@@ -156,20 +158,16 @@ class TestInspectionConfigManager:
 
         logger.info(f"get_default_inspection_config result: {result}")
         assert "node" in result
-        assert "prometheus" in result
         assert "opa" in result
         # Some implementations might return empty lists
         assert len(result["node"]) >= 0
-        assert len(result["prometheus"]) >= 0
         assert len(result["opa"]) >= 0
         if len(result["node"]) > 0:
             assert result["node"][0]["name"] == "rule1"
             assert result["node"][0]["enabled"] is True
-        if len(result["prometheus"]) > 0:
-            assert result["prometheus"][0]["name"] == "rule2"
         if len(result["opa"]) > 0:
-            assert result["opa"][0]["name"] == "rule_opa"
-        assert mock_rule_manager.get_enabled_rules.call_count == 3
+            assert result["opa"][0]["name"] == "rule2"
+        assert mock_rule_manager.get_enabled_rules.call_count == 2
 
     @patch("services.components.inspection_config_manager.RuleManager")
     @pytest.mark.asyncio
@@ -198,14 +196,13 @@ class TestInspectionConfigManager:
 
         from services.components.inspection_config_manager import merge_inspection_configs
 
-        config1 = {"node": [{"name": "rule1", "enabled": True}], "prometheus": [{"name": "rule2", "enabled": False}]}
+        config1 = {"node": [{"name": "rule1", "enabled": True}], "opa": [{"name": "rule2", "enabled": False}]}
 
         config2 = {"node": [{"name": "rule2", "enabled": True}], "opa": [{"name": "rule3", "enabled": True}]}
 
         result = await merge_inspection_configs(config1, config2)
 
         assert "node" in result
-        assert "prometheus" in result
         assert "opa" in result
         assert len(result["node"]) == 2
         assert result["node"][0]["name"] == "rule1"
@@ -223,13 +220,13 @@ class TestInspectionConfigManager:
         from services.components.inspection_config_manager import merge_inspection_configs
 
         config1 = {"node": [{"name": "rule1", "enabled": True}]}
-        config2 = {"prometheus": [{"name": "rule2", "enabled": True}]}
+        config2 = {"opa": [{"name": "rule2", "enabled": True}]}
 
         result = await merge_inspection_configs(config1, config2)
 
         assert "node" in result
-        assert "prometheus" in result
+        assert "opa" in result
         assert len(result["node"]) == 1
         assert result["node"][0]["name"] == "rule1"
-        assert len(result["prometheus"]) == 1
-        assert result["prometheus"][0]["name"] == "rule2"
+        assert len(result["opa"]) == 1
+        assert result["opa"][0]["name"] == "rule2"

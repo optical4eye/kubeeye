@@ -6,6 +6,7 @@ const IntroductionTab = lazy(() => import('../components/HelpTabs/IntroductionTa
 const ExamplesTab = lazy(() => import('../components/HelpTabs/ExamplesTab'));
 const SecurityTab = lazy(() => import('../components/HelpTabs/SecurityTab'));
 const KubeconfigTab = lazy(() => import('../components/HelpTabs/KubeconfigTab'));
+const ApiTab = lazy(() => import('../components/HelpTabs/ApiTab'));
 
 const Help = () => {
   return (
@@ -17,7 +18,11 @@ const Help = () => {
       <div className="page-subtitle">Руководство по использованию KubeEye и примеры правил</div>
 
       <Tabs defaultActiveKey="1" aria-label="Разделы справки KubeEye">
-        <Tabs.TabPane tab="Введение в Open Policy Agent" key="1" aria-label="Введение в OPA">
+        <Tabs.TabPane
+          tab="Инструменты инспекции кластеров"
+          key="1"
+          aria-label="Инструменты инспекции кластеров"
+        >
           <Suspense fallback={<Spin />}>
             <IntroductionTab />
           </Suspense>
@@ -29,15 +34,29 @@ const Help = () => {
           </Suspense>
         </Tabs.TabPane>
 
-        <Tabs.TabPane tab="Запрещенные команды" key="3" aria-label="Безопасность и запрещенные команды">
+        <Tabs.TabPane
+          tab="Разрешенные команды"
+          key="3"
+          aria-label="Безопасность и разрешенные команды"
+        >
           <Suspense fallback={<Spin />}>
             <SecurityTab />
           </Suspense>
         </Tabs.TabPane>
 
-        <Tabs.TabPane tab="Настройка Kubeconfig" key="4" aria-label="Настройка kubeconfig для KubeEye">
+        <Tabs.TabPane
+          tab="Настройка Kubeconfig"
+          key="4"
+          aria-label="Настройка kubeconfig для KubeEye"
+        >
           <Suspense fallback={<Spin />}>
             <KubeconfigTab />
+          </Suspense>
+        </Tabs.TabPane>
+
+        <Tabs.TabPane tab="API" key="5" aria-label="Документация API KubeEye">
+          <Suspense fallback={<Spin />}>
+            <ApiTab />
           </Suspense>
         </Tabs.TabPane>
       </Tabs>

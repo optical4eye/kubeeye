@@ -5,7 +5,15 @@ import CodeHighlighter from '../CodeHighlighter';
 
 const { Title, Paragraph, Text } = Typography;
 
-const RuleExample = ({ title, description, whyImportant, problems, howToApply, code, language = "yaml" }) => (
+const RuleExample = ({
+  title,
+  description,
+  whyImportant,
+  problems,
+  howToApply,
+  code,
+  language = 'yaml',
+}) => (
   <Row gutter={16} className="help-row-margin">
     <Col span={24}>
       <Card title={title} aria-label={`Пример правила: ${title}`}>
@@ -21,7 +29,7 @@ const RuleExample = ({ title, description, whyImportant, problems, howToApply, c
         <Paragraph>
           <Text strong>Как применять в KubeEye:</Text> {howToApply}
         </Paragraph>
-        <div role="code" aria-label={`Пример кода на ${language === "yaml" ? "YAML" : "Rego"}`}>
+        <div role="code" aria-label={`Пример кода на ${language === 'yaml' ? 'YAML' : 'Rego'}`}>
           <CodeHighlighter code={code} language={language} />
         </div>
       </Card>
@@ -32,11 +40,15 @@ const RuleExample = ({ title, description, whyImportant, problems, howToApply, c
 const ExamplesTab = () => {
   return (
     <>
-      <Row gutter={16}>
+      <Row gutter={16} className="help-row-margin">
         <Col span={24}>
-          <Title level={3} id="examples-title">Примеры правил</Title>
+          <Title level={3} id="examples-title">
+            Примеры правил
+          </Title>
           <Paragraph>
-            Ниже приведены примеры правил из репозитория KubeEye. Каждое правило включает название, код примера, подробные пояснения о том, что проверяет правило, почему оно важно, какие проблемы выявляет, и как его применять в KubeEye.
+            Ниже приведены примеры правил из репозитория KubeEye. Каждое правило включает название,
+            код примера, подробные пояснения о том, что проверяет правило, почему оно важно, какие
+            проблемы выявляет, и как его применять в KubeEye.
           </Paragraph>
         </Col>
       </Row>

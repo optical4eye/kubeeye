@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Tabs, Select, Button, message, Space, Checkbox, Tag, List, Typography, Progress } from 'antd';
-import { PlayCircleOutlined, SyncOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, StopOutlined } from '@ant-design/icons';
-import { getClusters, runInspectionAsync, getInspectionTaskStatus, cancelInspectionTask, getRules } from '../services/api';
+import { Card, Tabs, Select, Button, message, Space, Tag, List, Typography, Progress } from 'antd';
+import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
+import {
+  getClusters,
+  runInspectionAsync,
+  getInspectionTaskStatus,
+  cancelInspectionTask,
+  getRules,
+} from '../services/api';
 import ScheduledInspection from '../components/ScheduledInspection';
 import RuleManagement from '../components/RuleManagement';
 import RuleSelector from '../components/RuleSelector';
-import { getTaskStatusIcon, getTaskStatusColor } from '../components/statusUtils';
+import { getTaskStatusIcon } from '../components/statusUtils';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -14,7 +20,7 @@ const Inspection = () => {
   const [clusters, setClusters] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [rules, setRules] = useState({});
-  const [selectedRules, setSelectedRules] = useState({ node: [], prometheus: [], opa: [] });
+  const [selectedRules, setSelectedRules] = useState({ node: [], opa: [] });
   const [loading, setLoading] = useState(false);
   const [activeTasks, setActiveTasks] = useState([]);
   const pollingIntervals = useRef({});
@@ -62,7 +68,7 @@ const Inspection = () => {
     setSelectedRules(newSelectedRules);
   }, [rules]);
 
-  const startTaskPolling = (taskId) => {
+  const startTaskPolling = taskId => {
     if (pollingIntervals.current[taskId]) {
       clearInterval(pollingIntervals.current[taskId]);
     }
@@ -72,7 +78,7 @@ const Inspection = () => {
         const response = await getInspectionTaskStatus(taskId);
         const task = response.data;
 
-        setActiveTasks(prev => prev.map(t => t.task_id === taskId ? task : t));
+        setActiveTasks(prev => prev.map(t => (t.task_id === taskId ? task : t)));
 
         // Stop polling when task is completed or failed
         if (task.status === 'completed' || task.status === 'failed') {
@@ -80,15 +86,19 @@ const Inspection = () => {
           delete pollingIntervals.current[taskId];
 
           if (task.status === 'completed') {
-            message.success(`Задача ${taskId} завершена успешно. Отчет доступен в разделе "Отчеты"`);
+            message.success(
+              `Задача ${taskId} завершена успешно. Отчет доступен в разделе "Отчеты"`
+            );
 
             // Trigger a custom event to notify other components about the new report
-            window.dispatchEvent(new CustomEvent('newReportAvailable', {
-              detail: {
-                taskId,
-                result: task.result
-              }
-            }));
+            window.dispatchEvent(
+              new CustomEvent('newReportAvailable', {
+                detail: {
+                  taskId,
+                  result: task.result,
+                },
+              })
+            );
           } else {
             message.error(`Задача ${taskId} завершилась с ошибкой: ${task.error}`);
           }
@@ -98,7 +108,9 @@ const Inspection = () => {
 
         // Check if it's a 404 error (task not found)
         if (error.response?.status === 404) {
-          message.error(`Задача ${taskId} не найдена. Возможно, она была удалена или истек срок действия.`);
+          message.error(
+            `Задача ${taskId} не найдена. Возможно, она была удалена или истек срок действия.`
+          );
         } else {
           message.error(`Ошибка при проверке статуса задачи ${taskId}: ${error.message}`);
         }
@@ -107,29 +119,31 @@ const Inspection = () => {
         delete pollingIntervals.current[taskId];
 
         // Update task status to show error in UI
-        setActiveTasks(prev => prev.map(t =>
-          t.task_id === taskId ? { ...t, status: 'failed', error: error.message } : t
-        ));
+        setActiveTasks(prev =>
+          prev.map(t =>
+            t.task_id === taskId ? { ...t, status: 'failed', error: error.message } : t
+          )
+        );
       }
     }, 2000); // Poll every 2 seconds
 
     pollingIntervals.current[taskId] = interval;
   };
 
-  const stopTaskPolling = (taskId) => {
+  const stopTaskPolling = taskId => {
     if (pollingIntervals.current[taskId]) {
       clearInterval(pollingIntervals.current[taskId]);
       delete pollingIntervals.current[taskId];
     }
   };
 
-  const handleCancelTask = async (taskId) => {
+  const handleCancelTask = async taskId => {
     try {
       await cancelInspectionTask(taskId);
       stopTaskPolling(taskId);
-      setActiveTasks(prev => prev.map(t =>
-        t.task_id === taskId ? { ...t, status: 'cancelled' } : t
-      ));
+      setActiveTasks(prev =>
+        prev.map(t => (t.task_id === taskId ? { ...t, status: 'cancelled' } : t))
+      );
       message.success('Задача отменена');
     } catch (error) {
       message.error('Ошибка отмены задачи');
@@ -143,7 +157,10 @@ const Inspection = () => {
       return;
     }
 
-    const totalSelectedRules = Object.values(selectedRules).reduce((sum, arr) => sum + arr.length, 0);
+    const totalSelectedRules = Object.values(selectedRules).reduce(
+      (sum, arr) => sum + arr.length,
+      0
+    );
     if (totalSelectedRules === 0) {
       message.error('Выберите хотя бы одно правило');
       return;
@@ -152,7 +169,7 @@ const Inspection = () => {
     const inspectionData = {
       cluster_name: selectedCluster,
       selected_rules: selectedRules,
-      inspection_type: 'immediate'
+      inspection_type: 'immediate',
     };
 
     try {
@@ -167,20 +184,23 @@ const Inspection = () => {
         task_type: 'inspection',
         status: 'pending',
         created_at: new Date().toISOString(),
-        payload: inspectionData
+        payload: inspectionData,
       };
 
       setActiveTasks(prev => [newTask, ...prev]);
       startTaskPolling(taskId);
 
       message.success(`Инспекция запущена (ID: ${taskId})`);
-
     } catch (error) {
       // Handle different types of errors
       if (error.code === 'ECONNABORTED') {
-        message.error(`Таймаут подключения к кластеру ${selectedCluster}. Проверьте доступность узлов кластера.`);
+        message.error(
+          `Таймаут подключения к кластеру ${selectedCluster}. Проверьте доступность узлов кластера.`
+        );
       } else if (error.message && error.message.includes('timeout')) {
-        message.error(`Не удалось выполнить инспекцию кластера ${selectedCluster} из-за таймаута подключения`);
+        message.error(
+          `Не удалось выполнить инспекцию кластера ${selectedCluster} из-за таймаута подключения`
+        );
       } else if (error.response?.status === 500) {
         message.error('Ошибка сервера при выполнении инспекции');
       } else if (error.response?.data?.detail) {
@@ -197,28 +217,30 @@ const Inspection = () => {
   const handleRuleSelection = (ruleType, ruleIds) => {
     setSelectedRules(prev => ({
       ...prev,
-      [ruleType]: ruleIds
+      [ruleType]: ruleIds,
     }));
   };
 
-
-  const formatTaskTime = (isoString) => {
+  const formatTaskTime = isoString => {
     if (!isoString) return '';
     return new Date(isoString).toLocaleString();
   };
 
-
   return (
     <div>
       <div className="page-title">Центр инспекции кластеров</div>
-      <div className="page-subtitle">Выполнение немедленной или запланированной инспекции, управление правилами инспекции</div>
+      <div className="page-subtitle">
+        Выполнение немедленной или запланированной инспекции, управление правилами инспекции
+      </div>
 
       <Tabs defaultActiveKey="1">
         <TabPane tab="Немедленная инспекция" key="1">
           <Card>
             <Space direction="vertical" style={{ width: '100%' }}>
               <div>
-                <label>Выберите кластер для инспекции:</label>
+                <div aria-label="Выберите кластер для инспекции">
+                  Выберите кластер для инспекции:
+                </div>
                 <Select
                   className="margin-top-space-2"
                   style={{ width: '100%' }}
@@ -233,8 +255,6 @@ const Inspection = () => {
                   ))}
                 </Select>
               </div>
-
-
 
               <div className="grid-auto-fit">
                 <RuleSelector
@@ -251,13 +271,6 @@ const Inspection = () => {
                   selectedRules={selectedRules}
                   onRuleSelection={handleRuleSelection}
                 />
-                <RuleSelector
-                  ruleType="prometheus"
-                  title="Правила мониторинга"
-                  availableRules={rules.prometheus || []}
-                  selectedRules={selectedRules}
-                  onRuleSelection={handleRuleSelection}
-                />
               </div>
 
               {/* Summary of selected rules */}
@@ -267,34 +280,37 @@ const Inspection = () => {
                     <div>
                       <strong>Выбранные правила:</strong>
                       <div className="margin-top-space-2">
-                        {Object.entries(selectedRules).map(([type, rules]) => (
-                          rules.length > 0 && (
-                            <div key={type} style={{ marginBottom: 4 }}>
-                              <span style={{ fontWeight: 'bold' }}>
-                                {type === 'node' ? 'Узлы' : type === 'prometheus' ? 'Мониторинг' : 'Kubernetes'}:
-                              </span> {rules.length} правил
-                            </div>
-                          )
-                        ))}
+                        {Object.entries(selectedRules).map(
+                          ([type, rules]) =>
+                            rules.length > 0 && (
+                              <div key={type} style={{ marginBottom: 4 }}>
+                                <span style={{ fontWeight: 'bold' }}>
+                                  {type === 'node' ? 'Узлы' : 'Kubernetes'}:
+                                </span>{' '}
+                                {rules.length} правил
+                              </div>
+                            )
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--accent-color)' }}>
+                      <div className="text-3xl font-bold text-accent">
                         {Object.values(selectedRules).reduce((sum, arr) => sum + arr.length, 0)}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--secondary-color)' }}>всего правил</div>
+                      <div className="text-xs text-secondary">всего правил</div>
                     </div>
                   </div>
                 </Card>
               )}
-
 
               <Button
                 type="primary"
                 icon={<PlayCircleOutlined />}
                 onClick={handleRunInspection}
                 loading={loading}
-                disabled={!selectedCluster || Object.values(selectedRules).every(arr => arr.length === 0)}
+                disabled={
+                  !selectedCluster || Object.values(selectedRules).every(arr => arr.length === 0)
+                }
                 size="large"
                 className="margin-top-space-4"
               >
@@ -320,7 +336,7 @@ const Inspection = () => {
                         >
                           Отменить
                         </Button>
-                      )
+                      ),
                     ]}
                   >
                     <List.Item.Meta

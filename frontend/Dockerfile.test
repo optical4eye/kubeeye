@@ -1,0 +1,23 @@
+# Frontend Dockerfile - Development build with hot reload
+FROM node:24-slim
+
+WORKDIR /app
+
+# Copy package files
+COPY ./package.json ./
+
+# Install all dependencies including devDependencies
+RUN npm install
+
+# Add node_modules/.bin to PATH
+ENV PATH="/app/node_modules/.bin:$PATH"
+
+# Copy config files
+COPY ./eslint.config.js ./
+COPY ./*.config.json ./
+COPY ./.prettierrc.json ./
+COPY ./.stylelintrc.json ./
+COPY ./index.html ./
+COPY ./tsconfig.json ./
+COPY ./tsconfig.node.json ./
+COPY ./vite.config.ts ./

@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import Mock, patch, mock_open
 from datetime import datetime, timezone, timedelta
 
-from infrastructure.security.cert_checker import (
+from infra.security.cert_checker import (
     get_cluster_cert_status,
     _extract_client_cert_info,
     _extract_cluster_ca_info,
@@ -39,9 +39,9 @@ class TestCertChecker:
         assert result["days_remaining"] is None
         assert "error occurred" in result["error"]
 
-    @patch("infrastructure.security.cert_checker._extract_client_cert_info")
-    @patch("infrastructure.security.cert_checker._extract_cluster_ca_info")
-    @patch("infrastructure.security.cert_checker._calculate_cert_status")
+    @patch("infra.security.cert_checker._extract_client_cert_info")
+    @patch("infra.security.cert_checker._extract_cluster_ca_info")
+    @patch("infra.security.cert_checker._calculate_cert_status")
     def test_get_cluster_cert_status_with_client_cert(self, mock_calc_status, mock_extract_ca, mock_extract_client):
         """Test certificate status check with client certificate"""
         mock_extract_client.return_value = {"cert": "data"}
@@ -61,9 +61,9 @@ class TestCertChecker:
         mock_extract_client.assert_called_once()
         mock_extract_ca.assert_not_called()
 
-    @patch("infrastructure.security.cert_checker._extract_client_cert_info")
-    @patch("infrastructure.security.cert_checker._extract_cluster_ca_info")
-    @patch("infrastructure.security.cert_checker._calculate_cert_status")
+    @patch("infra.security.cert_checker._extract_client_cert_info")
+    @patch("infra.security.cert_checker._extract_cluster_ca_info")
+    @patch("infra.security.cert_checker._calculate_cert_status")
     def test_get_cluster_cert_status_with_ca_cert(self, mock_calc_status, mock_extract_ca, mock_extract_client):
         """Test certificate status check with CA certificate fallback"""
         mock_extract_client.return_value = None
@@ -84,8 +84,8 @@ class TestCertChecker:
         mock_extract_client.assert_called_once()
         mock_extract_ca.assert_called_once()
 
-    @patch("infrastructure.security.cert_checker._extract_client_cert_info")
-    @patch("infrastructure.security.cert_checker._extract_cluster_ca_info")
+    @patch("infra.security.cert_checker._extract_client_cert_info")
+    @patch("infra.security.cert_checker._extract_cluster_ca_info")
     def test_get_cluster_cert_status_no_cert_found(self, mock_extract_ca, mock_extract_client):
         """Test certificate status check when no certificates found"""
         mock_extract_client.return_value = None
@@ -104,8 +104,8 @@ class TestCertChecker:
         assert result["days_remaining"] is None
         assert "no valid certificate" in result["error"]
 
-    @patch("infrastructure.security.cert_checker.base64.b64decode")
-    @patch("infrastructure.security.cert_checker._parse_certificate")
+    @patch("infra.security.cert_checker.base64.b64decode")
+    @patch("infra.security.cert_checker._parse_certificate")
     def test_extract_client_cert_info_with_data(self, mock_parse, mock_b64decode):
         """Test client certificate extraction with certificate data"""
         mock_b64decode.return_value = b"cert_bytes"
@@ -119,9 +119,9 @@ class TestCertChecker:
         mock_b64decode.assert_called_once_with("dGVzdC1jZXJ0")
         mock_parse.assert_called_once_with(b"cert_bytes")
 
-    @patch("infrastructure.security.cert_checker.Path")
+    @patch("infra.security.cert_checker.Path")
     @patch("builtins.open", new_callable=mock_open, read_data=b"cert_content")
-    @patch("infrastructure.security.cert_checker._parse_certificate")
+    @patch("infra.security.cert_checker._parse_certificate")
     def test_extract_client_cert_info_with_file(self, mock_parse, mock_file, mock_path):
         """Test client certificate extraction with certificate file"""
         mock_path_instance = Mock()
@@ -137,7 +137,7 @@ class TestCertChecker:
         mock_file.assert_called_once_with("/path/to/cert.pem", "rb")
         mock_parse.assert_called_once_with(b"cert_content")
 
-    @patch("infrastructure.security.cert_checker.Path")
+    @patch("infra.security.cert_checker.Path")
     def test_extract_client_cert_info_file_not_exists(self, mock_path):
         """Test client certificate extraction when file doesn't exist"""
         mock_path_instance = Mock()
@@ -150,8 +150,8 @@ class TestCertChecker:
 
         assert result is None
 
-    @patch("infrastructure.security.cert_checker.base64.b64decode")
-    @patch("infrastructure.security.cert_checker._parse_certificate")
+    @patch("infra.security.cert_checker.base64.b64decode")
+    @patch("infra.security.cert_checker._parse_certificate")
     def test_extract_cluster_ca_info_with_data(self, mock_parse, mock_b64decode):
         """Test cluster CA certificate extraction with CA data"""
         mock_b64decode.return_value = b"ca_bytes"
@@ -165,7 +165,7 @@ class TestCertChecker:
         mock_b64decode.assert_called_once_with("dGVzdC1jYQ==")
         mock_parse.assert_called_once_with(b"ca_bytes")
 
-    @patch("infrastructure.security.cert_checker.x509.load_pem_x509_certificate")
+    @patch("infra.security.cert_checker.x509.load_pem_x509_certificate")
     def test_parse_certificate_success(self, mock_load_cert):
         """Test successful certificate parsing"""
         mock_cert = Mock()
@@ -189,7 +189,7 @@ class TestCertChecker:
         assert result["not_after"] == datetime(2024, 1, 1, tzinfo=timezone.utc)
         assert result["serial_number"] == "12345"
 
-    @patch("infrastructure.security.cert_checker.x509.load_pem_x509_certificate")
+    @patch("infra.security.cert_checker.x509.load_pem_x509_certificate")
     def test_parse_certificate_failure(self, mock_load_cert):
         """Test certificate parsing failure"""
         mock_load_cert.side_effect = Exception("Invalid certificate")
@@ -198,7 +198,7 @@ class TestCertChecker:
 
         assert result is None
 
-    @patch("infrastructure.security.cert_checker.datetime")
+    @patch("infra.security.cert_checker.datetime")
     def test_calculate_cert_status_valid(self, mock_datetime):
         """Test certificate status calculation - valid certificate"""
         mock_datetime.now.return_value = datetime(2023, 6, 15, tzinfo=timezone.utc)
@@ -219,7 +219,7 @@ class TestCertChecker:
         assert "cert_info" in result
         assert result["cert_info"]["issuer"] == "CN=Issuer"
 
-    @patch("infrastructure.security.cert_checker.datetime")
+    @patch("infra.security.cert_checker.datetime")
     def test_calculate_cert_status_warning(self, mock_datetime):
         """Test certificate status calculation - warning (expires soon)"""
         mock_datetime.now.return_value = datetime(2023, 12, 20, tzinfo=timezone.utc)
@@ -238,7 +238,7 @@ class TestCertChecker:
         assert result["status"] == "critical"  # 5 days triggers critical, not warning
         assert result["days_remaining"] == 5
 
-    @patch("infrastructure.security.cert_checker.datetime")
+    @patch("infra.security.cert_checker.datetime")
     def test_calculate_cert_status_critical(self, mock_datetime):
         """Test certificate status calculation - critical (expires very soon)"""
         mock_datetime.now.return_value = datetime(2023, 12, 26, tzinfo=timezone.utc)
@@ -257,7 +257,7 @@ class TestCertChecker:
         assert result["status"] == "critical"
         assert result["days_remaining"] == 2
 
-    @patch("infrastructure.security.cert_checker.datetime")
+    @patch("infra.security.cert_checker.datetime")
     def test_calculate_cert_status_expired(self, mock_datetime):
         """Test certificate status calculation - expired certificate"""
         mock_datetime.now.return_value = datetime(2024, 1, 15, tzinfo=timezone.utc)
@@ -276,10 +276,10 @@ class TestCertChecker:
         assert result["status"] == "expired"
         assert result["days_remaining"] == -14  # 14 days past expiry
 
-    @patch("infrastructure.security.cert_checker.Path")
+    @patch("infra.security.cert_checker.Path")
     @patch("builtins.open", new_callable=mock_open, read_data=b"cert_content")
-    @patch("infrastructure.security.cert_checker._parse_certificate")
-    @patch("infrastructure.security.cert_checker._calculate_cert_status")
+    @patch("infra.security.cert_checker._parse_certificate")
+    @patch("infra.security.cert_checker._calculate_cert_status")
     def test_check_certificate_file_success(self, mock_calc_status, mock_parse, mock_file, mock_path):
         """Test successful certificate file checking"""
         mock_path_instance = Mock()
@@ -295,7 +295,7 @@ class TestCertChecker:
         assert result["days_remaining"] == 100
         mock_file.assert_called_once_with("/path/to/cert.pem", "rb")
 
-    @patch("infrastructure.security.cert_checker.Path")
+    @patch("infra.security.cert_checker.Path")
     def test_check_certificate_file_not_exists(self, mock_path):
         """Test certificate file checking when file doesn't exist"""
         mock_path_instance = Mock()
@@ -308,9 +308,9 @@ class TestCertChecker:
         assert result["days_remaining"] is None
         assert "does not exist" in result["error"]
 
-    @patch("infrastructure.security.cert_checker.Path")
+    @patch("infra.security.cert_checker.Path")
     @patch("builtins.open", new_callable=mock_open, read_data=b"cert_content")
-    @patch("infrastructure.security.cert_checker._parse_certificate")
+    @patch("infra.security.cert_checker._parse_certificate")
     def test_check_certificate_file_parse_failure(self, mock_parse, mock_file, mock_path):
         """Test certificate file checking when parsing fails"""
         mock_path_instance = Mock()
@@ -325,9 +325,9 @@ class TestCertChecker:
         assert result["days_remaining"] is None
         assert "unable to parse" in result["error"]
 
-    @patch("infrastructure.security.cert_checker._calculate_cert_status")
-    @patch("infrastructure.security.cert_checker._parse_certificate")
-    @patch("infrastructure.security.cert_checker.base64.b64decode")
+    @patch("infra.security.cert_checker._calculate_cert_status")
+    @patch("infra.security.cert_checker._parse_certificate")
+    @patch("infra.security.cert_checker.base64.b64decode")
     def test_get_certificate_details_success(self, mock_b64decode, mock_parse, mock_calc_status):
         """Test successful detailed certificate information retrieval"""
         mock_b64decode.return_value = b"cert_bytes"

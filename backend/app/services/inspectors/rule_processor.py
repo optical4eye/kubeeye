@@ -1,19 +1,19 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Rule processor module providing assertion-based rule processing functionality
 """
 
-import logging
 from typing import Dict, List, Any, Optional
 
-from infrastructure.rules.rule_loader import Rule
-from infrastructure.common.assertion_manager import AssertionManager
-from infrastructure.results.result_formatter import ResultFormatter
-from infrastructure.results.result_extractor import ResultExtractor
+from infra.rules.rule_loader import Rule
+from core.common.assertion_manager import AssertionManager
+from infra.results.result_formatter import ResultFormatter
+from infra.results.result_extractor import ResultExtractor
+from core.logging import get_logger
 
 # Set up logging
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class RuleProcessor:
@@ -26,9 +26,6 @@ class RuleProcessor:
         self.assertion_manager = AssertionManager()
         self.result_formatter = ResultFormatter()
         self.result_extractor = ResultExtractor()
-
-        # For backward compatibility, preserve old attribute names
-        self.assertion_evaluator = self.assertion_manager
 
     @staticmethod
     def get_rule_config(rule: Rule, path: str, default_value: Any = None) -> Any:

@@ -7,7 +7,7 @@ Tests for rule processor module
 import pytest
 from unittest.mock import Mock, patch
 from services.inspectors.rule_processor import RuleProcessor
-from infrastructure.rules.rule_loader import Rule
+from infra.rules.rule_loader import Rule
 
 
 class TestRuleProcessor:
@@ -21,7 +21,7 @@ class TestRuleProcessor:
         assert hasattr(processor, "assertion_manager")
         assert hasattr(processor, "result_formatter")
         assert hasattr(processor, "result_extractor")
-        assert hasattr(processor, "assertion_evaluator")  # Backward compatibility
+        assert hasattr(processor, "assertion_manager")
 
     def test_get_rule_config(self):
         """Test getting rule configuration"""

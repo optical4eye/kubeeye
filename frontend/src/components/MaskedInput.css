@@ -1,0 +1,89 @@
+/**
+ * Styles for MaskedInput component
+ */
+
+.masked-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.masked-input {
+  width: 100%;
+}
+
+.masked-input-suffix {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.masked-input-button {
+  color: rgba(0, 0, 0, 0.45);
+  transition: color 0.3s;
+  padding: var(--space-1);
+  height: auto;
+  width: auto;
+  min-width: auto;
+}
+
+.masked-input-button:hover {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.masked-input-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--warning-light);
+  border: 1px solid var(--warning-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--warning-color);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.masked-input-warning .anticon {
+  font-size: var(--font-size-sm);
+}
+
+.masked-input-warning span {
+  flex: 1;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .masked-input-button {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .masked-input-button:hover {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .masked-input-warning {
+    background-color: var(--background-dark);
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .masked-input-warning {
+    font-size: var(--font-size-xs);
+    padding: var(--space-1) var(--space-2);
+  }
+}

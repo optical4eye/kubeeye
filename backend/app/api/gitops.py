@@ -1,23 +1,23 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 GitOps management routes
 """
 
-import logging
 from fastapi import APIRouter, HTTPException
 
-router = APIRouter()
+from core.logging import get_logger
 
-# Setup logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+router = APIRouter()
 
 
 @router.get("/gitops")
 async def get_gitops_status():
     """Get GitOps status"""
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsRuleManager
 
         manager = GitOpsRuleManager()
         config = manager.load_config()
@@ -37,7 +37,7 @@ async def get_gitops_status():
 async def get_gitops_config():
     """Get GitOps config (without sensitive information)"""
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsRuleManager
 
         manager = GitOpsRuleManager()
         config = manager.load_config()
@@ -58,7 +58,7 @@ async def get_gitops_config():
 async def sync_gitops_repository():
     """Force sync GitOps repository"""
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsRuleManager
 
         gitops_manager = GitOpsRuleManager()
         config = gitops_manager.load_config()

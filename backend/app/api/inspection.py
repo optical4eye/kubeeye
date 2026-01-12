@@ -1,19 +1,20 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Inspection routes with async queue processing
 """
 
-import logging
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from services.components.inspection_engine import execute_inspection_unified
-from infrastructure.tasks.task_queue import submit_inspection_task, get_task_queue
+from infra.tasks.task_queue import submit_inspection_task, get_task_queue
+from core.common.unified_validation import validate_task_id
 from .models import InspectionRequest
 
-logger = logging.getLogger(__name__)
+from core.logging import get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -28,12 +29,12 @@ class AsyncInspectionRequest(BaseModel):
 
 @router.post("/inspection")
 async def run_immediate_inspection(request: InspectionRequest, background_tasks: BackgroundTasks):
-    """Run inspection synchronously (for backward compatibility)"""
+    """Run inspection synchronously"""
     try:
         logger.info(f"Starting synchronous inspection for cluster: {request.cluster_name}")
 
         # Determine whether to use GitOps rules
-        from infrastructure.rules.rule_manager import RuleManager
+        from infra.rules.rule_manager import RuleManager
 
         use_gitops = RuleManager.should_use_gitops()
 
@@ -69,7 +70,7 @@ async def run_async_inspection(request: AsyncInspectionRequest):
 
         # Determine whether to use GitOps rules if not specified
         if not request.use_gitops:
-            from infrastructure.rules.rule_manager import RuleManager
+            from infra.rules.rule_manager import RuleManager
 
             request.use_gitops = RuleManager.should_use_gitops()
 
@@ -95,9 +96,7 @@ async def run_async_inspection(request: AsyncInspectionRequest):
 async def get_inspection_task_status(task_id: str):
     """Get status of async inspection task"""
     try:
-        # Validate task_id using our validation function
-        from .validation_middleware import validate_task_id
-
+        # Validate task_id using centralized validation
         validated_task_id = validate_task_id(task_id)
 
         logger.info(f"Getting status for task: {validated_task_id}")
@@ -120,9 +119,7 @@ async def get_inspection_task_status(task_id: str):
 async def cancel_inspection_task(task_id: str):
     """Cancel async inspection task"""
     try:
-        # Validate task_id using our validation function
-        from .validation_middleware import validate_task_id
-
+        # Validate task_id using centralized validation
         validated_task_id = validate_task_id(task_id)
 
         logger.info(f"Cancelling task: {validated_task_id}")

@@ -1,7 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Select, Checkbox, Input, Button, Table, message, Space, Tag, Spin, Alert } from 'antd';
-import { WifiOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { checkNetworkConnectivity, getClustersForNetworkCheck, exportNetworkCheckResult } from '../services/api';
+import {
+  Card,
+  Form,
+  Select,
+  Checkbox,
+  Input,
+  Button,
+  Table,
+  message,
+  Space,
+  Tag,
+  Alert,
+} from 'antd';
+import {
+  WifiOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ClockCircleOutlined,
+} from '@ant-design/icons';
+import {
+  checkNetworkConnectivity,
+  getClustersForNetworkCheck,
+  exportNetworkCheckResult,
+} from '../services/api';
 
 const { Option } = Select;
 
@@ -35,7 +56,7 @@ const NetworkConnectivity = () => {
     }
   };
 
-  const handleClusterChange = (clusterName) => {
+  const handleClusterChange = clusterName => {
     setSelectedCluster(clusterName);
     setSelectedNodes([]);
     setResults([]);
@@ -49,7 +70,7 @@ const NetworkConnectivity = () => {
     }
   };
 
-  const handleSelectAllNodes = (checked) => {
+  const handleSelectAllNodes = checked => {
     if (checked) {
       const cluster = clusters.find(c => c.name === selectedCluster);
       if (cluster) {
@@ -98,7 +119,7 @@ const NetworkConnectivity = () => {
         selected_nodes: selectedNodes,
         target_ip: targetIp,
         target_port: parseInt(targetPort),
-        timeout: timeout
+        timeout: timeout,
       };
 
       const response = await checkNetworkConnectivity(checkData);
@@ -117,7 +138,6 @@ const NetworkConnectivity = () => {
       } else {
         message.warning(`${successCount} успешных, ${failCount} неудачных проверок`);
       }
-
     } catch (error) {
       message.error('Ошибка выполнения проверки подключения');
       console.error(error);
@@ -126,7 +146,7 @@ const NetworkConnectivity = () => {
     }
   };
 
-  const exportResults = async (format) => {
+  const exportResults = async format => {
     if (!resultId) {
       message.warning('Нет сохраненных результатов для экспорта');
       return;
@@ -156,18 +176,30 @@ const NetworkConnectivity = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = status => {
     switch (status) {
       case 'success':
-        return <CheckCircleOutlined aria-label="Success status" style={{ color: 'var(--status-completed)' }} />;
+        return (
+          <CheckCircleOutlined
+            aria-label="Success status"
+            style={{ color: 'var(--status-completed)' }}
+          />
+        );
       case 'failed':
-        return <CloseCircleOutlined aria-label="Failed status" style={{ color: 'var(--error-color)' }} />;
+        return (
+          <CloseCircleOutlined aria-label="Failed status" style={{ color: 'var(--error-color)' }} />
+        );
       default:
-        return <ClockCircleOutlined aria-label="Pending status" style={{ color: 'var(--status-pending)' }} />;
+        return (
+          <ClockCircleOutlined
+            aria-label="Pending status"
+            style={{ color: 'var(--status-pending)' }}
+          />
+        );
     }
   };
 
-  const getStatusTag = (status) => {
+  const getStatusTag = status => {
     switch (status) {
       case 'success':
         return <Tag className="status-passed">Успешно</Tag>;
@@ -183,44 +215,43 @@ const NetworkConnectivity = () => {
       title: 'Статус',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => (
+      render: status => (
         <Space>
           {getStatusIcon(status)}
           {getStatusTag(status)}
         </Space>
       ),
-      width: 120
+      width: 120,
     },
     {
       title: 'Узел',
       dataIndex: 'node_ip',
       key: 'node_ip',
-      render: (ip) => (
+      render: ip => (
         <div>
           <div style={{ fontWeight: 'bold' }}>{ip}</div>
         </div>
-      )
+      ),
     },
     {
       title: 'Цель',
       key: 'target',
-      render: (_, record) => `${record.target_ip}:${record.target_port}`
+      render: (_, record) => `${record.target_ip}:${record.target_port}`,
     },
     {
       title: 'Время ответа',
       dataIndex: 'response_time',
       key: 'response_time',
-      render: (time) => `${time}s`,
-      width: 120
+      render: time => `${time}s`,
+      width: 120,
     },
     {
       title: 'Ошибка',
       dataIndex: 'error',
       key: 'error',
-      render: (error) => error ? <span style={{ color: 'var(--error-color)' }}>{error}</span> : '-'
-    }
+      render: error => (error ? <span style={{ color: 'var(--error-color)' }}>{error}</span> : '-'),
+    },
   ];
-
 
   const selectedClusterData = clusters.find(c => c.name === selectedCluster);
 
@@ -249,11 +280,14 @@ const NetworkConnectivity = () => {
 
             {selectedClusterData && (
               <Form.Item label="Узлы для проверки" required>
-                <div style={{ border: '1px solid #d9d9d9', borderRadius: '6px', padding: '8px' }}>
+                <div className="border-form">
                   <Checkbox
-                    onChange={(e) => handleSelectAllNodes(e.target.checked)}
+                    onChange={e => handleSelectAllNodes(e.target.checked)}
                     checked={selectedNodes.length === selectedClusterData.nodes.length}
-                    indeterminate={selectedNodes.length > 0 && selectedNodes.length < selectedClusterData.nodes.length}
+                    indeterminate={
+                      selectedNodes.length > 0 &&
+                      selectedNodes.length < selectedClusterData.nodes.length
+                    }
                     style={{ marginBottom: '8px', fontWeight: 'bold' }}
                   >
                     Выбрать все узлы
@@ -263,7 +297,7 @@ const NetworkConnectivity = () => {
                       <div key={node.ip} style={{ marginBottom: '4px' }}>
                         <Checkbox
                           checked={selectedNodes.includes(node.ip)}
-                          onChange={(e) => handleNodeSelection(node.ip, e.target.checked)}
+                          onChange={e => handleNodeSelection(node.ip, e.target.checked)}
                         >
                           {node.name} ({node.ip}:{node.port})
                         </Checkbox>
@@ -272,7 +306,9 @@ const NetworkConnectivity = () => {
                   </div>
                 </div>
                 {selectedNodes.length > 0 && (
-                  <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--neutral-color)' }}>
+                  <div
+                    style={{ marginTop: '8px', fontSize: '12px', color: 'var(--neutral-color)' }}
+                  >
                     Выбрано узлов: {selectedNodes.length}
                   </div>
                 )}
@@ -284,7 +320,7 @@ const NetworkConnectivity = () => {
                 <Input
                   placeholder="192.168.1.100"
                   value={targetIp}
-                  onChange={(e) => setTargetIp(e.target.value)}
+                  onChange={e => setTargetIp(e.target.value)}
                   className="width-150"
                 />
               </Form.Item>
@@ -293,7 +329,7 @@ const NetworkConnectivity = () => {
                 <Input
                   placeholder="80"
                   value={targetPort}
-                  onChange={(e) => setTargetPort(e.target.value)}
+                  onChange={e => setTargetPort(e.target.value)}
                   className="width-100px"
                 />
               </Form.Item>
@@ -304,7 +340,7 @@ const NetworkConnectivity = () => {
                   min={1}
                   max={30}
                   value={timeout}
-                  onChange={(e) => setTimeout(parseInt(e.target.value) || 5)}
+                  onChange={e => setTimeout(parseInt(e.target.value) || 5)}
                   className="width-120px"
                 />
               </Form.Item>
@@ -338,7 +374,7 @@ const NetworkConnectivity = () => {
             <Table
               columns={resultColumns}
               dataSource={results}
-              rowKey={(record) => `${record.node_ip}-${record.target_ip}-${record.target_port}`}
+              rowKey={record => `${record.node_ip}-${record.target_ip}-${record.target_port}`}
               pagination={false}
               size="small"
             />

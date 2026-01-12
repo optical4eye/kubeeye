@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 OPA rules inspector - simplified version
@@ -6,7 +6,6 @@ Focused on core functions, removed redundant code and excessive logging
 """
 
 import asyncio
-import logging
 import os
 import tempfile
 import json
@@ -15,10 +14,11 @@ import datetime
 from typing import Dict, List, Any, Optional
 
 from services.inspectors.base_inspector import BaseInspector
-from infrastructure.cluster.k8s_dynamic_client import K8sDynamicClient
-from infrastructure.rules.rule_loader import Rule
+from infra.cluster.k8s_dynamic_client import K8sDynamicClient
+from infra.rules.rule_loader import Rule
+from core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -44,52 +44,46 @@ class OpaInspector(BaseInspector):
     def inspector_type(self) -> str:
         return "opa"
 
-    def validate_rule(self, rule: Rule) -> List[str]:
-        """Validate rule configuration"""
-        issues = []
-
-        # Check Rego rules
-        if not (self.get_rule_config(rule, "rego.inline") or self.get_rule_config(rule, "rego.file")):
-            issues.append("Missing Rego rules configuration")
-
-        # Check resource configuration
-        if not self.get_rule_config(rule, "resources", []):
-            issues.append("Missing resource configuration")
-
-        # Check assertions configuration
-        if not self.get_rule_config(rule, "assertions", []):
-            issues.append("Missing assertions configuration")
-
-        return issues
-
     def _prepare_context(self, cluster_name: str) -> Dict:
         """Prepare inspection context"""
         return super()._prepare_context(cluster_name)
 
     async def _apply_rule(self, rule: Rule, context: Dict) -> Dict:
         """Execute OPA rule validation"""
+        import time
+
+        rule_start_time = time.time()
+
         logger.info(f"Executing rule: {rule.id}")
 
         try:
             # Get Rego rules content
             rego_content = self._get_rego_content(rule)
             if not rego_content:
-                return self._error_result(rule, "Failed to get Rego rules content")
+                return self.rule_processor.result_formatter.error_result(rule, "Failed to get Rego rules content")
 
             # Get cluster resources
             resources = self._get_cluster_resources(rule)
             if not resources:
-                return self._pass_result(rule, "No matching resources")
+                return self.rule_processor.result_formatter.pass_result(rule, "No matching resources")
 
             # Execute OPA evaluation
             violations = await self._evaluate_opa(rego_content, resources)
 
             # Evaluate assertions
-            return self._evaluate_assertions(rule, violations, len(resources))
+            result = self._evaluate_assertions(rule, violations, len(resources))
+
+            rule_duration = time.time() - rule_start_time
+            logger.info(
+                f"Rule {rule.id} completed in {rule_duration:.2f}s, checked {len(resources)} resources, found {len(violations)} violations"
+            )
+
+            return result
 
         except Exception as e:
-            logger.error(f"Rule {rule.id} execution failed: {e}", exc_info=True)
-            return self._error_result(rule, f"Execution failed: {str(e)}")
+            rule_duration = time.time() - rule_start_time
+            logger.error(f"Rule {rule.id} execution failed after {rule_duration:.2f}s: {e}", exc_info=True)
+            return self.rule_processor.result_formatter.error_result(rule, f"Execution failed: {str(e)}")
 
     def _get_rego_content(self, rule: Rule) -> Optional[str]:
         """Get Rego rules content"""
@@ -223,9 +217,7 @@ class OpaInspector(BaseInspector):
                             return violations if isinstance(violations, list) else []
                 except Exception as e:
                     logger.error(f"Error parsing OPA results: {e}", exc_info=True)
-                    # Try old parsing method as fallback
-                    violations = output.get("result", [])
-                    return violations if isinstance(violations, list) else []
+                    return []
 
             return []
 
@@ -287,11 +279,13 @@ class OpaInspector(BaseInspector):
 
             if assertion_result["passed"]:
                 description = assertion_result.get("pass_description", f"{rule.name}: Check passed")
-                return self._pass_result(rule, description, f"Checked {resource_count} resources")
+                return self.rule_processor.result_formatter.pass_result(
+                    rule, description, f"Checked {resource_count} resources"
+                )
             else:
                 description = assertion_result.get("fail_description", f"{rule.name}: Check failed")
                 details = self._format_violations(violations)
-                return self._fail_result(
+                return self.rule_processor.result_formatter.fail_result(
                     rule,
                     description,
                     details,
@@ -300,7 +294,7 @@ class OpaInspector(BaseInspector):
                 )
         except Exception as e:
             logger.error(f"Error evaluating assertions: {e}")
-            return self._error_result(rule, f"Assertion evaluation failed: {str(e)}")
+            return self.rule_processor.result_formatter.error_result(rule, f"Assertion evaluation failed: {str(e)}")
 
     def _format_violations(self, violations: List[Dict]) -> str:
         """Format violation information"""
@@ -332,22 +326,3 @@ class OpaInspector(BaseInspector):
                 details.append(f"- Violation element with formatting error: {str(violation)[:100]}")
 
         return "\n".join(details)
-
-    def _pass_result(self, rule: Rule, description: str, details: str = "") -> Dict:
-        """Generate "Passed" result (delegated to ResultFormatter)"""
-        return self.rule_processor.result_formatter.pass_result(rule, description, details)
-
-    def _fail_result(
-        self,
-        rule: Rule,
-        description: str,
-        details: str,
-        severity: str = "warning",
-        violations: List[Dict] = None,
-    ) -> Dict:
-        """Generate "Failed" result (delegated to ResultFormatter)"""
-        return self.rule_processor.result_formatter.fail_result(rule, description, details, severity, violations)
-
-    def _error_result(self, rule: Rule, error_msg: str) -> Dict:
-        """Generate "Error" result (delegated to ResultFormatter)"""
-        return self.rule_processor.result_formatter.error_result(rule, error_msg)

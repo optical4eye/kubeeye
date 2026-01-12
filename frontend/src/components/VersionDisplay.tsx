@@ -6,12 +6,14 @@ interface VersionDisplayProps {
 
 const VersionDisplay: React.FC<VersionDisplayProps> = ({ version }) => {
   return (
-    <div style={{
-      textAlign: 'center',
-      marginTop: '2px',
-      fontSize: '12px',
-      color: '#999',
-    }}>
+    <div
+      style={{
+        textAlign: 'center',
+        marginTop: '2px',
+        fontSize: '12px',
+        color: 'var(--text-secondary)',
+      }}
+    >
       ver. {version}
     </div>
   );

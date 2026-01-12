@@ -1,24 +1,25 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Rules management routes
 """
 
-import logging
+from typing import Dict, List, Optional
 from fastapi import APIRouter
-from infrastructure.rules.rule_manager import RuleManager
-from infrastructure.rules.rule_loader import load_rules
+from infra.rules.rule_manager import RuleManager
+from infra.rules.rule_loader import load_rules
+
+from core.logging import get_logger
 
 router = APIRouter()
 
-# Setup logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _sync_gitops_repository() -> bool:
     """Sync GitOps repository"""
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsRuleManager
 
         gitops_manager = GitOpsRuleManager()
         config = gitops_manager.load_config()
@@ -40,7 +41,7 @@ def _sync_gitops_repository() -> bool:
         return False
 
 
-def _load_rules_for_types(rule_types: list[str], use_gitops: bool) -> dict[str, list]:
+def _load_rules_for_types(rule_types: List[str], use_gitops: bool) -> Dict[str, List]:
     """Load rules for specified types"""
     rules = {}
     for rule_type in rule_types:
@@ -48,25 +49,17 @@ def _load_rules_for_types(rule_types: list[str], use_gitops: bool) -> dict[str, 
     return rules
 
 
-def _log_rules_statistics(rules: dict[str, list], use_gitops: bool) -> int:
+def _log_rules_statistics(rules: Dict[str, List], use_gitops: bool) -> int:
     """Log loaded rules statistics"""
-    total_rules = sum(len(rules.get(rule_type, [])) for rule_type in ["node", "prometheus", "opa"])
+    total_rules = sum(len(rules.get(rule_type, [])) for rule_type in ["node", "opa"])
     logger.debug(f"Loaded {total_rules} rules total (GitOps: {use_gitops})")
     for rule_type, rule_list in rules.items():
         logger.debug(f"{rule_type}: {len(rule_list)} rules")
     return total_rules
 
 
-def _fallback_to_local_rules() -> tuple[dict[str, list], bool]:
-    """Execute fallback to local rules"""
-    logger.debug("GitOps enabled but no rules found, trying local fallback")
-    local_rules = _load_rules_for_types(["node", "prometheus", "opa"], use_gitops=False)
-    local_total = _log_rules_statistics(local_rules, False)
-    return local_rules, local_total > 0
-
-
 @router.get("/rules")
-async def get_rules():
+async def get_rules(tags: Optional[str] = None):
     """Get rules"""
     try:
         use_gitops = RuleManager.should_use_gitops()
@@ -77,22 +70,25 @@ async def get_rules():
             use_gitops = False
 
         # Load rules
-        rules = _load_rules_for_types(["node", "prometheus", "opa"], use_gitops)
+        rules = _load_rules_for_types(["node", "opa"], use_gitops)
         total_rules = _log_rules_statistics(rules, use_gitops)
 
-        # Fallback to local rules if GitOps didn't work
-        if use_gitops and total_rules == 0:
-            rules, has_local_rules = _fallback_to_local_rules()
-            if has_local_rules:
-                use_gitops = False
-            else:
-                return {
-                    "rules": {"node": [], "prometheus": [], "opa": []},
-                    "use_gitops": False,
-                }
+        # Filter by tags if specified
+        if tags:
+            tag_filters = [tag.strip() for tag in tags.split(",") if tag.strip()]
+            if tag_filters:
+                filtered_rules = {}
+                for rule_type, rule_list in rules.items():
+                    filtered_rules[rule_type] = [
+                        rule for rule in rule_list if any(tag in rule.tags for tag in tag_filters)
+                    ]
+                rules = filtered_rules
+                logger.debug(
+                    f"Filtered rules by tags {tag_filters}: {sum(len(rules.get(rt, [])) for rt in ['node', 'opa'])} rules remaining"
+                )
 
         return {"rules": rules, "use_gitops": use_gitops}
     except Exception as e:
         logger.error(f"Failed to load rules: {str(e)}")
         # Return empty rules as fallback
-        return {"rules": {"node": [], "prometheus": [], "opa": []}, "use_gitops": False}
+        return {"rules": {"node": [], "opa": []}, "use_gitops": False}

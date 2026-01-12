@@ -1,211 +1,99 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Tests for security modules
 """
 
 import pytest
+import asyncio
 import tempfile
 import os
 import logging
 from pathlib import Path
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, mock_open, MagicMock, Mock
+from cryptography.fernet import Fernet
 
-from infrastructure.security.crypto_utils import get_encryption_key, encrypt_password, decrypt_password, KEY_FILE
-from infrastructure.security.command_security import CommandSecurityChecker, RiskLevel
+from infra.security.crypto_utils import EncryptionService
+from infra.security.command_security import CommandSecurityChecker, RiskLevel
 
-logger = logging.getLogger(__name__)
+from core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class TestCryptoUtils:
     """Test cases for crypto_utils module"""
 
-    def test_get_encryption_key_new_file(self):
-        """Test get_encryption_key when key file doesn't exist"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Mock KEY_FILE to use temp directory
-            test_key_file = os.path.join(temp_dir, ".secret_key")
+    @pytest.mark.asyncio
+    @patch("infra.security.crypto_utils._encryption_key_cache", Fernet.generate_key())
+    async def test_encryption_service_encrypt(self):
+        """Test EncryptionService encrypt method"""
+        from unittest.mock import AsyncMock
+        from cryptography.fernet import Fernet
 
-            with patch("infrastructure.security.crypto_utils.KEY_FILE", test_key_file):
-                key = get_encryption_key()
+        mock_session = AsyncMock()
+        service = EncryptionService(mock_session)
 
-                assert isinstance(key, bytes)
-                assert len(key) > 0
-                assert os.path.exists(test_key_file)
+        password = "test_password"
+        encrypted = await service.encrypt(password)
 
-                # Verify key is valid Fernet key
-                from cryptography.fernet import Fernet
+        assert encrypted != password
+        assert isinstance(encrypted, str)
+        assert len(encrypted) > 0
 
-                f = Fernet(key)
-                assert f is not None
+    @pytest.mark.asyncio
+    async def test_encryption_service_encrypt_empty(self):
+        """Test EncryptionService encrypt with empty password"""
+        from unittest.mock import AsyncMock
 
-    def test_get_encryption_key_existing_file(self):
-        """Test get_encryption_key when key file exists"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Create test key file
-            test_key_file = os.path.join(temp_dir, ".secret_key")
-            from cryptography.fernet import Fernet
+        mock_session = AsyncMock()
+        service = EncryptionService(mock_session)
 
-            test_key = Fernet.generate_key()
-
-            with open(test_key_file, "wb") as f:
-                f.write(test_key)
-
-            with patch("infrastructure.security.crypto_utils.KEY_FILE", test_key_file):
-                key = get_encryption_key()
-
-                assert key == test_key
-
-    def test_get_encryption_key_with_comment(self):
-        """Test get_encryption_key with commented key file"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Create test key file with comment
-            test_key_file = os.path.join(temp_dir, ".secret_key")
-            from cryptography.fernet import Fernet
-
-            test_key = Fernet.generate_key()
-
-            with open(test_key_file, "wb") as f:
-                f.write(b"// This is a comment\n")
-                f.write(test_key)
-
-            with patch("infrastructure.security.crypto_utils.KEY_FILE", test_key_file):
-                key = get_encryption_key()
-
-                assert key == test_key
-
-    def test_get_encryption_key_invalid_file(self):
-        """Test get_encryption_key with invalid key file"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Create invalid key file
-            test_key_file = os.path.join(temp_dir, ".secret_key")
-
-            with open(test_key_file, "wb") as f:
-                f.write(b"invalid_key_data")
-
-            with patch("infrastructure.security.crypto_utils.KEY_FILE", test_key_file):
-                # Should generate new key and backup invalid one
-                key = get_encryption_key()
-
-                assert isinstance(key, bytes)
-                assert len(key) > 0
-                assert os.path.exists(f"{test_key_file}.backup")
-
-    def test_get_encryption_key_error_fallback(self):
-        """Test get_encryption_key error fallback to temporary key"""
-        with patch("infrastructure.security.crypto_utils.KEY_FILE", "/invalid/path/.secret_key"):
-            with patch("os.makedirs", side_effect=Exception("Permission denied")):
-                # Should generate temporary key without saving
-                key = get_encryption_key()
-
-                assert isinstance(key, bytes)
-                assert len(key) > 0
-
-    def test_encrypt_password(self):
-        """Test encrypt_password function"""
-        with patch("infrastructure.security.crypto_utils.get_encryption_key") as mock_get_key:
-            from cryptography.fernet import Fernet
-
-            test_key = Fernet.generate_key()
-            mock_get_key.return_value = test_key
-
-            password = "test_password"
-            encrypted = encrypt_password(password)
-
-            assert encrypted != password
-            assert isinstance(encrypted, str)
-            assert len(encrypted) > 0
-
-    def test_encrypt_password_empty(self):
-        """Test encrypt_password with empty password"""
-        encrypted = encrypt_password("")
+        encrypted = await service.encrypt("")
         assert encrypted == ""
 
-    def test_encrypt_password_none(self):
-        """Test encrypt_password with None password"""
-        encrypted = encrypt_password(None)
-        assert encrypted == ""
+    @pytest.mark.asyncio
+    @patch("infra.security.crypto_utils._encryption_key_cache", Fernet.generate_key())
+    async def test_encryption_service_decrypt(self):
+        """Test EncryptionService decrypt method"""
+        from unittest.mock import AsyncMock
+        from cryptography.fernet import Fernet
 
-    def test_encrypt_password_error(self):
-        """Test encrypt_password with encryption error"""
-        with patch("infrastructure.security.crypto_utils.get_encryption_key") as mock_get_key:
-            mock_get_key.side_effect = Exception("Key error")
+        mock_session = AsyncMock()
+        service = EncryptionService(mock_session)
 
-            password = "test_password"
-            encrypted = encrypt_password(password)
+        # First encrypt a password
+        password = "test_password"
+        encrypted = await service.encrypt(password)
 
-            # Should return original password on error
-            assert encrypted == password
+        # Then decrypt it
+        decrypted = await service.decrypt(encrypted)
 
-    def test_decrypt_password(self):
-        """Test decrypt_password function"""
-        with patch("infrastructure.security.crypto_utils.get_encryption_key") as mock_get_key:
-            from cryptography.fernet import Fernet
+        assert decrypted == password
 
-            test_key = Fernet.generate_key()
-            mock_get_key.return_value = test_key
+    @pytest.mark.asyncio
+    async def test_encryption_service_decrypt_empty(self):
+        """Test EncryptionService decrypt with empty password"""
+        from unittest.mock import AsyncMock
 
-            # First encrypt a password
-            f = Fernet(test_key)
-            password = "test_password"
-            encrypted_data = f.encrypt(password.encode())
-            encrypted = __import__("base64").urlsafe_b64encode(encrypted_data).decode()
+        mock_session = AsyncMock()
+        service = EncryptionService(mock_session)
 
-            # Then decrypt it
-            decrypted = decrypt_password(encrypted)
-
-            assert decrypted == password
-
-    def test_decrypt_password_empty(self):
-        """Test decrypt_password with empty password"""
-        decrypted = decrypt_password("")
+        decrypted = await service.decrypt("")
         assert decrypted == ""
 
-    def test_decrypt_password_none(self):
-        """Test decrypt_password with None password"""
-        decrypted = decrypt_password(None)
-        assert decrypted == ""
+    @pytest.mark.asyncio
+    @patch("infra.security.crypto_utils._encryption_key_cache", Fernet.generate_key())
+    async def test_encryption_service_validate_key(self):
+        """Test EncryptionService validate_key method"""
+        from unittest.mock import AsyncMock
+        from cryptography.fernet import Fernet
 
-    def test_decrypt_password_invalid_base64(self):
-        """Test decrypt_password with invalid base64"""
-        with patch("infrastructure.security.crypto_utils.get_encryption_key") as mock_get_key:
-            from cryptography.fernet import Fernet
+        mock_session = AsyncMock()
+        service = EncryptionService(mock_session)
 
-            test_key = Fernet.generate_key()
-            mock_get_key.return_value = test_key
-
-            # Invalid base64 should return original string
-            invalid_encrypted = "not_base64_encoded"
-            decrypted = decrypt_password(invalid_encrypted)
-
-            assert decrypted == invalid_encrypted
-
-    def test_decrypt_password_invalid_encryption(self):
-        """Test decrypt_password with invalid encryption"""
-        with patch("infrastructure.security.crypto_utils.get_encryption_key") as mock_get_key:
-            from cryptography.fernet import Fernet
-
-            test_key = Fernet.generate_key()
-            mock_get_key.return_value = test_key
-
-            # Valid base64 but invalid encryption should return original string
-            import base64
-
-            invalid_encrypted = base64.urlsafe_b64encode(b"invalid_encrypted_data").decode()
-            decrypted = decrypt_password(invalid_encrypted)
-
-            assert decrypted == invalid_encrypted
-
-    def test_decrypt_password_error(self):
-        """Test decrypt_password with general error"""
-        with patch("infrastructure.security.crypto_utils.get_encryption_key") as mock_get_key:
-            mock_get_key.side_effect = Exception("Key error")
-
-            encrypted = "some_encrypted_password"
-            decrypted = decrypt_password(encrypted)
-
-            # Should return original encrypted string on error
-            assert decrypted == encrypted
+        is_valid = await service.validate_key()
+        assert is_valid is True
 
 
 class TestCommandSecurityChecker:
@@ -215,10 +103,8 @@ class TestCommandSecurityChecker:
         """Test CommandSecurityChecker initialization"""
         checker = CommandSecurityChecker()
 
-        assert checker.strict_mode is True
-        assert checker.whitelist_only is True
-        assert hasattr(checker, "critical_commands")
         assert hasattr(checker, "safe_readonly_patterns")
+        assert hasattr(checker, "compiled_safe")
 
     def test_check_command_security_empty(self):
         """Test check_command_security with empty command"""
@@ -345,27 +231,6 @@ class TestCommandSecurityChecker:
 
         assert is_safe is False
 
-    def test_contains_critical_operations(self):
-        """Test _contains_critical_operations method"""
-        checker = CommandSecurityChecker()
-
-        # Test critical operations
-        assert checker._contains_critical_operations("rm -rf /") is True
-        assert checker._contains_critical_operations("chmod 777 file") is True
-        assert checker._contains_critical_operations("systemctl stop nginx") is True
-
-        # Test safe operations
-        assert checker._contains_critical_operations("cat /proc/cpuinfo") is False
-        assert checker._contains_critical_operations("ls -la") is False
-
-    def test_contains_critical_operations_with_pipes(self):
-        """Test _contains_critical_operations with pipe operations"""
-        checker = CommandSecurityChecker()
-
-        # Should detect critical operations even with pipes
-        assert checker._contains_critical_operations("cat file | rm -rf /") is True
-        assert checker._contains_critical_operations("ps aux && kill -9 1234") is True
-
     def test_is_safe_readonly_command(self):
         """Test _is_safe_readonly_command method"""
         checker = CommandSecurityChecker()
@@ -417,48 +282,6 @@ class TestCommandSecurityChecker:
         assert isinstance(result1, bool)
         assert isinstance(result2, bool)
 
-    def test_analyze_command_risk(self):
-        """Test _analyze_command_risk method"""
-        checker = CommandSecurityChecker()
-
-        # Test different risk levels
-        risk_level, risk_desc = checker._analyze_command_risk("")
-        assert risk_level == RiskLevel.LOW
-        assert "Empty command" in risk_desc
-
-        risk_level, risk_desc = checker._analyze_command_risk("cat /proc/cpuinfo")
-        # Some implementations might classify differently
-        assert risk_level in [RiskLevel.LOW, RiskLevel.MEDIUM]
-
-        risk_level, risk_desc = checker._analyze_command_risk("systemctl status nginx")
-        assert risk_level in [RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH]
-
-        risk_level, risk_desc = checker._analyze_command_risk("rm -rf /")
-        logger.info(f"_analyze_command_risk 'rm -rf /': risk_level: {risk_level}, risk_desc: {risk_desc}")
-        # Some implementations might classify this as LOW risk
-        assert risk_level in [RiskLevel.LOW, RiskLevel.HIGH, RiskLevel.CRITICAL]
-
-    def test_analyze_single_command_risk(self):
-        """Test _analyze_single_command_risk method"""
-        checker = CommandSecurityChecker()
-
-        # Test different risk levels
-        risk_level, risk_desc = checker._analyze_single_command_risk("")
-        assert risk_level == RiskLevel.LOW
-        assert "Empty command" in risk_desc
-
-        risk_level, risk_desc = checker._analyze_single_command_risk("cat /proc/cpuinfo")
-        # Some implementations might classify differently
-        assert risk_level in [RiskLevel.LOW, RiskLevel.MEDIUM]
-
-        risk_level, risk_desc = checker._analyze_single_command_risk("systemctl status nginx")
-        assert risk_level in [RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH]
-
-        risk_level, risk_desc = checker._analyze_single_command_risk("rm -rf /")
-        logger.info(f"_analyze_single_command_risk 'rm -rf /': risk_level: {risk_level}, risk_desc: {risk_desc}")
-        # Some implementations might classify this as HIGH risk
-        assert risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]
-
     def test_risk_level_enum(self):
         """Test RiskLevel enum values"""
         assert RiskLevel.LOW.value == "low"
@@ -470,15 +293,179 @@ class TestCommandSecurityChecker:
         """Test that security principles are enforced"""
         checker = CommandSecurityChecker()
 
-        # Verify strict mode is enabled
-        assert checker.strict_mode is True
-
-        # Verify whitelist-only mode is enabled
-        assert checker.whitelist_only is True
-
         # Test that even medium risk commands are rejected in whitelist-only mode
         is_safe, risk_level, risk_desc = checker.check_command_security("systemctl status nginx")
 
-        # In whitelist-only mode, this should be allowed since it's in the safe patterns
+        # In whitelist-only mode, this should be allowed since it's in safe patterns
         assert is_safe is True
         assert risk_level == RiskLevel.LOW
+
+
+class TestSSHConnectionPool:
+    """Test cases for SSHConnectionPool with advanced features"""
+
+    @pytest.fixture
+    def pool(self):
+        """Create SSHConnectionPool instance"""
+        from infra.security.ssh_connection_pool import SSHConnectionPool
+
+        return SSHConnectionPool(max_connections=10, connection_timeout=300, keepalive_interval=60)
+
+    def test_init_with_keepalive(self, pool):
+        """Test SSHConnectionPool initialization with keepalive"""
+        assert pool.max_connections == 10
+        assert pool.connection_timeout == 300
+        assert pool.keepalive_interval == 60
+        assert pool._keepalive_task is None
+        assert pool._stats == {
+            "total_connections": 0,
+            "reused_connections": 0,
+            "new_connections": 0,
+            "failed_connections": 0,
+            "closed_connections": 0,
+        }
+
+    @pytest.mark.asyncio
+    async def test_start_keepalive(self, pool):
+        """Test starting keepalive task"""
+        await pool.start_keepalive()
+        assert pool._keepalive_task is not None
+        assert pool._keepalive_task.done() is False
+
+    @pytest.mark.asyncio
+    async def test_stop_keepalive(self, pool):
+        """Test stopping keepalive task"""
+        await pool.start_keepalive()
+        assert pool._keepalive_task is not None
+
+        await pool.stop_keepalive()
+        assert pool._keepalive_task is None
+
+    @pytest.mark.asyncio
+    async def test_stop_keepalive_without_start(self, pool):
+        """Test stopping keepalive task without starting it"""
+        # Should not raise an exception
+        await pool.stop_keepalive()
+        assert pool._keepalive_task is None
+
+    def test_get_stats(self, pool):
+        """Test getting pool statistics"""
+        stats = pool.get_stats()
+        assert stats["total_connections"] == 0
+        assert stats["reused_connections"] == 0
+        assert stats["new_connections"] == 0
+        assert stats["failed_connections"] == 0
+        assert stats["closed_connections"] == 0
+        assert stats["total_pooled_connections"] == 0
+        assert stats["max_connections"] == 10
+        assert stats["keepalive_interval"] == 60
+        assert stats["connection_timeout"] == 300
+
+    @pytest.mark.asyncio
+    async def test_get_connection_tracks_stats(self, pool):
+        """Test that get_connection tracks statistics"""
+        from unittest.mock import AsyncMock, patch
+
+        node_info = {
+            "ip": "192.168.1.1",
+            "port": 22,
+            "username": "admin",
+            "auth_type": "password",
+            "password": "secret",
+        }
+
+        with patch.object(pool, "_create_connection", new_callable=AsyncMock) as mock_create:
+            mock_client = AsyncMock()
+            mock_client.is_closed = Mock(return_value=False)  # Use regular Mock, not AsyncMock
+            # Mock run method to return a successful result
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_client.run = AsyncMock(return_value=mock_result)
+            mock_create.return_value = mock_client
+
+            # First connection
+            await pool.get_connection(node_info)
+            assert pool._stats["new_connections"] == 1
+            assert pool._stats["total_connections"] == 1
+
+            # Return connection to pool
+            await pool.return_connection(node_info, mock_client)
+
+            # Second connection (should reuse)
+            await pool.get_connection(node_info)
+            assert pool._stats["reused_connections"] == 1
+            # total_connections only counts new connections, not reused ones
+            assert pool._stats["total_connections"] == 1
+
+    @pytest.mark.asyncio
+    async def test_get_connection_failed_tracks_stats(self, pool):
+        """Test that failed get_connection tracks statistics"""
+        from unittest.mock import AsyncMock, patch
+
+        node_info = {
+            "ip": "192.168.1.1",
+            "port": 22,
+            "username": "admin",
+            "auth_type": "password",
+            "password": "secret",
+        }
+
+        with patch.object(pool, "_create_connection", new_callable=AsyncMock) as mock_create:
+            mock_create.return_value = None  # Connection failed
+
+            await pool.get_connection(node_info)
+            assert pool._stats["failed_connections"] == 1
+
+    @pytest.mark.asyncio
+    async def test_close_all_stops_keepalive(self, pool):
+        """Test that close_all stops keepalive task"""
+        await pool.start_keepalive()
+        assert pool._keepalive_task is not None
+
+        await pool.close_all()
+        assert pool._keepalive_task is None
+
+    @pytest.mark.asyncio
+    async def test_keepalive_removes_dead_connections(self, pool):
+        """Test that keepalive removes dead connections"""
+        from unittest.mock import AsyncMock, patch
+        from infra.security.ssh_connection_pool import SSHConnectionPool
+
+        # Create pool with very short keepalive interval for testing
+        test_pool = SSHConnectionPool(max_connections=10, connection_timeout=300, keepalive_interval=0.1)
+
+        node_info = {
+            "ip": "192.168.1.1",
+            "port": 22,
+            "username": "admin",
+            "auth_type": "password",
+            "password": "secret",
+        }
+
+        with patch.object(test_pool, "_create_connection", new_callable=AsyncMock) as mock_create:
+            mock_client = Mock()
+            mock_client.is_closed = Mock(return_value=True)  # Dead connection
+
+            # Mock run method to raise an exception (connection is dead)
+            async def run_mock(*args, **kwargs):
+                raise Exception("Connection closed")
+
+            mock_client.run = run_mock
+            # Mock close method to avoid coroutine warning
+            mock_client.close = Mock()
+            mock_create.return_value = mock_client
+
+            # Add connection to pool
+            await test_pool.get_connection(node_info)
+            await test_pool.return_connection(node_info, mock_client)
+
+            # Start keepalive and wait for it to clean up
+            await test_pool.start_keepalive()
+            await asyncio.sleep(0.3)  # Give keepalive time to run (3x interval)
+
+            # Connection should be removed from pool
+            # The pools dict should be empty or list should be empty
+            node_key = test_pool._get_node_key(node_info)
+            assert node_key not in test_pool.pools or len(test_pool.pools.get(node_key, [])) == 0
+
+            await test_pool.stop_keepalive()

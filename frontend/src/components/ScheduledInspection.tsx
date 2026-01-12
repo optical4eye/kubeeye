@@ -1,8 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Modal, Form, Select, DatePicker, TimePicker, Input, Switch, Space, message, Tabs, Alert, Checkbox } from 'antd';
-import { PlusOutlined, DeleteOutlined, PlayCircleFilled, EditOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Button,
+  Table,
+  Modal,
+  Form,
+  Select,
+  DatePicker,
+  TimePicker,
+  Input,
+  Switch,
+  Space,
+  message,
+  Tabs,
+  Alert,
+} from 'antd';
+import { DeleteOutlined, PlayCircleFilled, EditOutlined } from '@ant-design/icons';
 import { format, parseISO, parse } from 'date-fns';
-import { getClusters, getRules, getScheduledTasks, createScheduledTask, deleteScheduledTask, runScheduledTask, updateScheduledTask } from '../services/api';
+import {
+  getClusters,
+  getRules,
+  getScheduledTasks,
+  createScheduledTask,
+  deleteScheduledTask,
+  runScheduledTask,
+  updateScheduledTask,
+} from '../services/api';
 import RuleSelector from './RuleSelector';
 import { getStatusTag } from './statusUtils';
 
@@ -14,17 +37,16 @@ const ScheduledInspection = () => {
   const [clusters, setClusters] = useState([]);
   const [rules, setRules] = useState({});
   const [loading, setLoading] = useState(true);
-  const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [selectedRules, setSelectedRules] = useState({ node: [], prometheus: [], opa: [] });
+  const [selectedRules, setSelectedRules] = useState({ node: [], opa: [] });
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
   const handleRuleSelection = (ruleType, ruleIds) => {
     setSelectedRules(prev => ({
       ...prev,
-      [ruleType]: ruleIds
+      [ruleType]: ruleIds,
     }));
   };
 
@@ -34,7 +56,7 @@ const ScheduledInspection = () => {
       const [tasksRes, clustersRes, rulesRes] = await Promise.all([
         getScheduledTasks(),
         getClusters(),
-        getRules()
+        getRules(),
       ]);
       setTasks(tasksRes.data.tasks || []);
       setClusters(clustersRes.data.clusters || []);
@@ -51,7 +73,7 @@ const ScheduledInspection = () => {
     loadData();
   }, []);
 
-  const handleCreateTask = async (values) => {
+  const handleCreateTask = async values => {
     try {
       let cronExpr = '';
       let runDatetime = null;
@@ -71,20 +93,18 @@ const ScheduledInspection = () => {
         cluster: values.cluster,
         cron_expr: cronExpr,
         rules: {
-          node: { enabled: selectedRules.node.length > 0, rules: selectedRules.node },
-          prometheus: { enabled: selectedRules.prometheus.length > 0, rules: selectedRules.prometheus },
-          opa: { enabled: selectedRules.opa.length > 0, rules: selectedRules.opa }
+          node: selectedRules.node,
+          opa: selectedRules.opa,
         },
         enabled: values.enabled,
         task_type: values.schedule_type === 'cron' ? 'cron' : 'once',
-        run_datetime: runDatetime
+        run_datetime: runDatetime,
       };
 
       await createScheduledTask(taskData);
       message.success('Задача создана успешно');
-      setCreateModalVisible(false);
       form.resetFields();
-      setSelectedRules({ node: [], prometheus: [], opa: [] });
+      setSelectedRules({ node: [], opa: [] });
       loadData();
     } catch (error) {
       message.error('Ошибка создания задачи');
@@ -92,7 +112,7 @@ const ScheduledInspection = () => {
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
+  const handleDeleteTask = async taskId => {
     try {
       await deleteScheduledTask(taskId);
       message.success('Задача удалена');
@@ -103,7 +123,7 @@ const ScheduledInspection = () => {
     }
   };
 
-  const handleRunTask = async (taskId) => {
+  const handleRunTask = async taskId => {
     try {
       await runScheduledTask(taskId);
       message.success('Задача запущена');
@@ -114,12 +134,11 @@ const ScheduledInspection = () => {
     }
   };
 
-  const handleEditTask = (task) => {
+  const handleEditTask = task => {
     setEditingTask(task);
     setSelectedRules({
-      node: task.rules?.node?.rules || [],
-      prometheus: task.rules?.prometheus?.rules || [],
-      opa: task.rules?.opa?.rules || []
+      node: task.rules?.node || [],
+      opa: task.rules?.opa || [],
     });
 
     editForm.setFieldsValue({
@@ -127,14 +146,14 @@ const ScheduledInspection = () => {
       description: task.description,
       cluster: task.cluster,
       schedule_type: task.task_type === 'once' ? 'once' : 'cron',
-      enabled: task.enabled
+      enabled: task.enabled,
     });
 
     if (task.task_type === 'once' && task.run_datetime) {
       const [date, time] = task.run_datetime.split(' ');
       editForm.setFieldsValue({
         run_date: parseISO(date),
-        run_time: parse(time, 'HH:mm', new Date())
+        run_time: parse(time, 'HH:mm', new Date()),
       });
     } else if (task.cron_expr) {
       const cronParts = task.cron_expr.split(' ');
@@ -144,7 +163,7 @@ const ScheduledInspection = () => {
           cron_hour: cronParts[1],
           cron_dom: cronParts[2],
           cron_month: cronParts[3],
-          cron_dow: cronParts[4]
+          cron_dow: cronParts[4],
         });
       }
     }
@@ -152,7 +171,7 @@ const ScheduledInspection = () => {
     setEditModalVisible(true);
   };
 
-  const handleUpdateTask = async (values) => {
+  const handleUpdateTask = async values => {
     try {
       let cronExpr = '';
       let runDatetime = null;
@@ -170,13 +189,12 @@ const ScheduledInspection = () => {
         cluster: values.cluster,
         cron_expr: cronExpr,
         rules: {
-          node: { enabled: selectedRules.node.length > 0, rules: selectedRules.node },
-          prometheus: { enabled: selectedRules.prometheus.length > 0, rules: selectedRules.prometheus },
-          opa: { enabled: selectedRules.opa.length > 0, rules: selectedRules.opa }
+          node: selectedRules.node,
+          opa: selectedRules.opa,
         },
         enabled: values.enabled,
         task_type: values.schedule_type === 'cron' ? 'cron' : 'once',
-        run_datetime: runDatetime
+        run_datetime: runDatetime,
       };
 
       await updateScheduledTask(editingTask.task_id, taskData);
@@ -184,7 +202,7 @@ const ScheduledInspection = () => {
       setEditModalVisible(false);
       setEditingTask(null);
       editForm.resetFields();
-      setSelectedRules({ node: [], prometheus: [], opa: [] });
+      setSelectedRules({ node: [], opa: [] });
       loadData();
     } catch (error) {
       message.error('Ошибка обновления задачи');
@@ -192,14 +210,28 @@ const ScheduledInspection = () => {
     }
   };
 
-
   const taskColumns = [
     { title: 'Название', dataIndex: 'name', key: 'name' },
     { title: 'Кластер', dataIndex: 'cluster', key: 'cluster' },
-    { title: 'Расписание', dataIndex: 'cron_expr', key: 'cron_expr', render: (cron, record) => record.task_type === 'once' ? 'Одноразовая' : cron },
+    {
+      title: 'Расписание',
+      dataIndex: 'cron_expr',
+      key: 'cron_expr',
+      render: (cron, record) => (record.task_type === 'once' ? 'Одноразовая' : cron),
+    },
     { title: 'Статус', dataIndex: 'last_status', key: 'last_status', render: getStatusTag },
-    { title: 'Включена', dataIndex: 'enabled', key: 'enabled', render: (enabled) => <Switch checked={enabled} disabled /> },
-    { title: 'Последний запуск', dataIndex: 'last_run', key: 'last_run', render: (date) => date ? new Date(date).toLocaleString() : 'Не запускался' },
+    {
+      title: 'Включена',
+      dataIndex: 'enabled',
+      key: 'enabled',
+      render: enabled => <Switch checked={enabled} disabled />,
+    },
+    {
+      title: 'Последний запуск',
+      dataIndex: 'last_run',
+      key: 'last_run',
+      render: date => (date ? new Date(date).toLocaleString() : 'Не запускался'),
+    },
     {
       title: 'Действия',
       key: 'actions',
@@ -218,17 +250,18 @@ const ScheduledInspection = () => {
           <Button
             icon={<DeleteOutlined />}
             danger
-            onClick={() => Modal.confirm({
-              title: 'Удалить задачу?',
-              content: 'Это действие нельзя отменить',
-              onOk: () => handleDeleteTask(record.task_id)
-            })}
+            onClick={() =>
+              Modal.confirm({
+                title: 'Удалить задачу?',
+                content: 'Это действие нельзя отменить',
+                onOk: () => handleDeleteTask(record.task_id),
+              })
+            }
           />
         </Space>
-      )
-    }
+      ),
+    },
   ];
-
 
   return (
     <div>
@@ -247,11 +280,7 @@ const ScheduledInspection = () => {
 
         <TabPane tab="Создать задачу" key="2">
           <Card>
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleCreateTask}
-            >
+            <Form form={form} layout="vertical" onFinish={handleCreateTask}>
               <Form.Item
                 name="name"
                 label="Название задачи"
@@ -295,14 +324,21 @@ const ScheduledInspection = () => {
 
               <Form.Item
                 noStyle
-                shouldUpdate={(prevValues, currentValues) => prevValues.schedule_type !== currentValues.schedule_type}
+                shouldUpdate={(prevValues, currentValues) =>
+                  prevValues.schedule_type !== currentValues.schedule_type
+                }
               >
                 {({ getFieldValue }) => {
                   const scheduleType = getFieldValue('schedule_type');
                   if (scheduleType === 'cron') {
                     return (
                       <div>
-                        <Alert message="Cron формат: мин час день месяц день_недели" type="info" showIcon style={{ marginBottom: 16 }} />
+                        <Alert
+                          message="Cron формат: мин час день месяц день_недели"
+                          type="info"
+                          showIcon
+                          className="margin-bottom-space-4"
+                        />
                         <Space wrap>
                           <Form.Item name="cron_min" label="Минуты" initialValue="0">
                             <Input placeholder="0" />
@@ -325,10 +361,18 @@ const ScheduledInspection = () => {
                   } else if (scheduleType === 'once') {
                     return (
                       <Space>
-                        <Form.Item name="run_date" label="Дата выполнения" rules={[{ required: true }]}>
+                        <Form.Item
+                          name="run_date"
+                          label="Дата выполнения"
+                          rules={[{ required: true }]}
+                        >
                           <DatePicker />
                         </Form.Item>
-                        <Form.Item name="run_time" label="Время выполнения" rules={[{ required: true }]}>
+                        <Form.Item
+                          name="run_time"
+                          label="Время выполнения"
+                          rules={[{ required: true }]}
+                        >
                           <TimePicker format="HH:mm" />
                         </Form.Item>
                       </Space>
@@ -352,13 +396,6 @@ const ScheduledInspection = () => {
                     ruleType="opa"
                     title="Правила Kubernetes"
                     availableRules={rules.opa || []}
-                    selectedRules={selectedRules}
-                    onRuleSelection={handleRuleSelection}
-                  />
-                  <RuleSelector
-                    ruleType="prometheus"
-                    title="Правила мониторинга"
-                    availableRules={rules.prometheus || []}
                     selectedRules={selectedRules}
                     onRuleSelection={handleRuleSelection}
                   />
@@ -391,16 +428,12 @@ const ScheduledInspection = () => {
           setEditModalVisible(false);
           setEditingTask(null);
           editForm.resetFields();
-          setSelectedRules({ node: [], prometheus: [], opa: [] });
+          setSelectedRules({ node: [], opa: [] });
         }}
         footer={null}
         width={800}
       >
-        <Form
-          form={editForm}
-          layout="vertical"
-          onFinish={handleUpdateTask}
-        >
+        <Form form={editForm} layout="vertical" onFinish={handleUpdateTask}>
           <Form.Item
             name="name"
             label="Название задачи"
@@ -444,14 +477,21 @@ const ScheduledInspection = () => {
 
           <Form.Item
             noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.schedule_type !== currentValues.schedule_type}
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues.schedule_type !== currentValues.schedule_type
+            }
           >
             {({ getFieldValue }) => {
               const scheduleType = getFieldValue('schedule_type');
               if (scheduleType === 'cron') {
                 return (
                   <div>
-                    <Alert message="Cron формат: мин час день месяц день_недели" type="info" showIcon style={{ marginBottom: 16 }} />
+                    <Alert
+                      message="Cron формат: мин час день месяц день_недели"
+                      type="info"
+                      showIcon
+                      style={{ marginBottom: 16 }}
+                    />
                     <Space wrap>
                       <Form.Item name="cron_min" label="Минуты" initialValue="0">
                         <Input placeholder="0" />
@@ -477,7 +517,11 @@ const ScheduledInspection = () => {
                     <Form.Item name="run_date" label="Дата выполнения" rules={[{ required: true }]}>
                       <DatePicker />
                     </Form.Item>
-                    <Form.Item name="run_time" label="Время выполнения" rules={[{ required: true }]}>
+                    <Form.Item
+                      name="run_time"
+                      label="Время выполнения"
+                      rules={[{ required: true }]}
+                    >
                       <TimePicker format="HH:mm" />
                     </Form.Item>
                   </Space>
@@ -494,13 +538,6 @@ const ScheduledInspection = () => {
                 ruleType="node"
                 title="Правила узлов"
                 availableRules={rules.node || []}
-                selectedRules={selectedRules}
-                onRuleSelection={handleRuleSelection}
-              />
-              <RuleSelector
-                ruleType="prometheus"
-                title="Правила мониторинга"
-                availableRules={rules.prometheus || []}
                 selectedRules={selectedRules}
                 onRuleSelection={handleRuleSelection}
               />

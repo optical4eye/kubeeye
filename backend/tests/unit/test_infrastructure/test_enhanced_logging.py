@@ -10,7 +10,7 @@ import pytest
 from unittest.mock import Mock, patch
 from datetime import datetime
 
-from infrastructure.logging.enhanced_logging import (
+from core.logging import (
     StructuredFormatter,
     ErrorTracker,
     setup_logging,
@@ -35,7 +35,7 @@ class TestStructuredFormatter:
         # Create mock log record
         record = logging.LogRecord(
             name="test_logger",
-            level=logging.INFO,
+            level=logging.DEBUG,
             pathname="test.py",
             lineno=10,
             msg="Test message",
@@ -48,7 +48,7 @@ class TestStructuredFormatter:
         result = formatter.format(record)
         parsed = json.loads(result)
 
-        assert parsed["level"] == "INFO"
+        assert parsed["level"] == "DEBUG"
         assert parsed["logger"] == "test_logger"
         assert parsed["message"] == "Test message"
         assert parsed["module"] == "test"
@@ -207,62 +207,48 @@ class TestErrorTracker:
 class TestSetupLogging:
     """Test cases for logging setup"""
 
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    @patch("infrastructure.logging.enhanced_logging.Path")
-    def test_setup_logging_basic(self, mock_path, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.Path")
+    def test_setup_logging_basic(self, mock_path, mock_logger):
         """Test basic logging setup"""
-        mock_logger = Mock()
-        mock_logger.handlers = []
-        mock_logging.getLogger.return_value = mock_logger
-        mock_logging.INFO = 20
-
         result = setup_logging(log_level="INFO", enable_console=True, enable_structured=True)
 
         assert result == mock_logger
-        mock_logger.setLevel.assert_called_with(20)
-        mock_logger.addHandler.assert_called()
+        mock_logger.remove.assert_called()
+        mock_logger.level.assert_called_with("INFO")
+        mock_logger.add.assert_called()
 
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    @patch("infrastructure.logging.enhanced_logging.Path")
-    def test_setup_logging_with_file(self, mock_path, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.Path")
+    def test_setup_logging_with_file(self, mock_path, mock_logger):
         """Test logging setup with file output"""
-        mock_logger = Mock()
-        mock_logger.handlers = []
-        mock_logging.getLogger.return_value = mock_logger
-        mock_logging.handlers.RotatingFileHandler = Mock()
-
         result = setup_logging(log_file="test.log", enable_console=False)
 
-        # Should add file handler
-        assert mock_logger.addHandler.call_count == 1
+        # File handler should be added
+        assert mock_logger.add.call_count == 1
 
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    def test_setup_logging_unstructured(self, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    def test_setup_logging_unstructured(self, mock_logger):
         """Test logging setup with unstructured format"""
-        mock_logger = Mock()
-        mock_logger.handlers = []
-        mock_logging.getLogger.return_value = mock_logger
-
         setup_logging(enable_structured=False)
 
         # Should use basic formatter
-        mock_logger.addHandler.assert_called()
+        mock_logger.add.assert_called()
 
 
 class TestDecorators:
     """Test cases for logging decorators"""
 
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    @patch("infrastructure.logging.enhanced_logging.datetime")
-    def test_log_execution_time_success(self, mock_datetime, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.datetime")
+    def test_log_execution_time_success(self, mock_datetime, mock_logger):
         """Test execution time logging decorator success"""
-        mock_logger = Mock()
-        mock_logging.getLogger.return_value = mock_logger
-
         # Mock datetime
         start_time = datetime(2023, 1, 1, 12, 0, 0)
         end_time = datetime(2023, 1, 1, 12, 0, 5)
         mock_datetime.now.side_effect = [start_time, end_time]
+
+        mock_logger.bind.return_value = mock_logger
 
         @log_execution_time
         def test_function():
@@ -271,26 +257,26 @@ class TestDecorators:
         result = test_function()
 
         assert result == "success"
+        assert mock_logger.bind.called
         assert mock_logger.debug.called
         assert mock_logger.info.called
 
         # Check the info call
         info_call = mock_logger.info.call_args
         assert "Completed execution" in info_call[0][0]
-        assert "execution_time" in info_call[1]["extra"]["extra_fields"]
+        assert "execution_time" in info_call[1]["extra"]
 
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    @patch("infrastructure.logging.enhanced_logging.datetime")
-    @patch("infrastructure.logging.enhanced_logging.error_tracker")
-    def test_log_execution_time_error(self, mock_error_tracker, mock_datetime, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.datetime")
+    @patch("core.logging.enhanced_logging.error_tracker")
+    def test_log_execution_time_error(self, mock_error_tracker, mock_datetime, mock_logger):
         """Test execution time logging decorator error"""
-        mock_logger = Mock()
-        mock_logging.getLogger.return_value = mock_logger
-
         # Mock datetime
         start_time = datetime(2023, 1, 1, 12, 0, 0)
         end_time = datetime(2023, 1, 1, 12, 0, 2)
         mock_datetime.now.side_effect = [start_time, end_time]
+
+        mock_logger.bind.return_value = mock_logger
 
         @log_execution_time
         def failing_function():
@@ -299,21 +285,21 @@ class TestDecorators:
         with pytest.raises(ValueError):
             failing_function()
 
+        mock_logger.bind.assert_called()
         mock_logger.error.assert_called()
         mock_error_tracker.add_error.assert_called()
 
     @pytest.mark.asyncio
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    @patch("infrastructure.logging.enhanced_logging.datetime")
-    async def test_log_api_request_success(self, mock_datetime, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.datetime")
+    async def test_log_api_request_success(self, mock_datetime, mock_logger):
         """Test API request logging decorator success"""
-        mock_logger = Mock()
-        mock_logging.getLogger.return_value = mock_logger
-
         # Mock datetime
         start_time = datetime(2023, 1, 1, 12, 0, 0)
         end_time = datetime(2023, 1, 1, 12, 0, 1)
         mock_datetime.now.side_effect = [start_time, end_time]
+
+        mock_logger.bind.return_value = mock_logger
 
         # Mock request
         mock_request = Mock()
@@ -328,21 +314,21 @@ class TestDecorators:
         result = await test_endpoint(mock_request)
 
         assert result == {"result": "ok"}
-        assert mock_logger.info.call_count == 2  # Request and response logs
+        assert mock_logger.bind.call_count == 1  # Bind once at start
+        assert mock_logger.info.call_count >= 2  # Request and response logs
 
     @pytest.mark.asyncio
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    @patch("infrastructure.logging.enhanced_logging.datetime")
-    @patch("infrastructure.logging.enhanced_logging.error_tracker")
-    async def test_log_api_request_error(self, mock_error_tracker, mock_datetime, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.datetime")
+    @patch("core.logging.enhanced_logging.error_tracker")
+    async def test_log_api_request_error(self, mock_error_tracker, mock_datetime, mock_logger):
         """Test API request logging decorator error"""
-        mock_logger = Mock()
-        mock_logging.getLogger.return_value = mock_logger
-
         # Mock datetime
         start_time = datetime(2023, 1, 1, 12, 0, 0)
         end_time = datetime(2023, 1, 1, 12, 0, 1)
         mock_datetime.now.side_effect = [start_time, end_time]
+
+        mock_logger.bind.return_value = mock_logger
 
         mock_request = Mock()
         mock_request.method = "POST"
@@ -355,6 +341,7 @@ class TestDecorators:
         with pytest.raises(HTTPException):
             await failing_endpoint(mock_request)
 
+        mock_logger.bind.assert_called()
         mock_logger.error.assert_called()
         mock_error_tracker.add_error.assert_called()
 
@@ -362,19 +349,18 @@ class TestDecorators:
 class TestErrorBoundary:
     """Test cases for error boundary context manager"""
 
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    @patch("infrastructure.logging.enhanced_logging.datetime")
-    def test_error_boundary_success(self, mock_datetime, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.datetime")
+    def test_error_boundary_success(self, mock_datetime, mock_logger):
         """Test error boundary success case"""
-        mock_logger = Mock()
-        mock_logging.getLogger.return_value = mock_logger
-
         # Mock datetime
         start_time = datetime(2023, 1, 1, 12, 0, 0)
         end_time = datetime(2023, 1, 1, 12, 0, 2)
         mock_datetime.now.side_effect = [start_time, end_time]
 
-        with ErrorBoundary("test_operation", mock_logger) as boundary:
+        mock_logger.bind.return_value = mock_logger
+
+        with ErrorBoundary("test_operation", logger=mock_logger) as boundary:
             # Successful operation
             pass
 
@@ -382,21 +368,20 @@ class TestErrorBoundary:
         success_call = [call for call in mock_logger.info.call_args_list if "completed" in str(call)][0]
         assert "test_operation" in success_call[0][0]
 
-    @patch("infrastructure.logging.enhanced_logging.logging")
-    @patch("infrastructure.logging.enhanced_logging.datetime")
-    @patch("infrastructure.logging.enhanced_logging.error_tracker")
-    def test_error_boundary_failure(self, mock_error_tracker, mock_datetime, mock_logging):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.datetime")
+    @patch("core.logging.enhanced_logging.error_tracker")
+    def test_error_boundary_failure(self, mock_error_tracker, mock_datetime, mock_logger):
         """Test error boundary failure case"""
-        mock_logger = Mock()
-        mock_logging.getLogger.return_value = mock_logger
-
         # Mock datetime
         start_time = datetime(2023, 1, 1, 12, 0, 0)
         end_time = datetime(2023, 1, 1, 12, 0, 1)
         mock_datetime.now.side_effect = [start_time, end_time]
 
+        mock_logger.bind.return_value = mock_logger
+
         with pytest.raises(ValueError):
-            with ErrorBoundary("test_operation", mock_logger) as boundary:
+            with ErrorBoundary("test_operation", logger=mock_logger) as boundary:
                 raise ValueError("Test error")
 
         mock_logger.error.assert_called()

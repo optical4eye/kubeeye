@@ -1,35 +1,60 @@
 import React from 'react';
 import { Card, Row, Col } from 'antd';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-const chartColors = {
-  success: 'var(--success-color)',
-  warning: 'var(--warning-color)',
-  error: 'var(--error-color)',
-  info: 'var(--text-secondary)'
-};
-
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface DashboardChartsProps {
-  dashboardData: any;
+  dashboardData: {
+    recent_results?: Array<{
+      timestamp: string;
+      critical?: number;
+      warning?: number;
+      info?: number;
+    }>;
+    total_rules?: number;
+  } | null;
 }
 
-const DashboardCharts: React.FC<DashboardChartsProps> = ({
-  dashboardData
-}) => {
-
-
+const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
   // Подготовка данных для линейного графика трендов с мемоизацией
   const trendData = React.useMemo(() => {
-    if (!dashboardData) return [];
-    return dashboardData.recent_results.slice(0, 7).map(result => ({
-      date: new Date(result.timestamp).toLocaleDateString(),
-      critical: result.critical || 0,
-      warning: result.warning || 0,
-      info: result.info || 0,
-      passed: dashboardData.total_rules - (result.critical || 0) - (result.warning || 0) - (result.info || 0)
-    }));
+    if (!dashboardData || !dashboardData.recent_results) return [];
+    return dashboardData.recent_results
+      .slice(0, 7)
+      .map((result: { timestamp: string; critical?: number; warning?: number; info?: number }) => ({
+        date: new Date(result.timestamp).toLocaleDateString(),
+        critical: result.critical || 0,
+        warning: result.warning || 0,
+        info: result.info || 0,
+        passed:
+          (dashboardData.total_rules || 0) -
+          (result.critical || 0) -
+          (result.warning || 0) -
+          (result.info || 0),
+      }));
   }, [dashboardData]);
+
+  if (!trendData || trendData.length === 0) {
+    return (
+      <Row gutter={16} className="dashboard-row">
+        <Col span={24}>
+          <Card title="Тренды ошибок (7 дней)">
+            <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
+              Нет данных для отображения трендов
+            </div>
+          </Card>
+        </Col>
+      </Row>
+    );
+  }
 
   return (
     <>
@@ -41,12 +66,37 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--background-dark)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--secondary-color)',
+                    borderRadius: '4px',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                  }}
+                  formatter={(value: number, name: string) => [`${value}`, name]}
+                  labelFormatter={(label: string) => `Дата: ${label}`}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="critical" stroke="var(--error-color)" name="Критические" />
-                <Line type="monotone" dataKey="warning" stroke="var(--warning-color)" name="Предупреждения" />
+                <Line
+                  type="monotone"
+                  dataKey="critical"
+                  stroke="var(--error-color)"
+                  name="Критические"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="warning"
+                  stroke="var(--warning-color)"
+                  name="Предупреждения"
+                />
                 <Line type="monotone" dataKey="info" stroke="var(--text-secondary)" name="Другие" />
-                <Line type="monotone" dataKey="passed" stroke="var(--success-color)" name="Успешно" />
+                <Line
+                  type="monotone"
+                  dataKey="passed"
+                  stroke="var(--success-color)"
+                  name="Успешно"
+                />
               </LineChart>
             </ResponsiveContainer>
           </Card>

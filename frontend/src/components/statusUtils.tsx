@@ -2,7 +2,7 @@ import React from 'react';
 import { Tag } from 'antd';
 
 // Utility functions for status tags
-export const getStatusTag = (status) => {
+export const getStatusTag = status => {
   switch (status) {
     case 'passed':
     case 'success':
@@ -28,7 +28,7 @@ export const getStatusTag = (status) => {
   }
 };
 
-export const getSeverityTag = (severity) => {
+export const getSeverityTag = severity => {
   switch (severity) {
     case 'critical':
       return <Tag className="status-critical">Критическая</Tag>;
@@ -47,24 +47,24 @@ export const getSeverityTag = (severity) => {
   }
 };
 
-export const getTaskStatusIcon = (status) => {
+export const getTaskStatusIcon = status => {
   switch (status) {
     case 'pending':
-      return <span style={{ color: 'var(--status-pending)' }}>⏳</span>;
+      return <span className="text-status-pending"></span>;
     case 'running':
-      return <span style={{ color: 'var(--status-running)' }}>🔄</span>;
+      return <span className="text-status-running"></span>;
     case 'completed':
-      return <span style={{ color: 'var(--status-completed)' }}>✅</span>;
+      return <span className="text-status-completed"></span>;
     case 'failed':
-      return <span style={{ color: 'var(--error-color)' }}>❌</span>;
+      return <span className="text-error"></span>;
     case 'cancelled':
-      return <span style={{ color: 'var(--status-cancelled)' }}>🚫</span>;
+      return <span className="text-status-cancelled"></span>;
     default:
       return <span>⏳</span>;
   }
 };
 
-export const getTaskStatusColor = (status) => {
+export const getTaskStatusColor = status => {
   switch (status) {
     case 'pending':
       return 'orange';
@@ -81,8 +81,14 @@ export const getTaskStatusColor = (status) => {
   }
 };
 
-export const getInspectionStatusTag = (report) => {
-  const totalIssues = (report.critical || 0) + (report.high || 0) + (report.medium || 0) + (report.low || 0) + (report.warning || 0) + (report.info || 0);
+export const getInspectionStatusTag = report => {
+  const totalIssues =
+    (report.critical || 0) +
+    (report.high || 0) +
+    (report.medium || 0) +
+    (report.low || 0) +
+    (report.warning || 0) +
+    (report.info || 0);
   if (totalIssues === 0) {
     return <Tag className="status-ok">OK</Tag>;
   } else if ((report.critical || 0) + (report.high || 0) > 0) {

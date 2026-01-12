@@ -60,3 +60,4 @@ build-multiarch.sh
 dev.sh
 docker-compose.multiarch.yml
 Dockerfile
+Dockerfile.test

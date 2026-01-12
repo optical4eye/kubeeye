@@ -28,8 +28,8 @@
 }
 
 .ant-menu-item-selected {
-  background-color: var(--secondary-color) !important;
-  color: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Buttons */
@@ -51,6 +51,13 @@
 .ant-btn:focus {
   outline: 2px solid var(--primary-color) !important;
   outline-offset: 2px !important;
+}
+
+.ant-btn:disabled {
+  opacity: 0.3 !important;
+  background-color: var(--secondary-color) !important;
+  border-color: var(--secondary-color) !important;
+  color: var(--text-secondary) !important;
 }
 
 .ant-btn-primary {
@@ -120,7 +127,7 @@
 }
 
 /* Mobile responsive adjustments */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .ant-table-wrapper {
     -webkit-overflow-scrolling: touch;
   }
@@ -161,7 +168,7 @@
 
 /* Modals */
 .ant-modal-mask {
-  background-color: rgba(0, 0, 0, 0.45) !important;
+  background-color: rgb(0 0 0 / 45%) !important;
 }
 
 .ant-modal-content {
@@ -193,7 +200,7 @@
 }
 
 /* Mobile responsive for modals */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .ant-modal {
     width: 95vw !important;
     max-width: none !important;
@@ -248,7 +255,7 @@
 
 .ant-form-item-label > label {
   color: var(--text-primary) !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: Inter, sans-serif !important;
 }
 
 /* Pagination */
@@ -354,10 +361,8 @@
 }
 
 /* Custom checkbox styles */
-input[type="checkbox"] {
+input[type='checkbox'] {
   appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
   width: var(--checkbox-size);
   height: var(--checkbox-size);
   border: 2px solid var(--text-primary);
@@ -368,12 +373,12 @@ input[type="checkbox"] {
   transition: all 0.2s ease;
 }
 
-input[type="checkbox"]:checked {
+input[type='checkbox']:checked {
   background: var(--primary-color);
   border-color: var(--primary-color);
 }
 
-input[type="checkbox"]:checked::after {
+input[type='checkbox']:checked::after {
   content: '✓';
   position: absolute;
   top: 50%;
@@ -384,13 +389,13 @@ input[type="checkbox"]:checked::after {
   font-weight: bold;
 }
 
-input[type="checkbox"]:hover {
+input[type='checkbox']:hover {
   border-color: var(--primary-color);
 }
 
-input[type="checkbox"]:focus {
+input[type='checkbox']:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 2px rgb(99 102 241 / 20%);
 }
 
 /* Trees */
@@ -407,11 +412,11 @@ input[type="checkbox"]:focus {
 }
 
 .ant-tree-node-selected {
-  background-color: var(--secondary-color) !important;
+  background-color: var(--primary-color) !important;
 }
 
 .ant-tree-node-content-wrapper.ant-tree-node-selected {
-  color: var(--primary-color) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Uploads */
@@ -443,7 +448,6 @@ input[type="checkbox"]:focus {
   border-color: var(--secondary-color) !important;
 }
 
-
 /* Messages and Notifications */
 .ant-message,
 .ant-notification {
@@ -474,10 +478,11 @@ input[type="checkbox"]:focus {
   background: var(--background-hover) !important;
   color: var(--text-primary) !important;
 }
+
 .ant-dropdown-menu-item-selected,
 .ant-select-dropdown-menu-item-selected {
-  background: var(--secondary-color) !important;
-  color: var(--primary-color) !important;
+  background: var(--primary-color) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Select Dropdowns */
@@ -512,7 +517,6 @@ input[type="checkbox"]:focus {
   color: var(--text-primary) !important;
 }
 
-
 /* Breadcrumbs */
 .ant-breadcrumb {
   color: var(--text-primary) !important;
@@ -538,9 +542,48 @@ input[type="checkbox"]:focus {
 }
 
 /* Badges */
-.ant-badge-count,
-.ant-badge-dot {
-  background: var(--error-color) !important;
+
+/* Badge status dots */
+.ant-badge-status-dot.ant-badge-status-success {
+  background-color: var(--success-color) !important;
+}
+
+.ant-badge-status-dot.ant-badge-status-error {
+  background-color: var(--error-color) !important;
+}
+
+.ant-badge-status-dot.ant-badge-status-warning {
+  background-color: var(--warning-color) !important;
+}
+
+.ant-badge-status-dot.ant-badge-status-processing {
+  background-color: var(--info-color) !important;
+}
+
+.ant-badge-status-dot.ant-badge-status-default {
+  background-color: var(--secondary-color) !important;
+}
+
+/* Backend status badge override - ensure proper colors */
+.backend-status-badge .ant-badge-status-dot.ant-badge-status-success {
+  background-color: var(--success-color) !important;
+}
+
+.backend-status-badge .ant-badge-status-dot.ant-badge-status-error {
+  background-color: var(--error-color) !important;
+}
+
+.backend-status-badge .ant-badge-status-dot.ant-badge-status-processing {
+  background-color: var(--info-color) !important;
+}
+
+/* Badge positioning and spacing */
+.ant-badge {
+  margin-right: var(--space-2) !important;
+}
+
+.ant-badge-status-text {
+  margin-left: var(--space-1) !important;
 }
 
 /* Ribbons */
@@ -558,7 +601,7 @@ input[type="checkbox"]:focus {
 }
 
 .ant-typography-secondary {
-  color: var(--secondary-color) !important;
+  color: var(--text-secondary) !important;
 }
 
 .ant-typography-code {
@@ -589,7 +632,7 @@ input[type="checkbox"]:focus {
 }
 
 .ant-steps-item-description {
-  color: var(--secondary-color) !important;
+  color: var(--text-secondary) !important;
 }
 
 .ant-steps-item-icon {
@@ -630,7 +673,7 @@ input[type="checkbox"]:focus {
 }
 
 .ant-steps-item-wait .ant-steps-item-title {
-  color: var(--secondary-color) !important;
+  color: var(--text-secondary) !important;
 }
 
 .ant-steps-item-process .ant-steps-item-description,
@@ -688,10 +731,6 @@ input[type="checkbox"]:focus {
   color: var(--text-primary) !important;
 }
 
-.ant-picker-cell:hover .ant-picker-cell-inner {
-  background: var(--background-hover) !important;
-}
-
 .ant-picker-cell-selected .ant-picker-cell-inner {
   background: var(--primary-color) !important;
   color: var(--text-primary) !important;
@@ -699,6 +738,10 @@ input[type="checkbox"]:focus {
 
 .ant-picker-cell-today .ant-picker-cell-inner {
   border-color: var(--primary-color) !important;
+}
+
+.ant-picker-cell:hover .ant-picker-cell-inner {
+  background: var(--background-hover) !important;
 }
 
 .ant-picker-footer {
@@ -795,19 +838,40 @@ input[type="checkbox"]:focus {
   padding: var(--space-4);
   border-radius: var(--radius-sm);
   overflow: auto;
-  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'JetBrains Mono', Monaco, Menlo, 'Ubuntu Mono', monospace;
   font-size: var(--font-size-sm);
   line-height: 1.45;
   border: 1px solid var(--secondary-color);
 }
 
-pre[class*="language-"],
-code[class*="language-"] {
-  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+pre[class*='language-'],
+code[class*='language-'] {
+  font-family: 'JetBrains Mono', Monaco, Menlo, 'Ubuntu Mono', monospace !important;
 }
 
 /* Row and Col backgrounds */
 .ant-row,
 .ant-col {
   background: var(--background-main) !important;
+}
+
+/* Ensure buttons in modals have correct colors */
+.ant-modal .ant-btn {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-modal .ant-btn-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-modal .ant-btn:hover,
+.ant-modal .ant-btn:focus {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--text-primary) !important;
+  opacity: 0.9 !important;
 }

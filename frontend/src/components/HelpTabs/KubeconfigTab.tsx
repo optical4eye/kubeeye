@@ -4,20 +4,30 @@ import CodeHighlighter from '../CodeHighlighter';
 
 const { Title, Paragraph, Text } = Typography;
 
-const KubeconfigSection = ({ title, description, whyImportant, steps, code, language = "yaml" }) => (
+const KubeconfigSection = ({
+  title,
+  description,
+  whyImportant,
+  steps,
+  code,
+  language = 'yaml',
+}) => (
   <Row gutter={16} className="help-row-margin">
     <Col span={24}>
       <Card title={title} aria-label={`Раздел: ${title}`}>
         <Paragraph>
-          <Text strong>Описание:</Text> <span dangerouslySetInnerHTML={{__html: description}} />
+          <Text strong>Описание:</Text> <span dangerouslySetInnerHTML={{ __html: description }} />
         </Paragraph>
         <Paragraph>
           <Text strong>Почему важно:</Text> {whyImportant}
         </Paragraph>
         <Paragraph>
-          <Text strong>Шаги:</Text> <span dangerouslySetInnerHTML={{__html: steps}} />
+          <Text strong>Шаги:</Text> <span dangerouslySetInnerHTML={{ __html: steps }} />
         </Paragraph>
-        <div role="code" aria-label={`Пример кода на ${language === "yaml" ? "YAML" : language === "bash" ? "Bash" : "YAML"}`}>
+        <div
+          role="code"
+          aria-label={`Пример кода на ${language === 'yaml' ? 'YAML' : language === 'bash' ? 'Bash' : 'YAML'}`}
+        >
           <CodeHighlighter code={code} language={language} />
         </div>
       </Card>
@@ -28,11 +38,15 @@ const KubeconfigSection = ({ title, description, whyImportant, steps, code, lang
 const KubeconfigTab = () => {
   return (
     <>
-      <Row gutter={16}>
+      <Row gutter={16} className="help-row-margin">
         <Col span={24}>
-          <Title level={3} id="kubeconfig-title">Настройка Kubeconfig для KubeEye</Title>
+          <Title level={3} id="kubeconfig-title">
+            Настройка Kubeconfig для KubeEye
+          </Title>
           <Paragraph>
-            Ниже приведены подробные инструкции по настройке kubeconfig для безопасного доступа KubeEye к кластеру Kubernetes. Включает создание read-only ролей, привязок и примеры команд.
+            Ниже приведены подробные инструкции по настройке kubeconfig для безопасного доступа
+            KubeEye к кластеру Kubernetes. Включает создание read-only ролей, привязок и примеры
+            команд.
           </Paragraph>
         </Col>
       </Row>
@@ -87,7 +101,7 @@ metadata:
   name: kubeeye-readonly
 rules:
 - apiGroups: [""]
-  resources: ["pods", "services", "endpoints", "nodes", "namespaces", "configmaps", "secrets", "persistentvolumes", "persistentvolumeclaims"]
+  resources: ["pods", "services", "endpoints", "nodes", "namespaces", "configmaps", "secrets", "persistentvolumes", "persistentvolumeclaims", "serviceaccounts", "events", "limitranges", "resourcequotas"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["apps"]
   resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
@@ -102,7 +116,16 @@ rules:
   resources: ["clusterroles", "clusterrolebindings", "roles", "rolebindings"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["policy"]
-  resources: ["podsecuritypolicies", "poddisruptionbudgets"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["certificates.k8s.io"]
+  resources: ["certificatesigningrequests"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
   verbs: ["get", "list", "watch"]`}
       />
 
@@ -125,26 +148,33 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io`}
       />
 
-
-
       <Row gutter={16} className="help-row-margin">
         <Col span={24}>
-          <Card title="Советы по безопасности и устранению ошибок" aria-label="Советы по безопасности">
+          <Card
+            title="Советы по безопасности и устранению ошибок"
+            aria-label="Советы по безопасности"
+          >
             <Paragraph>
-              <Text strong>Необходимые разрешения:</Text> ClusterRole с verbs: get, list, watch; ClusterRoleBinding; доступ к API сервера.
+              <Text strong>Необходимые разрешения:</Text> ClusterRole с verbs: get, list, watch;
+              ClusterRoleBinding; доступ к API сервера.
             </Paragraph>
             <Paragraph>
-              <Text strong>Советы по устранению ошибок:</Text><br />
-              - Ошибка аутентификации: Проверьте токен и CA сертификат.<br />
-              - Forbidden: Убедитесь в правильности ClusterRoleBinding.<br />
-              - Подключение: Проверьте адрес API сервера.
+              <Text strong>Советы по устранению ошибок:</Text>
+              <br />
+              - Ошибка аутентификации: Проверьте токен и CA сертификат.
+              <br />
+              - Forbidden: Убедитесь в правильности ClusterRoleBinding.
+              <br />- Подключение: Проверьте адрес API сервера.
             </Paragraph>
             <Paragraph>
-              <Text strong>Советы по безопасности:</Text><br />
-              - Используйте read-only роли.<br />
-              - Не делитесь kubeconfig.<br />
-              - Ротируйте токены регулярно.<br />
-              - Мониторьте логи доступа.
+              <Text strong>Советы по безопасности:</Text>
+              <br />
+              - Используйте read-only роли.
+              <br />
+              - Не делитесь kubeconfig.
+              <br />
+              - Ротируйте токены регулярно.
+              <br />- Мониторьте логи доступа.
             </Paragraph>
           </Card>
         </Col>

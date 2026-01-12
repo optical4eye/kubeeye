@@ -1,19 +1,19 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 GitOps synchronization manager - handles GitOps repository synchronization
 """
 
-import logging
 from typing import Tuple
+from core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Import RuleManager for compatibility with tests
-from infrastructure.rules.rule_manager import RuleManager
+from infra.rules.rule_manager import RuleManager
 
 # Import GitOpsRuleManager for compatibility with tests
-from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+from infra.gitops.gitops_manager import GitOpsRuleManager
 
 
 class GitOpsSyncManager:
@@ -25,7 +25,7 @@ class GitOpsSyncManager:
     def _get_gitops_manager(self):
         """Lazy initialization of GitOps manager"""
         if self._gitops_manager is None:
-            from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+            from infra.gitops.gitops_manager import GitOpsRuleManager
 
             self._gitops_manager = GitOpsRuleManager()
         return self._gitops_manager
@@ -100,7 +100,7 @@ class GitOpsSyncManager:
             return {"enabled": False, "error": str(e)}
 
 
-# Standalone functions for compatibility with tests
+# Standalone functions for compatibility with tests - using GitOpsSyncManager class
 async def sync_rules_from_gitops() -> bool:
     """
     Sync rules from GitOps repository
@@ -109,30 +109,16 @@ async def sync_rules_from_gitops() -> bool:
         True if sync was successful, False otherwise
     """
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+        from infra.rules.rule_manager import RuleManager
 
-        gitops_manager = GitOpsRuleManager()
         rule_manager = RuleManager()
-
-        # Check if GitOps should be used
         should_use = rule_manager.should_use_gitops()
-        logger.info(f"DEBUG: should_use_gitops returned: {should_use}")
+
         if not should_use:
-            logger.info("DEBUG: GitOps not enabled, returning False")
             return False
 
-        # Get configuration
-        config = gitops_manager.load_config()
-        repository = config.get("repository")
-        logger.info(f"DEBUG: repository config: {repository}")
-
-        if not repository:
-            logger.info("DEBUG: No repository configured, returning False")
-            return False
-
-        # Clone or update repository
-        success, message = gitops_manager.clone_or_update_repo(repository)
-        logger.info(f"DEBUG: clone_or_update_repo success: {success}, message: {message}")
+        sync_manager = GitOpsSyncManager()
+        success, _ = await sync_manager.sync_if_needed(use_gitops=True)
         return success
     except Exception as e:
         logger.error(f"Error syncing rules from GitOps: {str(e)}")
@@ -147,25 +133,16 @@ def sync_rules() -> bool:
         True if sync was successful, False otherwise
     """
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+        from infra.rules.rule_manager import RuleManager
 
-        gitops_manager = GitOpsRuleManager()
         rule_manager = RuleManager()
 
-        # Check if GitOps should be used
         if not rule_manager.should_use_gitops():
             return False
 
-        # Get configuration
-        config = gitops_manager.load_config()
-        repository = config.get("repository")
-
-        if not repository:
-            return False
-
-        # Clone or update repository
-        success, _ = gitops_manager.clone_or_update_repo(repository)
-        return success
+        sync_manager = GitOpsSyncManager()
+        # For synchronous version, we'll just check if GitOps is configured
+        return sync_manager.is_configured()
     except Exception as e:
         logger.error(f"Error syncing rules from GitOps: {str(e)}")
         return False
@@ -179,40 +156,11 @@ async def get_gitops_status() -> dict:
         Dictionary with GitOps status information
     """
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
-
-        gitops_manager = GitOpsRuleManager()
-        rule_manager = RuleManager()
-
-        logger.debug("About to call should_use_gitops")
-        should_use_gitops = rule_manager.should_use_gitops()
-        logger.debug(f"should_use_gitops returned: {should_use_gitops}, type: {type(should_use_gitops)}")
-        logger.info(
-            f"DEBUG: should_use_gitops in get_gitops_status: {should_use_gitops}, type: {type(should_use_gitops)}"
-        )
-        config = gitops_manager.load_config()
-        logger.info(f"DEBUG: config loaded: {config}, type: {type(config)}")
-        repository = config.get("repository")
-        logger.info(f"DEBUG: repository in get_gitops_status: {repository}, type: {type(repository)}")
-
-        result = {"configured": should_use_gitops and bool(repository), "repository": None}
-        logger.info(
-            f"DEBUG: result configured: {result['configured']}, should_use_gitops: {should_use_gitops}, bool(repository): {bool(repository)}"
-        )
-
-        if repository:
-            result["repository"] = {
-                "url": repository.get("url"),
-                "branch": repository.get("branch", "main"),
-                "last_sync": "Unknown",  # We don't track this in the current implementation
-            }
-            logger.info(f"DEBUG: repository dict created: {result['repository']}")
-
-        logger.info(f"DEBUG: final result: {result}")
-        return result
+        sync_manager = GitOpsSyncManager()
+        return sync_manager.get_gitops_status()
     except Exception as e:
         logger.error(f"Error getting GitOps status: {str(e)}")
-        return {"configured": False, "repository": None, "error": str(e)}
+        return {"enabled": False, "error": str(e)}
 
 
 def get_repository_info() -> dict:
@@ -223,16 +171,13 @@ def get_repository_info() -> dict:
         Dictionary with repository information
     """
     try:
-        from infrastructure.gitops.gitops_manager import GitOpsRuleManager
+        sync_manager = GitOpsSyncManager()
+        status = sync_manager.get_gitops_status()
 
-        gitops_manager = GitOpsRuleManager()
-        config = gitops_manager.load_config()
-        repository = config.get("repository")
-
-        if repository:
+        if status.get("enabled") and status.get("repository"):
             return {
-                "url": repository.get("url"),
-                "branch": repository.get("branch", "main"),
+                "url": status.get("url"),
+                "branch": status.get("branch", "main"),
                 "last_sync": "Unknown",  # We don't track this in the current implementation
             }
         else:

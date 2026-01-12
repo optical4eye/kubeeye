@@ -1,17 +1,18 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Inspection configuration manager - handles cluster configuration and validation
 """
 
 import asyncio
-import logging
 from typing import Dict, List, Any, Optional, Tuple
 
-from infrastructure.cluster.cluster_config import get_cluster
-from infrastructure.rules.rule_manager import RuleManager
+from infra.cluster.cluster_config import get_cluster
+from infra.rules.rule_manager import RuleManager
+from core.common.unified_validation import ValidationManager
+from core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class InspectionConfigManager:
@@ -33,7 +34,7 @@ class InspectionConfigManager:
             if show_progress:
                 logger.info("Getting cluster configuration...")
 
-            cluster_config = await asyncio.to_thread(get_cluster, cluster_name)
+            cluster_config = await get_cluster(cluster_name)
             if not cluster_config:
                 error_msg = f"Cluster configuration not found: {cluster_name}"
                 return None, error_msg
@@ -45,24 +46,26 @@ class InspectionConfigManager:
             return None, error_msg
 
     @staticmethod
-    def extract_cluster_components(cluster_config: Any) -> Dict[str, Any]:
+    async def extract_cluster_components(cluster_config: Any) -> Dict[str, Any]:
         """
         Extract components from cluster configuration
 
         Returns:
-            Dictionary with nodes, prometheus_config, and kubeconfig
+            Dictionary with nodes and kubeconfig
         """
         try:
-            nodes = cluster_config.get_nodes() if hasattr(cluster_config, "get_nodes") else []
-            prometheus_config = (
-                cluster_config.get_prometheus_config() if hasattr(cluster_config, "get_prometheus_config") else {}
+            # Parse secrets for inspections (get decrypted values)
+            nodes = await cluster_config.get_nodes(parse_secrets=True) if hasattr(cluster_config, "get_nodes") else []
+            kubeconfig = (
+                await cluster_config.get_kubeconfig(parse_secrets=True)
+                if hasattr(cluster_config, "get_kubeconfig")
+                else ""
             )
-            kubeconfig = cluster_config.get_kubeconfig() if hasattr(cluster_config, "get_kubeconfig") else ""
 
-            return {"nodes": nodes, "prometheus_config": prometheus_config, "kubeconfig": kubeconfig}
+            return {"nodes": nodes, "kubeconfig": kubeconfig}
         except Exception as e:
             logger.error(f"Error extracting cluster components: {str(e)}")
-            return {"nodes": [], "prometheus_config": {}, "kubeconfig": ""}
+            return {"nodes": [], "kubeconfig": ""}
 
     @staticmethod
     def validate_inspection_feasibility(
@@ -74,71 +77,10 @@ class InspectionConfigManager:
         Returns:
             (can_proceed, error_message, inspection_decisions) tuple
         """
-        nodes = components["nodes"]
-        prometheus_config = components["prometheus_config"]
-        kubeconfig = components["kubeconfig"]
-
-        # Determine which inspections can run
-        # If no selected_rules provided, run all available inspections
-        if selected_rules is None:
-            run_node_check = bool(nodes)
-            run_prometheus_check = bool(prometheus_config and prometheus_config.get("enabled", False))
-            run_opa_check = bool(kubeconfig)
-        else:
-            run_node_check = bool(nodes) and selected_rules.get("node")
-            run_prometheus_check = bool(
-                prometheus_config and prometheus_config.get("enabled", False)
-            ) and selected_rules.get("prometheus")
-            run_opa_check = bool(kubeconfig) and selected_rules.get("opa")
-
-        inspection_decisions = {"node": run_node_check, "prometheus": run_prometheus_check, "opa": run_opa_check}
-
-        logger.info(
-            f"Inspection types check - node count: {len(nodes)}, "
-            f"Prometheus enabled: {prometheus_config.get('enabled', False) if prometheus_config else False}, "
-            f"kubeconfig: {'present' if kubeconfig else 'absent'}"
-        )
-        logger.info(f"Selected rules: {selected_rules}")
-        logger.info(
-            f"Inspection decisions - nodes: {run_node_check}, Prometheus: {run_prometheus_check}, OPA: {run_opa_check}"
-        )
-
-        # For testing purposes, if all components are empty, still allow inspection to proceed
-        # This is to make tests pass when they mock empty components
-        if not nodes and not prometheus_config and not kubeconfig:
-            if selected_rules is None:
-                # For tests with no selected rules, allow all inspection types
-                inspection_decisions = {"node": True, "prometheus": True, "opa": True}
-                return True, "", inspection_decisions
-            else:
-                # For tests with selected rules, check if any rule type is selected
-                if any(selected_rules.values()):
-                    inspection_decisions = {
-                        "node": selected_rules.get("node", False),
-                        "prometheus": selected_rules.get("prometheus", False),
-                        "opa": selected_rules.get("opa", False),
-                    }
-                    return True, "", inspection_decisions
-                else:
-                    # No rules selected, but we have empty components
-                    inspection_decisions = {"node": False, "prometheus": False, "opa": False}
-                    return True, "", inspection_decisions
-
-        # Check if any inspection can run
-        if not (run_node_check or run_prometheus_check or run_opa_check):
-            # For testing purposes, if we have empty components and no selected rules,
-            # we should still allow the inspection to proceed
-            if not nodes and not prometheus_config and not kubeconfig and selected_rules is None:
-                inspection_decisions = {"node": True, "prometheus": True, "opa": True}
-                return True, "", inspection_decisions
-
-            error_msg = "No available inspection types. Check cluster configuration and rule selection."
-            return False, error_msg, inspection_decisions
-
-        return True, "", inspection_decisions
+        return ValidationManager.validate_inspection_feasibility(components, selected_rules)
 
     @staticmethod
-    def get_config_dict(cluster_config: Any) -> Dict[str, Any]:
+    async def get_config_dict(cluster_config: Any) -> Dict[str, Any]:
         """
         Convert cluster configuration to dictionary format
 
@@ -147,24 +89,35 @@ class InspectionConfigManager:
         """
         try:
             if hasattr(cluster_config, "get_dict"):
-                return cluster_config.get_dict()
+                result = cluster_config.get_dict()
+                # Check if result is a coroutine and await it
+                if hasattr(result, "__await__") or asyncio.iscoroutine(result):
+                    return await result
+                else:
+                    return result
             else:
+                # Handle sync methods for nodes and kubeconfig
+                nodes_result = cluster_config.get_nodes() if hasattr(cluster_config, "get_nodes") else []
+                kubeconfig_result = cluster_config.get_kubeconfig() if hasattr(cluster_config, "get_kubeconfig") else ""
+
+                # Check if these are coroutines and await them
+                if hasattr(nodes_result, "__await__") or asyncio.iscoroutine(nodes_result):
+                    nodes = await nodes_result
+                else:
+                    nodes = nodes_result
+
+                if hasattr(kubeconfig_result, "__await__") or asyncio.iscoroutine(kubeconfig_result):
+                    kubeconfig = await kubeconfig_result
+                else:
+                    kubeconfig = kubeconfig_result
+
                 return {
-                    "nodes": (cluster_config.get_nodes() if hasattr(cluster_config, "get_nodes") else []),
-                    "prometheus": (
-                        cluster_config.get_prometheus_config()
-                        if hasattr(cluster_config, "get_prometheus_config")
-                        else {}
-                    ),
-                    "opa": {
-                        "kubeconfig": (
-                            cluster_config.get_kubeconfig() if hasattr(cluster_config, "get_kubeconfig") else ""
-                        )
-                    },
+                    "nodes": nodes,
+                    "opa": {"kubeconfig": kubeconfig},
                 }
         except Exception as e:
             logger.error(f"Error converting config to dict: {str(e)}")
-            return {"nodes": [], "prometheus": {}, "opa": {"kubeconfig": ""}}
+            return {"nodes": [], "opa": {"kubeconfig": ""}}
 
 
 # Additional functions for rule management
@@ -186,7 +139,7 @@ async def get_inspection_config(types=None):
             return result
         else:
             # Get all available rule types
-            rule_types = ["node", "prometheus", "opa"]
+            rule_types = ["node", "opa"]
             result = {}
             for rule_type in rule_types:
                 try:
@@ -199,7 +152,7 @@ async def get_inspection_config(types=None):
             return result
     except Exception as e:
         logger.error(f"Error getting inspection config: {str(e)}")
-        return {"node": [], "prometheus": [], "opa": []}
+        return {"node": [], "opa": []}
 
 
 async def validate_inspection_config(config):
@@ -208,7 +161,7 @@ async def validate_inspection_config(config):
         # Simple validation - check if config is a dictionary
         if isinstance(config, dict):
             # Additional validation: check if it has valid structure
-            valid_types = ["node", "prometheus", "opa"]
+            valid_types = ["node", "opa"]
             for key in config.keys():
                 if key not in valid_types:
                     return False, f"Invalid inspection type: {key}"
@@ -227,7 +180,7 @@ async def get_default_inspection_config():
     try:
         use_gitops = RuleManager.should_use_gitops()
         logger.info(f"DEBUG: use_gitops in get_default_inspection_config: {use_gitops}")
-        rule_types = ["node", "prometheus", "opa"]
+        rule_types = ["node", "opa"]
         result = {}
         for rule_type in rule_types:
             try:
@@ -240,7 +193,7 @@ async def get_default_inspection_config():
         return result
     except Exception as e:
         logger.error(f"Error getting default inspection config: {str(e)}")
-        return {"node": [], "prometheus": [], "opa": []}
+        return {"node": [], "opa": []}
 
 
 async def merge_inspection_configs(config1, config2):

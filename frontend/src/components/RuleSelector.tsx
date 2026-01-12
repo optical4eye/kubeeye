@@ -6,9 +6,12 @@ const RuleSelector = ({ ruleType, title, availableRules, selectedRules, onRuleSe
   const allSelected = availableRules.length > 0 && selected.length === availableRules.length;
   const someSelected = selected.length > 0 && selected.length < availableRules.length;
 
-  const handleSelectAll = (checked) => {
+  const handleSelectAll = checked => {
     if (checked) {
-      onRuleSelection(ruleType, availableRules.map(rule => rule.id));
+      onRuleSelection(
+        ruleType,
+        availableRules.map(rule => rule.id)
+      );
     } else {
       onRuleSelection(ruleType, []);
     }
@@ -21,7 +24,7 @@ const RuleSelector = ({ ruleType, title, availableRules, selectedRules, onRuleSe
           <Checkbox
             indeterminate={someSelected}
             checked={allSelected}
-            onChange={(e) => handleSelectAll(e.target.checked)}
+            onChange={e => handleSelectAll(e.target.checked)}
           >
             Выбрать все ({availableRules.length})
           </Checkbox>
@@ -29,7 +32,7 @@ const RuleSelector = ({ ruleType, title, availableRules, selectedRules, onRuleSe
       )}
       <Checkbox.Group
         value={selected}
-        onChange={(values) => onRuleSelection(ruleType, values)}
+        onChange={values => onRuleSelection(ruleType, values)}
         style={{ width: '100%' }}
       >
         <Space direction="vertical" style={{ width: '100%' }}>

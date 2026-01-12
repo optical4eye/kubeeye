@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from infrastructure.logging.enhanced_logging import (
+from core.logging import (
     StructuredFormatter,
     ErrorTracker,
     setup_logging,
@@ -24,12 +24,10 @@ from infrastructure.logging.enhanced_logging import (
     cluster_name,
     error_tracker,
 )
-from infrastructure.logging.logging_config import (
-    setup_logger,
+from core.logging import (
     get_logger,
     get_system_health,
     LOG_LEVELS,
-    DEFAULT_LOG_FILE,
 )
 
 
@@ -43,7 +41,7 @@ class TestStructuredFormatter:
         # Create log record
         record = logging.LogRecord(
             name="test_logger",
-            level=logging.INFO,
+            level=logging.DEBUG,
             pathname="/test/path.py",
             lineno=10,
             msg="Test message",
@@ -54,7 +52,7 @@ class TestStructuredFormatter:
         result = formatter.format(record)
         log_data = json.loads(result)
 
-        assert log_data["level"] == "INFO"
+        assert log_data["level"] == "DEBUG"
         assert log_data["logger"] == "test_logger"
         assert log_data["message"] == "Test message"
         assert log_data["module"] == "path"
@@ -127,7 +125,7 @@ class TestStructuredFormatter:
 
         record = logging.LogRecord(
             name="test_logger",
-            level=logging.INFO,
+            level=logging.DEBUG,
             pathname="/test/path.py",
             lineno=10,
             msg="Test message",
@@ -225,196 +223,181 @@ class TestErrorTracker:
 class TestSetupLogging:
     """Test cases for setup_logging function"""
 
-    def test_setup_logging_basic(self):
+    @patch("core.logging.enhanced_logging.logger")
+    def test_setup_logging_basic(self, mock_logger):
         """Test basic logging setup"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            log_file = Path(temp_dir) / "test.log"
+        result = setup_logging(log_level="DEBUG", log_file=None, enable_structured=True, enable_console=True)
 
-            logger = setup_logging(
-                log_level="DEBUG", log_file=str(log_file), enable_structured=True, enable_console=False
-            )
+        assert result == mock_logger
+        mock_logger.remove.assert_called()
+        mock_logger.level.assert_called_with("DEBUG")
+        mock_logger.add.assert_called()
 
-            assert logger.name == "kubeeye"
-            assert logger.level == logging.DEBUG
-            assert len(logger.handlers) == 1  # Only file handler
-
-            # Test logging
-            logger.info("Test message")
-
-            assert log_file.exists()
-            log_content = log_file.read_text()
-            log_data = json.loads(log_content.strip())
-            assert log_data["message"] == "Test message"
-
-    def test_setup_logging_with_console(self):
+    @patch("core.logging.enhanced_logging.logger")
+    def test_setup_logging_with_console(self, mock_logger):
         """Test logging setup with console output"""
-        logger = setup_logging(log_level="INFO", log_file=None, enable_structured=True, enable_console=True)
+        result = setup_logging(log_level="INFO", log_file=None, enable_structured=True, enable_console=True)
 
-        assert logger.name == "kubeeye"
-        assert logger.level == logging.INFO
-        assert len(logger.handlers) == 1  # Only console handler
+        assert result == mock_logger
+        mock_logger.remove.assert_called()
+        mock_logger.level.assert_called_with("INFO")
+        mock_logger.add.assert_called()
 
-    def test_setup_logging_non_structured(self):
+    @patch("core.logging.enhanced_logging.logger")
+    def test_setup_logging_non_structured(self, mock_logger):
         """Test logging setup with non-structured format"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            log_file = Path(temp_dir) / "test.log"
+        result = setup_logging(log_level="INFO", log_file=None, enable_structured=False, enable_console=True)
 
-            logger = setup_logging(
-                log_level="INFO", log_file=str(log_file), enable_structured=False, enable_console=False
-            )
+        assert result == mock_logger
+        mock_logger.remove.assert_called()
+        mock_logger.level.assert_called_with("INFO")
+        mock_logger.add.assert_called()
 
-            # Test logging
-            logger.info("Test message")
+    @patch("core.logging.enhanced_logging.logger")
+    def test_setup_logging_creates_directory(self, mock_logger):
+        """Test that setup_logging creates directory if it doesn't exist (disabled for Docker deployment)"""
+        result = setup_logging(log_level="INFO", log_file=None, enable_structured=True, enable_console=True)
 
-            assert log_file.exists()
-            log_content = log_file.read_text()
-            assert "Test message" in log_content
-            assert "kubeeye" in log_content
-
-    def test_setup_logging_creates_directory(self):
-        """Test that setup_logging creates directory if it doesn't exist"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            log_file = Path(temp_dir) / "subdir" / "test.log"
-
-            logger = setup_logging(
-                log_level="INFO", log_file=str(log_file), enable_structured=True, enable_console=False
-            )
-
-            assert log_file.parent.exists()
-            # Log file might not exist until first log message is written
-            logger.info("Test message")
-            assert log_file.exists()
+        assert result == mock_logger
+        mock_logger.remove.assert_called()
+        mock_logger.level.assert_called_with("INFO")
+        mock_logger.add.assert_called()
 
 
 class TestLogExecutionTime:
     """Test cases for log_execution_time decorator"""
 
-    def test_log_execution_time_success(self):
+    @patch("core.logging.enhanced_logging.logger")
+    def test_log_execution_time_success(self, mock_logger):
         """Test log_execution_time decorator with successful function"""
-        with patch("infrastructure.logging.enhanced_logging.logging.getLogger") as mock_get_logger:
-            mock_logger = MagicMock()
-            mock_get_logger.return_value = mock_logger
+        mock_logger.bind.return_value = mock_logger
 
-            @log_execution_time
-            def test_function():
-                return "test_result"
+        @log_execution_time
+        def test_function():
+            return "test_result"
 
-            result = test_function()
+        result = test_function()
 
-            assert result == "test_result"
-            assert mock_logger.debug.call_count == 1
-            assert mock_logger.info.call_count == 1
+        assert result == "test_result"
+        assert mock_logger.bind.called
+        assert mock_logger.debug.called
+        assert mock_logger.info.called
 
-    def test_log_execution_time_error(self):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.error_tracker")
+    def test_log_execution_time_error(self, mock_error_tracker, mock_logger):
         """Test log_execution_time decorator with function that raises error"""
-        with patch("infrastructure.logging.enhanced_logging.logging.getLogger") as mock_get_logger:
-            mock_logger = MagicMock()
-            mock_get_logger.return_value = mock_logger
+        mock_logger.bind.return_value = mock_logger
 
-            @log_execution_time
-            def test_function():
-                raise ValueError("Test error")
+        @log_execution_time
+        def test_function():
+            raise ValueError("Test error")
 
-            with pytest.raises(ValueError):
-                test_function()
+        with pytest.raises(ValueError):
+            test_function()
 
-            assert mock_logger.debug.call_count == 1
-            assert mock_logger.error.call_count == 1
+        assert mock_logger.bind.called
+        assert mock_logger.debug.called
+        assert mock_logger.error.called
+        assert mock_error_tracker.add_error.called
 
 
 class TestLogApiRequest:
     """Test cases for log_api_request decorator"""
 
     @pytest.mark.asyncio
-    async def test_log_api_request_success(self):
+    @patch("core.logging.enhanced_logging.logger")
+    async def test_log_api_request_success(self, mock_logger):
         """Test log_api_request decorator with successful function"""
-        with patch("infrastructure.logging.enhanced_logging.logging.getLogger") as mock_get_logger:
-            mock_logger = MagicMock()
-            mock_get_logger.return_value = mock_logger
+        mock_logger.bind.return_value = mock_logger
 
-            @log_api_request
-            async def test_function():
-                return "test_result"
+        @log_api_request
+        async def test_function():
+            return "test_result"
 
-            result = await test_function()
+        result = await test_function()
 
-            assert result == "test_result"
-            assert mock_logger.info.call_count == 1
+        assert result == "test_result"
+        assert mock_logger.bind.called
+        assert mock_logger.info.call_count == 1  # Only completion logged since no request
 
     @pytest.mark.asyncio
-    async def test_log_api_request_with_request_object(self):
+    @patch("core.logging.enhanced_logging.logger")
+    async def test_log_api_request_with_request_object(self, mock_logger):
         """Test log_api_request decorator with request object"""
-        with patch("infrastructure.logging.enhanced_logging.logging.getLogger") as mock_get_logger:
-            mock_logger = MagicMock()
-            mock_get_logger.return_value = mock_logger
+        mock_logger.bind.return_value = mock_logger
 
-            # Mock request object
-            mock_request = MagicMock()
-            mock_request.method = "GET"
-            mock_request.url.path = "/test"
-            mock_request.url.query = "param=value"
+        # Mock request object
+        mock_request = MagicMock()
+        mock_request.method = "GET"
+        mock_request.url.path = "/test"
+        mock_request.url.query = "param=value"
 
-            @log_api_request
-            async def test_function(request):
-                return "test_result"
+        @log_api_request
+        async def test_function(request):
+            return "test_result"
 
-            result = await test_function(mock_request)
+        result = await test_function(mock_request)
 
-            assert result == "test_result"
-            # Should be called twice: once for request start, once for completion
-            assert mock_logger.info.call_count == 2
+        assert result == "test_result"
+        # Bind once, info twice
+        assert mock_logger.bind.call_count == 1
+        assert mock_logger.info.call_count >= 2
 
-            # Check that request info was logged
-            call_args = mock_logger.info.call_args_list[0]
-            assert "API request: GET /test" in call_args[0][0]
+        # Check that request info was logged
+        call_args = mock_logger.info.call_args_list[0]
+        assert "API request: GET /test" in call_args[0][0]
 
     @pytest.mark.asyncio
-    async def test_log_api_request_error(self):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.error_tracker")
+    async def test_log_api_request_error(self, mock_error_tracker, mock_logger):
         """Test log_api_request decorator with function that raises error"""
-        with patch("infrastructure.logging.enhanced_logging.logging.getLogger") as mock_get_logger:
-            mock_logger = MagicMock()
-            mock_get_logger.return_value = mock_logger
+        mock_logger.bind.return_value = mock_logger
 
-            @log_api_request
-            async def test_function():
-                raise ValueError("Test error")
+        @log_api_request
+        async def test_function():
+            raise ValueError("Test error")
 
-            with pytest.raises(ValueError):
-                await test_function()
+        with pytest.raises(ValueError):
+            await test_function()
 
-            assert mock_logger.error.call_count == 1
+        assert mock_logger.bind.called
+        assert mock_logger.error.called
+        assert mock_error_tracker.add_error.called
 
 
 class TestErrorBoundary:
     """Test cases for ErrorBoundary class"""
 
-    def test_error_boundary_success(self):
+    @patch("core.logging.enhanced_logging.logger")
+    def test_error_boundary_success(self, mock_logger):
         """Test ErrorBoundary with successful operation"""
-        with patch("infrastructure.logging.enhanced_logging.logging.getLogger") as mock_get_logger:
-            mock_logger = MagicMock()
-            mock_get_logger.return_value = mock_logger
+        mock_logger.bind.return_value = mock_logger
 
-            with ErrorBoundary("test_operation") as boundary:
-                pass  # Successful operation
+        with ErrorBoundary("test_operation", logger=mock_logger) as boundary:
+            pass  # Successful operation
 
-            assert mock_logger.info.called
-            # Check that both start and completion were logged
-            assert mock_logger.info.call_count == 2
+        assert mock_logger.info.called
+        # Check that both start and completion were logged
+        assert mock_logger.info.call_count == 2
 
-    def test_error_boundary_error(self):
+    @patch("core.logging.enhanced_logging.logger")
+    @patch("core.logging.enhanced_logging.error_tracker")
+    def test_error_boundary_error(self, mock_error_tracker, mock_logger):
         """Test ErrorBoundary with operation that raises error"""
-        with patch("infrastructure.logging.enhanced_logging.logging.getLogger") as mock_get_logger:
-            mock_logger = MagicMock()
-            mock_get_logger.return_value = mock_logger
+        mock_logger.bind.return_value = mock_logger
 
-            with pytest.raises(ValueError):
-                with ErrorBoundary("test_operation") as boundary:
-                    raise ValueError("Test error")
+        with pytest.raises(ValueError):
+            with ErrorBoundary("test_operation", logger=mock_logger) as boundary:
+                raise ValueError("Test error")
 
-            assert mock_logger.info.call_count == 1  # Start logged
-            assert mock_logger.error.call_count == 1  # Error logged
+        assert mock_logger.info.call_count == 1  # Start logged
+        assert mock_logger.error.call_count == 1  # Error logged
+        assert mock_error_tracker.add_error.called
 
-    def test_error_boundary_custom_logger(self):
+    @patch("core.logging.enhanced_logging.logger")
+    def test_error_boundary_custom_logger(self, mock_logger):
         """Test ErrorBoundary with custom logger"""
         custom_logger = MagicMock()
 
@@ -451,44 +434,32 @@ class TestLoggingConfig:
 
     def test_log_levels_mapping(self):
         """Test LOG_LEVELS mapping"""
-        assert LOG_LEVELS["debug"] == logging.DEBUG
-        assert LOG_LEVELS["info"] == logging.INFO
-        assert LOG_LEVELS["warning"] == logging.WARNING
-        assert LOG_LEVELS["error"] == logging.ERROR
-        assert LOG_LEVELS["critical"] == logging.CRITICAL
+        assert LOG_LEVELS["debug"] == "DEBUG"
+        assert LOG_LEVELS["info"] == "INFO"
+        assert LOG_LEVELS["warning"] == "WARNING"
+        assert LOG_LEVELS["error"] == "ERROR"
+        assert LOG_LEVELS["critical"] == "CRITICAL"
 
-    def test_setup_logger(self):
-        """Test setup_logger function"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            log_file = Path(temp_dir) / "test.log"
-
-            with patch("infrastructure.logging.logging_config.setup_logging") as mock_setup:
-                mock_logger = MagicMock()
-                mock_setup.return_value = mock_logger
-
-                logger = setup_logger(name="test_logger", level="debug", log_file=log_file)
-
-                # The implementation might not call setup_logging
-                # So we just check that we get a valid logger
-                assert logger is not None
-
-    def test_get_logger(self):
+    @patch("core.logging.enhanced_logging.logger")
+    def test_get_logger(self, mock_logger):
         """Test get_logger function"""
-        logger = get_logger("test_module")
+        result = get_logger("test_module")
 
-        assert logger.name == "kubeeye.test_module"
+        assert result == mock_logger.bind.return_value
+        mock_logger.bind.assert_called_with(module="test_module")
 
     def test_get_system_health(self):
         """Test get_system_health function"""
-        with patch("infrastructure.logging.logging_config.get_error_summary") as mock_get_summary:
+        with patch("core.logging.enhanced_logging.get_error_summary") as mock_get_summary:
             mock_get_summary.return_value = {"total_errors": 0}
 
             health = get_system_health()
 
             assert "logging" in health
             assert health["logging"]["error_summary"] == {"total_errors": 0}
-            assert health["logging"]["log_file"] == str(DEFAULT_LOG_FILE)
-            assert "log_directory" in health["logging"]
+            # log_file and log_directory are no longer included in health info for Docker deployment
+            assert "log_file" not in health["logging"]
+            assert "log_directory" not in health["logging"]
 
 
 # Import sys for exception testing

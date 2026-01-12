@@ -14,7 +14,7 @@ from api.gitops import get_gitops_status, get_gitops_config, sync_gitops_reposit
 class TestGitOpsAPI:
     """Test cases for GitOps API endpoints"""
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_get_gitops_status_configured(self, mock_gitops_manager_class):
         """Test getting GitOps status when repository is configured"""
@@ -32,7 +32,7 @@ class TestGitOpsAPI:
         assert result["last_sync"] == "2023-01-01T12:00:00Z"
         assert result["status"] == "configured"
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_get_gitops_status_not_configured(self, mock_gitops_manager_class):
         """Test getting GitOps status when repository is not configured"""
@@ -47,7 +47,7 @@ class TestGitOpsAPI:
         assert result["last_sync"] is None
         assert result["status"] == "not_configured"
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_get_gitops_status_exception(self, mock_gitops_manager_class):
         """Test getting GitOps status when exception occurs"""
@@ -59,7 +59,7 @@ class TestGitOpsAPI:
         assert exc_info.value.status_code == 500
         assert "GitOps error" in str(exc_info.value.detail)
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_get_gitops_config_with_repository(self, mock_gitops_manager_class):
         """Test getting GitOps config with repository configured"""
@@ -83,7 +83,7 @@ class TestGitOpsAPI:
         assert "username" not in result["repository"]  # Should be removed
         assert result["last_sync"] == "2023-01-01T12:00:00Z"
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_get_gitops_config_no_repository(self, mock_gitops_manager_class):
         """Test getting GitOps config without repository"""
@@ -96,7 +96,7 @@ class TestGitOpsAPI:
         assert result["last_sync"] == "2023-01-01T12:00:00Z"
         assert "repository" not in result
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_get_gitops_config_exception(self, mock_gitops_manager_class):
         """Test getting GitOps config when exception occurs"""
@@ -108,7 +108,7 @@ class TestGitOpsAPI:
         assert exc_info.value.status_code == 500
         assert "Config error" in str(exc_info.value.detail)
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_sync_gitops_repository_success(self, mock_gitops_manager_class):
         """Test successful GitOps repository synchronization"""
@@ -126,7 +126,7 @@ class TestGitOpsAPI:
             {"name": "test-repo", "url": "https://github.com/test/repo.git"}
         )
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_sync_gitops_repository_not_configured(self, mock_gitops_manager_class):
         """Test GitOps repository sync when not configured"""
@@ -140,7 +140,7 @@ class TestGitOpsAPI:
         assert "not configured" in result["message"]
         mock_manager.clone_or_update_repo.assert_not_called()
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_sync_gitops_repository_sync_failure(self, mock_gitops_manager_class):
         """Test GitOps repository sync when sync fails"""
@@ -157,7 +157,7 @@ class TestGitOpsAPI:
         assert exc_info.value.status_code == 500
         assert "Failed to sync GitOps repository" in str(exc_info.value.detail)
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_sync_gitops_repository_exception(self, mock_gitops_manager_class):
         """Test GitOps repository sync when exception occurs"""
@@ -169,7 +169,7 @@ class TestGitOpsAPI:
         assert exc_info.value.status_code == 500
         assert "Sync error" in str(exc_info.value.detail)
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_get_gitops_status_empty_repository(self, mock_gitops_manager_class):
         """Test getting GitOps status with empty repository config"""
@@ -183,7 +183,7 @@ class TestGitOpsAPI:
         assert result["repository"] is None
         assert result["status"] == "not_configured"
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_get_gitops_config_repository_without_sensitive_fields(self, mock_gitops_manager_class):
         """Test getting GitOps config when repository has no sensitive fields"""
@@ -199,7 +199,7 @@ class TestGitOpsAPI:
         assert result["repository"]["url"] == "https://github.com/test/repo.git"
         assert result["repository"]["branch"] == "main"
 
-    @patch("infrastructure.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
     @pytest.mark.asyncio
     async def test_sync_gitops_repository_with_branch(self, mock_gitops_manager_class):
         """Test GitOps repository sync with branch specified"""
