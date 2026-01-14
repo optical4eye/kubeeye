@@ -33,7 +33,7 @@ const SecretManagement = lazy(() => import('./pages/SecretManagement'));
 const { Header, Sider, Content } = Layout;
 
 function App() {
-  const { collapsed, setCollapsed, theme } = useUIStore();
+  const { theme } = useUIStore();
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
 
   // Check backend health continuously
@@ -84,17 +84,17 @@ function App() {
     {
       key: '/clusters',
       icon: <ClusterOutlined />,
-      label: 'Управление кластерами',
+      label: 'Кластеры',
     },
     {
       key: '/secrets',
       icon: <LockOutlined />,
-      label: 'Управление секретами',
+      label: 'Секреты',
     },
     {
       key: '/network',
       icon: <WifiOutlined />,
-      label: 'Сетевые подключения',
+      label: 'Сеть',
     },
     {
       key: '/inspection',
@@ -104,7 +104,7 @@ function App() {
     {
       key: '/popeye',
       icon: <ScanOutlined />,
-      label: 'Popeye сканирование',
+      label: 'Popeye',
     },
     {
       key: '/reports',
@@ -122,7 +122,7 @@ function App() {
     const location = useLocation();
     const navigate = useNavigate();
     return (
-      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} theme="dark">
+      <Sider theme="dark">
         <div className="logo logo-container">
           <span>Kube</span>
           <span>Eye</span>
@@ -144,14 +144,14 @@ function App() {
       theme={{
         algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
-          colorPrimary: '#6366f1',
-          colorBgContainer: theme === 'dark' ? '#282a36' : '#ffffff',
-          colorBgElevated: theme === 'dark' ? '#282a36' : '#ffffff',
+          colorPrimary: '#fab005',
+          colorBgContainer: theme === 'dark' ? '#495057' : '#ffffff',
+          colorBgElevated: theme === 'dark' ? '#495057' : '#ffffff',
           colorText: theme === 'dark' ? '#f8f8f2' : '#000000',
-          colorTextSecondary: theme === 'dark' ? '#8b94b8' : '#666666',
-          colorBorder: theme === 'dark' ? '#6272a4' : '#d9d9d9',
-          colorBorderSecondary: theme === 'dark' ? '#6272a4' : '#d9d9d9',
-          colorBgLayout: theme === 'dark' ? '#21222c' : '#f5f5f5',
+          colorTextSecondary: theme === 'dark' ? '#adb5bd' : '#666666',
+          colorBorder: theme === 'dark' ? '#6c757d' : '#d9d9d9',
+          colorBorderSecondary: theme === 'dark' ? '#6c757d' : '#d9d9d9',
+          colorBgLayout: theme === 'dark' ? '#343a40' : '#f5f5f5',
         },
       }}
     >

@@ -787,3 +787,35 @@ class ClusterService:
         success, message = await k8s_client.test_connection()
 
         return {"success": success, "message": message}
+
+    async def get_nodes_from_kubeconfig(self, kubeconfig: str) -> Dict:
+        """
+        Получить список узлов из kubeconfig
+
+        Args:
+            kubeconfig: Base64 encoded kubeconfig content
+
+        Returns:
+            Dict с информацией об узлах
+
+        Raises:
+            HTTPException: если kubeconfig невалиден
+        """
+        if not kubeconfig:
+            raise HTTPException(status_code=400, detail="Kubeconfig is required")
+
+        # Parse secret variables in kubeconfig
+        async with with_db_session() as db:
+            parser = SecretVariableParser(db)
+            processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
+            if parse_errors:
+                logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
+            kubeconfig = processed_kubeconfig
+
+        k8s_client = K8sClient(kubeconfig)
+        nodes_result = await asyncio.to_thread(k8s_client.get_nodes)
+
+        if nodes_result.get("status") == "error":
+            raise HTTPException(status_code=500, detail=nodes_result.get("error", "Failed to get nodes"))
+
+        return nodes_result

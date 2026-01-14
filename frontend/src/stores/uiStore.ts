@@ -3,10 +3,8 @@ import { persist } from 'zustand/middleware';
 
 interface UIState {
   theme: 'light' | 'dark';
-  collapsed: boolean;
   language: 'ru' | 'en';
   setTheme: (theme: 'light' | 'dark') => void;
-  setCollapsed: (collapsed: boolean) => void;
   setLanguage: (language: 'ru' | 'en') => void;
 }
 
@@ -14,10 +12,8 @@ export const useUIStore = create<UIState>()(
   persist(
     set => ({
       theme: 'dark',
-      collapsed: false,
       language: 'ru',
       setTheme: theme => set({ theme }),
-      setCollapsed: collapsed => set({ collapsed }),
       setLanguage: language => set({ language }),
     }),
     {

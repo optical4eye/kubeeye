@@ -41,6 +41,9 @@ export const testClusterKubeconfig = (clusterName, kubeconfig = null) => {
   }
 };
 
+export const getNodesFromKubeconfig = kubeconfig =>
+  api.post(apiPath('/clusters/get-nodes-from-kubeconfig'), { kubeconfig });
+
 // Inspections
 export const runInspection = inspectionData => api.post(apiPath('/inspection'), inspectionData);
 

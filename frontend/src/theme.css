@@ -1,19 +1,19 @@
 /* ===== THEME VARIABLES ===== */
 :root {
   /* Color palette variables - Dark theme with WCAG AA compliant contrast ratios */
-  --primary-color: #6366f1; /* Indigo - good contrast on dark backgrounds */
-  --secondary-color: #6272a4; /* Slate blue */
-  --background-dark: #21222c; /* Dark background */
-  --background-main: #282a36; /* Main content background */
-  --background-hover: #44475a; /* Hover state background */
-  --text-primary: #f8f8f2; /* High contrast white text (21:1 on #282a36) */
-  --text-secondary: #9f9f9f; /* Medium contrast gray (4.5:1 on #282a36) */
+  --primary-color: #fab005; /* Yellow primary */
+  --secondary-color: #f59f00; /* Orange secondary */
+  --background-dark: #343a40; /* Dark gray background */
+  --background-main: #495057; /* Medium gray main background */
+  --background-hover: #6c757d; /* Lighter gray hover */
+  --text-primary: #f8f8f2; /* High contrast white text */
+  --text-secondary: #adb5bd; /* Light gray secondary text */
   --success-color: #50fa7b;
-  --warning-color: #ffb86c;
+  --warning-color: #fcc419;
   --error-color: #f55;
   --info-color: #8be9fd;
   --code-color: #ff79c6;
-  --highlight-color: #f1fa8c;
+  --highlight-color: #fcc419;
   --placeholder-color: #ccc;
 
   /* Secret type colors - specific hex codes for consistent styling */
@@ -45,7 +45,7 @@
   --status-cancelled: #d9d9d9;
 
   /* Additional semantic colors */
-  --accent-color: #bd93f9;
+  --accent-color: #f59f00;
   --neutral-color: #666;
 
   /* Status outline colors */

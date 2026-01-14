@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const { Text } = Typography;
 
-const ClusterForm = ({ form, onSubmit, onTestNodes, onTestKubeconfig, isEditMode = false }) => {
+const ClusterForm = ({ form, onSubmit, onTestNodes, onTestKubeconfig, onGetNodesFromKubeconfig, isEditMode = false }) => {
   const [secretModalVisible, setSecretModalVisible] = useState(false);
   const [secrets, setSecrets] = useState([]);
   const [targetField, setTargetField] = useState(null);
@@ -92,13 +92,21 @@ const ClusterForm = ({ form, onSubmit, onTestNodes, onTestKubeconfig, isEditMode
         </Form.Item>
 
         <Form.Item>
-          <Button
-            icon={<KeyOutlined />}
-            onClick={() => openSecretModal('nodes_text')}
-            aria-label="Вставить секрет в список узлов"
-          >
-            Вставить секрет
-          </Button>
+          <Space>
+            <Button
+              icon={<KeyOutlined />}
+              onClick={() => openSecretModal('nodes_text')}
+              aria-label="Вставить секрет в список узлов"
+            >
+              Вставить секрет в узлы
+            </Button>
+            <Button onClick={onGetNodesFromKubeconfig} aria-label="Получить узлы из k8s">
+              Получить узлы из k8s
+            </Button>
+            <Button onClick={onTestNodes} aria-label="Проверить узлы">
+              Проверить узлы
+            </Button>
+          </Space>
         </Form.Item>
 
         <Form.Item
@@ -121,31 +129,28 @@ const ClusterForm = ({ form, onSubmit, onTestNodes, onTestKubeconfig, isEditMode
         </Form.Item>
 
         <Form.Item>
-          <Button
-            icon={<KeyOutlined />}
-            onClick={() => openSecretModal('kubeconfig')}
-            aria-label="Вставить секрет в kubeconfig"
-          >
-            Вставить секрет
-          </Button>
-        </Form.Item>
-
-        <Form.Item>
           <Space>
             <Button
-              type="primary"
-              htmlType="submit"
-              aria-label={isEditMode ? 'Обновить кластер' : 'Создать кластер'}
+              icon={<KeyOutlined />}
+              onClick={() => openSecretModal('kubeconfig')}
+              aria-label="Вставить секрет в kubeconfig"
             >
-              {isEditMode ? 'Обновить кластер' : 'Создать кластер'}
-            </Button>
-            <Button onClick={onTestNodes} aria-label="Проверить узлы">
-              Проверить узлы
+              Вставить секрет в kubeconfig
             </Button>
             <Button onClick={onTestKubeconfig} aria-label="Проверить kubeconfig">
               Проверить kubeconfig
             </Button>
           </Space>
+        </Form.Item>
+
+        <Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            aria-label={isEditMode ? 'Обновить кластер' : 'Создать кластер'}
+          >
+            {isEditMode ? 'Обновить кластер' : 'Создать кластер'}
+          </Button>
         </Form.Item>
       </Form>
 

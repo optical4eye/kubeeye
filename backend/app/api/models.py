@@ -90,6 +90,12 @@ class KubeconfigTestRequest(BaseModel):
     kubeconfig: str = Field(..., description="Base64 encoded kubeconfig content to test")
 
 
+class GetNodesFromKubeconfigRequest(BaseModel):
+    """Model for getting nodes from kubeconfig"""
+
+    kubeconfig: str = Field(..., description="Base64 encoded kubeconfig content")
+
+
 class InspectionRequest(BaseModel):
     """Model for requesting cluster inspection"""
 

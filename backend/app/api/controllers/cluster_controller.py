@@ -7,7 +7,7 @@ Cluster controller - API endpoints для работы с кластерами
 from fastapi import APIRouter, Depends
 from typing import Optional
 
-from api.models import ClusterCreate, NodesTestRequest, KubeconfigTestRequest
+from api.models import ClusterCreate, NodesTestRequest, KubeconfigTestRequest, GetNodesFromKubeconfigRequest
 from api.unified_middleware import api_error_handler, validate_cluster_name_decorator
 from services.cluster_service import ClusterService
 from core.common.unified_validation import validate_cluster_name
@@ -208,3 +208,21 @@ async def test_cluster_kubeconfig(
     validated_cluster_name = validate_cluster_name(cluster_name)
     request_kubeconfig = request.kubeconfig if request else None
     return await service.test_cluster_kubeconfig(validated_cluster_name, request_kubeconfig)
+
+
+@router.post("/clusters/get-nodes-from-kubeconfig")
+@api_error_handler
+async def get_nodes_from_kubeconfig(
+    request: GetNodesFromKubeconfigRequest,
+    service: ClusterService = Depends(get_cluster_service),
+):
+    """
+    Получить список узлов из kubeconfig
+
+    Args:
+        request: Запрос с kubeconfig
+
+    Returns:
+        Dict с информацией об узлах
+    """
+    return await service.get_nodes_from_kubeconfig(request.kubeconfig)

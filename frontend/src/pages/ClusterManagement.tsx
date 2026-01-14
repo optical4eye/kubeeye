@@ -9,6 +9,7 @@ import {
   getClusterNodes,
   testClusterNodes,
   testClusterKubeconfig,
+  getNodesFromKubeconfig,
 } from '../services/api';
 import { parseNodesFromText, formatNodesForText } from '../utils/nodeParser';
 import { fetchData } from '../utils/apiErrorHandler';
@@ -232,6 +233,50 @@ const ClusterManagement = () => {
     }
   };
 
+  const handleGetNodesFromKubeconfig = async () => {
+    try {
+      let kubeconfigToUse = null;
+
+      if (editModalVisible && editForm) {
+        const formValues = editForm.getFieldsValue();
+        kubeconfigToUse = formValues.kubeconfig;
+      } else if (createForm) {
+        const formValues = createForm.getFieldsValue();
+        kubeconfigToUse = formValues.kubeconfig;
+      }
+
+      if (!kubeconfigToUse) {
+        message.error('Kubeconfig не указан');
+        return;
+      }
+
+      const response = await getNodesFromKubeconfig(kubeconfigToUse);
+      const nodesData = response.data;
+
+      if (nodesData.status === 'success' && nodesData.nodes) {
+        // Форматируем узлы для текстового поля
+        const nodesText = nodesData.nodes
+          .map(node => `${node.internal_ip || node.external_ip || 'N/A'}:22 root password \${secret:ssh-password}`)
+          .join('\n');
+
+        // Обновляем поле nodes_text в форме
+        if (editModalVisible && editForm) {
+          editForm.setFieldsValue({ nodes_text: nodesText });
+        } else if (createForm) {
+          createForm.setFieldsValue({ nodes_text: nodesText });
+        }
+
+        message.success(`Получено ${nodesData.nodes.length} узлов из кластера`);
+      } else {
+        message.error('Ошибка получения узлов из кластера');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || error.response?.data?.error || error.message || 'Неизвестная ошибка';
+      message.error(`Ошибка получения узлов: ${errorMessage}`);
+      console.error(error);
+    }
+  };
+
   const loadClusterNodes = async clusterName => {
     try {
       setNodesLoading(true);
@@ -306,6 +351,7 @@ const ClusterManagement = () => {
               onSubmit={handleCreateCluster}
               onTestNodes={handleTestNodes}
               onTestKubeconfig={handleTestKubeconfig}
+              onGetNodesFromKubeconfig={handleGetNodesFromKubeconfig}
               isEditMode={false}
             />
           </Card>
@@ -324,6 +370,7 @@ const ClusterManagement = () => {
           onSubmit={handleCreateCluster}
           onTestNodes={handleTestNodes}
           onTestKubeconfig={handleTestKubeconfig}
+          onGetNodesFromKubeconfig={handleGetNodesFromKubeconfig}
           isEditMode={false}
         />
       </Modal>
@@ -344,6 +391,7 @@ const ClusterManagement = () => {
           onSubmit={handleEditCluster}
           onTestNodes={handleTestNodes}
           onTestKubeconfig={handleTestKubeconfig}
+          onGetNodesFromKubeconfig={handleGetNodesFromKubeconfig}
           isEditMode={true}
         />
       </Modal>
