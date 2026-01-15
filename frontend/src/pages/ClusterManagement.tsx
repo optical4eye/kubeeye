@@ -17,8 +17,6 @@ import ClusterList from '../components/ClusterList';
 import ClusterForm from '../components/ClusterForm';
 import ClusterDetailsModal from '../components/ClusterDetailsModal';
 
-const { TabPane } = Tabs;
-
 const ClusterManagement = () => {
   const [clusters, setClusters] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -256,7 +254,10 @@ const ClusterManagement = () => {
       if (nodesData.status === 'success' && nodesData.nodes) {
         // Форматируем узлы для текстового поля
         const nodesText = nodesData.nodes
-          .map(node => `${node.internal_ip || node.external_ip || 'N/A'}:22 root password \${secret:ssh-password}`)
+          .map(
+            node =>
+              `${node.internal_ip || node.external_ip || 'N/A'}:22 root password \${secret:ssh-password}`
+          )
           .join('\n');
 
         // Обновляем поле nodes_text в форме
@@ -271,7 +272,11 @@ const ClusterManagement = () => {
         message.error('Ошибка получения узлов из кластера');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || error.response?.data?.error || error.message || 'Неизвестная ошибка';
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.response?.data?.error ||
+        error.message ||
+        'Неизвестная ошибка';
       message.error(`Ошибка получения узлов: ${errorMessage}`);
       console.error(error);
     }
@@ -327,36 +332,46 @@ const ClusterManagement = () => {
         Настройка подключений к Kubernetes кластерам
       </p>
 
-      <Tabs defaultActiveKey="1">
-        <TabPane tab="Список кластеров" key="1">
-          <Card>
-            <ClusterList
-              clusters={clusters}
-              loading={loading}
-              onViewDetails={handleShowClusterDetails}
-              onEdit={cluster => {
-                setSelectedCluster(cluster);
-                loadClusterDetails(cluster.name);
-              }}
-              onDelete={handleDeleteCluster}
-              onRefresh={() => {}}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab="Добавить кластер" key="2">
-          <Card>
-            <ClusterForm
-              form={createForm}
-              onSubmit={handleCreateCluster}
-              onTestNodes={handleTestNodes}
-              onTestKubeconfig={handleTestKubeconfig}
-              onGetNodesFromKubeconfig={handleGetNodesFromKubeconfig}
-              isEditMode={false}
-            />
-          </Card>
-        </TabPane>
-      </Tabs>
+      <Tabs
+        defaultActiveKey="1"
+        items={[
+          {
+            key: '1',
+            label: 'Список кластеров',
+            children: (
+              <Card>
+                <ClusterList
+                  clusters={clusters}
+                  loading={loading}
+                  onViewDetails={handleShowClusterDetails}
+                  onEdit={cluster => {
+                    setSelectedCluster(cluster);
+                    loadClusterDetails(cluster.name);
+                  }}
+                  onDelete={handleDeleteCluster}
+                  onRefresh={() => {}}
+                />
+              </Card>
+            ),
+          },
+          {
+            key: '2',
+            label: 'Добавить кластер',
+            children: (
+              <Card>
+                <ClusterForm
+                  form={createForm}
+                  onSubmit={handleCreateCluster}
+                  onTestNodes={handleTestNodes}
+                  onTestKubeconfig={handleTestKubeconfig}
+                  onGetNodesFromKubeconfig={handleGetNodesFromKubeconfig}
+                  isEditMode={false}
+                />
+              </Card>
+            ),
+          },
+        ]}
+      />
 
       <Modal
         title="Создать кластер"
@@ -397,7 +412,7 @@ const ClusterManagement = () => {
       </Modal>
 
       <ClusterDetailsModal
-        visible={detailsModalVisible}
+        open={detailsModalVisible}
         cluster={clusterDetails}
         nodes={filteredNodes}
         nodesLoading={nodesLoading}

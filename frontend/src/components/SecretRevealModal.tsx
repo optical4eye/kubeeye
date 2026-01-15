@@ -17,11 +17,11 @@ const { Text, Paragraph } = Typography;
 
 interface SecretRevealModalProps {
   secret: Secret;
-  visible: boolean;
+  open: boolean;
   onClose: () => void;
 }
 
-const SecretRevealModal: React.FC<SecretRevealModalProps> = ({ secret, visible, onClose }) => {
+const SecretRevealModal: React.FC<SecretRevealModalProps> = ({ secret, open, onClose }) => {
   const [revealedData, setRevealedData] = useState<SecretReveal | null>(null);
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -42,23 +42,23 @@ const SecretRevealModal: React.FC<SecretRevealModalProps> = ({ secret, visible, 
   }, [secret.id, onClose]);
 
   useEffect(() => {
-    if (visible) {
+    if (open) {
       loadRevealedData();
       setTimeLeft(30);
     } else {
       setRevealedData(null);
       setIsCopied(false);
     }
-  }, [visible, loadRevealedData]);
+  }, [open, loadRevealedData]);
 
   useEffect(() => {
     let countdown: ReturnType<typeof setInterval> | null = null;
 
-    if (visible && timeLeft > 0) {
+    if (open && timeLeft > 0) {
       countdown = setInterval(() => {
         setTimeLeft(prev => prev - 1);
       }, 1000);
-    } else if (timeLeft === 0 && visible) {
+    } else if (timeLeft === 0 && open) {
       message.warning('Данные будут скрыты для безопасности');
       onClose();
     }
@@ -68,7 +68,7 @@ const SecretRevealModal: React.FC<SecretRevealModalProps> = ({ secret, visible, 
         clearInterval(countdown);
       }
     };
-  }, [visible, timeLeft, onClose]);
+  }, [open, timeLeft, onClose]);
 
   const handleCopy = async () => {
     if (revealedData) {
@@ -106,7 +106,7 @@ const SecretRevealModal: React.FC<SecretRevealModalProps> = ({ secret, visible, 
   return (
     <Modal
       title={`Просмотр: ${secret.name}`}
-      open={visible}
+      open={open}
       onCancel={onClose}
       footer={[
         <Button key="close" icon={<EyeInvisibleOutlined />} onClick={onClose}>
@@ -160,7 +160,7 @@ const SecretRevealModal: React.FC<SecretRevealModalProps> = ({ secret, visible, 
                 {isCopied ? 'Скопировано' : 'Копировать'}
               </Button>
             </div>
-            <Paragraph code copyable={false} className="secret-reveal-data-text">
+            <Paragraph code className="secret-reveal-data-text">
               {formatData(revealedData.data, revealedData.secret_type)}
             </Paragraph>
           </div>

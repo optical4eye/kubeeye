@@ -1,399 +1,335 @@
-# Frontend KubeEye
+# Улучшенные TypeScript типы для Ant Design v6
 
-## Обзор
+Этот модуль содержит улучшенные TypeScript типы для работы с Ant Design v6, включая strict типизацию для ThemeConfig, дизайн-токенов и новых API компонентов.
 
-Frontend KubeEye - это клиентская часть приложения для инспекции Kubernetes кластеров, предоставляющая современный веб-интерфейс для взаимодействия с бэкендом. Написан на TypeScript с использованием React 19, Vite для сборки и Ant Design для UI компонентов.
+## Особенности
 
-## Архитектурные компоненты
+### 🎨 Расширенная система тем
 
-### 1. Представление (Presentation Layer)
+- **Strict типизация** для всех дизайн-токенов
+- **Custom extensions** для дополнительных токенов
+- **CSS-in-JS интеграция** с @ant-design/cssinjs
+- **Runtime theme switching** без перезагрузки
+- **Theme presets** для разных пользовательских ролей
 
-- **Технология**: React 19 + TypeScript + Ant Design
-- **Ответственность**: Пользовательский интерфейс, взаимодействие с пользователем
-- **Ключевые компоненты**:
-  - `components/` - Переиспользуемые UI компоненты
-  - `pages/` - Страницы приложения с маршрутизацией
-  - `App.tsx` - Главный компонент приложения
+### 📝 Улучшенные типы компонентов
 
-### 2. Слой данных (Data Layer)
+- **Form.useForm API** с полными типами
+- **Table.Column** с дополнительными возможностями
+- **Modal, Message, Notification API** с улучшенной типизацией
+- **Component composition patterns** для сложных UI
 
-- **Технология**: TanStack Query + Axios
-- **Ответственность**: Управление состоянием, API запросы, кэширование
-- **Ключевые модули**:
-  - `services/api.ts` - HTTP клиент для бэкенда
-  - `stores/uiStore.ts` - Глобальное состояние UI (Zustand)
-  - `utils/` - Утилиты для обработки данных
+### 🔧 Утилиты и хелперы
 
-### 3. Инфраструктурный слой (Infrastructure Layer)
+- **ThemeUtils** - утилиты для работы с темами
+- **FormUtils** - расширенные возможности форм
+- **TableUtils** - дополнительные функции таблиц
+- **Responsive hooks** - адаптивное поведение
 
-- **Технология**: Vite + Prettier + ESLint + Stylelint + TypeScript
-- **Ответственность**: Сборка, линтинг, типизация, конфигурация
-- **Ключевые файлы**:
-  - `vite.config.ts` - Конфигурация сборки и dev сервера
-  - `.prettierrc.json` - Конфигурация форматирования кода
-  - `eslint.config.js` - Конфигурация линтера JavaScript/TypeScript
-  - `.stylelintrc.json` - Конфигурация линтера CSS
-  - `tsconfig.json` - Конфигурация TypeScript
-
-## Потоки данных
-
-### Взаимодействие с API
-
-1. **Запрос**: Пользователь взаимодействует с UI компонентами
-2. **API вызов**: Компоненты вызывают функции из `services/api.ts`
-3. **Кэширование**: TanStack Query управляет кэшем и повторными запросами
-4. **Обновление UI**: Данные обновляют состояние компонентов
-5. **Обработка ошибок**: Централизованная обработка через `utils/apiErrorHandler.ts`
-
-### Управление состоянием
-
-1. **Локальное состояние**: React hooks для компонентного состояния
-2. **Глобальное состояние**: Zustand store для UI настроек (тема, язык)
-3. **Серверное состояние**: TanStack Query для API данных с автоматическим кэшированием
-
-## Ключевые функции
-
-### 1. Управление кластерами
-
-- Добавление/редактирование кластеров Kubernetes
-- Тестирование подключений (SSH, kubeconfig)
-- Отображение списка кластеров с статусами
-- Управление конфигурациями подключения
-
-### 2. Инспекции безопасности
-
-- Запуск инспекций кластеров
-- Отображение прогресса выполнения
-- Просмотр результатов в реальном времени
-- Асинхронные инспекции с уведомлениями
-
-### 3. Отчетность и аналитика
-
-- Просмотр отчетов инспекций
-- Экспорт в JSON и PDF форматы
-- Графики и статистика на dashboard
-- История инспекций с фильтрацией
-
-### 4. Сетевые проверки
-
-- Тестирование связности между узлами
-- Отображение результатов сетевых проверок
-- Управление историей проверок
-
-### 5. Управление правилами и GitOps
-
-- Просмотр доступных правил инспекций
-- Синхронизация с GitOps репозиторием
-- Управление конфигурацией GitOps
-
-### 6. Планирование задач
-
-- Создание и управление расписаниями инспекций
-- Мониторинг статуса запланированных задач
-- Просмотр истории выполнения
-
-### 7. Система мониторинга
-
-- Индикатор статуса бэкенда в реальном времени
-- Отображение версии приложения
-- Мониторинг состояния системы
-
-### 8. Управление секретами
-
-- Просмотр и управление секретами кластеров
-- Безопасное отображение и скрытие значений секретов
-- Формы для создания и редактирования секретов
-- Выбор секретов для инспекций
-
-## Структура проекта
-
-```
-frontend/
-├── public/                          # Статические файлы
-│   ├── logo.svg                     # Логотип приложения
-│   ├── manifest.json                # Web App Manifest
-│   └── logo192.png                  # Иконка приложения
-├── src/                             # Исходный код
-│   ├── components/                  # Переиспользуемые компоненты
-│   │   ├── ClusterDetailsModal.tsx  # Модальное окно деталей кластера
-│   │   ├── ClusterForm.tsx          # Форма управления кластером
-│   │   ├── ClusterList.tsx          # Список кластеров
-│   │   ├── CodeHighlighter.tsx      # Подсветка синтаксиса кода
-│   │   ├── DashboardCharts.tsx      # Графики dashboard
-│   │   ├── DashboardStatistics.tsx  # Статистика dashboard
-│   │   ├── ErrorBoundary.tsx        # Обработка ошибок
-│   │   ├── MaskedInput.tsx          # Маскированный ввод
-│   │   ├── NodeTable.tsx            # Таблица узлов кластера
-│   │   ├── RuleManagement.tsx       # Управление правилами
-│   │   ├── RuleSelector.tsx         # Выбор правил
-│   │   ├── ScheduledInspection.tsx  # Запланированные инспекции
-│   │   ├── SecretForm.tsx           # Форма управления секретами
-│   │   ├── SecretRevealModal.tsx    # Модальное окно показа секретов
-│   │   ├── SecretSelector.tsx       # Выбор секретов
-│   │   ├── statusUtils.tsx          # Утилиты для статусов
-│   │   ├── VersionDisplay.tsx       # Отображение версии
-│   │   └── HelpTabs/                # Компоненты справки
-│   ├── pages/                       # Страницы приложения
-│   │   ├── ClusterManagement.tsx    # Управление кластерами
-│   │   ├── Dashboard.tsx            # Главная страница
-│   │   ├── Help.tsx                 # Справка
-│   │   ├── Inspection.tsx           # Инспекции
-│   │   ├── NetworkConnectivity.tsx  # Сетевые проверки
-│   │   ├── PopeyeScan.tsx           # Сканирование Popeye
-│   │   ├── Reports.tsx              # Отчеты
-│   │   └── SecretManagement.tsx     # Управление секретами
-│   ├── services/                    # API сервисы
-│   │   ├── api.ts                   # HTTP клиент
-│   │   └── secretApi.ts             # API для секретов
-│   ├── stores/                      # Глобальное состояние
-│   │   └── uiStore.ts               # UI состояние (Zustand)
-│   ├── types/                       # Типы TypeScript
-│   │   └── secret.ts                # Типы для секретов
-│   ├── utils/                       # Утилиты
-│   │   ├── apiErrorHandler.ts       # Обработка ошибок API
-│   │   └── nodeParser.ts            # Парсер данных узлов
-│   ├── App.tsx                      # Главный компонент
-│   ├── index.tsx                    # Точка входа
-│   ├── index.css                    # Глобальные стили
-│   ├── theme.css                    # Темизация
-│   ├── components.css               # Стили компонентов
-│   └── utilities.css                # Утилитарные стили
-├── .dockerignore                    # Исключаемые файлы для Docker сборки
-├── .npmrc                           # Конфигурация NPM
-├── .prettierrc.json                 # Конфигурация Prettier
-├── .stylelintrc.json                # Конфигурация Stylelint
-├── Dockerfile                       # Production Docker образ
-├── Dockerfile.test                  # Development Docker образ с hot reload
-├── eslint.config.js                 # Конфигурация ESLint
-├── index.html                       # HTML шаблон
-├── nginx.conf                       # Конфигурация Nginx для production
-├── package.json                     # Зависимости Node.js
-├── tsconfig.json                    # Конфигурация TypeScript
-├── tsconfig.node.json               # Конфигурация TypeScript для Node
-├── vite.config.ts                   # Конфигурация Vite
-└── README.md                        # Документация
-```
-
-## Принципы архитектуры
-
-### 1. Компонентная архитектура
-
-- **Атомарные компоненты**: Каждый компонент имеет единственную ответственность
-- **Переиспользование**: Компоненты спроектированы для повторного использования
-- **Составление**: Сложные компоненты собираются из простых
-
-### 2. Управление состоянием
-
-- **Локальное состояние**: React hooks для компонентного состояния
-- **Глобальное состояние**: Zustand для кросс-компонентного состояния
-- **Серверное состояние**: TanStack Query для API данных
-
-### 3. API интеграция
-
-- **Централизованный клиент**: Все API вызовы через `services/api.ts`
-- **Обработка ошибок**: Единая система обработки ошибок
-- **Кэширование**: Автоматическое кэширование и инвалидация
-
-## Запуск
-
-### Docker
-
-#### Production сборка
+## Установка
 
 ```bash
-# Соберите production образ
-docker build -t kubeeye-frontend -f Dockerfile .
-
-# Запустите production контейнер
-docker run -p 3000:3000 kubeeye-frontend
+npm install antd @ant-design/cssinjs
+# или
+yarn add antd @ant-design/cssinjs
 ```
 
-#### Development сборка с hot reload
+## Использование
 
-```bash
-# Соберите development образ
-docker build -t kubeeye-frontend-dev -f Dockerfile.test .
+### Базовая настройка темы
 
-# Запустите development контейнер с маунтом исходников
-docker run -p 3000:3000 -v $(pwd):/app kubeeye-frontend-dev
+```typescript
+import type { ExtendedThemeConfig } from './types';
+import { ConfigProvider } from 'antd';
+
+const customTheme: ExtendedThemeConfig = {
+  token: {
+    colorPrimary: '#1890ff',
+    borderRadius: 6,
+    // Custom токены
+    customColors: {
+      colorBrand: '#001529',
+      colorAccent: '#40a9ff',
+    },
+  },
+  components: {
+    Button: {
+      borderRadius: 4,
+    },
+  },
+  custom: {
+    cssinjs: {
+      hashed: true,
+      prefix: 'my-app',
+    },
+  },
+};
+
+function App() {
+  return (
+    <ConfigProvider theme={customTheme}>
+      {/* Ваше приложение */}
+    </ConfigProvider>
+  );
+}
 ```
 
-### Docker Compose
+### Использование улучшенных форм
 
-Для полной среды разработки используйте docker-compose из корня проекта:
+```typescript
+import type { UseExtendedFormReturn } from './types';
 
-```bash
-# Запуск всех сервисов (PostgreSQL + Backend + Frontend)
-docker-compose up -d
+interface UserForm {
+  name: string;
+  email: string;
+  age: number;
+}
 
-# Frontend будет доступен на http://localhost:3000
+function UserFormComponent() {
+  const form: UseExtendedFormReturn<UserForm> = useExtendedForm();
+
+  // Автосохранение каждые 30 секунд
+  form.autoSave(30000);
+
+  return (
+    <Form form={form.form}>
+      <Form.Item name="name" rules={[{ required: true }]}>
+        <Input />
+      </Form.Item>
+      <Form.Item name="email" rules={[{ type: 'email' }]}>
+        <Input />
+      </Form.Item>
+    </Form>
+  );
+}
 ```
 
-## Тестирование
+### Расширенные колонки таблиц
 
-### Линтинг и качество кода
+```typescript
+import type { ExtendedColumnType } from './types';
 
-Frontend использует Prettier для форматирования, ESLint для JavaScript/TypeScript и Stylelint для CSS:
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  status: 'active' | 'inactive';
+}
 
-```bash
-# Prettier форматирование
-npm run format
-
-# Prettier проверка форматирования
-npm run format:check
-
-# ESLint для JavaScript/TypeScript
-npm run lint:js
-
-# Stylelint для CSS
-npm run lint:css
+const columns: ExtendedColumnType<User>[] = [
+  {
+    title: 'Имя',
+    dataIndex: 'name',
+    searchable: true,
+    exportable: true,
+  },
+  {
+    title: 'Email',
+    dataIndex: 'email',
+    customFilter: {
+      type: 'input',
+      placeholder: 'Поиск по email',
+    },
+  },
+  {
+    title: 'Статус',
+    dataIndex: 'status',
+    customFilter: {
+      type: 'select',
+      options: [
+        { label: 'Активен', value: 'active' },
+        { label: 'Неактивен', value: 'inactive' },
+      ],
+    },
+  },
+];
 ```
 
-### Автоматизированное тестирование
+### CSS-in-JS интеграция
 
-Для запуска линтеров через Docker используйте скрипт из корня проекта:
+```typescript
+import { useCSSInJS } from './hooks';
 
-```bash
-# Запуск линтинга для frontend (Prettier авто-форматирование + ESLint + Stylelint)
-./run_test.sh --front-lint
+function StyledComponent() {
+  const { createStyle, createCSSVars } = useCSSInJS();
 
-# Запуск всех проверок (включая backend)
-./run_test.sh --all
+  const styles = createStyle((theme) => ({
+    container: {
+      backgroundColor: theme.token.colorBgContainer,
+      borderRadius: theme.token.borderRadius,
+      padding: theme.token.padding,
+    },
+    button: {
+      color: theme.token.colorPrimary,
+      '&:hover': {
+        color: theme.token.colorPrimaryHover,
+      },
+    },
+  }));
+
+  return (
+    <div className={styles.container}>
+      <button className={styles.button}>Кнопка</button>
+    </div>
+  );
+}
 ```
 
-### Ручной запуск линтеров
+## API Reference
 
-Если нужно запустить линтеры вручную:
+### ThemeConfig
 
-```bash
-# Установка зависимостей
-npm install
+Расширенная конфигурация темы с дополнительными возможностями:
 
-# ESLint
-npm run lint:js
-
-# Stylelint
-npm run lint:css
+```typescript
+interface ExtendedThemeConfig {
+  algorithm?: ExtendedMappingAlgorithm;
+  token?: Partial<BaseColorTokens & SizeTokens & CustomThemeTokens>;
+  components?: ComponentTokens;
+  custom?: CustomThemeTokens;
+  cssinjs?: {
+    hashed?: boolean;
+    prefix?: string;
+  };
+}
 ```
 
-### Модульное тестирование
+### Дизайн-токены
 
-Frontend включает настройку для модульного тестирования с использованием Jest и Testing Library:
+#### BaseColorTokens
+Основные цветовые токены для брендинга и состояний.
 
-```bash
-# Запуск тестов
-npm test
+#### SizeTokens
+Токены размеров для отступов, границ и шрифтов.
 
-# Запуск тестов с покрытием
-npm test -- --coverage
+#### CustomThemeTokens
+Дополнительные токены для расширения функциональности.
+
+### Component Tokens
+
+Токены для настройки отдельных компонентов:
+
+```typescript
+interface ComponentTokens {
+  Button?: {
+    colorPrimary?: string;
+    borderRadius?: number;
+  };
+  Input?: {
+    borderRadius?: number;
+  };
+  // ... другие компоненты
+}
 ```
 
-**Тестовые утилиты:**
-- **@testing-library/react**: Тестирование React компонентов
-- **@testing-library/jest-dom**: Дополнительные матчеры для Jest
-- **@testing-library/user-event**: Симуляция пользовательских взаимодействий
+## Миграция с Ant Design v5
 
-## Конфигурация
+### Изменения в ThemeConfig
 
-### Переменные окружения
+```typescript
+// Ant Design v5
+const theme = {
+  token: {
+    colorPrimary: '#1890ff',
+  },
+};
 
-| Переменная          | По умолчанию | Описание                    |
-| ------------------- | ------------ | --------------------------- |
-| `REACT_APP_API_URL` | `/api`       | Базовый URL для API бэкенда |
+// Ant Design v6 с улучшенными типами
+import type { ExtendedThemeConfig } from './types';
 
-### Конфигурация сборки
+const theme: ExtendedThemeConfig = {
+  token: {
+    colorPrimary: '#1890ff',
+    // Дополнительные strict типы
+    customColors: {
+      colorBrand: '#001529',
+    },
+  },
+  custom: {
+    cssinjs: {
+      hashed: true,
+    },
+  },
+};
+```
 
-- **Vite**: Быстрая сборка с HMR для разработки, прокси для API
-- **Prettier**: Автоматическое форматирование кода (singleQuote, semi, trailingComma)
-- **TypeScript**: Строгая типизация с современными возможностями (ES2020, strict mode)
-- **ESLint**: Линтинг с правилами для React и TypeScript (flat config)
-- **Stylelint**: Линтинг CSS с ограничением единиц измерения (recommended config)
+### Новые API компонентов
 
-### Оптимизации сборки
+```typescript
+// Form.useForm в v6
+import type { UseFormReturn } from './types';
 
-- **Code splitting**: Автоматическое разделение кода на chunks (vendor, antd, router, charts, utils)
-- **Tree shaking**: Удаление неиспользуемого кода
-- **Compression**: Brotli сжатие для production (vite-plugin-compression2)
-- **PurgeCSS**: Удаление неиспользуемых CSS классов (vite-plugin-purgecss)
-- **Bundle analyzer**: Визуализация размера бандла (rollup-plugin-visualizer)
+const { form, formRef }: UseFormReturn<UserData> = useForm();
 
-## Технологии
+// Table.Column в v6
+import type { ColumnType } from './types';
 
-### Core
+const columns: ColumnType<User>[] = [
+  {
+    title: 'Имя',
+    dataIndex: 'name',
+    sorter: true,
+    filters: [],
+  },
+];
+```
 
-- **React 19.2**: Современная библиотека для создания пользовательских интерфейсов
-- **TypeScript 5.9**: Типизированный JavaScript для надежного кода
-- **Vite 7.3**: Быстрый инструмент сборки с HMR
+## Лучшие практики
 
-### UI и стилизация
+### 1. Использование strict типов
 
-- **Ant Design 6.1**: Компонентная библиотека с богатым набором компонентов
-- **CSS Modules**: Модульные стили для изоляции компонентов
-- **Responsive Design**: Адаптивный дизайн для всех устройств
+```typescript
+// ✅ Хорошо
+const theme: ExtendedThemeConfig = {
+  token: {
+    colorPrimary: '#1890ff', // Типобезопасно
+  },
+};
 
-### Управление состоянием и API
+// ❌ Плохо
+const theme = {
+  token: {
+    colorPrimary: '#1890ff', // Нет типизации
+  },
+};
+```
 
-- **TanStack Query 5.90**: Мощная библиотека для управления серверным состоянием
-- **Axios 1.13**: HTTP клиент с перехватчиками и таймаутами
-- **Zustand 5.0**: Легковесное управление состоянием
+### 2. Кастомные токены
 
-### Утилиты
+```typescript
+const theme: ExtendedThemeConfig = {
+  token: {
+    // Стандартные токены
+    colorPrimary: '#1890ff',
+    // Кастомные расширения
+    customColors: {
+      colorBrand: '#001529',
+      colorAccent: '#40a9ff',
+    },
+  },
+};
+```
 
-- **Date-fns 4.1**: Модернизированная работа с датами
-- **DOMPurify 3.3**: Санитизация HTML для безопасности
-- **PrismJS 1.30**: Подсветка синтаксиса кода
+### 3. CSS-in-JS интеграция
 
-### Качество кода
+```typescript
+const theme: ExtendedThemeConfig = {
+  custom: {
+    cssinjs: {
+      hashed: true, // Хэшированные классы
+      prefix: 'my-app', // Префикс для CSS переменных
+    },
+  },
+};
+```
 
-- **Prettier 3.7**: Автоматическое форматирование кода
-- **ESLint 9.39**: Линтинг JavaScript/TypeScript с React правилами
-- **Stylelint 16.26**: Линтинг CSS с ограничениями
-- **TypeScript Compiler**: Строгая проверка типов
+## Поддержка
 
-### Оптимизация сборки
+- **TypeScript**: 4.5+
+- **React**: 18+
+- **Ant Design**: 6.0+
+- **@ant-design/cssinjs**: 1.0+
 
-- **rollup-plugin-visualizer**: Анализ размера бандла
-- **vite-plugin-compression2**: Brotli сжатие
-- **vite-plugin-purgecss**: Удаление неиспользуемых CSS
+## Лицензия
 
-## Безопасность
-
-### Уровни безопасности
-
-1. **Клиентский уровень**: Валидация форм, санитизация данных
-2. **API уровень**: Безопасные HTTP запросы, обработка ошибок
-3. **Инфраструктурный уровень**: Безопасные заголовки, CORS политика
-
-### Механизмы
-
-- **CORS**: Настроенная политика для безопасного взаимодействия с API
-- **Content Security Policy**: Защита от XSS через заголовки
-- **Input sanitization**: Очистка пользовательского ввода
-- **Error boundaries**: Изоляция ошибок компонентов
-- **Type safety**: TypeScript предотвращает типовые ошибки
-
-### Ограничения безопасности
-
-- **Read-only operations**: Все операции только на чтение через API
-- **No sensitive data**: Чувствительные данные не хранятся локально
-- **Secure headers**: Безопасные HTTP заголовки в Nginx
-
-## Мониторинг и наблюдаемость
-
-### Метрики производительности
-
-- **Bundle analyzer**: Анализ размера бандла через `rollup-plugin-visualizer`
-- **Build stats**: Статистика сборки с размерами chunks
-- **Runtime performance**: Мониторинг React компонентов
-
-### Обработка ошибок
-
-- **Error boundaries**: Перехват ошибок React компонентов
-- **API error handling**: Централизованная обработка ошибок API
-- **User feedback**: Понятные сообщения об ошибках для пользователей
-
-### Логирование
-
-- **Console logging**: Разработка и отладка
-- **Error tracking**: Отслеживание ошибок в production
-- **Performance monitoring**: Мониторинг производительности
+MIT

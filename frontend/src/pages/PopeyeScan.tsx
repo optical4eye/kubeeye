@@ -324,8 +324,8 @@ const PopeyeScan = () => {
                           showInfo={false}
                           size="small"
                           strokeColor={{
-                            '0%': '#108ee9',
-                            '100%': '#87d068',
+                            '0%': 'var(--ant-color-primary)',
+                            '100%': 'var(--ant-color-success)',
                           }}
                         />
                       )}

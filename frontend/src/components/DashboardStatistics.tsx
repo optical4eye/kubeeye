@@ -16,40 +16,40 @@ const DashboardStatistics: React.FC<DashboardStatisticsProps> = ({ dashboardData
 
   return (
     <Row gutter={16} className="dashboard-row">
-      <Col span={3}>
+      <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic title="Кластеры" value={total_clusters} />
       </Col>
-      <Col span={3}>
+      <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic title="Инспекций" value={recent_scans} />
       </Col>
-      <Col span={3}>
+      <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic
           title="Критические"
           value={recent_results.reduce((sum, r) => sum + (r.critical || 0), 0)}
         />
       </Col>
-      <Col span={3}>
+      <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic
           title="Предупреждения"
           value={recent_results.reduce((sum, r) => sum + (r.warning || 0), 0)}
         />
       </Col>
-      <Col span={3}>
+      <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic
           title="Другие"
           value={recent_results.reduce((sum, r) => sum + (r.info || 0), 0)}
         />
       </Col>
-      <Col span={3}>
+      <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic
           title="Успешно"
           value={recent_results.reduce((sum, r) => sum + (r.passed || 0), 0)}
         />
       </Col>
-      <Col span={3}>
+      <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic title="Последняя" value={latest_scan_time} />
       </Col>
-      <Col span={3}>
+      <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic title="Правил" value={total_rules} />
       </Col>
     </Row>

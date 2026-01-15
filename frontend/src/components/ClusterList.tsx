@@ -11,12 +11,13 @@ const ClusterList = ({
   onRefresh: _onRefresh,
 }) => {
   const clusterColumns = [
-    { title: 'Имя кластера', dataIndex: 'name', key: 'name', width: 150 },
+    { title: 'Имя кластера', dataIndex: 'name', key: 'name', width: 150, ellipsis: true },
     {
       title: 'Узлы',
       dataIndex: 'nodes',
       key: 'nodes',
       width: 80,
+      responsive: ['md'],
       render: nodes => nodes?.length || 0,
     },
     {
@@ -24,6 +25,7 @@ const ClusterList = ({
       dataIndex: 'kubeconfig',
       key: 'kubeconfig',
       width: 120,
+      responsive: ['lg'],
       render: kubeconfig =>
         kubeconfig ? (
           <Tag className="status-configured" aria-label="Kubeconfig настроен">
@@ -40,6 +42,7 @@ const ClusterList = ({
       dataIndex: 'cert_expiry_days',
       key: 'cert_expiry',
       width: 150,
+      responsive: ['xl'],
       render: days => {
         if (days === null || days === undefined) {
           return (
@@ -90,7 +93,7 @@ const ClusterList = ({
       key: 'actions',
       width: 200,
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <Button
             icon={<EyeOutlined />}
             onClick={() => onViewDetails(record)}

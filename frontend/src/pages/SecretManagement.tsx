@@ -223,35 +223,6 @@ const SecretManagement: React.FC = () => {
       render: (text: string | null) => text || '-',
     },
     {
-      title: 'Статус',
-      dataIndex: 'is_active',
-      key: 'is_active',
-      render: (active: boolean) => (
-        <Tag
-          icon={active ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-          style={{
-            backgroundColor: active
-              ? 'var(--status-outline-success)'
-              : 'var(--status-outline-default)',
-            color: '#ffffff',
-            borderColor: active ? 'var(--status-outline-success)' : 'var(--status-outline-default)',
-            borderRadius: '6px',
-            padding: '2px 8px',
-            fontWeight: 600,
-            fontSize: '12px',
-            lineHeight: '20px',
-            minWidth: '60px',
-            textAlign: 'center',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {active ? 'Активен' : 'Неактивен'}
-        </Tag>
-      ),
-    },
-    {
       title: 'Последнее использование',
       dataIndex: 'last_used_at',
       key: 'last_used_at',
@@ -261,7 +232,7 @@ const SecretManagement: React.FC = () => {
       title: 'Действия',
       key: 'actions',
       render: (_: unknown, record: Secret) => (
-        <Space size="small">
+        <Space size="small" wrap>
           <Tooltip title="Просмотреть">
             <Button type="text" icon={<EyeOutlined />} onClick={() => handleReveal(record.id)} />
           </Tooltip>

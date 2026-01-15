@@ -1,5 +1,6 @@
 import React from 'react';
 import { CloseCircleOutlined } from '@ant-design/icons';
+import { theme } from 'antd';
 
 interface LoadingScreenProps {
   message?: string;
@@ -10,11 +11,12 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
   message = 'Система запускается',
   subMessage = 'Пожалуйста, подождите...',
 }) => {
+  const { token } = theme.useToken();
   const statusInfo = {
     status: 'error' as const,
     text: 'Недоступен',
     icon: <CloseCircleOutlined />,
-    color: 'red',
+    color: '#ff4d4f',
   };
   return (
     <div
@@ -24,53 +26,67 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #141414, #000000)',
         color: 'white',
         fontFamily: 'Arial, sans-serif',
       }}
     >
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚀</div>
-        <h1 style={{ color: 'white', margin: '0 0 0.5rem 0', fontSize: '2.5rem' }}>KubeEye</h1>
-        <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1.1rem', margin: '0 0 2rem 0' }}>
+        <div style={{ fontSize: '4rem', marginBottom: token.margin }}>🚀</div>
+        <h1 style={{ color: 'white', margin: `0 0 ${token.margin} 0`, fontSize: '2.5rem' }}>
+          KubeEye
+        </h1>
+        <p
+          style={{
+            color: '#a6a6a6',
+            fontSize: '1.1rem',
+            margin: `0 0 ${token.margin} 0`,
+          }}
+        >
           Kubernetes Cluster Inspection Tool
         </p>
       </div>
 
-      <div style={{ textAlign: 'center' }}>
+      <div style={{ textAlign: 'center', marginTop: token.marginXXL }}>
         <div
           style={{
             width: '48px',
             height: '48px',
-            border: '4px solid rgba(255, 255, 255, 0.3)',
+            border: '4px solid #434343',
             borderTop: '4px solid white',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
-            margin: '0 auto 2rem auto',
+            margin: `0 auto ${token.margin} auto`,
           }}
         />
-        <h2 style={{ color: 'white', margin: '0 0 1rem 0', fontSize: '1.5rem' }}>{message}</h2>
-        <p style={{ color: 'rgba(255, 255, 255, 0.7)', margin: '0 0 2rem 0' }}>{subMessage}</p>
+        <h2 style={{ color: 'white', margin: `0 0 ${token.marginSM} 0`, fontSize: '1.5rem' }}>
+          {message}
+        </h2>
+        <p style={{ color: '#a6a6a6', margin: `0 0 ${token.margin} 0` }}>
+          {subMessage}
+        </p>
       </div>
 
       {/* Backend Status Section */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+      <div style={{ textAlign: 'center', marginTop: token.marginXXL, marginBottom: token.margin }}>
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            marginBottom: '0.5rem',
+            gap: token.marginSM,
+            marginBottom: token.marginSM,
           }}
         >
           {statusInfo.icon}
-          <span style={{ color: 'white', fontSize: '1rem' }}>Backend: {statusInfo.text}</span>
+          <span style={{ color: 'white', fontSize: '1rem' }}>
+            Backend: {statusInfo.text}
+          </span>
         </div>
       </div>
 
-      <div style={{ textAlign: 'center' }}>
-        <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.9rem', margin: 0 }}>
+      <div style={{ textAlign: 'center', marginTop: token.margin }}>
+        <p style={{ color: '#a6a6a6', fontSize: '0.9rem', margin: 0 }}>
           Подготовка системы к работе...
         </p>
       </div>

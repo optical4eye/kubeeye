@@ -30,7 +30,6 @@ import RuleSelector from './RuleSelector';
 import { getStatusTag } from './statusUtils';
 
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 const ScheduledInspection = () => {
   const [tasks, setTasks] = useState([]);
@@ -236,7 +235,7 @@ const ScheduledInspection = () => {
       title: 'Действия',
       key: 'actions',
       render: (_, record) => (
-        <Space>
+        <Space wrap>
           <Button
             icon={<PlayCircleFilled />}
             onClick={() => handleRunTask(record.task_id)}
@@ -265,161 +264,175 @@ const ScheduledInspection = () => {
 
   return (
     <div>
-      <Tabs defaultActiveKey="1">
-        <TabPane tab="Список задач" key="1">
-          <Card>
-            <Table
-              columns={taskColumns}
-              dataSource={tasks}
-              loading={loading}
-              rowKey="task_id"
-              pagination={{ pageSize: 10 }}
-            />
-          </Card>
-        </TabPane>
+      <Tabs
+        defaultActiveKey="1"
+        items={[
+          {
+            key: '1',
+            label: 'Список задач',
+            children: (
+              <Card>
+                <Table
+                  columns={taskColumns}
+                  dataSource={tasks}
+                  loading={loading}
+                  rowKey="task_id"
+                  pagination={{ pageSize: 10 }}
+                />
+              </Card>
+            ),
+          },
+          {
+            key: '2',
+            label: 'Создать задачу',
+            children: (
+              <Card>
+                <Form form={form} layout="vertical" onFinish={handleCreateTask}>
+                  <Form.Item
+                    name="name"
+                    label="Название задачи"
+                    rules={[{ required: true, message: 'Введите название задачи' }]}
+                  >
+                    <Input placeholder="Ежедневная проверка" />
+                  </Form.Item>
 
-        <TabPane tab="Создать задачу" key="2">
-          <Card>
-            <Form form={form} layout="vertical" onFinish={handleCreateTask}>
-              <Form.Item
-                name="name"
-                label="Название задачи"
-                rules={[{ required: true, message: 'Введите название задачи' }]}
-              >
-                <Input placeholder="Ежедневная проверка" />
-              </Form.Item>
+                  <Form.Item
+                    name="description"
+                    label="Описание"
+                    rules={[{ required: true, message: 'Введите описание задачи' }]}
+                  >
+                    <Input.TextArea placeholder="Описание задачи" />
+                  </Form.Item>
 
-              <Form.Item
-                name="description"
-                label="Описание"
-                rules={[{ required: true, message: 'Введите описание задачи' }]}
-              >
-                <Input.TextArea placeholder="Описание задачи" />
-              </Form.Item>
+                  <Form.Item
+                    name="cluster"
+                    label="Кластер"
+                    rules={[{ required: true, message: 'Выберите кластер' }]}
+                  >
+                    <Select placeholder="Выберите кластер">
+                      {clusters.map(cluster => (
+                        <Option key={cluster.name} value={cluster.name}>
+                          {cluster.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
 
-              <Form.Item
-                name="cluster"
-                label="Кластер"
-                rules={[{ required: true, message: 'Выберите кластер' }]}
-              >
-                <Select placeholder="Выберите кластер">
-                  {clusters.map(cluster => (
-                    <Option key={cluster.name} value={cluster.name}>
-                      {cluster.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
+                  <Form.Item
+                    name="schedule_type"
+                    label="Тип расписания"
+                    rules={[{ required: true, message: 'Выберите тип расписания' }]}
+                  >
+                    <Select placeholder="Выберите тип">
+                      <Option value="cron">Периодическая (Cron)</Option>
+                      <Option value="once">Одноразовая</Option>
+                    </Select>
+                  </Form.Item>
 
-              <Form.Item
-                name="schedule_type"
-                label="Тип расписания"
-                rules={[{ required: true, message: 'Выберите тип расписания' }]}
-              >
-                <Select placeholder="Выберите тип">
-                  <Option value="cron">Периодическая (Cron)</Option>
-                  <Option value="once">Одноразовая</Option>
-                </Select>
-              </Form.Item>
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) =>
+                      prevValues.schedule_type !== currentValues.schedule_type
+                    }
+                  >
+                    {({ getFieldValue }) => {
+                      const scheduleType = getFieldValue('schedule_type');
+                      if (scheduleType === 'cron') {
+                        return (
+                          <div>
+                            <Alert
+                              message="Cron формат: мин час день месяц день_недели"
+                              type="info"
+                              showIcon
+                              className="margin-bottom-space-4"
+                            />
+                            <Space wrap>
+                              <Form.Item name="cron_min" label="Минуты" initialValue="0">
+                                <Input placeholder="0" />
+                              </Form.Item>
+                              <Form.Item name="cron_hour" label="Часы" initialValue="8">
+                                <Input placeholder="8" />
+                              </Form.Item>
+                              <Form.Item name="cron_dom" label="День месяца" initialValue="*">
+                                <Input placeholder="*" />
+                              </Form.Item>
+                              <Form.Item name="cron_month" label="Месяц" initialValue="*">
+                                <Input placeholder="*" />
+                              </Form.Item>
+                              <Form.Item name="cron_dow" label="День недели" initialValue="*">
+                                <Input placeholder="*" />
+                              </Form.Item>
+                            </Space>
+                          </div>
+                        );
+                      } else if (scheduleType === 'once') {
+                        return (
+                          <Space>
+                            <Form.Item
+                              name="run_date"
+                              label="Дата выполнения"
+                              rules={[{ required: true }]}
+                            >
+                              <DatePicker />
+                            </Form.Item>
+                            <Form.Item
+                              name="run_time"
+                              label="Время выполнения"
+                              rules={[{ required: true }]}
+                            >
+                              <TimePicker format="HH:mm" />
+                            </Form.Item>
+                          </Space>
+                        );
+                      }
+                      return null;
+                    }}
+                  </Form.Item>
 
-              <Form.Item
-                noStyle
-                shouldUpdate={(prevValues, currentValues) =>
-                  prevValues.schedule_type !== currentValues.schedule_type
-                }
-              >
-                {({ getFieldValue }) => {
-                  const scheduleType = getFieldValue('schedule_type');
-                  if (scheduleType === 'cron') {
-                    return (
-                      <div>
-                        <Alert
-                          message="Cron формат: мин час день месяц день_недели"
-                          type="info"
-                          showIcon
-                          className="margin-bottom-space-4"
+                  <div className="margin-top-space-6 margin-bottom-space-6">
+                    <h4>Выберите правила инспекции:</h4>
+                    <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+                      <div style={{ flex: 1 }}>
+                        <RuleSelector
+                          ruleType="node"
+                          title="Правила узлов"
+                          availableRules={rules.node || []}
+                          selectedRules={selectedRules}
+                          onRuleSelection={handleRuleSelection}
                         />
-                        <Space wrap>
-                          <Form.Item name="cron_min" label="Минуты" initialValue="0">
-                            <Input placeholder="0" />
-                          </Form.Item>
-                          <Form.Item name="cron_hour" label="Часы" initialValue="8">
-                            <Input placeholder="8" />
-                          </Form.Item>
-                          <Form.Item name="cron_dom" label="День месяца" initialValue="*">
-                            <Input placeholder="*" />
-                          </Form.Item>
-                          <Form.Item name="cron_month" label="Месяц" initialValue="*">
-                            <Input placeholder="*" />
-                          </Form.Item>
-                          <Form.Item name="cron_dow" label="День недели" initialValue="*">
-                            <Input placeholder="*" />
-                          </Form.Item>
-                        </Space>
                       </div>
-                    );
-                  } else if (scheduleType === 'once') {
-                    return (
-                      <Space>
-                        <Form.Item
-                          name="run_date"
-                          label="Дата выполнения"
-                          rules={[{ required: true }]}
-                        >
-                          <DatePicker />
-                        </Form.Item>
-                        <Form.Item
-                          name="run_time"
-                          label="Время выполнения"
-                          rules={[{ required: true }]}
-                        >
-                          <TimePicker format="HH:mm" />
-                        </Form.Item>
-                      </Space>
-                    );
-                  }
-                  return null;
-                }}
-              </Form.Item>
+                      <div style={{ flex: 1 }}>
+                        <RuleSelector
+                          ruleType="opa"
+                          title="Правила Kubernetes"
+                          availableRules={rules.opa || []}
+                          selectedRules={selectedRules}
+                          onRuleSelection={handleRuleSelection}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="margin-top-space-6 margin-bottom-space-6">
-                <h4>Выберите правила инспекции:</h4>
-                <div className="grid-auto-fit">
-                  <RuleSelector
-                    ruleType="node"
-                    title="Правила узлов"
-                    availableRules={rules.node || []}
-                    selectedRules={selectedRules}
-                    onRuleSelection={handleRuleSelection}
-                  />
-                  <RuleSelector
-                    ruleType="opa"
-                    title="Правила Kubernetes"
-                    availableRules={rules.opa || []}
-                    selectedRules={selectedRules}
-                    onRuleSelection={handleRuleSelection}
-                  />
-                </div>
-              </div>
+                  <Form.Item
+                    name="enabled"
+                    label="Включить задачу"
+                    valuePropName="checked"
+                    initialValue={true}
+                  >
+                    <Switch />
+                  </Form.Item>
 
-              <Form.Item
-                name="enabled"
-                label="Включить задачу"
-                valuePropName="checked"
-                initialValue={true}
-              >
-                <Switch />
-              </Form.Item>
-
-              <Form.Item>
-                <Button type="primary" htmlType="submit">
-                  Создать задачу
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
-        </TabPane>
-      </Tabs>
+                  <Form.Item>
+                    <Button type="primary" htmlType="submit">
+                      Создать задачу
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </Card>
+            ),
+          },
+        ]}
+      />
 
       <Modal
         title="Редактировать задачу"
@@ -533,21 +546,25 @@ const ScheduledInspection = () => {
 
           <div className="margin-top-space-6 margin-bottom-space-6">
             <h4>Выберите правила инспекции:</h4>
-            <div className="grid-auto-fit">
-              <RuleSelector
-                ruleType="node"
-                title="Правила узлов"
-                availableRules={rules.node || []}
-                selectedRules={selectedRules}
-                onRuleSelection={handleRuleSelection}
-              />
-              <RuleSelector
-                ruleType="opa"
-                title="Правила Kubernetes"
-                availableRules={rules.opa || []}
-                selectedRules={selectedRules}
-                onRuleSelection={handleRuleSelection}
-              />
+            <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+              <div style={{ flex: 1 }}>
+                <RuleSelector
+                  ruleType="node"
+                  title="Правила узлов"
+                  availableRules={rules.node || []}
+                  selectedRules={selectedRules}
+                  onRuleSelection={handleRuleSelection}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <RuleSelector
+                  ruleType="opa"
+                  title="Правила Kubernetes"
+                  availableRules={rules.opa || []}
+                  selectedRules={selectedRules}
+                  onRuleSelection={handleRuleSelection}
+                />
+              </div>
             </div>
           </div>
 

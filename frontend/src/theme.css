@@ -1,106 +1,85 @@
 /* ===== THEME VARIABLES ===== */
+/* Ant Design v6 Semantic Tokens - Standard Ant Design dark theme colors */
+/* Color tokens - стандартные цвета Ant Design для темной темы */
 :root {
-  /* Color palette variables - Dark theme with WCAG AA compliant contrast ratios */
-  --primary-color: #fab005; /* Yellow primary */
-  --secondary-color: #f59f00; /* Orange secondary */
-  --background-dark: #343a40; /* Dark gray background */
-  --background-main: #495057; /* Medium gray main background */
-  --background-hover: #6c757d; /* Lighter gray hover */
-  --text-primary: #f8f8f2; /* High contrast white text */
-  --text-secondary: #adb5bd; /* Light gray secondary text */
-  --success-color: #50fa7b;
-  --warning-color: #fcc419;
-  --error-color: #f55;
-  --info-color: #8be9fd;
-  --code-color: #ff79c6;
-  --highlight-color: #fcc419;
-  --placeholder-color: #ccc;
+  /* Spacing tokens */
+  --ant-margin-xs: var(--space-1);
+  --ant-margin-sm: var(--space-2);
+  --ant-margin: var(--space-4);
+  --ant-margin-lg: var(--space-6);
+  --ant-margin-xl: var(--space-7);
+  --ant-margin-xxl: var(--space-9);
+  --ant-margin-xxxl: var(--space-10);
 
-  /* Secret type colors - specific hex codes for consistent styling */
-  --secret-type-password: #3b82f6; /* Blue */
-  --secret-type-ssh-key: #10b981; /* Green */
-  --secret-type-kubeconfig: #8b5cf6; /* Purple */
-  --secret-type-default: #6b7280; /* Gray */
+  --ant-padding-xs: var(--space-1);
+  --ant-padding-sm: var(--space-2);
+  --ant-padding: var(--space-4);
+  --ant-padding-lg: var(--space-6);
+  --ant-padding-xl: var(--space-7);
+  --ant-padding-xxl: var(--space-9);
+  --ant-padding-xxxl: var(--space-10);
 
-  /* Neutral gray scale */
-  --gray-100: #f8f8f2;
-  --gray-200: #e0e0e0;
-  --gray-300: #b0b0b0;
-  --gray-400: #808080;
-  --gray-500: #505050;
-  --gray-600: #404040;
-  --gray-700: #303030;
-  --gray-800: #202020;
-  --gray-900: #101010;
+  /* Border radius tokens */
+  --ant-border-radius-sm: var(--radius-sm);
+  --ant-border-radius: var(--radius-md);
+  --ant-border-radius-lg: var(--radius-lg);
 
-  /* Light semantic colors */
-  --success-light: #d1fae5;
-  --warning-light: #fef3c7;
-  --error-light: #fee2e2;
+  /* Box shadow tokens */
+  --ant-box-shadow: var(--shadow-md);
+  --ant-box-shadow-secondary: var(--shadow-sm);
 
-  /* Status colors */
-  --status-pending: #faad14;
-  --status-running: #1890ff;
-  --status-completed: #52c41a;
-  --status-cancelled: #d9d9d9;
+  /* Typography tokens */
+  --ant-font-size-sm: var(--font-size-xs);
+  --ant-font-size: var(--font-size-sm);
+  --ant-font-size-lg: var(--font-size-base);
+  --ant-font-size-xl: var(--font-size-lg);
+  --ant-font-size-xxl: var(--font-size-xl);
+  --ant-font-size-xxxl: var(--font-size-2xl);
+  --ant-font-size-heading1: var(--font-size-4xl);
+  --ant-font-size-heading2: var(--font-size-3xl);
+  --ant-font-size-heading3: var(--font-size-2xl);
+  --ant-font-size-heading4: var(--font-size-xl);
+  --ant-font-size-heading5: var(--font-size-lg);
+  --ant-line-height: 1.5714285714285714;
+  --ant-line-height-sm: 1.6666666666666667;
+  --ant-line-height-lg: 1.5;
+  --ant-font-weight-strong: 600;
 
-  /* Additional semantic colors */
-  --accent-color: #f59f00;
-  --neutral-color: #666;
+  /* Additional Ant Design v6 tokens */
+  /* Space unit */
+  --ant-space-unit: var(--space-1);
 
-  /* Status outline colors */
-  --status-outline-success: #22c55e;
-  --status-outline-error: #dc2626;
-  --status-outline-warning: #d97706;
-  --status-outline-info: #0891b2;
-  --status-outline-processing: #2563eb;
-  --status-outline-default: #6b7280;
+  /* Control heights */
+  --ant-control-height-sm: 24px;
+  --ant-control-height: 32px;
+  --ant-control-height-lg: 40px;
 
-  /* Prism syntax highlighting colors */
-  --prism-background: #21222c;
-  --prism-text: #f8f8f2;
-  --prism-comment: #ccc;
-  --prism-punctuation: #8b94b8;
-  --prism-tag: #6366f1;
-  --prism-constant: #ffb86c;
-  --prism-number: #50fa7b;
-  --prism-string: #f1fa8c;
-  --prism-url: #8b94b8;
-  --prism-keyword: #8be9fd;
-  --prism-function: #8be9fd;
-  --prism-class-name: #8be9fd;
-  --prism-variable: #50fa7b;
-  --prism-border: #6272a4;
-
-  /* Form border color */
-  --form-border-color: #d9d9d9;
-
-  /* Spacing scale */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 32px;
-  --space-8: 40px;
-  --space-9: 48px;
-  --space-10: 64px;
+  /* Spacing scale - Fluid spacing with clamp() */
+  --space-1: clamp(2px, 1vw, 4px);
+  --space-2: clamp(6px, 2vw, 8px);
+  --space-3: clamp(9px, 3vw, 12px);
+  --space-4: clamp(12px, 4vw, 16px);
+  --space-5: clamp(15px, 5vw, 20px);
+  --space-6: clamp(18px, 6vw, 24px);
+  --space-7: clamp(24px, 8vw, 32px);
+  --space-8: clamp(30px, 10vw, 40px);
+  --space-9: clamp(36px, 12vw, 48px);
+  --space-10: clamp(48px, 16vw, 64px);
 
   /* Border radius scale */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
 
-  /* Font sizes */
-  --font-size-xs: 0.75rem; /* 12px */
-  --font-size-sm: 0.875rem; /* 14px */
-  --font-size-base: 1rem; /* 16px */
-  --font-size-lg: 1.125rem; /* 18px */
-  --font-size-xl: 1.25rem; /* 20px */
-  --font-size-2xl: 1.5rem; /* 24px */
-  --font-size-3xl: 2rem; /* 32px */
-  --font-size-4xl: 2.5rem; /* 40px */
+  /* Font sizes - Fluid typography with clamp() */
+  --font-size-xs: clamp(0.625rem, 1.5vw, 0.75rem); /* 10px to 12px */
+  --font-size-sm: clamp(0.75rem, 2vw, 0.875rem); /* 12px to 14px */
+  --font-size-base: clamp(0.875rem, 2.5vw, 1rem); /* 14px to 16px */
+  --font-size-lg: clamp(1rem, 3vw, 1.125rem); /* 16px to 18px */
+  --font-size-xl: clamp(1.125rem, 3.5vw, 1.25rem); /* 18px to 20px */
+  --font-size-2xl: clamp(1.25rem, 4vw, 1.5rem); /* 20px to 24px */
+  --font-size-3xl: clamp(1.5rem, 5vw, 2rem); /* 24px to 32px */
+  --font-size-4xl: clamp(2rem, 6vw, 2.5rem); /* 32px to 40px */
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
@@ -114,6 +93,20 @@
   --modal-width-medium: 800px;
   --modal-width-large: 1800px;
   --grid-min-width: 300px;
+  --min-width-tag: 60px;
+  --min-width-button: 120px;
+  --max-height-textarea: 300px;
+  --width-menu: 200px;
+  --width-100: 100px;
+  --width-120: 120px;
+  --width-150: 150px;
+  --width-200: 200px;
+  --width-250: 250px;
+  --transform-hover: -1px;
+  --transform-animation: -4px;
+  --border-width-thin: 1px;
+  --border-width-focus: 2px;
+  --font-size-code: 13px;
 
   /* Z-index scale */
   --z-dropdown: 1000;
@@ -132,24 +125,27 @@
 
   /* Accessibility - Focus ring */
   --focus-ring-width: 2px;
-  --focus-ring-color: var(--primary-color);
   --focus-ring-offset: 2px;
 }
 
 /* ===== BASE STYLES ===== */
 body {
   margin: 0;
-  font-family: Inter, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--primary-color);
-  color: var(--text-primary);
+  background-color: var(--ant-color-bg-layout);
+  color: var(--ant-color-text);
   line-height: 1.6;
 }
 
 * {
-  font-family: Inter, sans-serif;
-  color: var(--text-primary);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  color: var(--ant-color-text);
   box-sizing: border-box;
 }
 

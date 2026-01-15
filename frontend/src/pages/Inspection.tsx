@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Tabs, Select, Button, message, Space, Tag, List, Typography, Progress } from 'antd';
+import { Card, Tabs, Select, Button, message, Space, Tag, List, Typography, Progress, theme } from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import {
   getClusters,
@@ -17,6 +17,7 @@ const { TabPane } = Tabs;
 const { Option } = Select;
 
 const Inspection = () => {
+  const { token } = theme.useToken();
   const [clusters, setClusters] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [rules, setRules] = useState({});
@@ -256,26 +257,30 @@ const Inspection = () => {
                 </Select>
               </div>
 
-              <div className="grid-auto-fit">
-                <RuleSelector
-                  ruleType="node"
-                  title="Правила узлов"
-                  availableRules={rules.node || []}
-                  selectedRules={selectedRules}
-                  onRuleSelection={handleRuleSelection}
-                />
-                <RuleSelector
-                  ruleType="opa"
-                  title="Правила Kubernetes"
-                  availableRules={rules.opa || []}
-                  selectedRules={selectedRules}
-                  onRuleSelection={handleRuleSelection}
-                />
+              <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+                <div style={{ flex: 1 }}>
+                  <RuleSelector
+                    ruleType="node"
+                    title="Правила узлов"
+                    availableRules={rules.node || []}
+                    selectedRules={selectedRules}
+                    onRuleSelection={handleRuleSelection}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <RuleSelector
+                    ruleType="opa"
+                    title="Правила Kubernetes"
+                    availableRules={rules.opa || []}
+                    selectedRules={selectedRules}
+                    onRuleSelection={handleRuleSelection}
+                  />
+                </div>
               </div>
 
               {/* Summary of selected rules */}
-              {Object.values(selectedRules).some(arr => arr.length > 0) && (
-                <Card size="small" className="margin-top-space-4">
+               {Object.values(selectedRules).some(arr => arr.length > 0) && (
+                 <Card size="small" className="margin-top-space-4">
                   <div className="flex-space-between">
                     <div>
                       <strong>Выбранные правила:</strong>
@@ -283,7 +288,7 @@ const Inspection = () => {
                         {Object.entries(selectedRules).map(
                           ([type, rules]) =>
                             rules.length > 0 && (
-                              <div key={type} style={{ marginBottom: 4 }}>
+                              <div key={type} style={{ marginBottom: token.marginXXS }}>
                                 <span style={{ fontWeight: 'bold' }}>
                                   {type === 'node' ? 'Узлы' : 'Kubernetes'}:
                                 </span>{' '}
@@ -320,8 +325,8 @@ const Inspection = () => {
           </Card>
 
           {/* Active Tasks Section */}
-          {activeTasks.length > 0 && (
-            <Card title="Активные задачи" className="margin-top-space-4">
+           {activeTasks.length > 0 && (
+             <Card title="Активные задачи" className="margin-top-space-4">
               <List
                 dataSource={activeTasks}
                 renderItem={task => (
@@ -362,8 +367,8 @@ const Inspection = () => {
                               showInfo={false}
                               size="small"
                               strokeColor={{
-                                '0%': '#108ee9',
-                                '100%': '#87d068',
+                                '0%': 'var(--ant-color-primary)',
+                                '100%': 'var(--ant-color-success)',
                               }}
                             />
                           )}
@@ -380,7 +385,7 @@ const Inspection = () => {
                             <div>Завершено: {formatTaskTime(task.completed_at)}</div>
                           )}
                           {task.error && (
-                            <div style={{ color: 'var(--error-color)', marginTop: 4 }}>
+                            <div style={{ color: 'var(--error-color)', marginTop: token.marginXXS }}>
                               Ошибка: {task.error}
                             </div>
                           )}

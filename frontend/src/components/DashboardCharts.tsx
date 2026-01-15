@@ -68,9 +68,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
                 <YAxis />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'var(--background-dark)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--secondary-color)',
+                    backgroundColor: 'var(--ant-color-bg-layout)',
+                    color: 'var(--ant-color-text)',
+                    border: '1px solid var(--ant-color-border)',
                     borderRadius: '4px',
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
                   }}
@@ -81,20 +81,20 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
                 <Line
                   type="monotone"
                   dataKey="critical"
-                  stroke="var(--error-color)"
+                  stroke="var(--ant-color-error)"
                   name="Критические"
                 />
                 <Line
                   type="monotone"
                   dataKey="warning"
-                  stroke="var(--warning-color)"
+                  stroke="var(--ant-color-warning)"
                   name="Предупреждения"
                 />
-                <Line type="monotone" dataKey="info" stroke="var(--text-secondary)" name="Другие" />
+                <Line type="monotone" dataKey="info" stroke="var(--ant-color-info)" name="Другие" />
                 <Line
                   type="monotone"
                   dataKey="passed"
-                  stroke="var(--success-color)"
+                  stroke="var(--ant-color-success)"
                   name="Успешно"
                 />
               </LineChart>

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Menu, Spin, ConfigProvider, theme as antdTheme } from 'antd';
+import { Layout, Menu, Spin, ConfigProvider, theme as antdTheme, Switch } from 'antd';
 import {
   DashboardOutlined,
   ClusterOutlined,
@@ -10,6 +10,8 @@ import {
   WifiOutlined,
   ScanOutlined,
   LockOutlined,
+  SunOutlined,
+  MoonOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import VersionDisplay from './components/VersionDisplay';
@@ -33,7 +35,7 @@ const SecretManagement = lazy(() => import('./pages/SecretManagement'));
 const { Header, Sider, Content } = Layout;
 
 function App() {
-  const { theme } = useUIStore();
+  const { theme, setTheme } = useUIStore();
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
 
   // Check backend health continuously
@@ -59,21 +61,6 @@ function App() {
 
     return () => clearTimeout(timer);
   }, []);
-
-  // Show loading screen during initial minimum time
-  if (!minLoadingTimePassed) {
-    return <LoadingScreen message="Подключение к системе..." subMessage="Пожалуйста, подождите" />;
-  }
-
-  // Show loading screen if backend is not ready
-  if (!isSystemReady) {
-    return (
-      <LoadingScreen
-        message="Проблема с подключением к системе"
-        subMessage="Пытаемся восстановить соединение..."
-      />
-    );
-  }
 
   const menuItems = [
     {
@@ -122,15 +109,15 @@ function App() {
     const location = useLocation();
     const navigate = useNavigate();
     return (
-      <Sider theme="dark">
+      <Sider theme={theme} style={{ backgroundColor: '#228be6', borderRight: '2px solid #1c7ed6' }}>
         <div className="logo logo-container">
-          <span>Kube</span>
-          <span>Eye</span>
+          <span>KubeEye</span>
         </div>
         <VersionDisplay version="3.2" />
         <Menu
-          theme="dark"
+          theme={theme}
           mode="inline"
+          style={{ backgroundColor: '#228be6' }}
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
@@ -139,56 +126,79 @@ function App() {
     );
   };
 
+  console.log('Rendering ConfigProvider with theme:', theme);
   return (
     <ConfigProvider
       theme={{
         algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        cssVar: true,
         token: {
-          colorPrimary: '#fab005',
-          colorBgContainer: theme === 'dark' ? '#495057' : '#ffffff',
-          colorBgElevated: theme === 'dark' ? '#495057' : '#ffffff',
-          colorText: theme === 'dark' ? '#f8f8f2' : '#000000',
-          colorTextSecondary: theme === 'dark' ? '#adb5bd' : '#666666',
-          colorBorder: theme === 'dark' ? '#6c757d' : '#d9d9d9',
-          colorBorderSecondary: theme === 'dark' ? '#6c757d' : '#d9d9d9',
-          colorBgLayout: theme === 'dark' ? '#343a40' : '#f5f5f5',
+          colorPrimary: '#4dabf7',
         },
       }}
     >
-      <Router>
-        <div className="app-container">
-          <Layout className="main-layout">
-            <Sidebar />
-            <Layout className="main-layout-bg">
-              <Header className="header-bg">
-                <div className="header-content">
-                  <div className="header-title">Kubernetes Cluster Inspection Tool</div>
-                </div>
-              </Header>
-              <Content className="content-area">
-                <Suspense
-                  fallback={
-                    <div className="loading-spinner">
-                      <Spin size="large" />
+      {(() => {
+        // Show loading screen during initial minimum time
+        if (!minLoadingTimePassed) {
+          console.log('Rendering LoadingScreen for min loading time, theme:', theme);
+          return <LoadingScreen message="Подключение к системе..." subMessage="Пожалуйста, подождите" />;
+        }
+
+        // Show loading screen if backend is not ready
+        if (!isSystemReady) {
+          console.log('Rendering LoadingScreen for backend not ready, theme:', theme);
+          return (
+            <LoadingScreen
+              message="Проблема с подключением к системе"
+              subMessage="Пытаемся восстановить соединение..."
+            />
+          );
+        }
+
+        return (
+          <Router>
+            <div className="app-container">
+              <Layout className="main-layout">
+                <Sidebar />
+                <Layout className="main-layout-bg">
+                  <Header className="header-bg">
+                    <div className="header-content">
+                      <div className="header-title">Kubernetes Cluster Inspection Tool</div>
+                      <Switch
+                        checked={theme === 'dark'}
+                        onChange={checked => setTheme(checked ? 'dark' : 'light')}
+                        checkedChildren={<SunOutlined />}
+                        unCheckedChildren={<MoonOutlined />}
+                        style={{ marginLeft: 'auto' }}
+                      />
                     </div>
-                  }
-                >
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/clusters" element={<ClusterManagement />} />
-                    <Route path="/secrets" element={<SecretManagement />} />
-                    <Route path="/network" element={<NetworkConnectivity />} />
-                    <Route path="/inspection" element={<Inspection />} />
-                    <Route path="/popeye" element={<PopeyeScan />} />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/help" element={<Help />} />
-                  </Routes>
-                </Suspense>
-              </Content>
-            </Layout>
-          </Layout>
-        </div>
-      </Router>
+                  </Header>
+                  <Content className="content-area">
+                    <Suspense
+                      fallback={
+                        <div className="loading-spinner">
+                          <Spin size="large" />
+                        </div>
+                      }
+                    >
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/clusters" element={<ClusterManagement />} />
+                        <Route path="/secrets" element={<SecretManagement />} />
+                        <Route path="/network" element={<NetworkConnectivity />} />
+                        <Route path="/inspection" element={<Inspection />} />
+                        <Route path="/popeye" element={<PopeyeScan />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/help" element={<Help />} />
+                      </Routes>
+                    </Suspense>
+                  </Content>
+                </Layout>
+              </Layout>
+            </div>
+          </Router>
+        );
+      })()}
     </ConfigProvider>
   );
 }

@@ -6,8 +6,6 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Space, message, Card, Typography, Divider } from 'antd';
 import { SaveOutlined, ClearOutlined } from '@ant-design/icons';
 import { SecretType, SecretCreate, SecretUpdate } from '../types/secret';
-import MaskedInput from './MaskedInput';
-import './SecretForm.css';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -99,8 +97,8 @@ const SecretForm: React.FC<SecretFormProps> = ({
   };
 
   return (
-    <Card className="secret-form-card">
-      <div className="secret-form-header">
+    <Card>
+      <div>
         <Title level={4}>
           {mode === 'create' ? 'Создание' : 'Редактирование'}{' '}
           {getTypeLabel(secretType).toLowerCase()}
@@ -145,24 +143,14 @@ const SecretForm: React.FC<SecretFormProps> = ({
           help={getTypeHelp(secretType)}
         >
           {secretType === SecretType.PASSWORD ? (
-            <MaskedInput
-              placeholder={getTypePlaceholder(secretType)}
-              disabled={loading}
-              autoHide={true}
-              hideDelay={30}
-            />
+            <Input.Password placeholder={getTypePlaceholder(secretType)} disabled={loading} />
           ) : (
-            <TextArea
-              placeholder={getTypePlaceholder(secretType)}
-              rows={8}
-              disabled={loading}
-              className="secret-form-textarea"
-            />
+            <TextArea placeholder={getTypePlaceholder(secretType)} rows={8} disabled={loading} />
           )}
         </Form.Item>
 
-        <Form.Item className="secret-form-actions">
-          <Space>
+        <Form.Item>
+          <Space wrap>
             <Button
               type="primary"
               htmlType="submit"

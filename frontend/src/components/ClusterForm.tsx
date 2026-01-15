@@ -5,7 +5,14 @@ import axios from 'axios';
 
 const { Text } = Typography;
 
-const ClusterForm = ({ form, onSubmit, onTestNodes, onTestKubeconfig, onGetNodesFromKubeconfig, isEditMode = false }) => {
+const ClusterForm = ({
+  form,
+  onSubmit,
+  onTestNodes,
+  onTestKubeconfig,
+  onGetNodesFromKubeconfig,
+  isEditMode = false,
+}) => {
   const [secretModalVisible, setSecretModalVisible] = useState(false);
   const [secrets, setSecrets] = useState([]);
   const [targetField, setTargetField] = useState(null);
@@ -92,7 +99,7 @@ const ClusterForm = ({ form, onSubmit, onTestNodes, onTestKubeconfig, onGetNodes
         </Form.Item>
 
         <Form.Item>
-          <Space>
+          <Space wrap>
             <Button
               icon={<KeyOutlined />}
               onClick={() => openSecretModal('nodes_text')}
@@ -129,7 +136,7 @@ const ClusterForm = ({ form, onSubmit, onTestNodes, onTestKubeconfig, onGetNodes
         </Form.Item>
 
         <Form.Item>
-          <Space>
+          <Space wrap>
             <Button
               icon={<KeyOutlined />}
               onClick={() => openSecretModal('kubeconfig')}

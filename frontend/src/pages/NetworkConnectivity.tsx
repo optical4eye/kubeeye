@@ -265,10 +265,11 @@ const NetworkConnectivity = () => {
           <Form form={form} layout="vertical">
             <Form.Item name="cluster" label="Кластер" required>
               <Select
-                placeholder="Выберите кластер"
-                value={selectedCluster}
-                onChange={handleClusterChange}
-                className="width-100"
+                  className="margin-top-space-2"
+                  style={{ width: '100%' }}
+                  placeholder="Выберите кластер"
+                  onChange={setSelectedCluster}
+                  value={selectedCluster}
               >
                 {clusters.map(cluster => (
                   <Option key={cluster.name} value={cluster.name}>
@@ -361,16 +362,16 @@ const NetworkConnectivity = () => {
         </Card>
 
         {results.length > 0 && (
-          <Card
-            title={`Результаты проверки (${results.length} узлов)`}
-            extra={
-              resultId && (
-                <Space>
-                  <Button onClick={() => exportResults('json')}>Экспорт JSON</Button>
-                </Space>
-              )
-            }
-          >
+           <Card
+             title={`Результаты проверки (${results.length} узлов)`}
+             extra={
+               resultId && (
+                 <Space wrap>
+                   <Button onClick={() => exportResults('json')}>Экспорт JSON</Button>
+                 </Space>
+               )
+             }
+           >
             <Table
               columns={resultColumns}
               dataSource={results}

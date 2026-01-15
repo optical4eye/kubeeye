@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Tabs, Table, Button, Select, Input, Space, Tag, Alert, message } from 'antd';
+const { Option } = Select;
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import * as api from '../services/api';
 import './RuleTags.css';
-
-const { TabPane } = Tabs;
-const { Option } = Select;
 
 const RuleManagement = () => {
   const [rules, setRules] = useState({});
@@ -243,6 +241,117 @@ const RuleManagement = () => {
 
   const stats = ruleStats();
 
+  const items = [
+    {
+      key: '1',
+      label: `Все правила (${stats.total})`,
+      children: (
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={filteredRules}
+            loading={loading}
+            rowKey="id"
+            pagination={{ pageSize: 20 }}
+          />
+        </Card>
+      ),
+    },
+    {
+      key: '2',
+      label: `Узлы (${stats.node})`,
+      children: (
+        <Card>
+          <Table
+            columns={columns.filter(col => col.key !== 'type')}
+            dataSource={filteredRules.filter(rule => rule.type === 'node')}
+            loading={loading}
+            rowKey="id"
+            pagination={{ pageSize: 20 }}
+          />
+        </Card>
+      ),
+    },
+    {
+      key: '4',
+      label: `Kubernetes (${stats.opa})`,
+      children: (
+        <Card>
+          <Table
+            columns={columns.filter(col => col.key !== 'type')}
+            dataSource={filteredRules.filter(rule => rule.type === 'opa')}
+            loading={loading}
+            rowKey="id"
+            pagination={{ pageSize: 20 }}
+          />
+        </Card>
+      ),
+    },
+    {
+      key: '5',
+      label: 'Настройки',
+      children: (
+        <Card>
+          <Alert
+            message="Режим управления правилами"
+            description={
+              useGitops
+                ? 'Используется GitOps режим. Правила загружаются из Git репозитория. Изменения правил производятся через коммиты в репозиторий.'
+                : 'Используется локальный режим. Правила встроены в приложение и обновляются вместе с ним.'
+            }
+            type={useGitops ? 'info' : 'warning'}
+            showIcon
+            className="margin-bottom-space-4"
+          />
+
+          <Space direction="vertical">
+            <div>
+              <strong>Текущий режим:</strong> {useGitops ? 'GitOps' : 'Локальный'}
+            </div>
+            <div>
+              <strong>Всего правил:</strong> {stats.total}
+            </div>
+            <div>
+              <strong>По типам:</strong>
+              <ul>
+                <li>Узлы: {stats.node}</li>
+                <li>Безопасность: {stats.opa}</li>
+              </ul>
+            </div>
+            {useGitops && gitopsConfig && gitopsConfig.repository && (
+              <div>
+                <strong>Информация о GitOps репозитории:</strong>
+                <ul>
+                  <li>
+                    <strong>Название:</strong> {gitopsConfig.repository.name}
+                  </li>
+                  <li>
+                    <strong>URL:</strong> {gitopsConfig.repository.url}
+                  </li>
+                  <li>
+                    <strong>Ветка:</strong> {gitopsConfig.repository.branch}
+                  </li>
+                  <li>
+                    <strong>Описание:</strong> {gitopsConfig.repository.description || 'Не указано'}
+                  </li>
+                  <li>
+                    <strong>SSL верификация:</strong>{' '}
+                    {gitopsConfig.repository.insecure ? 'Отключена' : 'Включена'}
+                  </li>
+                  {gitopsConfig.from_env && (
+                    <li>
+                      <strong>Источник конфигурации:</strong> Переменные окружения
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </Space>
+        </Card>
+      ),
+    },
+  ];
+
   return (
     <div>
       <div className="page-title">Управление правилами инспекции</div>
@@ -263,17 +372,15 @@ const RuleManagement = () => {
           <Select
             mode="multiple"
             placeholder="Фильтр по тегам"
-            className="width-200"
             onChange={value => setFilters(prev => ({ ...prev, tags: value }))}
             value={filters.tags}
             allowClear
-          >
-            {getAllTags().map(({ tag, count }) => (
-              <Option key={tag} value={tag}>
-                {tag} ({count})
-              </Option>
-            ))}
-          </Select>
+            style={{ minWidth: 150 }}
+            options={getAllTags().map(({ tag, count }) => ({
+              value: tag,
+              label: `${tag} (${count})`,
+            }))}
+          />
 
           <Input
             placeholder="Поиск по названию или описанию"
@@ -299,104 +406,7 @@ const RuleManagement = () => {
         </Space>
       </Card>
 
-      <Tabs defaultActiveKey="1">
-        <TabPane tab={`Все правила (${stats.total})`} key="1">
-          <Card>
-            <Table
-              columns={columns}
-              dataSource={filteredRules}
-              loading={loading}
-              rowKey="id"
-              pagination={{ pageSize: 20 }}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab={`Узлы (${stats.node})`} key="2">
-          <Card>
-            <Table
-              columns={columns.filter(col => col.key !== 'type')}
-              dataSource={filteredRules.filter(rule => rule.type === 'node')}
-              loading={loading}
-              rowKey="id"
-              pagination={{ pageSize: 20 }}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab={`Kubernetes (${stats.opa})`} key="4">
-          <Card>
-            <Table
-              columns={columns.filter(col => col.key !== 'type')}
-              dataSource={filteredRules.filter(rule => rule.type === 'opa')}
-              loading={loading}
-              rowKey="id"
-              pagination={{ pageSize: 20 }}
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane tab="Настройки" key="5">
-          <Card>
-            <Alert
-              message="Режим управления правилами"
-              description={
-                useGitops
-                  ? 'Используется GitOps режим. Правила загружаются из Git репозитория. Изменения правил производятся через коммиты в репозиторий.'
-                  : 'Используется локальный режим. Правила встроены в приложение и обновляются вместе с ним.'
-              }
-              type={useGitops ? 'info' : 'warning'}
-              showIcon
-              className="margin-bottom-space-4"
-            />
-
-            <Space direction="vertical">
-              <div>
-                <strong>Текущий режим:</strong> {useGitops ? 'GitOps' : 'Локальный'}
-              </div>
-              <div>
-                <strong>Всего правил:</strong> {stats.total}
-              </div>
-              <div>
-                <strong>По типам:</strong>
-                <ul>
-                  <li>Узлы: {stats.node}</li>
-                  <li>Безопасность: {stats.opa}</li>
-                </ul>
-              </div>
-              {useGitops && gitopsConfig && gitopsConfig.repository && (
-                <div>
-                  <strong>Информация о GitOps репозитории:</strong>
-                  <ul>
-                    <li>
-                      <strong>Название:</strong> {gitopsConfig.repository.name}
-                    </li>
-                    <li>
-                      <strong>URL:</strong> {gitopsConfig.repository.url}
-                    </li>
-                    <li>
-                      <strong>Ветка:</strong> {gitopsConfig.repository.branch}
-                    </li>
-                    <li>
-                      <strong>Описание:</strong>{' '}
-                      {gitopsConfig.repository.description || 'Не указано'}
-                    </li>
-                    <li>
-                      <strong>SSL верификация:</strong>{' '}
-                      {gitopsConfig.repository.insecure ? 'Отключена' : 'Включена'}
-                    </li>
-                    {gitopsConfig.from_env && (
-                      <li>
-                        <strong>Источник конфигурации:</strong> Переменные окружения
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              )}
-            </Space>
-          </Card>
-        </TabPane>
-      </Tabs>
+      <Tabs defaultActiveKey="1" items={items} />
     </div>
   );
 };

@@ -68,7 +68,6 @@ const InspectionDetails = ({ items }) => {
       title: 'Название проверки',
       dataIndex: 'name',
       key: 'name',
-      width: 200,
     },
     {
       title: 'Статус',
@@ -130,7 +129,10 @@ const InspectionDetails = ({ items }) => {
       rowKey={(record, index) => index}
       pagination={{ pageSize: 20 }}
       size="small"
-      scroll={{ x: 800 }}
+      scroll={{ x: 'max-content' }}
+      style={{ width: '100%' }}
+      virtual={true}
+      aria-label="Таблица деталей результатов инспекции"
     />
   );
 };
@@ -328,14 +330,19 @@ const Reports = () => {
       title: 'Действия',
       key: 'actions',
       render: (_, record) => (
-        <Space>
-          <Button icon={<EyeOutlined />} onClick={() => handleViewReport(record.result_id)}>
+        <Space wrap>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => handleViewReport(record.result_id)}
+            aria-label="Просмотр отчета"
+          >
             Просмотр
           </Button>
           <Button
             icon={<DownloadOutlined />}
             onClick={() => handleExportReport(record.result_id, 'json')}
             disabled={record.inspection_type === 'popeye'}
+            aria-label="Экспорт отчета в JSON"
           >
             JSON
           </Button>
@@ -343,6 +350,7 @@ const Reports = () => {
             <Button
               icon={<DownloadOutlined />}
               onClick={() => handleExportReport(record.result_id, 'html')}
+              aria-label="Экспорт отчета в HTML"
             >
               HTML
             </Button>
@@ -352,6 +360,7 @@ const Reports = () => {
               icon={<DownloadOutlined />}
               onClick={() => handleExportReport(record.result_id, 'pdf')}
               disabled={record.inspection_type === 'network'}
+              aria-label="Экспорт отчета в PDF"
             >
               PDF
             </Button>
@@ -366,6 +375,7 @@ const Reports = () => {
                 onOk: () => handleDeleteReport(record.result_id),
               })
             }
+            aria-label="Удалить отчет"
           >
             Удалить
           </Button>
@@ -399,7 +409,6 @@ const Reports = () => {
                       <strong>Период хранения:</strong> {cleanupConfig.retention_days} дней
                     </li>
                     <li>
-                      <strong>Источник настроек:</strong>{' '}
                       {cleanupConfig.source === 'environment'
                         ? 'Переменная окружения'
                         : 'По умолчанию'}
@@ -461,6 +470,9 @@ const Reports = () => {
           loading={loading}
           rowKey="result_id"
           pagination={{ pageSize: 10 }}
+          scroll={{ y: 400 }}
+          virtual={true}
+          aria-label="Таблица отчетов инспекций"
         />
       </Card>
 
@@ -468,9 +480,13 @@ const Reports = () => {
         title="Детали отчета"
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
-        className="modal-large"
+        width={2500}
         footer={[
-          <Button key="close" onClick={() => setDetailModalVisible(false)}>
+          <Button
+            key="close"
+            onClick={() => setDetailModalVisible(false)}
+            aria-label="Закрыть детали отчета"
+          >
             Закрыть
           </Button>,
         ]}
@@ -489,32 +505,32 @@ const Reports = () => {
             </Descriptions>
 
             <Row gutter={16} className="margin-top-space-4">
-              <Col span={6}>
+              <Col xs={24} sm={12} md={6}>
                 <Statistic
                   title="Критические"
                   value={reportDetail.critical || 0}
-                  valueStyle={{ color: 'var(--error-color)' }}
+                  valueStyle={{ color: 'var(--ant-color-error)' }}
                 />
               </Col>
-              <Col span={6}>
+              <Col xs={24} sm={12} md={6}>
                 <Statistic
                   title="Предупреждения"
                   value={reportDetail.warning || 0}
-                  valueStyle={{ color: 'var(--warning-color)' }}
+                  valueStyle={{ color: 'var(--ant-color-warning)' }}
                 />
               </Col>
-              <Col span={6}>
+              <Col xs={24} sm={12} md={6}>
                 <Statistic
                   title="Другие ошибки"
                   value={reportDetail.info || 0}
-                  valueStyle={{ color: 'var(--accent-color)' }}
+                  valueStyle={{ color: 'var(--ant-color-info)' }}
                 />
               </Col>
-              <Col span={6}>
+              <Col xs={24} sm={12} md={6}>
                 <Statistic
                   title="Успешно"
                   value={reportDetail.passed || 0}
-                  valueStyle={{ color: 'var(--success-color)' }}
+                  valueStyle={{ color: 'var(--ant-color-success)' }}
                 />
               </Col>
             </Row>
