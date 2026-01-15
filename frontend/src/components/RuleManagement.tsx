@@ -3,7 +3,6 @@ import { Card, Tabs, Table, Button, Select, Input, Space, Tag, Alert, message } 
 const { Option } = Select;
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import * as api from '../services/api';
-import './RuleTags.css';
 
 const RuleManagement = () => {
   const [rules, setRules] = useState({});
@@ -181,7 +180,7 @@ const RuleManagement = () => {
               <Tag
                 key={tag}
                 size="small"
-                className={`rule-tag ${(filters.tags || []).includes(tag) ? 'selected' : ''}`}
+                type={(filters.tags || []).includes(tag) ? 'primary' : undefined}
                 onClick={() => {
                   const currentTags = filters.tags || [];
                   const newTags = currentTags.includes(tag)

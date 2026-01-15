@@ -8,7 +8,7 @@ import { Select, Button, Space, Tooltip, message, Spin } from 'antd';
 import { PlusOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { SecretType, Secret } from '../types/secret';
 import { secretApi } from '../services/secretApi';
-import './SecretSelector.css';
+import '../styles/SecretSelector.css';
 
 interface SecretSelectorProps {
   secretType: SecretType;

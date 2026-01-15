@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Tabs, Select, Button, message, Space, Tag, List, Typography, Progress, theme } from 'antd';
+import {
+  Card,
+  Tabs,
+  Select,
+  Button,
+  message,
+  Space,
+  Tag,
+  List,
+  Typography,
+  Progress,
+  theme,
+} from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import {
   getClusters,
@@ -279,8 +291,8 @@ const Inspection = () => {
               </div>
 
               {/* Summary of selected rules */}
-               {Object.values(selectedRules).some(arr => arr.length > 0) && (
-                 <Card size="small" className="margin-top-space-4">
+              {Object.values(selectedRules).some(arr => arr.length > 0) && (
+                <Card size="small" className="margin-top-space-4">
                   <div className="flex-space-between">
                     <div>
                       <strong>Выбранные правила:</strong>
@@ -325,8 +337,8 @@ const Inspection = () => {
           </Card>
 
           {/* Active Tasks Section */}
-           {activeTasks.length > 0 && (
-             <Card title="Активные задачи" className="margin-top-space-4">
+          {activeTasks.length > 0 && (
+            <Card title="Активные задачи" className="margin-top-space-4">
               <List
                 dataSource={activeTasks}
                 renderItem={task => (
@@ -385,7 +397,9 @@ const Inspection = () => {
                             <div>Завершено: {formatTaskTime(task.completed_at)}</div>
                           )}
                           {task.error && (
-                            <div style={{ color: 'var(--error-color)', marginTop: token.marginXXS }}>
+                            <div
+                              style={{ color: 'var(--error-color)', marginTop: token.marginXXS }}
+                            >
                               Ошибка: {task.error}
                             </div>
                           )}

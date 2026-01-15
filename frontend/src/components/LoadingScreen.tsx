@@ -56,15 +56,16 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
             borderTop: '4px solid white',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
-            margin: `0 auto ${token.margin} auto`,
+            margin: `0 0 ${token.margin} 0`,
+            position: 'relative',
+            left: '50%',
+            transform: 'translateX(-50%)',
           }}
         />
         <h2 style={{ color: 'white', margin: `0 0 ${token.marginSM} 0`, fontSize: '1.5rem' }}>
           {message}
         </h2>
-        <p style={{ color: '#a6a6a6', margin: `0 0 ${token.margin} 0` }}>
-          {subMessage}
-        </p>
+        <p style={{ color: '#a6a6a6', margin: `0 0 ${token.margin} 0` }}>{subMessage}</p>
       </div>
 
       {/* Backend Status Section */}
@@ -79,9 +80,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
           }}
         >
           {statusInfo.icon}
-          <span style={{ color: 'white', fontSize: '1rem' }}>
-            Backend: {statusInfo.text}
-          </span>
+          <span style={{ color: 'white', fontSize: '1rem' }}>Backend: {statusInfo.text}</span>
         </div>
       </div>
 

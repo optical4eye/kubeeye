@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Menu, Spin, ConfigProvider, theme as antdTheme, Switch } from 'antd';
+import { Layout, Menu, Spin, ConfigProvider, theme as antdTheme, Switch, message } from 'antd';
 import {
   DashboardOutlined,
   ClusterOutlined,
@@ -18,6 +18,7 @@ import VersionDisplay from './components/VersionDisplay';
 import LoadingScreen from './components/LoadingScreen';
 import { useUIStore } from './stores/uiStore';
 import { getHealthStatus } from './services/api';
+import { getThemeConfig } from './theme/themeConfig';
 
 // Removed DB health check
 
@@ -31,7 +32,6 @@ const Reports = lazy(() => import('./pages/Reports'));
 const Help = lazy(() => import('./pages/Help'));
 const NetworkConnectivity = lazy(() => import('./pages/NetworkConnectivity'));
 const SecretManagement = lazy(() => import('./pages/SecretManagement'));
-
 const { Header, Sider, Content } = Layout;
 
 function App() {
@@ -127,21 +127,28 @@ function App() {
   };
 
   console.log('Rendering ConfigProvider with theme:', theme);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  // Expose messageApi globally if needed
+  React.useEffect(() => {
+    (window as any).messageApi = messageApi;
+  }, [messageApi]);
+
   return (
     <ConfigProvider
       theme={{
+        ...getThemeConfig(theme === 'dark'),
         algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        cssVar: true,
-        token: {
-          colorPrimary: '#4dabf7',
-        },
       }}
     >
+      {contextHolder}
       {(() => {
         // Show loading screen during initial minimum time
         if (!minLoadingTimePassed) {
           console.log('Rendering LoadingScreen for min loading time, theme:', theme);
-          return <LoadingScreen message="Подключение к системе..." subMessage="Пожалуйста, подождите" />;
+          return (
+            <LoadingScreen message="Подключение к системе..." subMessage="Пожалуйста, подождите" />
+          );
         }
 
         // Show loading screen if backend is not ready

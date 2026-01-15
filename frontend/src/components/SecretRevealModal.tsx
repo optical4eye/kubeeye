@@ -11,7 +11,7 @@ import { Modal, Button, Space, message, Alert, Typography, Spin, Divider } from 
 import { CopyOutlined, EyeInvisibleOutlined, LockOutlined } from '@ant-design/icons';
 import { Secret, SecretReveal } from '../types/secret';
 import { secretApi } from '../services/secretApi';
-import './SecretRevealModal.css';
+import '../styles/SecretRevealModal.css';
 
 const { Text, Paragraph } = Typography;
 

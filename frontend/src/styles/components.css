@@ -349,9 +349,6 @@
 }
 
 .secret-type-password {
-  background-color: var(--ant-color-primary);
-  color: var(--ant-color-text);
-  border-color: var(--ant-color-primary);
   border-radius: var(--ant-border-radius);
   padding: var(--ant-padding-xs) var(--ant-padding-sm);
   font-weight: var(--ant-font-weight-strong);
@@ -365,9 +362,6 @@
 }
 
 .secret-type-ssh-key {
-  background-color: var(--ant-color-primary);
-  color: var(--ant-color-text);
-  border-color: var(--ant-color-primary);
   border-radius: var(--ant-border-radius);
   padding: var(--ant-padding-xs) var(--ant-padding-sm);
   font-weight: var(--ant-font-weight-strong);
@@ -381,9 +375,6 @@
 }
 
 .secret-type-kubeconfig {
-  background-color: var(--ant-color-primary);
-  color: var(--ant-color-text);
-  border-color: var(--ant-color-primary);
   border-radius: var(--ant-border-radius);
   padding: var(--ant-padding-xs) var(--ant-padding-sm);
   font-weight: var(--ant-font-weight-strong);
@@ -397,9 +388,6 @@
 }
 
 .secret-type-default {
-  background-color: var(--ant-color-primary);
-  color: var(--ant-color-text);
-  border-color: var(--ant-color-primary);
   border-radius: var(--ant-border-radius);
   padding: var(--ant-padding-xs) var(--ant-padding-sm);
   font-weight: var(--ant-font-weight-strong);
@@ -693,4 +681,12 @@ code[class*='language-'] {
 
 .token.entity {
   cursor: help;
+}
+
+/* Specific tag styles */
+.secret-tags,
+.rule-tags {
+  background-color: #ffc078 !important;
+  color: black !important;
+  border-color: #ffc078 !important;
 }

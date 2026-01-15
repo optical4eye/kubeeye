@@ -25,10 +25,9 @@ import {
   KeyOutlined,
   FileTextOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
-import './SecretManagement.css';
+import '../styles/SecretManagement.css';
 
 const { Text } = Typography;
 const { TextArea } = Input;
