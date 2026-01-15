@@ -349,55 +349,48 @@
 }
 
 .secret-type-password {
-  border-radius: var(--ant-border-radius);
-  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  background-color: #748ffc;
+  color: white;
+  border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
-  font-size: var(--ant-font-size-sm);
-  line-height: var(--ant-line-height);
-  min-width: var(--min-width-tag);
-  text-align: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  cursor: default;
+
 }
 
 .secret-type-ssh-key {
-  border-radius: var(--ant-border-radius);
-  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  background-color: #748ffc;
+  color: white;
+  border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
-  font-size: var(--ant-font-size-sm);
-  line-height: var(--ant-line-height);
-  min-width: var(--min-width-tag);
-  text-align: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  cursor: default;
+
 }
 
 .secret-type-kubeconfig {
-  border-radius: var(--ant-border-radius);
-  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  background-color: #748ffc;
+  color: white;
+  border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
-  font-size: var(--ant-font-size-sm);
-  line-height: var(--ant-line-height);
-  min-width: var(--min-width-tag);
-  text-align: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  cursor: default;
+
 }
 
 .secret-type-default {
-  border-radius: var(--ant-border-radius);
-  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  background-color: #748ffc;
+  color: white;
+  border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
-  font-size: var(--ant-font-size-sm);
-  line-height: var(--ant-line-height);
-  min-width: var(--min-width-tag);
-  text-align: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  cursor: default;
+
+}
+
+.inspection-rule-tags {
+  background-color: #748ffc;
+  color: white;
+  border-color: #343a40;
+  font-weight: var(--ant-font-weight-strong);
+  cursor: default;
+
 }
 
 /* Modal size utilities */
@@ -681,12 +674,4 @@ code[class*='language-'] {
 
 .token.entity {
   cursor: help;
-}
-
-/* Specific tag styles */
-.secret-tags,
-.rule-tags {
-  background-color: #ffc078 !important;
-  color: black !important;
-  border-color: #ffc078 !important;
 }

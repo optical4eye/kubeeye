@@ -180,7 +180,7 @@ const RuleManagement = () => {
               <Tag
                 key={tag}
                 size="small"
-                type={(filters.tags || []).includes(tag) ? 'primary' : undefined}
+                className="inspection-rule-tags"
                 onClick={() => {
                   const currentTags = filters.tags || [];
                   const newTags = currentTags.includes(tag)

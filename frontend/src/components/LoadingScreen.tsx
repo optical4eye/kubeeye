@@ -23,7 +23,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         alignItems: 'center',
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #141414, #000000)',
@@ -47,7 +47,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         </p>
       </div>
 
-      <div style={{ textAlign: 'center', marginTop: token.marginXXL }}>
+      <div style={{ textAlign: 'center' }}>
         <div
           style={{
             width: '48px',
@@ -68,8 +68,8 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         <p style={{ color: '#a6a6a6', margin: `0 0 ${token.margin} 0` }}>{subMessage}</p>
       </div>
 
-      {/* Backend Status Section */}
-      <div style={{ textAlign: 'center', marginTop: token.marginXXL, marginBottom: token.margin }}>
+      <div style={{ textAlign: 'center' }}>
+        {/* Backend Status Section */}
         <div
           style={{
             display: 'flex',
@@ -82,9 +82,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
           {statusInfo.icon}
           <span style={{ color: 'white', fontSize: '1rem' }}>Backend: {statusInfo.text}</span>
         </div>
-      </div>
-
-      <div style={{ textAlign: 'center', marginTop: token.margin }}>
         <p style={{ color: '#a6a6a6', fontSize: '0.9rem', margin: 0 }}>
           Подготовка системы к работе...
         </p>
