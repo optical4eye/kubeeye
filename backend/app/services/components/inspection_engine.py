@@ -31,6 +31,7 @@ class InspectionEngine:
         self,
         cluster_name: str,
         selected_rules: Optional[Dict[str, List[str]]] = None,
+        selected_tags: Optional[Dict[str, List[str]]] = None,
         inspection_type: str = "immediate",
         show_progress: bool = False,
         show_ui_feedback: bool = False,
@@ -89,7 +90,8 @@ class InspectionEngine:
                     cluster_name=cluster_name,
                     nodes=components["nodes"],
                     kubeconfig=components["kubeconfig"],
-                    selected_rules=selected_rules or {},
+                    selected_rules=selected_rules,
+                    selected_tags=selected_tags,
                     show_progress=show_progress,
                 )
 
@@ -110,6 +112,7 @@ inspection_engine = InspectionEngine()
 async def execute_inspection_unified(
     cluster_name: str,
     selected_rules: Optional[Dict[str, List[str]]] = None,
+    selected_tags: Optional[Dict[str, List[str]]] = None,
     inspection_type: str = "immediate",
     show_progress: bool = False,
     show_ui_feedback: bool = False,
@@ -119,6 +122,7 @@ async def execute_inspection_unified(
     return await inspection_engine.execute_inspection(
         cluster_name,
         selected_rules,
+        selected_tags,
         inspection_type,
         show_progress,
         show_ui_feedback,

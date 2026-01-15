@@ -232,6 +232,7 @@ class AsyncTaskQueue:
         success, message, results = await execute_inspection_unified(
             cluster_name=payload["cluster_name"],
             selected_rules=payload.get("selected_rules"),
+            selected_tags=payload.get("selected_tags"),
             inspection_type=payload.get("inspection_type", "immediate"),
             show_progress=False,
             show_ui_feedback=False,
@@ -350,6 +351,7 @@ async def get_task_queue() -> AsyncTaskQueue:
 async def submit_inspection_task(
     cluster_name: str,
     selected_rules: Optional[Dict[str, Any]] = None,
+    selected_tags: Optional[Dict[str, Any]] = None,
     inspection_type: str = "immediate",
     use_gitops: bool = False,
     progress_callback: Optional[Callable] = None,
@@ -359,6 +361,7 @@ async def submit_inspection_task(
     payload = {
         "cluster_name": cluster_name,
         "selected_rules": selected_rules,
+        "selected_tags": selected_tags,
         "inspection_type": inspection_type,
         "use_gitops": use_gitops,
     }

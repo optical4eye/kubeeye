@@ -23,6 +23,7 @@ class AsyncInspectionRequest(BaseModel):
 
     cluster_name: str
     selected_rules: Optional[Dict[str, Any]] = None
+    selected_tags: Optional[Dict[str, Any]] = None
     inspection_type: str = "immediate"
     use_gitops: bool = False
 
@@ -41,6 +42,7 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
         success, message, results = await execute_inspection_unified(
             cluster_name=request.cluster_name,
             selected_rules=request.selected_rules,
+            selected_tags=request.selected_tags,
             inspection_type=request.inspection_type,
             show_progress=False,
             show_ui_feedback=False,
@@ -77,6 +79,7 @@ async def run_async_inspection(request: AsyncInspectionRequest):
         task_id = await submit_inspection_task(
             cluster_name=request.cluster_name,
             selected_rules=request.selected_rules,
+            selected_tags=request.selected_tags,
             inspection_type=request.inspection_type,
             use_gitops=request.use_gitops,
         )

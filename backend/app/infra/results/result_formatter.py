@@ -150,7 +150,7 @@ class ResultFormatter:
             rule=rule,
             status="error",
             description=description,
-            severity="error",
+            severity="medium",
             details=error_msg,
             solution="",
             **kwargs,

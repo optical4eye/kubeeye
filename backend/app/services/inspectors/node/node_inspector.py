@@ -188,7 +188,7 @@ class NodeInspector(BaseInspector):
     def inspector_type(self) -> str:
         return "node"
 
-    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None) -> InspectionResult:
+    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None) -> InspectionResult:
         """
         Run inspection with simplified architecture
         """
@@ -232,7 +232,7 @@ class NodeInspector(BaseInspector):
         logger.info(f"Available nodes for rule execution: {[node.get('name', node['ip']) for node in available_nodes]}")
 
         # Execute inspection rules only on available nodes
-        result = await super().run_inspection(cluster_name, rule_ids or [])
+        result = await super().run_inspection(cluster_name, rule_ids or [], selected_tags)
 
         # Add SSH connection errors to beginning of report
         ssh_errors = self.ssh_error_manager.get_all_connection_errors()

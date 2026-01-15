@@ -23,6 +23,7 @@ import {
   getClustersForNetworkCheck,
   exportNetworkCheckResult,
 } from '../services/api';
+import { getStatusTag } from '../components/statusUtils';
 
 const { Option } = Select;
 
@@ -193,16 +194,6 @@ const NetworkConnectivity = () => {
     }
   };
 
-  const getStatusTag = status => {
-    switch (status) {
-      case 'success':
-        return <Tag className="status-passed">Успешно</Tag>;
-      case 'failed':
-        return <Tag className="status-failed">Неудачно</Tag>;
-      default:
-        return <Tag className="status-unknown">Неизвестно</Tag>;
-    }
-  };
 
   const resultColumns = [
     {

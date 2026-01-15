@@ -95,21 +95,31 @@ class BaseInspector(ABC):
                 return rule
         return None
 
-    def _filter_active_rules(self, rule_ids: Optional[List[str]] = None) -> List[Rule]:
+    def _filter_active_rules(self, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None) -> List[Rule]:
         """
         Filter and return active (enabled) rules to execute
 
         Args:
             rule_ids: list of rule IDs to execute, if None, execute all rules
+            selected_tags: list of tags to filter rules, if None, no tag filtering
 
         Returns:
             List of active rules to execute
         """
+        # Start with enabled rules
+        active_rules = [rule for rule in self.rules if rule.enabled]
+
+        # Filter by rule IDs if specified
         if rule_ids:
-            active_rules = [rule for rule in self.rules if rule.id in rule_ids and rule.enabled]
+            active_rules = [rule for rule in active_rules if rule.id in rule_ids]
             logger.info(f"Number of rules after filtering by specified IDs: {len(active_rules)}")
-        else:
-            active_rules = [rule for rule in self.rules if rule.enabled]
+
+        # Filter by tags if specified
+        if selected_tags:
+            active_rules = [rule for rule in active_rules if any(tag in rule.tags for tag in selected_tags)]
+            logger.info(f"Number of rules after filtering by tags {selected_tags}: {len(active_rules)}")
+
+        if not rule_ids and not selected_tags:
             logger.info(f"Using all enabled rules: {len(active_rules)}")
 
         if active_rules:
@@ -246,13 +256,14 @@ class BaseInspector(ABC):
 
         return None
 
-    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None) -> InspectionResult:
+    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None) -> InspectionResult:
         """
         Run inspection
 
         Args:
             cluster_name: cluster name
             rule_ids: list of rule IDs to execute, if None, execute all rules
+            selected_tags: list of tags to filter rules, if None, no tag filtering
 
         Returns:
             Inspection result object
@@ -261,12 +272,12 @@ class BaseInspector(ABC):
         logger.info(
             f"BaseInspector.run_inspection started - inspector type: {self.inspector_type}, cluster: {cluster_name}, source: {source_type}"
         )
-        logger.info(f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}")
+        logger.info(f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}, selected tags: {selected_tags}")
 
         result = InspectionResult(cluster_name, self.inspector_type)
 
         # Determine rules to execute
-        active_rules = self._filter_active_rules(rule_ids)
+        active_rules = self._filter_active_rules(rule_ids, selected_tags)
 
         if not active_rules:
             logger.warning("No executable rules, inspection completed")

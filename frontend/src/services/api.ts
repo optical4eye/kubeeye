@@ -87,7 +87,15 @@ export const exportReport = (reportId, format) =>
 // GitOps
 export const getGitopsConfig = () => api.get(apiPath('/gitops/config'));
 export const syncGitopsRepository = () => api.post(apiPath('/gitops/sync'));
-export const getRules = () => api.get(apiPath('/rules'));
+export const getRules = (tags: string[] | null = null) => {
+  const params = new URLSearchParams();
+  if (tags && tags.length > 0) {
+    params.append('tags', tags.join(','));
+  }
+  const queryString = params.toString();
+  return api.get(apiPath(`/rules${queryString ? `?${queryString}` : ''}`));
+};
+export const getRuleTags = () => api.get(apiPath('/rules/tags'));
 
 // Scheduled tasks
 export const getScheduledTasks = () => api.get(apiPath('/scheduled-tasks'));

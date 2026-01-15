@@ -46,10 +46,12 @@ class AsyncTaskExecutor(ITaskExecutor):
 
                 cluster_name = task_data.get("cluster", "")
                 rules = task_data.get("rules", {})
+                tags = task_data.get("tags", {})
 
                 success, message, results = await execute_inspection_unified(
                     cluster_name=cluster_name,
                     selected_rules=rules,
+                    selected_tags=tags,
                     inspection_type="scheduled",
                     show_progress=False,
                     show_ui_feedback=False,

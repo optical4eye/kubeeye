@@ -103,6 +103,7 @@ class InspectionRequest(BaseModel):
         ..., description="Name of cluster to inspect"
     )
     selected_rules: Optional[Dict[str, List[str]]] = Field(None, description="Rules to apply by type (node, opa)")
+    selected_tags: Optional[Dict[str, List[str]]] = Field(None, description="Tags to filter rules by type (node, opa)")
     inspection_type: str = Field("immediate", description="Type of inspection: immediate or scheduled")
 
     @field_validator("cluster_name")
@@ -132,6 +133,7 @@ class ScheduledTaskCreate(BaseModel):
     )
     cron_expr: str = Field(..., description="Cron expression for scheduling")
     rules: Dict[str, List[str]] = Field(..., description="Rules configuration for inspection")
+    tags: Optional[Dict[str, List[str]]] = Field(None, description="Tags to filter rules by type (node, opa)")
     enabled: bool = Field(True, description="Whether task is enabled")
     task_type: Optional[str] = Field(None, description="Type of scheduled task")
     run_datetime: Optional[str] = Field(None, description="Specific datetime to run (alternative to cron)")

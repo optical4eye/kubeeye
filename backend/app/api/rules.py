@@ -92,3 +92,37 @@ async def get_rules(tags: Optional[str] = None):
         logger.error(f"Failed to load rules: {str(e)}")
         # Return empty rules as fallback
         return {"rules": {"node": [], "opa": []}, "use_gitops": False}
+
+
+@router.get("/rules/tags")
+async def get_rule_tags():
+    """Get all unique tags from rules"""
+    try:
+        use_gitops = RuleManager.should_use_gitops()
+        logger.debug(f"GitOps mode: {use_gitops}")
+
+        # Sync GitOps repository if necessary
+        if use_gitops and not _sync_gitops_repository():
+            use_gitops = False
+
+        # Load rules
+        rules = _load_rules_for_types(["node", "opa"], use_gitops)
+
+        # Collect all unique tags with counts
+        tag_count = {}
+        for rule_type, rule_list in rules.items():
+            for rule in rule_list:
+                if rule.tags:
+                    for tag in rule.tags:
+                        tag_count[tag] = tag_count.get(tag, 0) + 1
+
+        # Sort tags by count descending
+        sorted_tags = sorted(tag_count.items(), key=lambda x: x[1], reverse=True)
+
+        logger.debug(f"Found {len(sorted_tags)} unique tags with counts: {sorted_tags}")
+
+        return {"tags": [{"tag": tag, "count": count} for tag, count in sorted_tags], "use_gitops": use_gitops}
+    except Exception as e:
+        logger.error(f"Failed to load rule tags: {str(e)}")
+        # Return empty tags as fallback
+        return {"tags": [], "use_gitops": False}

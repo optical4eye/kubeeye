@@ -29,7 +29,8 @@ class InspectionCoordinator:
         cluster_name: str,
         nodes: List[Dict],
         kubeconfig: str,
-        selected_rules: Dict[str, List[str]],
+        selected_rules: Optional[Dict[str, List[str]]] = None,
+        selected_tags: Optional[Dict[str, List[str]]] = None,
         show_progress: bool = False,
     ) -> Dict[str, Any]:
         """
@@ -56,17 +57,19 @@ class InspectionCoordinator:
 
         if run_node_check:
             node_rules = selected_rules.get("node") if selected_rules else None
+            node_tags = selected_tags.get("node") if selected_tags else None
             # Extract the actual list of rule IDs if it's a dict with 'rules' key
             if node_rules and isinstance(node_rules, dict) and hasattr(node_rules, "get") and "rules" in node_rules:
                 node_rules = node_rules.get("rules")
-            tasks.append(self._execute_node_inspection(cluster_name, nodes, node_rules, show_progress))
+            tasks.append(self._execute_node_inspection(cluster_name, nodes, node_rules, node_tags, show_progress))
 
         if run_opa_check:
             opa_rules = selected_rules.get("opa") if selected_rules else None
+            opa_tags = selected_tags.get("opa") if selected_tags else None
             # Extract the actual list of rule IDs if it's a dict with 'rules' key
             if opa_rules and isinstance(opa_rules, dict) and hasattr(opa_rules, "get") and "rules" in opa_rules:
                 opa_rules = opa_rules.get("rules")
-            tasks.append(self._execute_opa_inspection(cluster_name, kubeconfig, opa_rules, show_progress))
+            tasks.append(self._execute_opa_inspection(cluster_name, kubeconfig, opa_rules, opa_tags, show_progress))
 
         # Wait for all inspections to complete using TaskGroup for better exception handling
         if tasks:
@@ -98,6 +101,7 @@ class InspectionCoordinator:
         cluster_name: str,
         nodes: List[Dict],
         selected_rules: Optional[List[str]],
+        selected_tags: Optional[List[str]],
         show_progress: bool,
     ) -> Tuple[bool, Any]:
         """Execute node inspection"""
@@ -107,7 +111,7 @@ class InspectionCoordinator:
 
             if show_progress:
                 logger.info("Executing node inspection...")
-            result = await node_inspector.run_inspection(cluster_name, selected_rules or [])
+            result = await node_inspector.run_inspection(cluster_name, selected_rules or [], selected_tags)
             if show_progress:
                 logger.info("Node inspection completed")
             return True, result
@@ -142,6 +146,7 @@ class InspectionCoordinator:
         cluster_name: str,
         kubeconfig: str,
         selected_rules: Optional[List[str]],
+        selected_tags: Optional[List[str]],
         show_progress: bool,
     ) -> Tuple[bool, Any]:
         """Execute OPA inspection"""
@@ -154,7 +159,7 @@ class InspectionCoordinator:
                 opa_inspector = OpaInspector(opa_config, use_gitops=self.use_gitops)
                 if show_progress:
                     logger.info("Executing OPA compliance inspection...")
-                result = await opa_inspector.run_inspection(cluster_name, selected_rules or [])
+                result = await opa_inspector.run_inspection(cluster_name, selected_rules or [], selected_tags)
                 if show_progress:
                     logger.info("OPA compliance inspection completed")
                 return True, result

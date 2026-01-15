@@ -19,6 +19,7 @@ import {
   getInspectionTaskStatus,
   cancelInspectionTask,
   getRules,
+  getRuleTags,
 } from '../services/api';
 import ScheduledInspection from '../components/ScheduledInspection';
 import RuleManagement from '../components/RuleManagement';
@@ -34,6 +35,8 @@ const Inspection = () => {
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [rules, setRules] = useState({});
   const [selectedRules, setSelectedRules] = useState({ node: [], opa: [] });
+  const [availableTags, setAvailableTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTasks, setActiveTasks] = useState([]);
   const pollingIntervals = useRef({});
@@ -48,9 +51,9 @@ const Inspection = () => {
     }
   };
 
-  const loadRules = async () => {
+  const loadRules = async (tags = null) => {
     try {
-      const response = await getRules();
+      const response = await getRules(tags);
       setRules(response.data.rules || {});
     } catch (error) {
       message.error('Ошибка загрузки правил');
@@ -58,8 +61,23 @@ const Inspection = () => {
     }
   };
 
+  const loadTags = async () => {
+    try {
+      const response = await getRuleTags();
+      setAvailableTags(response.data.tags || []);
+    } catch (error) {
+      message.error('Ошибка загрузки тегов');
+      console.error(error);
+    }
+  };
+
+  const getAllTags = () => {
+    return availableTags;
+  };
+
   useEffect(() => {
     loadClusters();
+    loadTags();
     loadRules();
   }, []);
 
@@ -80,6 +98,10 @@ const Inspection = () => {
     });
     setSelectedRules(newSelectedRules);
   }, [rules]);
+
+  useEffect(() => {
+    loadRules(selectedTags.length > 0 ? selectedTags : null);
+  }, [selectedTags]);
 
   const startTaskPolling = taskId => {
     if (pollingIntervals.current[taskId]) {
@@ -268,6 +290,28 @@ const Inspection = () => {
                   ))}
                 </Select>
               </div>
+
+              {/* Tag Filter */}
+              {getAllTags().length > 0 && (
+                <div>
+                  <div aria-label="Фильтр по тегам правил">
+                    Фильтр по тегам правил (опционально):
+                  </div>
+                  <Select
+                    mode="multiple"
+                    className="margin-top-space-2"
+                    style={{ width: '100%' }}
+                    placeholder="Выберите теги для фильтрации правил"
+                    onChange={setSelectedTags}
+                    value={selectedTags}
+                    allowClear
+                    options={getAllTags().map(({ tag, count }) => ({
+                      value: tag,
+                      label: `${tag} (${count})`,
+                    }))}
+                  />
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
                 <div style={{ flex: 1 }}>

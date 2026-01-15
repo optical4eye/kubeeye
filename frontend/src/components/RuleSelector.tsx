@@ -43,6 +43,11 @@ const RuleSelector = ({ ruleType, title, availableRules, selectedRules, onRuleSe
                 <div style={{ fontSize: '12px', color: 'var(--text-primary)' }}>
                   {rule.description}
                 </div>
+                {rule.tags && rule.tags.length > 0 && (
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    Теги: {rule.tags.join(', ')}
+                  </div>
+                )}
               </div>
             </Checkbox>
           ))}

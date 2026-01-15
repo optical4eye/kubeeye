@@ -76,6 +76,7 @@ async def create_scheduled_task(task: ScheduledTaskCreate):
             "cron_expr": task.cron_expr if task.cron_expr else "",
             "enabled": task.enabled,
             "rules": task.rules,
+            "tags": task.tags,
             "task_type": task.task_type or ("cron" if task.cron_expr else "once"),
             "run_datetime": task.run_datetime if hasattr(task, "run_datetime") else None,
         }
@@ -152,6 +153,7 @@ async def update_scheduled_task(task_id: str, task: ScheduledTaskCreate):
             "cron_expr": task.cron_expr if task.cron_expr else "",
             "enabled": task.enabled,
             "rules": task.rules,
+            "tags": task.tags,
             "task_type": task.task_type or ("cron" if task.cron_expr else "once"),
             "run_datetime": task.run_datetime,
         }

@@ -3,6 +3,7 @@ import { Card, Tabs, Table, Button, Select, Input, Space, Tag, Alert, message } 
 const { Option } = Select;
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import * as api from '../services/api';
+import { getSeverityTag } from './statusUtils';
 
 const RuleManagement = () => {
   const [rules, setRules] = useState({});
@@ -11,6 +12,7 @@ const RuleManagement = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [filteredRules, setFilteredRules] = useState([]);
+  const [availableTags, setAvailableTags] = useState([]);
   const [filters, setFilters] = useState({
     type: 'all',
     search: '',
@@ -57,6 +59,16 @@ const RuleManagement = () => {
     }
   };
 
+  const loadTags = async () => {
+    try {
+      const response = await api.getRuleTags();
+      setAvailableTags(response.data.tags || []);
+    } catch (error) {
+      console.error('Error loading tags:', error);
+      setAvailableTags([]);
+    }
+  };
+
   const syncGitopsRepository = async () => {
     try {
       setSyncing(true);
@@ -64,6 +76,7 @@ const RuleManagement = () => {
       message.success(response.data.message);
       // Reload rules after sync
       await loadRules();
+      await loadTags();
     } catch (error) {
       message.error('Ошибка синхронизации GitOps репозитория');
       console.error('GitOps sync error:', error);
@@ -74,6 +87,7 @@ const RuleManagement = () => {
 
   useEffect(() => {
     loadRules();
+    loadTags();
   }, []);
 
   useEffect(() => {
@@ -132,24 +146,6 @@ const RuleManagement = () => {
     return labels[type] || type;
   };
 
-  const getSeverityTag = severity => {
-    switch (severity) {
-      case 'critical':
-        return <Tag className="status-critical">Критическая</Tag>;
-      case 'high':
-        return <Tag className="status-high">Высокая</Tag>;
-      case 'medium':
-        return <Tag className="status-medium">Средняя</Tag>;
-      case 'low':
-        return <Tag className="status-low">Низкая</Tag>;
-      case 'warning':
-        return <Tag className="status-warning">Предупреждение</Tag>;
-      case 'info':
-        return <Tag className="status-info">Информация</Tag>;
-      default:
-        return <Tag className="status-unknown">Неизвестная</Tag>;
-    }
-  };
 
   const columns = [
     {
@@ -221,21 +217,7 @@ const RuleManagement = () => {
   };
 
   const getAllTags = () => {
-    const tagCount = {};
-    Object.values(rules).forEach(typeRules => {
-      if (Array.isArray(typeRules)) {
-        typeRules.forEach(rule => {
-          if (rule.tags && Array.isArray(rule.tags)) {
-            rule.tags.forEach(tag => {
-              tagCount[tag] = (tagCount[tag] || 0) + 1;
-            });
-          }
-        });
-      }
-    });
-    return Object.entries(tagCount)
-      .map(([tag, count]) => ({ tag, count }))
-      .sort((a, b) => b.count - a.count); // Sort by count descending
+    return availableTags;
   };
 
   const stats = ruleStats();
