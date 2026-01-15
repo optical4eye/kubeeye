@@ -1,335 +1,243 @@
-# Улучшенные TypeScript типы для Ant Design v6
+# KubeEye Frontend
 
-Этот модуль содержит улучшенные TypeScript типы для работы с Ant Design v6, включая strict типизацию для ThemeConfig, дизайн-токенов и новых API компонентов.
+## Описание проекта
 
-## Особенности
+KubeEye Frontend - это веб-интерфейс для системы KubeEye, предназначенной для инспекции и управления кластерами Kubernetes. Приложение предоставляет удобный пользовательский интерфейс для выполнения инспекций, управления секретами, просмотра отчетов и мониторинга состояния кластеров.
 
-### 🎨 Расширенная система тем
+Основные возможности:
+- Управление кластерами Kubernetes
+- Выполнение инспекций безопасности и конфигурации
+- Управление секретами
+- Просмотр отчетов и статистики
+- Интеграция с различными инспекторами (Popeye, OPA и др.)
 
-- **Strict типизация** для всех дизайн-токенов
-- **Custom extensions** для дополнительных токенов
-- **CSS-in-JS интеграция** с @ant-design/cssinjs
-- **Runtime theme switching** без перезагрузки
-- **Theme presets** для разных пользовательских ролей
+## Технологии
 
-### 📝 Улучшенные типы компонентов
+Проект построен с использованием следующих технологий:
 
-- **Form.useForm API** с полными типами
-- **Table.Column** с дополнительными возможностями
-- **Modal, Message, Notification API** с улучшенной типизацией
-- **Component composition patterns** для сложных UI
+- **React 19** - основная библиотека для создания пользовательского интерфейса
+- **TypeScript 5.9** - типизированный JavaScript для повышения надежности кода
+- **Vite 7** - современный инструмент сборки с быстрой горячей перезагрузкой
+- **Ant Design 6** - библиотека компонентов UI для enterprise-приложений
+- **React Router DOM 7** - маршрутизация для одностраничного приложения
+- **Zustand** - легковесное управление состоянием
+- **Axios** - HTTP-клиент для API запросов
+- **Recharts** - библиотека для создания графиков и диаграмм
+- **react-syntax-highlighter** - подсветка синтаксиса кода
+- **DOMPurify** - санитизация HTML для безопасности
 
-### 🔧 Утилиты и хелперы
+## Структура директорий
 
-- **ThemeUtils** - утилиты для работы с темами
-- **FormUtils** - расширенные возможности форм
-- **TableUtils** - дополнительные функции таблиц
-- **Responsive hooks** - адаптивное поведение
+```
+frontend/
+├── src/
+│   ├── components/          # Переиспользуемые компоненты
+│   │   ├── ui/             # Базовые UI компоненты (кнопки, таблицы и т.д.)
+│   │   ├── HelpTabs/       # Компоненты для справочной системы
+│   │   └── ...             # Специфические компоненты (формы, модалы и т.д.)
+│   ├── pages/              # Страницы приложения
+│   │   ├── Dashboard.tsx   # Главная панель
+│   │   ├── ClusterManagement.tsx  # Управление кластерами
+│   │   ├── Inspection.tsx  # Инспекции
+│   │   └── ...             # Другие страницы
+│   ├── services/           # Сервисы для API взаимодействия
+│   ├── stores/             # Управление состоянием (Zustand)
+│   ├── styles/             # Стили CSS
+│   ├── theme/              # Конфигурация темы Ant Design
+│   ├── types/              # TypeScript типы
+│   ├── utils/              # Вспомогательные функции
+│   ├── App.tsx             # Главный компонент приложения
+│   └── index.tsx           # Точка входа
+├── public/                 # Статические файлы
+├── Dockerfile              # Docker образ для продакшена
+├── Dockerfile.test         # Docker образ для тестирования
+├── package.json            # Зависимости и скрипты
+├── tsconfig.json           # Конфигурация TypeScript
+├── vite.config.ts          # Конфигурация Vite
+├── eslint.config.js        # Конфигурация ESLint
+├── .stylelintrc.json       # Конфигурация Stylelint
+├── .prettierrc.json        # Конфигурация Prettier
+└── antd.txt                # Документация по Ant Design
+```
 
-## Установка
+## Установка и запуск
+
+Проект разрабатывается исключительно в среде Docker. Локальная установка npm и Python не требуется.
+
+### Предварительные требования
+
+- Docker и Docker Compose
+- Доступ к репозиторию KubeEye
+
+### Запуск приложения
+
+1. Клонируйте репозиторий:
+   ```bash
+   git clone <repository-url>
+   cd kubeeye
+   ```
+
+2. Запустите приложение с помощью скрипта:
+   ```bash
+   ./run.sh
+   ```
+
+   Этот скрипт выполнит следующие действия:
+   - Запустит все сервисы через docker-compose
+   - Пересоберет backend
+   - Пересоберет frontend
+
+3. Откройте браузер и перейдите по адресу `http://localhost:3000`
+
+### Остановка
 
 ```bash
-npm install antd @ant-design/cssinjs
-# или
-yarn add antd @ant-design/cssinjs
+docker-compose down
 ```
 
-## Использование
+## Примеры использования
 
-### Базовая настройка темы
+### Управление кластерами
 
-```typescript
-import type { ExtendedThemeConfig } from './types';
-import { ConfigProvider } from 'antd';
+1. Перейдите в раздел "Управление кластерами"
+2. Нажмите "Добавить кластер"
+3. Заполните форму с данными подключения (kubeconfig, endpoint и т.д.)
+4. Сохраните кластер
 
-const customTheme: ExtendedThemeConfig = {
-  token: {
-    colorPrimary: '#1890ff',
-    borderRadius: 6,
-    // Custom токены
-    customColors: {
-      colorBrand: '#001529',
-      colorAccent: '#40a9ff',
-    },
-  },
-  components: {
-    Button: {
-      borderRadius: 4,
-    },
-  },
-  custom: {
-    cssinjs: {
-      hashed: true,
-      prefix: 'my-app',
-    },
-  },
-};
+### Выполнение инспекции
 
-function App() {
-  return (
-    <ConfigProvider theme={customTheme}>
-      {/* Ваше приложение */}
-    </ConfigProvider>
-  );
-}
-```
+1. Выберите кластер из списка
+2. Перейдите в раздел "Инспекции"
+3. Выберите тип инспекции (стандартная, безопасность, производительность)
+4. Нажмите "Запустить инспекцию"
+5. Просмотрите результаты в разделе "Отчеты"
 
-### Использование улучшенных форм
+### Управление секретами
+
+1. Перейдите в раздел "Секреты"
+2. Используйте форму для создания нового секрета
+3. Выберите тип секрета (SSH ключ, пароль и т.д.)
+4. Сохраните и используйте в инспекциях
+
+## Гайдлайны по разработке
+
+### TypeScript
+
+- Используйте строгую типизацию для всех компонентов и функций
+- Определяйте интерфейсы для props компонентов
+- Используйте utility types (Partial, Pick, Omit) для манипуляции типами
+- Избегайте использования `any` - предпочитайте конкретные типы
+
+Пример типизации компонента:
 
 ```typescript
-import type { UseExtendedFormReturn } from './types';
-
-interface UserForm {
-  name: string;
-  email: string;
-  age: number;
+interface ClusterFormProps {
+  onSubmit: (data: ClusterData) => void;
+  initialData?: Partial<ClusterData>;
 }
 
-function UserFormComponent() {
-  const form: UseExtendedFormReturn<UserForm> = useExtendedForm();
-
-  // Автосохранение каждые 30 секунд
-  form.autoSave(30000);
-
-  return (
-    <Form form={form.form}>
-      <Form.Item name="name" rules={[{ required: true }]}>
-        <Input />
-      </Form.Item>
-      <Form.Item name="email" rules={[{ type: 'email' }]}>
-        <Input />
-      </Form.Item>
-    </Form>
-  );
-}
-```
-
-### Расширенные колонки таблиц
-
-```typescript
-import type { ExtendedColumnType } from './types';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  status: 'active' | 'inactive';
-}
-
-const columns: ExtendedColumnType<User>[] = [
-  {
-    title: 'Имя',
-    dataIndex: 'name',
-    searchable: true,
-    exportable: true,
-  },
-  {
-    title: 'Email',
-    dataIndex: 'email',
-    customFilter: {
-      type: 'input',
-      placeholder: 'Поиск по email',
-    },
-  },
-  {
-    title: 'Статус',
-    dataIndex: 'status',
-    customFilter: {
-      type: 'select',
-      options: [
-        { label: 'Активен', value: 'active' },
-        { label: 'Неактивен', value: 'inactive' },
-      ],
-    },
-  },
-];
-```
-
-### CSS-in-JS интеграция
-
-```typescript
-import { useCSSInJS } from './hooks';
-
-function StyledComponent() {
-  const { createStyle, createCSSVars } = useCSSInJS();
-
-  const styles = createStyle((theme) => ({
-    container: {
-      backgroundColor: theme.token.colorBgContainer,
-      borderRadius: theme.token.borderRadius,
-      padding: theme.token.padding,
-    },
-    button: {
-      color: theme.token.colorPrimary,
-      '&:hover': {
-        color: theme.token.colorPrimaryHover,
-      },
-    },
-  }));
-
-  return (
-    <div className={styles.container}>
-      <button className={styles.button}>Кнопка</button>
-    </div>
-  );
-}
-```
-
-## API Reference
-
-### ThemeConfig
-
-Расширенная конфигурация темы с дополнительными возможностями:
-
-```typescript
-interface ExtendedThemeConfig {
-  algorithm?: ExtendedMappingAlgorithm;
-  token?: Partial<BaseColorTokens & SizeTokens & CustomThemeTokens>;
-  components?: ComponentTokens;
-  custom?: CustomThemeTokens;
-  cssinjs?: {
-    hashed?: boolean;
-    prefix?: string;
-  };
-}
-```
-
-### Дизайн-токены
-
-#### BaseColorTokens
-Основные цветовые токены для брендинга и состояний.
-
-#### SizeTokens
-Токены размеров для отступов, границ и шрифтов.
-
-#### CustomThemeTokens
-Дополнительные токены для расширения функциональности.
-
-### Component Tokens
-
-Токены для настройки отдельных компонентов:
-
-```typescript
-interface ComponentTokens {
-  Button?: {
-    colorPrimary?: string;
-    borderRadius?: number;
-  };
-  Input?: {
-    borderRadius?: number;
-  };
-  // ... другие компоненты
-}
-```
-
-## Миграция с Ant Design v5
-
-### Изменения в ThemeConfig
-
-```typescript
-// Ant Design v5
-const theme = {
-  token: {
-    colorPrimary: '#1890ff',
-  },
-};
-
-// Ant Design v6 с улучшенными типами
-import type { ExtendedThemeConfig } from './types';
-
-const theme: ExtendedThemeConfig = {
-  token: {
-    colorPrimary: '#1890ff',
-    // Дополнительные strict типы
-    customColors: {
-      colorBrand: '#001529',
-    },
-  },
-  custom: {
-    cssinjs: {
-      hashed: true,
-    },
-  },
+const ClusterForm: React.FC<ClusterFormProps> = ({ onSubmit, initialData }) => {
+  // implementation
 };
 ```
 
-### Новые API компонентов
+### ESLint правила
 
-```typescript
-// Form.useForm в v6
-import type { UseFormReturn } from './types';
+Проект использует строгую конфигурацию ESLint с правилами для React и TypeScript:
 
-const { form, formRef }: UseFormReturn<UserData> = useForm();
+- `@typescript-eslint/no-unused-vars` - запрет неиспользуемых переменных
+- `@typescript-eslint/explicit-function-return-type` - явное указание типов возврата
+- `react-hooks/rules-of-hooks` - соблюдение правил хуков React
+- `react-hooks/exhaustive-deps` - правильное указание зависимостей в useEffect
 
-// Table.Column в v6
-import type { ColumnType } from './types';
+Запуск линтинга:
 
-const columns: ColumnType<User>[] = [
-  {
-    title: 'Имя',
-    dataIndex: 'name',
-    sorter: true,
-    filters: [],
-  },
-];
+```bash
+npm run lint:js
 ```
+
+### CSS и Stylelint
+
+- Используйте CSS модули или styled-components для изоляции стилей
+- Следуйте методологии BEM для именования классов
+- Используйте CSS переменные для тем и цветов
+
+Stylelint проверяет:
+
+- Валидность CSS синтаксиса
+- Согласованность форматирования
+- Лучшие практики CSS
+
+Запуск проверки стилей:
+
+```bash
+npm run lint:css
+```
+
+## Тестирование
+
+Проект использует автоматизированные тесты и линтинг через Docker.
+
+### Запуск тестирования frontend
+
+```bash
+./run_test.sh --front-lint
+```
+
+Этот скрипт выполняет:
+
+1. **Prettier** - форматирование кода
+2. **ESLint** - линтинг JavaScript/TypeScript
+3. **Stylelint** - линтинг CSS
+
+### Полное тестирование
+
+```bash
+./run_test.sh --all
+```
+
+Включает тестирование backend и frontend.
+
+## Документация
+
+- [Документация по Ant Design](frontend/antd.txt) - подробная документация по компонентам Ant Design, используемым в проекте
+- [Backend README](../backend/README.md) - документация по backend части проекта
 
 ## Лучшие практики
 
-### 1. Использование strict типов
+### Код
 
-```typescript
-// ✅ Хорошо
-const theme: ExtendedThemeConfig = {
-  token: {
-    colorPrimary: '#1890ff', // Типобезопасно
-  },
-};
+- Пишите чистый, читаемый код с понятными именами переменных
+- Используйте функциональные компоненты с хуками вместо классовых
+- Разделяйте логику на небольшие, переиспользуемые компоненты
+- Документируйте сложную логику с помощью комментариев
 
-// ❌ Плохо
-const theme = {
-  token: {
-    colorPrimary: '#1890ff', // Нет типизации
-  },
-};
-```
+### Производительность
 
-### 2. Кастомные токены
+- Используйте React.memo для оптимизации рендеринга
+- Ленивую загрузку для больших компонентов
+- Оптимизируйте запросы API с помощью React Query
+- Минимизируйте размер бандла
 
-```typescript
-const theme: ExtendedThemeConfig = {
-  token: {
-    // Стандартные токены
-    colorPrimary: '#1890ff',
-    // Кастомные расширения
-    customColors: {
-      colorBrand: '#001529',
-      colorAccent: '#40a9ff',
-    },
-  },
-};
-```
+### Безопасность
 
-### 3. CSS-in-JS интеграция
+- Валидируйте все пользовательские данные
+- Используйте DOMPurify для санитизации HTML
+- Храните чувствительные данные securely
+- Следуйте принципам OWASP
 
-```typescript
-const theme: ExtendedThemeConfig = {
-  custom: {
-    cssinjs: {
-      hashed: true, // Хэшированные классы
-      prefix: 'my-app', // Префикс для CSS переменных
-    },
-  },
-};
-```
+## Contributing
 
-## Поддержка
-
-- **TypeScript**: 4.5+
-- **React**: 18+
-- **Ant Design**: 6.0+
-- **@ant-design/cssinjs**: 1.0+
+1. Форкните репозиторий
+2. Создайте feature branch (`git checkout -b feature/AmazingFeature`)
+3. Зафиксируйте изменения (`git commit -m 'Add some AmazingFeature'`)
+4. Запушьте в branch (`git push origin feature/AmazingFeature`)
+5. Создайте Pull Request
 
 ## Лицензия
 
-MIT
+Этот проект лицензирован под MIT License - см. файл [LICENSE](../LICENSE) для деталей.
+
+## Контакты
+
+Для вопросов и предложений обращайтесь к команде разработчиков KubeEye.

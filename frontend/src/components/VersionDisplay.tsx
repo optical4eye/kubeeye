@@ -9,7 +9,7 @@ const VersionDisplay: React.FC<VersionDisplayProps> = ({ version }) => {
     <div
       style={{
         textAlign: 'center',
-        marginTop: '2px',
+        marginTop: '0px',
         fontSize: '12px',
         color: 'var(--text-secondary)',
       }}

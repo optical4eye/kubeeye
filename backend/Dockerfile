@@ -1,7 +1,7 @@
 # Builder stage for dependencies
 FROM python:3.14-alpine AS builder
 
-ARG OPA_VERSION=v1.12.2
+ARG OPA_VERSION=v1.12.3
 ARG POPEYE_VERSION=v0.22.1
 
 # Set environment variables

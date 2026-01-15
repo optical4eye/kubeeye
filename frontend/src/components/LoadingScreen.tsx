@@ -23,8 +23,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
+        gap: '2rem',
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #141414, #000000)',
         color: 'white',
@@ -32,15 +33,15 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
       }}
     >
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '4rem', marginBottom: token.margin }}>🚀</div>
-        <h1 style={{ color: 'white', margin: `0 0 ${token.margin} 0`, fontSize: '2.5rem' }}>
+        <div style={{ fontSize: '4rem', margin: '0.5rem 0' }}>🚀</div>
+        <h1 style={{ color: 'white', margin: '0.5rem 0', fontSize: '2.5rem' }}>
           KubeEye
         </h1>
         <p
           style={{
             color: '#a6a6a6',
             fontSize: '1.1rem',
-            margin: `0 0 ${token.margin} 0`,
+            margin: '0.5rem 0',
           }}
         >
           Kubernetes Cluster Inspection Tool
@@ -56,16 +57,16 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
             borderTop: '4px solid white',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
-            margin: `0 0 ${token.margin} 0`,
+            margin: '0.5rem 0',
             position: 'relative',
             left: '50%',
             transform: 'translateX(-50%)',
           }}
         />
-        <h2 style={{ color: 'white', margin: `0 0 ${token.marginSM} 0`, fontSize: '1.5rem' }}>
+        <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>
           {message}
         </h2>
-        <p style={{ color: '#a6a6a6', margin: `0 0 ${token.margin} 0` }}>{subMessage}</p>
+        <p style={{ color: '#a6a6a6', margin: '0.5rem 0' }}>{subMessage}</p>
       </div>
 
       <div style={{ textAlign: 'center' }}>
@@ -76,13 +77,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             gap: token.marginSM,
-            marginBottom: token.marginSM,
+            margin: '0.5rem 0',
           }}
         >
           {statusInfo.icon}
           <span style={{ color: 'white', fontSize: '1rem' }}>Backend: {statusInfo.text}</span>
         </div>
-        <p style={{ color: '#a6a6a6', fontSize: '0.9rem', margin: 0 }}>
+        <p style={{ color: '#a6a6a6', fontSize: '0.9rem', margin: '0.5rem 0' }}>
           Подготовка системы к работе...
         </p>
       </div>
