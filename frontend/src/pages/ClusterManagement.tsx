@@ -38,7 +38,6 @@ const ClusterManagement = () => {
         setClusters(data.clusters || [])
       );
     } catch (error) {
-      console.error(error);
       message.error(error.message);
     } finally {
       setLoading(false);
@@ -65,7 +64,6 @@ const ClusterManagement = () => {
       loadClusters();
     } catch (error) {
       message.error('Ошибка создания кластера');
-      console.error(error);
     }
   };
 
@@ -79,7 +77,6 @@ const ClusterManagement = () => {
       setClusterNodes([]);
     } catch (error) {
       message.error('Ошибка удаления кластера');
-      console.error(error);
     }
   };
 
@@ -100,7 +97,6 @@ const ClusterManagement = () => {
         }
       );
     } catch (error) {
-      console.error(error);
       message.error(error.message);
       setSelectedCluster(null);
     }
@@ -127,7 +123,6 @@ const ClusterManagement = () => {
       }
     } catch (error) {
       message.error('Ошибка обновления кластера');
-      console.error(error);
     }
   };
 
@@ -171,9 +166,6 @@ const ClusterManagement = () => {
       }
     } catch (error) {
       let errorMessage = 'Неизвестная ошибка';
-      console.error('Full error object:', error);
-      console.error('Error response:', error.response);
-      console.error('Error response data:', error.response?.data);
 
       if (error.response?.data) {
         const data = error.response.data;
@@ -227,7 +219,6 @@ const ClusterManagement = () => {
     } catch (error) {
       const errorMessage = error.response?.data?.detail || error.message || 'Неизвестная ошибка';
       message.error(`Ошибка проверки kubeconfig: ${errorMessage}`);
-      console.error(error);
     }
   };
 
@@ -278,7 +269,6 @@ const ClusterManagement = () => {
         error.message ||
         'Неизвестная ошибка';
       message.error(`Ошибка получения узлов: ${errorMessage}`);
-      console.error(error);
     }
   };
 
@@ -294,10 +284,9 @@ const ClusterManagement = () => {
         message.error('Ошибка получения узлов кластера');
         setClusterNodes([]);
       }
-    } catch (error) {
-      console.error('Ошибка загрузки узлов кластера:', error);
-      let errorMessage = 'Не удалось получить информацию об узлах кластера';
 
+    } catch (error) {
+      let errorMessage = 'Не удалось получить информацию об узлах кластера';
       if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       } else if (error.response?.data?.error) {

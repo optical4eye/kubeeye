@@ -47,7 +47,6 @@ const Inspection = () => {
       setClusters(response.data.clusters || []);
     } catch (error) {
       message.error('Ошибка загрузки кластеров');
-      console.error(error);
     }
   };
 
@@ -57,7 +56,6 @@ const Inspection = () => {
       setRules(response.data.rules || {});
     } catch (error) {
       message.error('Ошибка загрузки правил');
-      console.error(error);
     }
   };
 
@@ -67,7 +65,6 @@ const Inspection = () => {
       setAvailableTags(response.data.tags || []);
     } catch (error) {
       message.error('Ошибка загрузки тегов');
-      console.error(error);
     }
   };
 
@@ -139,7 +136,6 @@ const Inspection = () => {
           }
         }
       } catch (error) {
-        console.error(`Error polling task ${taskId}:`, error);
 
         // Check if it's a 404 error (task not found)
         if (error.response?.status === 404) {
@@ -182,7 +178,6 @@ const Inspection = () => {
       message.success('Задача отменена');
     } catch (error) {
       message.error('Ошибка отмены задачи');
-      console.error(error);
     }
   };
 
@@ -243,7 +238,6 @@ const Inspection = () => {
       } else {
         message.error('Ошибка выполнения инспекции');
       }
-      console.error('Inspection error:', error);
     } finally {
       setLoading(false);
     }

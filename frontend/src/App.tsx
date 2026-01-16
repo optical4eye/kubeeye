@@ -124,13 +124,7 @@ function App() {
     );
   };
 
-  console.log('Rendering ConfigProvider with theme:', theme);
   const [messageApi, contextHolder] = message.useMessage();
-
-  // Expose messageApi globally if needed
-  React.useEffect(() => {
-    (window as any).messageApi = messageApi;
-  }, [messageApi]);
 
   return (
     <ConfigProvider
@@ -143,7 +137,6 @@ function App() {
       {(() => {
         // Show loading screen during initial minimum time
         if (!minLoadingTimePassed) {
-          console.log('Rendering LoadingScreen for min loading time, theme:', theme);
           return (
             <LoadingScreen message="Подключение к системе..." subMessage="Пожалуйста, подождите" />
           );
@@ -151,7 +144,6 @@ function App() {
 
         // Show loading screen if backend is not ready
         if (!isSystemReady) {
-          console.log('Rendering LoadingScreen for backend not ready, theme:', theme);
           return (
             <LoadingScreen
               message="Проблема с подключением к системе"

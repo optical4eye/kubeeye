@@ -51,7 +51,6 @@ const NetworkConnectivity = () => {
       setClusters(response.data.clusters || []);
     } catch (error) {
       message.error('Ошибка загрузки кластеров');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -135,7 +134,6 @@ const NetworkConnectivity = () => {
       }
     } catch (error) {
       message.error('Ошибка выполнения проверки подключения');
-      console.error(error);
     } finally {
       setChecking(false);
     }
@@ -167,7 +165,6 @@ const NetworkConnectivity = () => {
       message.success(`Результаты экспортированы в ${format.toUpperCase()}`);
     } catch (error) {
       message.error('Ошибка экспорта результатов');
-      console.error(error);
     }
   };
 
