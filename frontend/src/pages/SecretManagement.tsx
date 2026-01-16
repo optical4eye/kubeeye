@@ -27,7 +27,6 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
-import '../styles/SecretManagement.css';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -232,30 +231,31 @@ const SecretManagement: React.FC = () => {
       key: 'actions',
       render: (_: unknown, record: Secret) => (
         <Space size="small" wrap>
-          <Tooltip title="Просмотреть">
-            <Button type="text" icon={<EyeOutlined />} onClick={() => handleReveal(record.id)} />
-          </Tooltip>
-          <Tooltip title="Проверить">
-            <Button
-              type="text"
-              icon={<CheckCircleOutlined />}
-              onClick={() => handleTest(record.id)}
-            />
-          </Tooltip>
-          <Tooltip title="Редактировать">
-            <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          </Tooltip>
-          <Popconfirm
-            title="Вы уверены, что хотите удалить этот секрет?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Да"
-            cancelText="Нет"
-          >
-            <Tooltip title="Удалить">
-              <Button type="text" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
+           <Tooltip title="Просмотреть">
+             <Button type="text" className="action-button" icon={<EyeOutlined />} onClick={() => handleReveal(record.id)} />
+           </Tooltip>
+           <Tooltip title="Проверить">
+             <Button
+               type="text"
+               className="action-button"
+               icon={<CheckCircleOutlined />}
+               onClick={() => handleTest(record.id)}
+             />
+           </Tooltip>
+           <Tooltip title="Редактировать">
+             <Button type="text" className="action-button" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+           </Tooltip>
+           <Popconfirm
+             title="Вы уверены, что хотите удалить этот секрет?"
+             onConfirm={() => handleDelete(record.id)}
+             okText="Да"
+             cancelText="Нет"
+           >
+             <Tooltip title="Удалить">
+               <Button type="text" danger className="action-button" icon={<DeleteOutlined />} />
+             </Tooltip>
+           </Popconfirm>
+         </Space>
       ),
     },
   ];

@@ -94,35 +94,38 @@ const ClusterList = ({
       width: 200,
       render: (_, record) => (
         <Space wrap>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => onViewDetails(record)}
-            aria-label={`Просмотреть детали кластера ${record.name}`}
-          >
-            Детали
-          </Button>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => onEdit(record)}
-            aria-label={`Редактировать кластер ${record.name}`}
-          >
-            Редактировать
-          </Button>
-          <Button
-            icon={<DeleteOutlined />}
-            danger
-            onClick={() =>
-              Modal.confirm({
-                title: 'Удалить кластер?',
-                content: `Вы уверены, что хотите удалить кластер ${record.name}?`,
-                onOk: () => onDelete(record.name),
-              })
-            }
-            aria-label={`Удалить кластер ${record.name}`}
-          >
-            Удалить
-          </Button>
-        </Space>
+           <Button
+             className="action-button"
+             icon={<EyeOutlined />}
+             onClick={() => onViewDetails(record)}
+             aria-label={`Просмотреть детали кластера ${record.name}`}
+           >
+             Детали
+           </Button>
+           <Button
+             className="action-button"
+             icon={<EditOutlined />}
+             onClick={() => onEdit(record)}
+             aria-label={`Редактировать кластер ${record.name}`}
+           >
+             Редактировать
+           </Button>
+           <Button
+             className="action-button"
+             icon={<DeleteOutlined />}
+             danger
+             onClick={() =>
+               Modal.confirm({
+                 title: 'Удалить кластер?',
+                 content: `Вы уверены, что хотите удалить кластер ${record.name}?`,
+                 onOk: () => onDelete(record.name),
+               })
+             }
+             aria-label={`Удалить кластер ${record.name}`}
+           >
+             Удалить
+           </Button>
+         </Space>
       ),
     },
   ];

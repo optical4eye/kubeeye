@@ -109,15 +109,13 @@ function App() {
     const location = useLocation();
     const navigate = useNavigate();
     return (
-      <Sider theme={theme} style={{ backgroundColor: '#228be6', borderRight: '2px solid #1c7ed6' }}>
+      <Sider>
         <div className="logo logo-container">
           <span>KubeEye</span>
         </div>
         <VersionDisplay version="3.2" />
         <Menu
-          theme={theme}
           mode="inline"
-          style={{ backgroundColor: '#228be6' }}
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}

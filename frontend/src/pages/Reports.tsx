@@ -408,11 +408,6 @@ const Reports = () => {
                     <li>
                       <strong>Период хранения:</strong> {cleanupConfig.retention_days} дней
                     </li>
-                    <li>
-                      {cleanupConfig.source === 'environment'
-                        ? 'Переменная окружения'
-                        : 'По умолчанию'}
-                    </li>
                   </ul>
                   <p className="margin-top-space-2">
                     <strong>Примечание:</strong> Автоочистка выполняется автоматически в фоновом

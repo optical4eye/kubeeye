@@ -100,6 +100,19 @@
   --checkbox-size: 18px;
   --table-min-width: 600px;
   --font-size-code: 13px;
+
+  /* Additional Ant Design semantic tokens */
+  --ant-color-text-description: rgba(255, 255, 255, 0.45);
+  --ant-color-text-disabled: rgba(255, 255, 255, 0.25);
+  --ant-color-border-secondary: #303030;
+  --ant-color-bg-spotlight: rgba(255, 255, 255, 0.04);
+  --ant-color-fill-alter: rgba(255, 255, 255, 0.02);
+  --ant-color-fill-content: rgba(255, 255, 255, 0.03);
+  --ant-color-fill-secondary: rgba(255, 255, 255, 0.06);
+  --ant-control-outline: rgba(77, 171, 247, 0.12);
+  --ant-color-link: #40a9ff;
+  --ant-color-link-hover: #69c0ff;
+  --ant-color-link-active: #0958d9;
 }
 
 /* ===== BASE STYLES ===== */
@@ -167,4 +180,56 @@ small {
   font-size: var(--font-size-sm);
   font-weight: 400;
   line-height: 1.5;
+}
+
+/* ===== SEMANTIC TOKEN USAGE ===== */
+/* Link styles */
+a {
+  color: var(--ant-color-link);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+}
+
+a:hover {
+  color: var(--ant-color-link-hover);
+}
+
+a:active {
+  color: var(--ant-color-link-active);
+}
+
+/* Text variants */
+.text-description {
+  color: var(--ant-color-text-description);
+}
+
+.text-disabled {
+  color: var(--ant-color-text-disabled);
+}
+
+/* Border variants */
+.border-secondary {
+  border-color: var(--ant-color-border-secondary);
+}
+
+/* Background variants */
+.bg-spotlight {
+  background-color: var(--ant-color-bg-spotlight);
+}
+
+.fill-alter {
+  background-color: var(--ant-color-fill-alter);
+}
+
+.fill-content {
+  background-color: var(--ant-color-fill-content);
+}
+
+.fill-secondary {
+  background-color: var(--ant-color-fill-secondary);
+}
+
+/* Control outline */
+.control-outline {
+  outline: var(--ant-control-outline) solid 1px;
 }

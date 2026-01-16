@@ -245,9 +245,9 @@ const NetworkConnectivity = () => {
       <div className="page-title">Проверка сетевых подключений</div>
       <div className="page-subtitle">Проверка доступности сетевых сервисов из узлов кластера</div>
 
-      <Space direction="vertical" size="large" className="width-100">
-        <Card title="Настройки проверки" loading={loading}>
-          <Form form={form} layout="vertical">
+      <Space direction="vertical" size="large" className="kube-width-100">
+        <Card title="Настройки проверки" loading={loading} className="kube-width-100" bodyStyle={{ width: '100%' }}>
+          <Form form={form} layout="vertical" style={{ width: '100%' }}>
             <Form.Item name="cluster" label="Кластер" required>
               <Select
                 className="margin-top-space-2"

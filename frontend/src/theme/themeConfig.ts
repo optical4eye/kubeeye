@@ -1,7 +1,7 @@
-import { ThemeConfig } from 'antd';
+import { ThemeConfig, theme as antdTheme } from 'antd';
 
 export const lightTheme: ThemeConfig = {
-  algorithm: undefined, // defaultAlgorithm
+  algorithm: antdTheme.defaultAlgorithm,
   cssVar: true,
   token: {
     colorPrimary: '#4dabf7',
@@ -16,6 +16,10 @@ export const lightTheme: ThemeConfig = {
     lineHeight: 1.5715,
   },
   components: {
+    Alert: {
+      colorInfoBg: 'transparent',
+      colorInfoBorder: '#4dabf7',
+    },
     Button: {
       borderRadius: 6,
       controlHeight: 32,
@@ -36,11 +40,24 @@ export const lightTheme: ThemeConfig = {
     Message: {
       borderRadius: 6,
     },
+    Layout: {
+      siderBg: '#4dabf7',
+    },
+    Switch: {
+      colorPrimary: '#4dabf7',
+      colorPrimaryHover: '#228be6',
+    },
+    Menu: {
+      colorBgContainer: '#4dabf7',
+      colorItemBg: '#4dabf7',
+      colorItemBgHover: '#228be6',
+      colorItemBgSelected: '#228be6',
+    },
   },
 };
 
 export const darkTheme: ThemeConfig = {
-  algorithm: undefined, // darkAlgorithm will be set in App.tsx
+  algorithm: antdTheme.darkAlgorithm,
   cssVar: true,
   token: {
     colorPrimary: '#4dabf7',
@@ -55,6 +72,10 @@ export const darkTheme: ThemeConfig = {
     lineHeight: 1.5715,
   },
   components: {
+    Alert: {
+      colorInfoBg: 'transparent',
+      colorInfoBorder: '#4dabf7',
+    },
     Button: {
       borderRadius: 6,
       controlHeight: 32,
@@ -74,6 +95,19 @@ export const darkTheme: ThemeConfig = {
     },
     Message: {
       borderRadius: 6,
+    },
+    Layout: {
+      siderBg: '#4dabf7',
+    },
+    Switch: {
+      colorPrimary: '#4dabf7',
+      colorPrimaryHover: '#228be6',
+    },
+    Menu: {
+      colorBgContainer: '#4dabf7',
+      colorItemBg: '#4dabf7',
+      colorItemBgHover: '#228be6',
+      colorItemBgSelected: '#228be6',
     },
   },
 };

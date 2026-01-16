@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Space, Modal, List, Tag, Tooltip, Typography } from 'antd';
+import { Form, Input, Button, Space, Modal, List, Tag, Tooltip, Typography, Divider, Table } from 'antd';
 import { KeyOutlined, InfoCircleOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
@@ -100,20 +100,21 @@ const ClusterForm = ({
 
         <Form.Item>
           <Space wrap>
-            <Button
-              icon={<KeyOutlined />}
-              onClick={() => openSecretModal('nodes_text')}
-              aria-label="Вставить секрет в список узлов"
-            >
-              Вставить секрет в узлы
-            </Button>
-            <Button onClick={onGetNodesFromKubeconfig} aria-label="Получить узлы из k8s">
-              Получить узлы из k8s
-            </Button>
-            <Button onClick={onTestNodes} aria-label="Проверить узлы">
-              Проверить узлы
-            </Button>
-          </Space>
+             <Button
+               className="action-button"
+               icon={<KeyOutlined />}
+               onClick={() => openSecretModal('nodes_text')}
+               aria-label="Вставить секрет в список узлов"
+             >
+               Вставить секрет в узлы
+             </Button>
+             <Button className="action-button" onClick={onGetNodesFromKubeconfig} aria-label="Получить узлы из k8s">
+               Получить узлы из k8s
+             </Button>
+             <Button className="action-button" onClick={onTestNodes} aria-label="Проверить узлы">
+               Проверить узлы
+             </Button>
+           </Space>
         </Form.Item>
 
         <Form.Item
@@ -137,71 +138,81 @@ const ClusterForm = ({
 
         <Form.Item>
           <Space wrap>
-            <Button
-              icon={<KeyOutlined />}
-              onClick={() => openSecretModal('kubeconfig')}
-              aria-label="Вставить секрет в kubeconfig"
-            >
-              Вставить секрет в kubeconfig
-            </Button>
-            <Button onClick={onTestKubeconfig} aria-label="Проверить kubeconfig">
-              Проверить kubeconfig
-            </Button>
-          </Space>
+             <Button
+               className="action-button"
+               icon={<KeyOutlined />}
+               onClick={() => openSecretModal('kubeconfig')}
+               aria-label="Вставить секрет в kubeconfig"
+             >
+               Вставить секрет в kubeconfig
+             </Button>
+             <Button className="action-button" onClick={onTestKubeconfig} aria-label="Проверить kubeconfig">
+               Проверить kubeconfig
+             </Button>
+           </Space>
         </Form.Item>
 
         <Form.Item>
           <Button
-            type="primary"
-            htmlType="submit"
-            aria-label={isEditMode ? 'Обновить кластер' : 'Создать кластер'}
-          >
-            {isEditMode ? 'Обновить кластер' : 'Создать кластер'}
-          </Button>
+             className="action-button"
+             type="primary"
+             htmlType="submit"
+             aria-label={isEditMode ? 'Обновить кластер' : 'Создать кластер'}
+           >
+             {isEditMode ? 'Обновить кластер' : 'Создать кластер'}
+           </Button>
         </Form.Item>
       </Form>
 
       <Modal
-        title="Выберите секрет"
-        open={secretModalVisible}
-        onCancel={() => setSecretModalVisible(false)}
-        footer={null}
-        width={600}
-      >
-        <List
-          dataSource={secrets}
-          renderItem={secret => (
-            <List.Item
-              actions={[
-                <Button
-                  key="select"
-                  type="primary"
-                  size="small"
-                  onClick={() => selectSecret(secret.name)}
-                  aria-label={`Выбрать секрет ${secret.name}`}
-                >
-                  Выбрать
-                </Button>,
-              ]}
-            >
-              <List.Item.Meta
-                title={
-                  <Space>
-                    <Text strong>{secret.name}</Text>
-                    {getSecretTypeIcon(secret.secret_type)}
-                  </Space>
-                }
-                description={
-                  <Space direction="vertical" size="small">
-                    {secret.description && <Text type="secondary">{secret.description}</Text>}
-                  </Space>
-                }
-              />
-            </List.Item>
-          )}
-          locale={{ emptyText: 'Нет доступных секретов' }}
-        />
-      </Modal>
+         title="Выберите секрет"
+         open={secretModalVisible}
+         onCancel={() => setSecretModalVisible(false)}
+         footer={null}
+         width={800}
+       >
+         <Table
+           dataSource={secrets}
+           rowKey="id"
+           pagination={{ pageSize: 5 }}
+           columns={[
+             { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+             {
+               title: 'Название',
+               dataIndex: 'name',
+               key: 'name',
+             },
+             {
+               title: 'Тип',
+               dataIndex: 'secret_type',
+               key: 'secret_type',
+               render: type => getSecretTypeIcon(type),
+             },
+             {
+               title: 'Описание',
+               dataIndex: 'description',
+               key: 'description',
+               render: text => text || '-',
+             },
+             {
+               title: 'Действия',
+               key: 'actions',
+               render: (_, record) => (
+                 <Button
+                   type="primary"
+                   size="small"
+                   className="action-button"
+                   onClick={() => selectSecret(record.name)}
+                   aria-label={`Выбрать секрет ${record.name}`}
+                 >
+                   Выбрать
+                 </Button>
+               ),
+             },
+           ]}
+           locale={{ emptyText: 'Нет доступных секретов' }}
+         />
+       </Modal>
     </>
   );
 };

@@ -133,7 +133,7 @@
 }
 
 .logo span {
-  color: white;
+  color: var(--ant-color-text);
 }
 
 /* Status tag styles - colored border and text, no background */
@@ -349,8 +349,8 @@
 }
 
 .secret-type-password {
-  background-color: #748ffc;
-  color: white;
+  background-color: #9775fa;
+  color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
@@ -358,8 +358,8 @@
 }
 
 .secret-type-ssh-key {
-  background-color: #748ffc;
-  color: white;
+  background-color: #3bc9db;
+  color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
@@ -367,8 +367,8 @@
 }
 
 .secret-type-kubeconfig {
-  background-color: #748ffc;
-  color: white;
+  background-color: #da77f2;
+  color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
@@ -377,7 +377,7 @@
 
 .secret-type-default {
   background-color: #748ffc;
-  color: white;
+  color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
@@ -386,7 +386,7 @@
 
 .inspection-rule-tags {
   background-color: #748ffc;
-  color: white;
+  color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
@@ -560,6 +560,13 @@
 @media (min-width: 1600px) {
   /* Add xxl-specific enhancements if needed */
 }
+
+/* ===== ACTION BUTTONS ===== */
+/* Action buttons with visible borders for better UI consistency */
+.action-button {
+  border: 1px solid var(--ant-color-border);
+}
+
 
 /* ===== PRISM SYNTAX HIGHLIGHTING ===== */
 /* Syntax highlighting styles compatible with Ant Design code display patterns */
