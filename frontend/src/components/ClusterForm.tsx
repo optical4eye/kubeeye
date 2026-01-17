@@ -1,21 +1,7 @@
 import React, { useState } from 'react';
-import {
-  Form,
-  Input,
-  Button,
-  Space,
-  Modal,
-  List,
-  Tag,
-  Tooltip,
-  Typography,
-  Divider,
-  Table,
-} from 'antd';
+import { Form, Input, Button, Space, Modal, Tag, Tooltip, Table } from 'antd';
 import { KeyOutlined, InfoCircleOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
 import axios from 'axios';
-
-const { Text } = Typography;
 
 const ClusterForm = ({
   form,

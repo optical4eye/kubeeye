@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   Card,
   Tabs,
@@ -46,7 +45,7 @@ const Inspection = () => {
     try {
       const response = await getClusters();
       setClusters(response.data.clusters || []);
-    } catch (error) {
+    } catch {
       message.error('Ошибка загрузки кластеров');
     }
   };
@@ -55,7 +54,7 @@ const Inspection = () => {
     try {
       const response = await getRules(tags);
       setRules(response.data.rules || {});
-    } catch (error) {
+    } catch {
       message.error('Ошибка загрузки правил');
     }
   };
@@ -64,7 +63,7 @@ const Inspection = () => {
     try {
       const response = await getRuleTags();
       setAvailableTags(response.data.tags || []);
-    } catch (error) {
+    } catch {
       message.error('Ошибка загрузки тегов');
     }
   };
@@ -176,7 +175,7 @@ const Inspection = () => {
         prev.map(t => (t.task_id === taskId ? { ...t, status: 'cancelled' } : t))
       );
       message.success('Задача отменена');
-    } catch (error) {
+    } catch {
       message.error('Ошибка отмены задачи');
     }
   };

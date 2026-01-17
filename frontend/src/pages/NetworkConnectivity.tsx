@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Form,
-  Select,
-  Checkbox,
-  Input,
-  Button,
-  Table,
-  message,
-  Space,
-  Tag,
-  Alert,
-} from 'antd';
+import { Card, Form, Select, Checkbox, Input, Button, Table, message, Space, Alert } from 'antd';
 import {
   WifiOutlined,
   CheckCircleOutlined,
@@ -49,7 +37,7 @@ const NetworkConnectivity = () => {
       setLoading(true);
       const response = await getClustersForNetworkCheck();
       setClusters(response.data.clusters || []);
-    } catch (error) {
+    } catch {
       message.error('Ошибка загрузки кластеров');
     } finally {
       setLoading(false);
@@ -132,7 +120,7 @@ const NetworkConnectivity = () => {
       } else {
         message.warning(`${successCount} успешных, ${failCount} неудачных проверок`);
       }
-    } catch (error) {
+    } catch {
       message.error('Ошибка выполнения проверки подключения');
     } finally {
       setChecking(false);
@@ -163,7 +151,7 @@ const NetworkConnectivity = () => {
       window.URL.revokeObjectURL(url);
 
       message.success(`Результаты экспортированы в ${format.toUpperCase()}`);
-    } catch (error) {
+    } catch {
       message.error('Ошибка экспорта результатов');
     }
   };

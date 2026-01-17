@@ -1,18 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  Card,
-  Select,
-  Button,
-  message,
-  Space,
-  Tag,
-  List,
-  Typography,
-  Progress,
-  Spin,
-  Radio,
-} from 'antd';
+import { Card, Select, Button, message, Space, Tag, List, Typography, Spin, Radio } from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { getClusters } from '../services/api';
 import { getTaskStatusIcon } from '../components/statusUtils';

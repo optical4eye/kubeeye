@@ -131,7 +131,7 @@ function App() {
     );
   };
 
-  const [messageApi, contextHolder] = message.useMessage();
+  const [, contextHolder] = message.useMessage();
 
   return (
     <ConfigProvider

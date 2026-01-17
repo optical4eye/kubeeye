@@ -62,7 +62,7 @@ const ClusterManagement = () => {
       setCreateModalVisible(false);
       createForm.resetFields();
       loadClusters();
-    } catch (error) {
+    } catch {
       message.error('Ошибка создания кластера');
     }
   };
@@ -75,7 +75,7 @@ const ClusterManagement = () => {
       setSelectedCluster(null);
       setClusterDetails(null);
       setClusterNodes([]);
-    } catch (error) {
+    } catch {
       message.error('Ошибка удаления кластера');
     }
   };
@@ -121,7 +121,7 @@ const ClusterManagement = () => {
       if (clusterDetails) {
         loadClusterNodes(clusterDetails.name);
       }
-    } catch (error) {
+    } catch {
       message.error('Ошибка обновления кластера');
     }
   };
