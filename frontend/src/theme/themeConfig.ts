@@ -4,8 +4,8 @@ export const lightTheme: ThemeConfig = {
   algorithm: antdTheme.defaultAlgorithm,
   cssVar: true,
   token: {
-    colorPrimary: '#4dabf7',
-    colorSuccess: '#52c41a',
+    colorPrimary: '#4A90E2',
+    colorSuccess: '#7CB342',
     colorWarning: '#faad14',
     colorError: '#ff4d4f',
     colorInfo: '#13c2c2',
@@ -18,7 +18,7 @@ export const lightTheme: ThemeConfig = {
   components: {
     Alert: {
       colorInfoBg: 'transparent',
-      colorInfoBorder: '#4dabf7',
+      colorInfoBorder: '#339af0',
     },
     Button: {
       borderRadius: 6,
@@ -41,17 +41,17 @@ export const lightTheme: ThemeConfig = {
       borderRadius: 6,
     },
     Layout: {
-      siderBg: '#4dabf7',
+      siderBg: '#339af0',
     },
     Switch: {
-      colorPrimary: '#4dabf7',
-      colorPrimaryHover: '#228be6',
+      colorPrimary: '#339af0',
+      colorPrimaryHover: '#4dabf7',
     },
     Menu: {
-      colorBgContainer: '#4dabf7',
-      colorItemBg: '#4dabf7',
-      colorItemBgHover: '#228be6',
-      colorItemBgSelected: '#228be6',
+      colorBgContainer: '#339af0',
+      colorItemBg: '#339af0',
+      colorItemBgHover: '#4dabf7',
+      colorItemBgSelected: '#4dabf7',
     },
   },
 };
@@ -60,7 +60,7 @@ export const darkTheme: ThemeConfig = {
   algorithm: antdTheme.darkAlgorithm,
   cssVar: true,
   token: {
-    colorPrimary: '#4dabf7',
+    colorPrimary: '#339af0',
     colorSuccess: '#52c41a',
     colorWarning: '#faad14',
     colorError: '#ff4d4f',
@@ -74,7 +74,7 @@ export const darkTheme: ThemeConfig = {
   components: {
     Alert: {
       colorInfoBg: 'transparent',
-      colorInfoBorder: '#4dabf7',
+      colorInfoBorder: '#339af0',
     },
     Button: {
       borderRadius: 6,
@@ -97,17 +97,17 @@ export const darkTheme: ThemeConfig = {
       borderRadius: 6,
     },
     Layout: {
-      siderBg: '#4dabf7',
+      siderBg: '#339af0',
     },
     Switch: {
-      colorPrimary: '#4dabf7',
-      colorPrimaryHover: '#228be6',
+      colorPrimary: '#339af0',
+      colorPrimaryHover: '#4dabf7',
     },
     Menu: {
-      colorBgContainer: '#4dabf7',
-      colorItemBg: '#4dabf7',
-      colorItemBgHover: '#228be6',
-      colorItemBgSelected: '#228be6',
+      colorBgContainer: '#339af0',
+      colorItemBg: '#339af0',
+      colorItemBgHover: '#4dabf7',
+      colorItemBgSelected: '#4dabf7',
     },
   },
 };

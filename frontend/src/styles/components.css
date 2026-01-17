@@ -349,7 +349,7 @@
 }
 
 .secret-type-password {
-  background-color: #9775fa;
+  background-color: #845ef7;
   color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
@@ -358,7 +358,7 @@
 }
 
 .secret-type-ssh-key {
-  background-color: #3bc9db;
+  background-color: #22b8cf;
   color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
@@ -367,7 +367,7 @@
 }
 
 .secret-type-kubeconfig {
-  background-color: #da77f2;
+  background-color: #cc5de8;
   color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
@@ -376,7 +376,7 @@
 }
 
 .secret-type-default {
-  background-color: #748ffc;
+  background-color: #5c7cfa;
   color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
@@ -385,7 +385,7 @@
 }
 
 .inspection-rule-tags {
-  background-color: #748ffc;
+  background-color: #5c7cfa;
   color: var(--ant-color-text);
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
