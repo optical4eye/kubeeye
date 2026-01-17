@@ -191,7 +191,6 @@ const NetworkConnectivity = () => {
     }
   };
 
-
   const resultColumns = [
     {
       title: 'Статус',
@@ -243,7 +242,12 @@ const NetworkConnectivity = () => {
       <div className="page-subtitle">Проверка доступности сетевых сервисов из узлов кластера</div>
 
       <Space direction="vertical" size="large" className="kube-width-100">
-        <Card title="Настройки проверки" loading={loading} className="kube-width-100" bodyStyle={{ width: '100%' }}>
+        <Card
+          title="Настройки проверки"
+          loading={loading}
+          className="kube-width-100"
+          bodyStyle={{ width: '100%' }}
+        >
           <Form form={form} layout="vertical" style={{ width: '100%' }}>
             <Form.Item name="cluster" label="Кластер" required>
               <Select

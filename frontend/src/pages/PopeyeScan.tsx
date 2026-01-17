@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Select, Button, message, Space, Tag, List, Typography, Progress, Radio } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Card,
+  Select,
+  Button,
+  message,
+  Space,
+  Tag,
+  List,
+  Typography,
+  Progress,
+  Spin,
+  Radio,
+} from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { getClusters } from '../services/api';
 import { getTaskStatusIcon } from '../components/statusUtils';
@@ -317,18 +330,7 @@ const PopeyeScan = () => {
                           {task.status === 'cancelled' && 'Отменена'}
                         </Tag>
                       </Space>
-                      {task.status === 'running' && (
-                        <Progress
-                          percent={100}
-                          status="active"
-                          showInfo={false}
-                          size="small"
-                          strokeColor={{
-                            '0%': 'var(--ant-color-primary)',
-                            '100%': 'var(--ant-color-success)',
-                          }}
-                        />
-                      )}
+                      {task.status === 'running' && <Spin size="small" />}
                     </Space>
                   }
                   description={

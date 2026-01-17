@@ -354,7 +354,6 @@
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
-
 }
 
 .secret-type-ssh-key {
@@ -363,7 +362,6 @@
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
-
 }
 
 .secret-type-kubeconfig {
@@ -372,7 +370,6 @@
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
-
 }
 
 .secret-type-default {
@@ -381,7 +378,6 @@
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
-
 }
 
 .inspection-rule-tags {
@@ -390,7 +386,6 @@
   border-color: #343a40;
   font-weight: var(--ant-font-weight-strong);
   cursor: default;
-
 }
 
 /* Modal size utilities */
@@ -566,7 +561,6 @@
 .action-button {
   border: 1px solid var(--ant-color-border);
 }
-
 
 /* ===== PRISM SYNTAX HIGHLIGHTING ===== */
 /* Syntax highlighting styles compatible with Ant Design code display patterns */

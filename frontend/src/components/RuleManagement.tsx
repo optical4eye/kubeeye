@@ -146,7 +146,6 @@ const RuleManagement = () => {
     return labels[type] || type;
   };
 
-
   const columns = [
     {
       title: 'ID',

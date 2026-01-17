@@ -284,7 +284,6 @@ const ClusterManagement = () => {
         message.error('Ошибка получения узлов кластера');
         setClusterNodes([]);
       }
-
     } catch (error) {
       let errorMessage = 'Не удалось получить информацию об узлах кластера';
       if (error.response?.data?.detail) {

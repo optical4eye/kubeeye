@@ -44,7 +44,9 @@ const RuleSelector = ({ ruleType, title, availableRules, selectedRules, onRuleSe
                   {rule.description}
                 </div>
                 {rule.tags && rule.tags.length > 0 && (
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  <div
+                    style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}
+                  >
                     Теги: {rule.tags.join(', ')}
                   </div>
                 )}

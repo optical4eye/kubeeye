@@ -34,9 +34,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
     >
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '4rem', margin: '0.5rem 0' }}>🚀</div>
-        <h1 style={{ color: 'white', margin: '0.5rem 0', fontSize: '2.5rem' }}>
-          KubeEye
-        </h1>
+        <h1 style={{ color: 'white', margin: '0.5rem 0', fontSize: '2.5rem' }}>KubeEye</h1>
         <p
           style={{
             color: '#a6a6a6',
@@ -63,9 +61,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
             transform: 'translateX(-50%)',
           }}
         />
-        <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>
-          {message}
-        </h2>
+        <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>{message}</h2>
         <p style={{ color: '#a6a6a6', margin: '0.5rem 0' }}>{subMessage}</p>
       </div>
 

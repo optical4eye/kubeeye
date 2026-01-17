@@ -12,6 +12,7 @@ import {
   LockOutlined,
   SunOutlined,
   MoonOutlined,
+  AntDesignOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import VersionDisplay from './components/VersionDisplay';
@@ -27,6 +28,7 @@ const MIN_LOADING_TIME = 200; // Minimum 200ms loading time
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ClusterManagement = lazy(() => import('./pages/ClusterManagement'));
 const Inspection = lazy(() => import('./pages/Inspection'));
+const Rules = lazy(() => import('./pages/Rules'));
 const PopeyeScan = lazy(() => import('./pages/PopeyeScan'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Help = lazy(() => import('./pages/Help'));
@@ -84,19 +86,24 @@ function App() {
       label: 'Сеть',
     },
     {
-      key: '/inspection',
-      icon: <SearchOutlined />,
-      label: 'Инспекция',
-    },
-    {
       key: '/popeye',
       icon: <ScanOutlined />,
       label: 'Popeye',
     },
     {
+      key: '/inspection',
+      icon: <SearchOutlined />,
+      label: 'Инспекция',
+    },
+    {
       key: '/reports',
       icon: <FileTextOutlined />,
       label: 'Отчеты',
+    },
+    {
+      key: '/rules',
+      icon: <AntDesignOutlined />,
+      label: 'Правила',
     },
     {
       key: '/help',
@@ -184,6 +191,7 @@ function App() {
                         <Route path="/secrets" element={<SecretManagement />} />
                         <Route path="/network" element={<NetworkConnectivity />} />
                         <Route path="/inspection" element={<Inspection />} />
+                        <Route path="/rules" element={<Rules />} />
                         <Route path="/popeye" element={<PopeyeScan />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/help" element={<Help />} />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Card,
   Tabs,
@@ -10,6 +11,7 @@ import {
   List,
   Typography,
   Progress,
+  Spin,
   theme,
 } from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
@@ -22,7 +24,6 @@ import {
   getRuleTags,
 } from '../services/api';
 import ScheduledInspection from '../components/ScheduledInspection';
-import RuleManagement from '../components/RuleManagement';
 import RuleSelector from '../components/RuleSelector';
 import { getTaskStatusIcon } from '../components/statusUtils';
 
@@ -136,7 +137,6 @@ const Inspection = () => {
           }
         }
       } catch (error) {
-
         // Check if it's a 404 error (task not found)
         if (error.response?.status === 404) {
           message.error(
@@ -410,16 +410,21 @@ const Inspection = () => {
                               {task.status === 'cancelled' && 'Отменена'}
                             </Tag>
                           </Space>
-                          {task.status === 'running' && (
+                          {task.status === 'running' && <Spin size="small" />}
+                          {task.status === 'completed' && (
                             <Progress
                               percent={100}
-                              status="active"
+                              status="success"
                               showInfo={false}
                               size="small"
-                              strokeColor={{
-                                '0%': 'var(--ant-color-primary)',
-                                '100%': 'var(--ant-color-success)',
-                              }}
+                            />
+                          )}
+                          {task.status === 'failed' && (
+                            <Progress
+                              percent={100}
+                              status="exception"
+                              showInfo={false}
+                              size="small"
                             />
                           )}
                         </Space>
@@ -453,10 +458,6 @@ const Inspection = () => {
 
         <TabPane tab="Запланированная инспекция" key="2">
           <ScheduledInspection />
-        </TabPane>
-
-        <TabPane tab="Управление правилами" key="3">
-          <RuleManagement />
         </TabPane>
       </Tabs>
     </div>
