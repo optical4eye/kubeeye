@@ -18,7 +18,7 @@ export default defineConfig({
           antd: ['antd'],
           router: ['react-router-dom'],
           charts: ['recharts'],
-          utils: ['axios', 'date-fns', '@tanstack/react-query', 'dompurify'],
+          utils: ['axios', 'date-fns', '@tanstack/react-query'],
         },
       },
     },
