@@ -63,39 +63,3 @@ export const getTaskStatusIcon = status => {
       return <span>⏳</span>;
   }
 };
-
-export const getTaskStatusColor = status => {
-  switch (status) {
-    case 'pending':
-      return 'orange';
-    case 'running':
-      return 'blue';
-    case 'completed':
-      return 'green';
-    case 'failed':
-      return 'red';
-    case 'cancelled':
-      return 'default';
-    default:
-      return 'default';
-  }
-};
-
-export const getInspectionStatusTag = report => {
-  const totalIssues =
-    (report.critical || 0) +
-    (report.high || 0) +
-    (report.medium || 0) +
-    (report.low || 0) +
-    (report.warning || 0) +
-    (report.info || 0);
-  if (totalIssues === 0) {
-    return <Tag className="status-ok">OK</Tag>;
-  } else if ((report.critical || 0) + (report.high || 0) > 0) {
-    return <Tag className="status-critical-issues">Критические ошибки</Tag>;
-  } else if ((report.medium || 0) + (report.warning || 0) > 0) {
-    return <Tag className="status-warnings">Предупреждения</Tag>;
-  } else {
-    return <Tag className="status-other-issues">Другие ошибки</Tag>;
-  }
-};
