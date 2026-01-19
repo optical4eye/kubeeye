@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, message } from 'antd';
 import { getClusters, runInspectionAsync, getRules, getRuleTags } from '../services/api';
-import ScheduledInspection from '../components/ScheduledInspection';
-import InspectionForm from '../components/InspectionForm';
-import ActiveTasksList from '../components/ActiveTasksList';
+import { ScheduledInspection, ActiveTasksList } from '../components/tasks';
+import { InspectionForm } from '../components/inspection';
 import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
 
 interface Task {

@@ -120,7 +120,7 @@ export const useTaskWebSocket = (
         },
       })
     );
-  }
+  };
 
   const showErrorMessage = (task: Task, error?: string) => {
     message.error(`Задача ${task.task_id} завершилась с ошибкой: ${error || task.error}`);

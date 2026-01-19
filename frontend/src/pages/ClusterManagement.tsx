@@ -3,9 +3,11 @@ import { Tabs } from 'antd';
 import { useClusters } from '../hooks/useClusters';
 import { useClusterForm } from '../hooks/useClusterForm';
 import { useClusterModals } from '../hooks/useClusterModals';
-import ClusterListContainer from '../components/ClusterListContainer';
-import ClusterFormContainer from '../components/ClusterFormContainer';
-import ClusterModalManager from '../components/ClusterModalManager';
+import {
+  ClusterListContainer,
+  ClusterFormContainer,
+  ClusterModalManager,
+} from '../components/cluster';
 import { Form } from 'antd';
 import { Cluster, ClusterFormValues } from '../types/cluster';
 

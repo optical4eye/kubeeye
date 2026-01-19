@@ -1,5 +1,5 @@
 import React from 'react';
-import RuleManagement from '../components/RuleManagement';
+import { RuleManagement } from '../components/rules';
 
 const Rules = () => {
   return <RuleManagement />;

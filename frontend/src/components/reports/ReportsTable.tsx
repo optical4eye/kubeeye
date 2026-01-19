@@ -1,19 +1,8 @@
 import React from 'react';
 import { Card, Table, Button, Space, Modal } from 'antd';
 import { DownloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
-import { getStatusTag } from './statusUtils';
-
-interface Report {
-  result_id: string;
-  cluster_name: string;
-  timestamp: string;
-  inspection_type: string;
-  status: string;
-  critical: number;
-  warning: number;
-  info: number;
-  passed: number;
-}
+import { getStatusTag } from '../ui/statusUtils';
+import { Report } from '../../types';
 
 interface ReportsTableProps {
   filteredReports: Report[];
@@ -52,7 +41,7 @@ const ReportsTable: React.FC<ReportsTableProps> = React.memo(
       {
         title: 'Статус',
         key: 'status',
-        render: (_: any, record: Report) => getStatusTag(record.status),
+        render: (_: unknown, record: Report) => getStatusTag(record.status),
       },
       {
         title: 'Критические',
@@ -81,7 +70,7 @@ const ReportsTable: React.FC<ReportsTableProps> = React.memo(
       {
         title: 'Действия',
         key: 'actions',
-        render: (_: any, record: Report) => (
+        render: (_: unknown, record: Report) => (
           <Space wrap>
             <Button
               icon={<EyeOutlined />}

@@ -8,9 +8,7 @@ import {
   getCleanupConfig,
 } from '../services/api';
 import { useReportsFilters } from '../hooks/useReportsFilters';
-import ReportsFilters from '../components/ReportsFilters';
-import ReportsTable from '../components/ReportsTable';
-import ReportDetailsModal from '../components/ReportDetailsModal';
+import { ReportsFilters, ReportsTable, ReportDetailsModal } from '../components/reports';
 
 const Reports: React.FC = React.memo(() => {
   const [reports, setReports] = useState<any[]>([]);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, List, Button, Typography, Progress, Spin, Tag } from 'antd';
 import { StopOutlined } from '@ant-design/icons';
-import { getTaskStatusIcon } from './statusUtils';
+import { getTaskStatusIcon } from '../ui';
 
 interface Task {
   task_id: string;

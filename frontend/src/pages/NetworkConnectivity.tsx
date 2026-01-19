@@ -11,7 +11,7 @@ import {
   getClustersForNetworkCheck,
   exportNetworkCheckResult,
 } from '../services/api';
-import { getStatusTag } from '../components/statusUtils';
+import { getStatusTag } from '../components/ui/statusUtils';
 
 const { Option } = Select;
 

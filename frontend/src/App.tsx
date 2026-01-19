@@ -15,8 +15,8 @@ import {
   AntDesignOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import VersionDisplay from './components/VersionDisplay';
-import LoadingScreen from './components/LoadingScreen';
+import VersionDisplay from './components/ui/VersionDisplay';
+import LoadingScreen from './components/ui/LoadingScreen';
 import { useUIStore } from './stores/uiStore';
 import { getHealthStatus } from './services/api';
 import { getThemeConfig } from './theme/themeConfig';

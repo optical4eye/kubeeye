@@ -34,23 +34,85 @@ KubeEye Frontend - это веб-интерфейс для системы KubeEy
 frontend/
 ├── src/
 │   ├── components/          # Переиспользуемые компоненты
-│   │   ├── ui/             # Базовые UI компоненты (кнопки, таблицы и т.д.)
-│   │   ├── HelpTabs/       # Компоненты для справочной системы
-│   │   └── ...             # Специфические компоненты (формы, модалы и т.д.)
+│   │   ├── ui/             # Базовые UI компоненты и утилиты
+│   │   │   ├── HelpTabs/   # Компоненты справочной системы с подсветкой синтаксиса
+│   │   │   ├── ErrorBoundary.tsx    # Обработка ошибок приложения
+│   │   │   ├── CodeHighlighter.tsx  # Подсветка синтаксиса кода
+│   │   │   ├── LoadingScreen.tsx    # Экран загрузки
+│   │   │   └── statusUtils.tsx      # Утилиты для статусов
+│   │   ├── cluster/        # Компоненты управления кластерами
+│   │   │   ├── ClusterForm.tsx      # Форма создания/редактирования кластера
+│   │   │   ├── ClusterList.tsx      # Список кластеров
+│   │   │   ├── ClusterModalManager.tsx # Управление модальными окнами кластеров
+│   │   │   └── NodeTable.tsx        # Таблица узлов кластера
+│   │   ├── dashboard/      # Компоненты главной панели
+│   │   │   ├── DashboardCharts.tsx  # Графики и статистика
+│   │   │   └── DashboardStatistics.tsx # Статистические показатели
+│   │   ├── inspection/     # Компоненты инспекций
+│   │   │   └── InspectionForm.tsx   # Форма настройки инспекции
+│   │   ├── reports/        # Компоненты отчетов
+│   │   │   ├── ReportsTable.tsx     # Таблица отчетов
+│   │   │   ├── ReportsFilters.tsx   # Фильтры отчетов
+│   │   │   └── ReportDetailsModal.tsx # Модальное окно деталей отчета
+│   │   ├── rules/          # Компоненты управления правилами
+│   │   │   ├── RuleManagement.tsx   # Управление правилами
+│   │   │   └── RuleSelector.tsx     # Выбор правил для инспекции
+│   │   ├── tasks/          # Компоненты задач
+│   │   │   ├── ActiveTasksList.tsx  # Список активных задач
+│   │   │   └── ScheduledInspection.tsx # Планирование инспекций
+│   │   └── index.ts        # Экспорты компонентов
 │   ├── pages/              # Страницы приложения
-│   │   ├── Dashboard.tsx   # Главная панель
-│   │   ├── ClusterManagement.tsx  # Управление кластерами
-│   │   ├── Inspection.tsx  # Инспекции
-│   │   └── ...             # Другие страницы
+│   │   ├── Dashboard.tsx           # Главная панель
+│   │   ├── ClusterManagement.tsx   # Управление кластерами
+│   │   ├── Inspection.tsx          # Инспекции
+│   │   ├── Reports.tsx             # Отчеты
+│   │   ├── Rules.tsx               # Правила
+│   │   ├── SecretManagement.tsx    # Управление секретами
+│   │   ├── Help.tsx                # Справка
+│   │   ├── NetworkConnectivity.tsx # Проверка сетевой связности
+│   │   └── PopeyeScan.tsx          # Сканирование Popeye
 │   ├── services/           # Сервисы для API взаимодействия
+│   │   ├── api.ts                  # Основной API клиент
+│   │   ├── secretApi.ts            # API для секретов
+│   │   ├── secret/                 # Специфические сервисы секретов
+│   │   └── websocket/              # WebSocket сервисы
+│   │       ├── websocketClient.ts  # WebSocket клиент
+│   │       ├── connectionManager.ts # Управление соединением
+│   │       └── messageTypes.ts     # Типы сообщений
 │   ├── stores/             # Управление состоянием (Zustand)
+│   │   ├── uiStore.ts              # Состояние UI
+│   │   └── websocketStore.ts       # Состояние WebSocket
 │   ├── styles/             # Стили CSS
+│   │   ├── index.css               # Основные стили
+│   │   ├── components.css          # Стили компонентов
+│   │   ├── theme.css               # Темизация
+│   │   └── utilities.css           # Утилитарные стили
 │   ├── theme/              # Конфигурация темы Ant Design
+│   │   └── themeConfig.ts          # Конфигурация темы
 │   ├── types/              # TypeScript типы
+│   │   ├── index.ts                # Основные типы
+│   │   ├── cluster.ts              # Типы кластеров
+│   │   ├── secret.ts               # Типы секретов
+│   │   ├── cluster/                # Специфические типы кластеров
+│   │   └── secret/                 # Специфические типы секретов
 │   ├── utils/              # Вспомогательные функции
+│   │   ├── apiErrorHandler.ts      # Обработка ошибок API
+│   │   └── nodeParser.ts           # Парсер узлов
+│   ├── hooks/              # Кастомные React хуки
+│   │   ├── useClusters.ts          # Хук для кластеров
+│   │   ├── useReports.ts           # Хук для отчетов
+│   │   ├── useTaskWebSocket.ts     # WebSocket для задач
+│   │   ├── useApiErrorHandler.ts   # Обработка ошибок API
+│   │   ├── cluster/                # Хуки для кластеров
+│   │   ├── reports/                # Хуки для отчетов
+│   │   ├── rules/                  # Хуки для правил
+│   │   ├── tasks/                  # Хуки для задач
+│   │   └── ui/                     # UI хуки
 │   ├── App.tsx             # Главный компонент приложения
 │   └── index.tsx           # Точка входа
 ├── public/                 # Статические файлы
+│   ├── logo.svg            # Логотип приложения
+│   └── manifest.json       # Манифест PWA
 ├── Dockerfile              # Docker образ для продакшена
 ├── Dockerfile.test         # Docker образ для тестирования
 ├── package.json            # Зависимости и скрипты
@@ -59,6 +121,7 @@ frontend/
 ├── eslint.config.js        # Конфигурация ESLint
 ├── .stylelintrc.json       # Конфигурация Stylelint
 ├── .prettierrc.json        # Конфигурация Prettier
+├── .npmrc                  # Конфигурация npm
 └── antd.txt                # Документация по Ant Design
 ```
 
@@ -125,23 +188,69 @@ docker-compose down
 
 ### TypeScript
 
-- Используйте строгую типизацию для всех компонентов и функций
-- Определяйте интерфейсы для props компонентов
-- Используйте utility types (Partial, Pick, Omit) для манипуляции типами
-- Избегайте использования `any` - предпочитайте конкретные типы
+Проект использует строгую типизацию TypeScript для обеспечения надежности и поддерживаемости кода.
 
-Пример типизации компонента:
+#### Основные принципы типизации
+
+- **Строгая типизация**: Все компоненты, функции и переменные должны иметь явные типы
+- **Интерфейсы для API**: Определяйте интерфейсы для всех API ответов и запросов
+- **Generics**: Используйте generics для переиспользуемых компонентов и функций
+- **Discriminated unions**: Применяйте для типобезопасного состояния и действий
+- **Utility types**: Активно используйте `Partial`, `Pick`, `Omit`, `Record`, `Readonly`
+- **Избегайте `any`**: Предпочитайте конкретные типы, в крайнем случае используйте `unknown`
+
+#### Примеры типизации
+
+**Компонент с generics:**
 
 ```typescript
-interface ClusterFormProps {
-  onSubmit: (data: ClusterData) => void;
-  initialData?: Partial<ClusterData>;
+interface DataTableProps<T> {
+  data: T[];
+  columns: Column<T>[];
+  onRowClick?: (item: T) => void;
 }
 
-const ClusterForm: React.FC<ClusterFormProps> = ({ onSubmit, initialData }) => {
+const DataTable = <T extends { id: string }>({
+  data,
+  columns,
+  onRowClick
+}: DataTableProps<T>) => {
   // implementation
 };
 ```
+
+**API типы с discriminated unions:**
+
+```typescript
+type ApiResponse<T> =
+  | { status: 'success'; data: T }
+  | { status: 'error'; error: string }
+  | { status: 'loading' };
+
+interface ClusterData {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive' | 'error';
+}
+```
+
+**Хуки с типизацией:**
+
+```typescript
+const useApiQuery = <T>(
+  endpoint: string,
+  options?: { enabled?: boolean }
+): ApiResponse<T> => {
+  // implementation with proper typing
+};
+```
+
+#### Конфигурация TypeScript
+
+- `"strict": true` - включает все строгие проверки
+- `"noImplicitAny": true` - запрещает неявный `any`
+- `"exactOptionalPropertyTypes": true` - строгие опциональные свойства
+- `"noUncheckedIndexedAccess": true` - безопасный доступ к массивам
 
 ### ESLint правила
 
@@ -207,6 +316,35 @@ npm run lint:css
 
 ## Лучшие практики
 
+### Архитектура компонентов
+
+- **Атомарный дизайн**: Строите компоненты по принципу атомарного дизайна (atoms, molecules, organisms)
+- **Container/Presentational**: Разделяйте логику (containers) и представление (components)
+- **Composition over inheritance**: Предпочитайте композицию наследованию
+- **Single responsibility**: Каждый компонент должен иметь одну ответственность
+- **Props drilling**: Избегайте глубокого пробрасывания props, используйте контекст или Zustand
+
+### Управление состоянием
+
+- **Zustand для глобального состояния**: Используйте Zustand для приложения и сессионного состояния
+- **React Query для серверного состояния**: Для данных API используйте React Query с кэшированием
+- **Локальное состояние**: Для компонентного состояния используйте useState/useReducer
+- **Избегайте prop drilling**: Для глубокого состояния используйте контекст или глобальный store
+
+### Работа с API
+
+- **Централизованная обработка ошибок**: Используйте useApiErrorHandler для унифицированной обработки
+- **Типизированные запросы**: Все API вызовы должны быть типизированы
+- **Оптимизация запросов**: Используйте React Query для кэширования и дедупликации
+- **WebSocket для реального времени**: Для live обновлений используйте WebSocket клиент
+
+### Кастомные хуки
+
+- **Логика переиспользования**: Выносите бизнес-логику в кастомные хуки
+- **Принцип единственной ответственности**: Каждый хук должен делать одну вещь
+- **Тестируемость**: Хуки должны быть легко тестируемыми
+- **Примеры**: useClusters, useReports, useTaskWebSocket
+
 ### Код
 
 - Пишите чистый, читаемый код с понятными именами переменных
@@ -217,16 +355,26 @@ npm run lint:css
 ### Производительность
 
 - Используйте React.memo для оптимизации рендеринга
-- Ленивую загрузку для больших компонентов
+- Ленивую загрузку для больших компонентов с React.lazy
 - Оптимизируйте запросы API с помощью React Query
-- Минимизируйте размер бандла
+- Минимизируйте размер бандла с tree-shaking
+- Используйте useMemo/useCallback для expensive операций
 
 ### Безопасность
 
-- Валидируйте все пользовательские данные
-- Используйте DOMPurify для санитизации HTML
-- Храните чувствительные данные securely
-- Следуйте принципам OWASP
+- Валидируйте все пользовательские данные на клиенте и сервере
+- Используйте DOMPurify для санитизации HTML контента
+- Храните чувствительные данные securely (не в localStorage для токенов)
+- Следуйте принципам OWASP для веб-безопасности
+- Регулярно обновляйте зависимости для исправления уязвимостей
+
+### Тестирование
+
+- **Unit тесты**: Тестируйте компоненты, хуки и утилиты с Jest и React Testing Library
+- **Integration тесты**: Тестируйте взаимодействие компонентов
+- **E2E тесты**: Для критических пользовательских сценариев используйте Playwright
+- **Моки API**: Используйте MSW для мокинга API в тестах
+- **Тестируйте типы**: Используйте type-testing для критических типов
 
 ## Рефакторинг
 

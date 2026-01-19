@@ -2,11 +2,11 @@ import React, { Suspense, lazy } from 'react';
 import { Tabs, Spin } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 
-const IntroductionTab = lazy(() => import('../components/HelpTabs/IntroductionTab'));
-const ExamplesTab = lazy(() => import('../components/HelpTabs/ExamplesTab'));
-const SecurityTab = lazy(() => import('../components/HelpTabs/SecurityTab'));
-const KubeconfigTab = lazy(() => import('../components/HelpTabs/KubeconfigTab'));
-const ApiTab = lazy(() => import('../components/HelpTabs/ApiTab'));
+const IntroductionTab = lazy(() => import('../components/ui/HelpTabs/IntroductionTab'));
+const ExamplesTab = lazy(() => import('../components/ui/HelpTabs/ExamplesTab'));
+const SecurityTab = lazy(() => import('../components/ui/HelpTabs/SecurityTab'));
+const KubeconfigTab = lazy(() => import('../components/ui/HelpTabs/KubeconfigTab'));
+const ApiTab = lazy(() => import('../components/ui/HelpTabs/ApiTab'));
 
 const Help = () => {
   return (

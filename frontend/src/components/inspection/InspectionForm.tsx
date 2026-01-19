@@ -1,18 +1,29 @@
 import React, { useCallback } from 'react';
 import { Card, Select, Button, Space, Tag, theme } from 'antd';
 import { PlayCircleOutlined } from '@ant-design/icons';
-import RuleSelector from './RuleSelector';
+import { RuleSelector } from '../rules';
+import { Cluster, Rule } from '../../types';
 
 const { Option } = Select;
 
+interface TagInfo {
+  tag: string;
+  count: number;
+}
+
+interface RulesByType {
+  node?: Rule[];
+  opa?: Rule[];
+}
+
 interface InspectionFormProps {
-  clusters: any[];
-  rules: any;
+  clusters: Cluster[];
+  rules: RulesByType;
   selectedCluster: string | null;
   setSelectedCluster: (value: string | null) => void;
   selectedRules: Record<string, number[]>;
   setSelectedRules: React.Dispatch<React.SetStateAction<Record<string, number[]>>>;
-  availableTags: any[];
+  availableTags: TagInfo[];
   selectedTags: string[];
   setSelectedTags: (tags: string[]) => void;
   loading: boolean;

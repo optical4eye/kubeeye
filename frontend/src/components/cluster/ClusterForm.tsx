@@ -2,8 +2,19 @@ import React, { useState } from 'react';
 import { Form, Input, Button, Space, Modal, Tag, Tooltip, Table } from 'antd';
 import { KeyOutlined, InfoCircleOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { FormInstance } from 'antd/lib/form';
+import { Secret } from '../../types';
 
-const ClusterForm = ({
+interface ClusterFormProps {
+  form: FormInstance;
+  onSubmit: (values: any) => void;
+  onTestNodes: () => void;
+  onTestKubeconfig: () => void;
+  onGetNodesFromKubeconfig: () => void;
+  isEditMode?: boolean;
+}
+
+const ClusterForm: React.FC<ClusterFormProps> = ({
   form,
   onSubmit,
   onTestNodes,
@@ -11,9 +22,9 @@ const ClusterForm = ({
   onGetNodesFromKubeconfig,
   isEditMode = false,
 }) => {
-  const [secretModalVisible, setSecretModalVisible] = useState(false);
-  const [secrets, setSecrets] = useState([]);
-  const [targetField, setTargetField] = useState(null);
+  const [secretModalVisible, setSecretModalVisible] = useState<boolean>(false);
+  const [secrets, setSecrets] = useState<Secret[]>([]);
+  const [targetField, setTargetField] = useState<string | null>(null);
 
   const loadSecrets = async () => {
     try {
@@ -24,20 +35,20 @@ const ClusterForm = ({
     }
   };
 
-  const openSecretModal = fieldName => {
+  const openSecretModal = (fieldName: string) => {
     setTargetField(fieldName);
     loadSecrets();
     setSecretModalVisible(true);
   };
 
-  const selectSecret = secretName => {
+  const selectSecret = (secretName: string) => {
     const secretVariable = `\u0024\u007Bsecret:${secretName}\u007D`;
     const currentValue = form.getFieldValue(targetField) || '';
     form.setFieldValue(targetField, currentValue + secretVariable);
     setSecretModalVisible(false);
   };
 
-  const getSecretTypeIcon = type => {
+  const getSecretTypeIcon = (type: string) => {
     switch (type) {
       case 'password':
         return (

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Select, Button, message, Space, Tag, List, Typography, Spin, Radio } from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { getClusters } from '../services/api';
-import { getTaskStatusIcon } from '../components/statusUtils';
+import { getTaskStatusIcon } from '../components/ui/statusUtils';
 import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
 
 const { Option } = Select;

@@ -1,8 +1,20 @@
 import React from 'react';
 import { Modal, Button, Space, Select } from 'antd';
 import NodeTable from './NodeTable';
+import { Cluster, Node } from '../../types';
 
-const ClusterDetailsModal = ({
+interface ClusterDetailsModalProps {
+  open: boolean;
+  cluster: Cluster | null;
+  nodes: Node[];
+  nodesLoading: boolean;
+  nodeFilter: string;
+  onClose: () => void;
+  onRefreshNodes: () => void;
+  onFilterChange: (value: string) => void;
+}
+
+const ClusterDetailsModal: React.FC<ClusterDetailsModalProps> = ({
   open,
   cluster,
   nodes,

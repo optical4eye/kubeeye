@@ -17,32 +17,28 @@ import {
 } from 'antd';
 import { DeleteOutlined, PlayCircleFilled, EditOutlined } from '@ant-design/icons';
 import { format, parseISO, parse } from 'date-fns';
-import {
-  getClusters,
-  getRules,
-  getScheduledTasks,
-  createScheduledTask,
-  deleteScheduledTask,
-  runScheduledTask,
-  updateScheduledTask,
-} from '../services/api';
-import RuleSelector from './RuleSelector';
-import { getStatusTag } from './statusUtils';
+import * as api from '../../services/api';
+import { RuleSelector } from '../rules';
+import { getStatusTag } from '../ui/statusUtils';
+import { Task, Cluster, Rule, ScheduledTaskCreateRequest } from '../../types';
 
 const { Option } = Select;
 
 const ScheduledInspection = () => {
-  const [tasks, setTasks] = useState([]);
-  const [clusters, setClusters] = useState([]);
-  const [rules, setRules] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
-  const [selectedRules, setSelectedRules] = useState({ node: [], opa: [] });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
+  const [rules, setRules] = useState<Record<string, Rule[]>>({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [selectedRules, setSelectedRules] = useState<Record<string, number[]>>({
+    node: [],
+    opa: [],
+  });
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  const handleRuleSelection = (ruleType, ruleIds) => {
+  const handleRuleSelection = (ruleType: string, ruleIds: number[]) => {
     setSelectedRules(prev => ({
       ...prev,
       [ruleType]: ruleIds,
@@ -53,9 +49,9 @@ const ScheduledInspection = () => {
     try {
       setLoading(true);
       const [tasksRes, clustersRes, rulesRes] = await Promise.all([
-        getScheduledTasks(),
-        getClusters(),
-        getRules(),
+        api.getScheduledTasks(),
+        api.getClusters(),
+        api.getRules(),
       ]);
       setTasks(tasksRes.data.tasks || []);
       setClusters(clustersRes.data.clusters || []);
@@ -72,7 +68,7 @@ const ScheduledInspection = () => {
     loadData();
   }, []);
 
-  const handleCreateTask = async values => {
+  const handleCreateTask = async (values: any) => {
     try {
       let cronExpr = '';
       let runDatetime = null;
@@ -100,7 +96,7 @@ const ScheduledInspection = () => {
         run_datetime: runDatetime,
       };
 
-      await createScheduledTask(taskData);
+      await api.createScheduledTask(taskData);
       message.success('Задача создана успешно');
       form.resetFields();
       setSelectedRules({ node: [], opa: [] });
@@ -111,9 +107,9 @@ const ScheduledInspection = () => {
     }
   };
 
-  const handleDeleteTask = async taskId => {
+  const handleDeleteTask = async (taskId: string) => {
     try {
-      await deleteScheduledTask(taskId);
+      await api.deleteScheduledTask(taskId);
       message.success('Задача удалена');
       loadData();
     } catch (error) {
@@ -122,9 +118,9 @@ const ScheduledInspection = () => {
     }
   };
 
-  const handleRunTask = async taskId => {
+  const handleRunTask = async (taskId: string) => {
     try {
-      await runScheduledTask(taskId);
+      await api.runScheduledTask(taskId);
       message.success('Задача запущена');
       loadData();
     } catch (error) {
@@ -133,7 +129,7 @@ const ScheduledInspection = () => {
     }
   };
 
-  const handleEditTask = task => {
+  const handleEditTask = (task: Task) => {
     setEditingTask(task);
     setSelectedRules({
       node: task.rules?.node || [],
@@ -170,7 +166,7 @@ const ScheduledInspection = () => {
     setEditModalVisible(true);
   };
 
-  const handleUpdateTask = async values => {
+  const handleUpdateTask = async (values: any) => {
     try {
       let cronExpr = '';
       let runDatetime = null;
@@ -196,7 +192,7 @@ const ScheduledInspection = () => {
         run_datetime: runDatetime,
       };
 
-      await updateScheduledTask(editingTask.task_id, taskData);
+      await api.updateScheduledTask(editingTask.task_id, taskData);
       message.success('Задача обновлена успешно');
       setEditModalVisible(false);
       setEditingTask(null);

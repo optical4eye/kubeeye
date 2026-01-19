@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Button, Descriptions, Statistic, Row, Col, Tabs, Table, Tooltip } from 'antd';
-import { getStatusTag, getSeverityTag } from './statusUtils';
+import { getStatusTag, getSeverityTag } from '../ui/statusUtils';
 
 interface ReportDetail {
   result_id: string;

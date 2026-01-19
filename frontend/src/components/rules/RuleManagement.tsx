@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, Tabs, Table, Button, Select, Input, Space, Tag, Alert, message } from 'antd';
 const { Option } = Select;
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
-import * as api from '../services/api';
-import { getSeverityTag } from './statusUtils';
+import * as api from '../../services/api';
+import { getSeverityTag } from '../ui/statusUtils';
 
 const RuleManagement = () => {
   const [rules, setRules] = useState({});

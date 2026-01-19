@@ -3,8 +3,7 @@ import { Card, Row, Col, Button, Table, message } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getDashboardData } from '../services/api';
-import DashboardStatistics from '../components/DashboardStatistics';
-import DashboardCharts from '../components/DashboardCharts';
+import { DashboardStatistics, DashboardCharts } from '../components/dashboard';
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
