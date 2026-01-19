@@ -221,33 +221,60 @@ class AsyncTaskQueue:
     async def _process_inspection_task(self, task: Task) -> Dict[str, Any]:
         """Process inspection task"""
         from services.components.inspection_engine import execute_inspection_unified
+        from core.events import publish_task_started, publish_task_completed, publish_task_failed
 
         payload = task.payload
+
+        # Publish task started event
+        await publish_task_started(task.task_id, task.task_type)
 
         # Call progress callback if provided
         if task.progress_callback:
             task.progress_callback("Starting inspection...")
 
-        # Execute inspection
-        success, message, results = await execute_inspection_unified(
-            cluster_name=payload["cluster_name"],
-            selected_rules=payload.get("selected_rules"),
-            selected_tags=payload.get("selected_tags"),
-            inspection_type=payload.get("inspection_type", "immediate"),
-            show_progress=False,
-            show_ui_feedback=False,
-            use_gitops=payload.get("use_gitops", False),
-        )
+        try:
+            # Execute inspection
+            success, message, results = await execute_inspection_unified(
+                cluster_name=payload["cluster_name"],
+                selected_rules=payload.get("selected_rules"),
+                selected_tags=payload.get("selected_tags"),
+                inspection_type=payload.get("inspection_type", "immediate"),
+                show_progress=False,
+                show_ui_feedback=False,
+                use_gitops=payload.get("use_gitops", False),
+            )
 
-        if task.progress_callback:
-            task.progress_callback("Inspection completed")
+            if task.progress_callback:
+                task.progress_callback("Inspection completed")
 
-        # Inspection now always succeeds (errors are recorded in results)
-        return {
-            "success": success,
-            "message": message,
-            "results": results,
-        }
+            # Inspection now always succeeds (errors are recorded in results)
+            # Serialize InspectionResult objects for WebSocket
+            results_serializable = {}
+            for inspector_name, inspection_result in results.items():
+                if hasattr(inspection_result, 'get_summary'):
+                    results_serializable[inspector_name] = inspection_result.get_summary()
+                elif hasattr(inspection_result, 'to_dict'):
+                    results_serializable[inspector_name] = inspection_result.to_dict()
+                else:
+                    # Fallback: convert to string representation
+                    results_serializable[inspector_name] = str(inspection_result)
+
+            result = {
+                "success": success,
+                "message": message,
+                "results": results_serializable,
+            }
+
+            # Publish task completed event
+            await publish_task_completed(task.task_id, result)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Inspection task {task.task_id} failed: {e}")
+            # Publish task failed event
+            await publish_task_failed(task.task_id, str(e))
+            raise
 
     async def _process_popeye_task(self, task: Task) -> Dict[str, Any]:
         """Process Popeye scan task"""

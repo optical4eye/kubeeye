@@ -128,7 +128,7 @@ class InspectionResult:
         return {
             "cluster_name": self.cluster_name,
             "inspection_type": self.inspection_type,
-            "timestamp": self.timestamp,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             "result_id": self.result_id,
             "total": len(self.items),
             "passed": passed,

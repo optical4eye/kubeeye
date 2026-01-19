@@ -55,8 +55,20 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
             logger.error(f"Inspection failed for cluster {request.cluster_name}: {message}")
             raise HTTPException(status_code=400, detail=message)
 
+        # Serialize InspectionResult objects for JSON response
+        results_serializable = {}
+        if results:
+            for inspector_name, inspection_result in results.items():
+                if hasattr(inspection_result, 'get_summary'):
+                    results_serializable[inspector_name] = inspection_result.get_summary()
+                elif hasattr(inspection_result, 'to_dict'):
+                    results_serializable[inspector_name] = inspection_result.to_dict()
+                else:
+                    # Fallback: convert to string representation
+                    results_serializable[inspector_name] = str(inspection_result)
+
         logger.info(f"Inspection completed successfully for cluster: {request.cluster_name}")
-        return {"message": message, "results": results}
+        return {"message": message, "results": results_serializable}
     except HTTPException:
         raise
     except Exception as e:

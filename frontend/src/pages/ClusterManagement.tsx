@@ -17,7 +17,6 @@ const ClusterManagement = () => {
     loading,
     selectedCluster,
     clusterDetails,
-    clusterNodes,
     nodesLoading,
     nodeFilter,
     setSelectedCluster,

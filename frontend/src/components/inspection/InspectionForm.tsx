@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Card, Select, Button, Space, Tag, theme } from 'antd';
+import { Card, Select, Button, Space, theme } from 'antd';
 import { PlayCircleOutlined } from '@ant-design/icons';
 import { RuleSelector } from '../rules';
 import { Cluster, Rule } from '../../types';
@@ -22,7 +22,6 @@ interface InspectionFormProps {
   selectedCluster: string | null;
   setSelectedCluster: (value: string | null) => void;
   selectedRules: Record<string, number[]>;
-  setSelectedRules: React.Dispatch<React.SetStateAction<Record<string, number[]>>>;
   availableTags: TagInfo[];
   selectedTags: string[];
   setSelectedTags: (tags: string[]) => void;
@@ -38,7 +37,6 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
     selectedCluster,
     setSelectedCluster,
     selectedRules,
-    setSelectedRules,
     availableTags,
     selectedTags,
     setSelectedTags,

@@ -14,6 +14,7 @@ jinja2>=3.1.6
 # FastAPI backend
 fastapi>=0.128.0
 uvicorn>=0.40.0
+websockets>=16.0
 pydantic>=2.12.5  # Pydantic V2 for simplified validation
 pydantic-settings>=2.12.0  # Centralized configuration management
 asyncssh>=2.22.0  # Async SSH connections for node inspections
@@ -27,4 +28,3 @@ asyncpg>=0.31.0  # Async PostgreSQL driver
 psycopg2-binary>=2.9.11  # Synchronous PostgreSQL driver (legacy)
 SQLAlchemy>=2.0.45  # Async ORM with eager loading support
 cachetools>=6.2.4  # Thread-safe caching with TTL
-websockets>=16.0

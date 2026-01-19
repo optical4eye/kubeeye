@@ -72,10 +72,19 @@ class AsyncTaskExecutor(ITaskExecutor):
 
                 logger.info(f"Task {task_id} completed in {execution_time:.2f}s, success: {success}")
 
+                # Serialize InspectionResult objects for JSON compatibility
+                results_serializable = {}
+                if results:
+                    for inspector_name, inspection_result in results.items():
+                        if hasattr(inspection_result, 'get_summary'):
+                            results_serializable[inspector_name] = inspection_result.get_summary()
+                        else:
+                            results_serializable[inspector_name] = inspection_result
+
                 return {
                     "success": success,
                     "message": message,
-                    "results": results,
+                    "results": results_serializable,
                     "execution_time": execution_time,
                     "timestamp": datetime.now().isoformat(),
                     "attempts": attempt + 1,

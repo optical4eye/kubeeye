@@ -13,7 +13,7 @@ export class WebSocketConnectionManager {
 
   constructor(baseUrl: string, clientId?: string) {
     // Assuming the WebSocket endpoint is at /ws/tasks
-    const wsUrl = `ws://${baseUrl}/ws/tasks`;
+    const wsUrl = `${baseUrl}/ws/tasks`;
     this.client = new WebSocketClient(wsUrl, clientId);
 
     // Set up message routing

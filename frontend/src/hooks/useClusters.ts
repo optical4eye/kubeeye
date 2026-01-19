@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -9,7 +9,7 @@ import {
   getClusterDetails,
   getClusterNodes,
 } from '../services/api';
-import { parseNodesFromText } from '../utils/nodeParser';
+import { parseNodesFromText, formatNodesForText } from '../utils/nodeParser';
 import { Cluster, ClusterNode, ClusterFormValues } from '../types/cluster';
 
 export const useClusters = () => {
@@ -24,7 +24,6 @@ export const useClusters = () => {
   const {
     data: clustersData,
     isLoading: loading,
-    error: clustersError,
   } = useQuery({
     queryKey: ['clusters'],
     queryFn: async () => {
@@ -57,9 +56,9 @@ export const useClusters = () => {
     },
   });
 
-  const handleCreateCluster = (values: ClusterFormValues) => {
+  const handleCreateCluster = useCallback((values: ClusterFormValues) => {
     createClusterMutation.mutate(values);
-  };
+  }, [createClusterMutation]);
 
   // Mutation for deleting cluster
   const deleteClusterMutation = useMutation({
@@ -76,27 +75,25 @@ export const useClusters = () => {
     },
   });
 
-  const handleDeleteCluster = (clusterName: string) => {
+  const handleDeleteCluster = useCallback((clusterName: string) => {
     deleteClusterMutation.mutate(clusterName);
-  };
+  }, [deleteClusterMutation]);
 
-  const loadClusterDetails = async (clusterName: string) => {
+  const loadClusterDetails = useCallback(async (clusterName: string) => {
     try {
       const response = await getClusterDetails(clusterName);
       const data = response.data;
-      setSelectedCluster({ name: clusterName } as Cluster);
       // Возвращаем данные для формы
       return {
         name: data.name,
-        nodes_text: data.nodes,
+        nodes_text: formatNodesForText(data.nodes || []),
         kubeconfig: data.kubeconfig || '',
       };
     } catch (error: unknown) {
       message.error('Ошибка загрузки данных кластера');
-      setSelectedCluster(null);
       throw error;
     }
-  };
+  }, []);
 
   // Mutation for updating cluster
   const updateClusterMutation = useMutation({
@@ -128,13 +125,13 @@ export const useClusters = () => {
     },
   });
 
-  const handleEditCluster = (values: ClusterFormValues) => {
+  const handleEditCluster = useCallback((values: ClusterFormValues) => {
     if (selectedCluster) {
       updateClusterMutation.mutate({ clusterName: selectedCluster.name, values });
     }
-  };
+  }, [selectedCluster, updateClusterMutation]);
 
-  const loadClusterNodes = async (clusterName: string) => {
+  const loadClusterNodes = useCallback(async (clusterName: string) => {
     try {
       setNodesLoading(true);
       const response = await getClusterNodes(clusterName);
@@ -160,13 +157,13 @@ export const useClusters = () => {
     } finally {
       setNodesLoading(false);
     }
-  };
+  }, []);
 
-  const handleShowClusterDetails = (cluster: Cluster) => {
+  const handleShowClusterDetails = useCallback((cluster: Cluster) => {
     setSelectedCluster(cluster);
     setClusterDetails(cluster);
     loadClusterNodes(cluster.name);
-  };
+  }, [loadClusterNodes]);
 
   const filteredNodes = clusterNodes.filter(node => {
     if (nodeFilter === 'all') return true;

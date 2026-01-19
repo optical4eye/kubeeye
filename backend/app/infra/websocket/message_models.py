@@ -13,7 +13,7 @@ class WebSocketMessage(BaseModel):
     """Base WebSocket message model"""
     type: str
     payload: Dict[str, Any]
-    timestamp: datetime
+    timestamp: str
 
 
 class TaskMessage(WebSocketMessage):
@@ -68,7 +68,7 @@ def create_task_scheduled_message(task_id: str, task_type: str) -> TaskScheduled
     """Create a task scheduled message"""
     return TaskScheduledMessage(
         payload={"task_id": task_id, "task_type": task_type},
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow().isoformat()
     )
 
 
@@ -76,7 +76,7 @@ def create_task_started_message(task_id: str, task_type: str) -> TaskStartedMess
     """Create a task started message"""
     return TaskStartedMessage(
         payload={"task_id": task_id, "task_type": task_type},
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow().isoformat()
     )
 
 
@@ -84,7 +84,7 @@ def create_task_completed_message(task_id: str, result: Any) -> TaskCompletedMes
     """Create a task completed message"""
     return TaskCompletedMessage(
         payload={"task_id": task_id, "result": result},
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow().isoformat()
     )
 
 
@@ -92,7 +92,7 @@ def create_task_failed_message(task_id: str, error: str) -> TaskFailedMessage:
     """Create a task failed message"""
     return TaskFailedMessage(
         payload={"task_id": task_id, "error": error},
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow().isoformat()
     )
 
 
@@ -100,7 +100,7 @@ def create_inspection_started_message(cluster_name: str, config: Dict[str, Any])
     """Create an inspection started message"""
     return InspectionStartedMessage(
         payload={"cluster_name": cluster_name, "config": config},
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow().isoformat()
     )
 
 
@@ -108,7 +108,7 @@ def create_inspection_completed_message(cluster_name: str, result: Dict[str, Any
     """Create an inspection completed message"""
     return InspectionCompletedMessage(
         payload={"cluster_name": cluster_name, "result": result},
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow().isoformat()
     )
 
 
@@ -116,5 +116,5 @@ def create_inspection_failed_message(cluster_name: str, error: str) -> Inspectio
     """Create an inspection failed message"""
     return InspectionFailedMessage(
         payload={"cluster_name": cluster_name, "error": error},
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow().isoformat()
     )

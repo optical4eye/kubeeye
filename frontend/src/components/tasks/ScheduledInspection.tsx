@@ -20,7 +20,7 @@ import { format, parseISO, parse } from 'date-fns';
 import * as api from '../../services/api';
 import { RuleSelector } from '../rules';
 import { getStatusTag } from '../ui/statusUtils';
-import { Task, Cluster, Rule, ScheduledTaskCreateRequest } from '../../types';
+import { Task, Cluster, Rule } from '../../types';
 
 const { Option } = Select;
 
