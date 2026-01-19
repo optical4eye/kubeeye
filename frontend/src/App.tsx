@@ -39,14 +39,16 @@ const { Header, Sider, Content } = Layout;
 function App() {
   const { theme, setTheme } = useUIStore();
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
+  const [stopPolling, setStopPolling] = useState(false);
 
-  // Check backend health continuously
+  // Check backend health continuously until successful connection
   const { data: healthStatus, error: healthError } = useQuery({
     queryKey: ['backend-health'],
     queryFn: getHealthStatus,
-    refetchInterval: 5000, // Check every 5 seconds continuously
+    refetchInterval: stopPolling ? false : 5000, // Stop polling after successful connection
     retry: false, // Disable retry to immediately set error state
     staleTime: 2000,
+    refetchOnWindowFocus: false, // Rarely changing data
   });
 
   // Show loading screen if backend is not ready
@@ -54,6 +56,13 @@ function App() {
     !healthError &&
     (healthStatus?.data?.status === 'healthy' || healthStatus?.data?.status === 'ok');
   const isSystemReady = isBackendReady;
+
+  // Stop polling after successful backend connection
+  useEffect(() => {
+    if (isBackendReady && !stopPolling) {
+      setStopPolling(true);
+    }
+  }, [isBackendReady, stopPolling]);
 
   // Ensure minimum loading time for initial load
   useEffect(() => {
