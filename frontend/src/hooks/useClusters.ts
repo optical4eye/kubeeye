@@ -100,7 +100,13 @@ export const useClusters = () => {
 
   // Mutation for updating cluster
   const updateClusterMutation = useMutation({
-    mutationFn: async ({ clusterName, values }: { clusterName: string; values: ClusterFormValues }) => {
+    mutationFn: async ({
+      clusterName,
+      values,
+    }: {
+      clusterName: string;
+      values: ClusterFormValues;
+    }) => {
       const nodes = parseNodesFromText(values.nodes_text);
       const clusterData = {
         name: values.name,

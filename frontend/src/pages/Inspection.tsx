@@ -1,15 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, message } from 'antd';
-import {
-  getClusters,
-  runInspectionAsync,
-  getRules,
-  getRuleTags,
-} from '../services/api';
+import { getClusters, runInspectionAsync, getRules, getRuleTags } from '../services/api';
 import ScheduledInspection from '../components/ScheduledInspection';
 import InspectionForm from '../components/InspectionForm';
 import ActiveTasksList from '../components/ActiveTasksList';
-import { useTaskPolling } from '../hooks/useTaskPolling';
+import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
 
 interface Task {
   task_id: string;
@@ -29,13 +24,16 @@ const Inspection = React.memo(() => {
   const [clusters, setClusters] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [rules, setRules] = useState({});
-  const [selectedRules, setSelectedRules] = useState<Record<string, number[]>>({ node: [], opa: [] });
+  const [selectedRules, setSelectedRules] = useState<Record<string, number[]>>({
+    node: [],
+    opa: [],
+  });
   const [availableTags, setAvailableTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
 
-  const { startTaskPolling, handleCancelTask } = useTaskPolling(activeTasks, setActiveTasks);
+  const { startTaskMonitoring, handleCancelTask } = useTaskWebSocket(activeTasks, setActiveTasks);
 
   const loadClusters = useCallback(async () => {
     try {
@@ -119,7 +117,7 @@ const Inspection = React.memo(() => {
       };
 
       setActiveTasks(prev => [newTask, ...prev]);
-      startTaskPolling(taskId);
+      startTaskMonitoring(taskId);
 
       message.success(`Инспекция запущена (ID: ${taskId})`);
     } catch (error: any) {
@@ -142,7 +140,7 @@ const Inspection = React.memo(() => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCluster, selectedRules, startTaskPolling]);
+  }, [selectedCluster, selectedRules, startTaskMonitoring]);
 
   const handleRuleSelection = useCallback((ruleType: string, ruleIds: number[]) => {
     setSelectedRules(prev => ({

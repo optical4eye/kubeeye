@@ -12,27 +12,22 @@ interface ClusterListContainerProps {
   onRefresh: () => void;
 }
 
-const ClusterListContainer: React.FC<ClusterListContainerProps> = React.memo(({
-  clusters,
-  loading,
-  onViewDetails,
-  onEdit,
-  onDelete,
-  onRefresh,
-}) => {
-  return (
-    <Card>
-      <ClusterList
-        clusters={clusters}
-        loading={loading}
-        onViewDetails={onViewDetails}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onRefresh={onRefresh}
-      />
-    </Card>
-  );
-});
+const ClusterListContainer: React.FC<ClusterListContainerProps> = React.memo(
+  ({ clusters, loading, onViewDetails, onEdit, onDelete, onRefresh }) => {
+    return (
+      <Card>
+        <ClusterList
+          clusters={clusters}
+          loading={loading}
+          onViewDetails={onViewDetails}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onRefresh={onRefresh}
+        />
+      </Card>
+    );
+  }
+);
 
 ClusterListContainer.displayName = 'ClusterListContainer';
 

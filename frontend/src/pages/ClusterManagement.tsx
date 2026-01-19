@@ -32,11 +32,8 @@ const ClusterManagement = () => {
     filteredNodes,
   } = useClusters();
 
-  const {
-    handleTestNodes,
-    handleTestKubeconfig,
-    handleGetNodesFromKubeconfig,
-  } = useClusterForm(selectedCluster);
+  const { handleTestNodes, handleTestKubeconfig, handleGetNodesFromKubeconfig } =
+    useClusterForm(selectedCluster);
 
   const {
     editModalVisible,
@@ -52,7 +49,7 @@ const ClusterManagement = () => {
 
   useEffect(() => {
     if (editModalVisible && selectedCluster) {
-      loadClusterDetails(selectedCluster.name).then((formData) => {
+      loadClusterDetails(selectedCluster.name).then(formData => {
         editForm.setFieldsValue(formData);
       });
     }

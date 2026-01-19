@@ -172,3 +172,15 @@ async def _init_encryption_key():
         logger.error(f"Failed to initialize encryption key on startup: {e}", exc_info=True)
         # Don't fail startup if encryption key initialization fails
         # It will be initialized on first use
+
+
+async def _init_websocket_subscriptions():
+    """Initialize WebSocket event subscriptions"""
+    try:
+        logger.info("Initializing WebSocket event subscriptions...")
+        from core.events.event_bus import init_websocket_subscriptions
+
+        await init_websocket_subscriptions()
+        logger.info("WebSocket event subscriptions initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize WebSocket subscriptions on startup: {e}", exc_info=True)

@@ -253,8 +253,12 @@ class AsyncTaskQueue:
         """Process Popeye scan task"""
         from services.inspectors.popeye.popeye_inspector import PopeyeInspector
         from infra.cluster.cluster_config import get_cluster
+        from core.events import publish_task_started, publish_task_completed, publish_task_failed
 
         payload = task.payload
+
+        # Publish task started event
+        await publish_task_started(task.task_id, task.task_type)
 
         # Call progress callback if provided
         if task.progress_callback:
@@ -300,6 +304,14 @@ class AsyncTaskQueue:
                 if task.progress_callback:
                     task.progress_callback("Popeye scan completed")
 
+                # Publish task completed event
+                await publish_task_completed(task.task_id, {
+                    "success": True,
+                    "message": "Popeye scan completed successfully",
+                    "result_id": result_id,
+                    "scan_result": scan_result,
+                })
+
                 return {
                     "success": True,
                     "message": "Popeye scan completed successfully",
@@ -319,6 +331,8 @@ class AsyncTaskQueue:
 
         except Exception as e:
             logger.error(f"Popeye scan failed: {str(e)}")
+            # Publish task failed event
+            await publish_task_failed(task.task_id, str(e))
             raise
 
     async def _process_cleanup_task(self, task: Task) -> Dict[str, Any]:

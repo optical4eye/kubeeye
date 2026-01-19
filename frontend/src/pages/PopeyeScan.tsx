@@ -1,13 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Select, Button, message, Space, Tag, List, Typography, Spin, Radio } from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { getClusters } from '../services/api';
 import { getTaskStatusIcon } from '../components/statusUtils';
+import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
 
 const { Option } = Select;
 
+interface Task {
+  task_id: string;
+  task_type: string;
+  status: string;
+  created_at: string;
+  payload?: any;
+  started_at?: string;
+  completed_at?: string;
+  error?: string;
+  result?: any;
+}
+
+interface Cluster {
+  name: string;
+  nodes?: any[];
+}
+
 const PopeyeScan = () => {
-  const [clusters, setClusters] = useState([]);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   // Popeye reports are only available in HTML format
   const outputFormat = 'html';
@@ -16,8 +34,8 @@ const PopeyeScan = () => {
   const [availableNamespaces, setAvailableNamespaces] = useState([]);
   const [loadingNamespaces, setLoadingNamespaces] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [activeTasks, setActiveTasks] = useState([]);
-  const pollingIntervals = useRef({});
+  const [activeTasks, setActiveTasks] = useState<Task[]>([]);
+  const { startTaskMonitoring, handleCancelTask } = useTaskWebSocket(activeTasks, setActiveTasks);
 
   const loadClusters = async () => {
     try {
@@ -58,103 +76,6 @@ const PopeyeScan = () => {
     }
   }, [selectedCluster]);
 
-  // Cleanup polling intervals on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(pollingIntervals.current).forEach(interval => {
-        clearInterval(interval);
-      });
-      pollingIntervals.current = {};
-    };
-  }, []);
-
-  const startTaskPolling = taskId => {
-    if (pollingIntervals.current[taskId]) {
-      clearInterval(pollingIntervals.current[taskId]);
-    }
-
-    const interval = setInterval(async () => {
-      try {
-        // Import here to avoid circular dependency
-        const { getPopeyeTaskStatus } = await import('../services/api');
-        const response = await getPopeyeTaskStatus(taskId);
-        const task = response.data;
-
-        setActiveTasks(prev => prev.map(t => (t.task_id === taskId ? task : t)));
-
-        // Stop polling when task is completed or failed
-        if (task.status === 'completed' || task.status === 'failed') {
-          clearInterval(pollingIntervals.current[taskId]);
-          delete pollingIntervals.current[taskId];
-
-          if (task.status === 'completed') {
-            message.success(
-              `Popeye сканирование ${taskId} завершено успешно. Отчет доступен в разделе "Отчеты"`
-            );
-
-            // Trigger a custom event to notify other components about the new report
-            window.dispatchEvent(
-              new CustomEvent('newReportAvailable', {
-                detail: {
-                  taskId,
-                  result: task.result,
-                },
-              })
-            );
-          } else {
-            message.error(`Popeye сканирование ${taskId} завершилось с ошибкой: ${task.error}`);
-          }
-        }
-      } catch (error) {
-        console.error(`Error polling Popeye task ${taskId}:`, error);
-
-        // Check if it's a 404 error (task not found)
-        if (error.response?.status === 404) {
-          message.error(
-            `Задача ${taskId} не найдена. Возможно, она была удалена или истек срок действия.`
-          );
-        } else {
-          message.error(`Ошибка при проверке статуса задачи ${taskId}: ${error.message}`);
-        }
-
-        clearInterval(pollingIntervals.current[taskId]);
-        delete pollingIntervals.current[taskId];
-
-        // Update task status to show error in UI
-        setActiveTasks(prev =>
-          prev.map(t =>
-            t.task_id === taskId ? { ...t, status: 'failed', error: error.message } : t
-          )
-        );
-      }
-    }, 2000); // Poll every 2 seconds
-
-    pollingIntervals.current[taskId] = interval;
-  };
-
-  const stopTaskPolling = taskId => {
-    if (pollingIntervals.current[taskId]) {
-      clearInterval(pollingIntervals.current[taskId]);
-      delete pollingIntervals.current[taskId];
-    }
-  };
-
-  const handleCancelTask = async taskId => {
-    try {
-      // Import here to avoid circular dependency
-      const { cancelPopeyeTask } = await import('../services/api');
-      await cancelPopeyeTask(taskId);
-      stopTaskPolling(taskId);
-      setActiveTasks(prev =>
-        prev.map(t => (t.task_id === taskId ? { ...t, status: 'cancelled' } : t))
-      );
-      message.success('Задача отменена');
-    } catch (error) {
-      message.error('Ошибка отмены задачи');
-      console.error(error);
-    }
-  };
-
   const handleRunPopeyeScan = async () => {
     if (!selectedCluster) {
       message.error('Выберите кластер');
@@ -185,7 +106,7 @@ const PopeyeScan = () => {
       };
 
       setActiveTasks(prev => [newTask, ...prev]);
-      startTaskPolling(taskId);
+      startTaskMonitoring(taskId);
 
       message.success(`Popeye сканирование запущено (ID: ${taskId})`);
     } catch (error) {

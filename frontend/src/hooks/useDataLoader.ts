@@ -1,10 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 
 // Hook для generic загрузки данных с паттерном setLoading
-export const useDataLoader = <T>(
-  loaderFn: () => Promise<T>,
-  deps: any[] = []
-) => {
+export const useDataLoader = <T>(loaderFn: () => Promise<T>, deps: any[] = []) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

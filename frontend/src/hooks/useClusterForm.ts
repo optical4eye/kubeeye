@@ -94,7 +94,8 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
         message.error(`Ошибка проверки kubeconfig: ${testMessage}`);
       }
     } catch (error: unknown) {
-      const errorMessage = (error as any).response?.data?.detail || (error as Error).message || 'Неизвестная ошибка';
+      const errorMessage =
+        (error as any).response?.data?.detail || (error as Error).message || 'Неизвестная ошибка';
       message.error(`Ошибка проверки kubeconfig: ${errorMessage}`);
     }
   };

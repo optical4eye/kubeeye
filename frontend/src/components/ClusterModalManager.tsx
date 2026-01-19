@@ -23,56 +23,58 @@ interface ClusterModalManagerProps {
   onFilterChange: (filter: string) => void;
 }
 
-const ClusterModalManager: React.FC<ClusterModalManagerProps> = React.memo(({
-  editModalVisible,
-  detailsModalVisible,
-  selectedCluster,
-  clusterDetails,
-  filteredNodes,
-  nodesLoading,
-  nodeFilter,
-  editForm,
-  onEditSubmit,
-  onTestNodes,
-  onTestKubeconfig,
-  onGetNodesFromKubeconfig,
-  onCloseEditModal,
-  onCloseDetailsModal,
-  onRefreshNodes,
-  onFilterChange,
-}) => {
-  return (
-    <>
-      <Modal
-        title={`Редактировать кластер: ${selectedCluster?.name}`}
-        open={editModalVisible}
-        onCancel={onCloseEditModal}
-        footer={null}
-        className="modal-medium"
-      >
-        <ClusterForm
-          form={editForm}
-          onSubmit={onEditSubmit}
-          onTestNodes={() => onTestNodes(editForm, null)}
-          onTestKubeconfig={() => onTestKubeconfig(editForm, null)}
-          onGetNodesFromKubeconfig={() => onGetNodesFromKubeconfig(editForm, null)}
-          isEditMode={true}
-        />
-      </Modal>
+const ClusterModalManager: React.FC<ClusterModalManagerProps> = React.memo(
+  ({
+    editModalVisible,
+    detailsModalVisible,
+    selectedCluster,
+    clusterDetails,
+    filteredNodes,
+    nodesLoading,
+    nodeFilter,
+    editForm,
+    onEditSubmit,
+    onTestNodes,
+    onTestKubeconfig,
+    onGetNodesFromKubeconfig,
+    onCloseEditModal,
+    onCloseDetailsModal,
+    onRefreshNodes,
+    onFilterChange,
+  }) => {
+    return (
+      <>
+        <Modal
+          title={`Редактировать кластер: ${selectedCluster?.name}`}
+          open={editModalVisible}
+          onCancel={onCloseEditModal}
+          footer={null}
+          className="modal-medium"
+        >
+          <ClusterForm
+            form={editForm}
+            onSubmit={onEditSubmit}
+            onTestNodes={() => onTestNodes(editForm, null)}
+            onTestKubeconfig={() => onTestKubeconfig(editForm, null)}
+            onGetNodesFromKubeconfig={() => onGetNodesFromKubeconfig(editForm, null)}
+            isEditMode={true}
+          />
+        </Modal>
 
-      <ClusterDetailsModal
-        open={detailsModalVisible}
-        cluster={clusterDetails}
-        nodes={filteredNodes}
-        nodesLoading={nodesLoading}
-        nodeFilter={nodeFilter}
-        onClose={onCloseDetailsModal}
-        onRefreshNodes={onRefreshNodes}
-        onFilterChange={onFilterChange}
-      />
-    </>
-  );
-});
+        <ClusterDetailsModal
+          open={detailsModalVisible}
+          cluster={clusterDetails}
+          nodes={filteredNodes}
+          nodesLoading={nodesLoading}
+          nodeFilter={nodeFilter}
+          onClose={onCloseDetailsModal}
+          onRefreshNodes={onRefreshNodes}
+          onFilterChange={onFilterChange}
+        />
+      </>
+    );
+  }
+);
 
 ClusterModalManager.displayName = 'ClusterModalManager';
 

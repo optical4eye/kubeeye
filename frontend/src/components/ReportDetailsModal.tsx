@@ -132,88 +132,82 @@ const InspectionDetails: React.FC<{ items: any[] }> = React.memo(({ items }) => 
 
 InspectionDetails.displayName = 'InspectionDetails';
 
-const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(({
-  visible,
-  onClose,
-  reportDetail,
-}) => {
-  return (
-    <Modal
-      title="Детали отчета"
-      open={visible}
-      onCancel={onClose}
-      width={2500}
-      footer={[
-        <Button
-          key="close"
-          onClick={onClose}
-          aria-label="Закрыть детали отчета"
-        >
-          Закрыть
-        </Button>,
-      ]}
-    >
-      {reportDetail && (
-        <div>
-          <Descriptions bordered column={2}>
-            <Descriptions.Item label="ID отчета">{reportDetail.result_id}</Descriptions.Item>
-            <Descriptions.Item label="Кластер">{reportDetail.cluster_name}</Descriptions.Item>
-            <Descriptions.Item label="Время">
-              {new Date(reportDetail.timestamp).toLocaleString()}
-            </Descriptions.Item>
-            <Descriptions.Item label="Тип инспекции">
-              {reportDetail.inspection_type === 'immediate' ? 'Немедленная' : 'Запланированная'}
-            </Descriptions.Item>
-          </Descriptions>
+const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
+  ({ visible, onClose, reportDetail }) => {
+    return (
+      <Modal
+        title="Детали отчета"
+        open={visible}
+        onCancel={onClose}
+        width={2500}
+        footer={[
+          <Button key="close" onClick={onClose} aria-label="Закрыть детали отчета">
+            Закрыть
+          </Button>,
+        ]}
+      >
+        {reportDetail && (
+          <div>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="ID отчета">{reportDetail.result_id}</Descriptions.Item>
+              <Descriptions.Item label="Кластер">{reportDetail.cluster_name}</Descriptions.Item>
+              <Descriptions.Item label="Время">
+                {new Date(reportDetail.timestamp).toLocaleString()}
+              </Descriptions.Item>
+              <Descriptions.Item label="Тип инспекции">
+                {reportDetail.inspection_type === 'immediate' ? 'Немедленная' : 'Запланированная'}
+              </Descriptions.Item>
+            </Descriptions>
 
-          <Row gutter={16} className="margin-top-space-4">
-            <Col xs={24} sm={12} md={6}>
-              <Statistic
-                title="Критические"
-                value={reportDetail.critical || 0}
-                valueStyle={{ color: 'var(--ant-color-error)' }}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Statistic
-                title="Предупреждения"
-                value={reportDetail.warning || 0}
-                valueStyle={{ color: 'var(--ant-color-warning)' }}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Statistic
-                title="Другие ошибки"
-                value={reportDetail.info || 0}
-                valueStyle={{ color: 'var(--ant-color-info)' }}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Statistic
-                title="Успешно"
-                value={reportDetail.passed || 0}
-                valueStyle={{ color: 'var(--ant-color-success)' }}
-              />
-            </Col>
-          </Row>
+            <Row gutter={16} className="margin-top-space-4">
+              <Col xs={24} sm={12} md={6}>
+                <Statistic
+                  title="Критические"
+                  value={reportDetail.critical || 0}
+                  valueStyle={{ color: 'var(--ant-color-error)' }}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Statistic
+                  title="Предупреждения"
+                  value={reportDetail.warning || 0}
+                  valueStyle={{ color: 'var(--ant-color-warning)' }}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Statistic
+                  title="Другие ошибки"
+                  value={reportDetail.info || 0}
+                  valueStyle={{ color: 'var(--ant-color-info)' }}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Statistic
+                  title="Успешно"
+                  value={reportDetail.passed || 0}
+                  valueStyle={{ color: 'var(--ant-color-success)' }}
+                />
+              </Col>
+            </Row>
 
-          <div className="margin-top-space-6">
-            <Tabs
-              defaultActiveKey="details"
-              items={[
-                {
-                  key: 'details',
-                  label: 'Детали результатов инспекции',
-                  children: <InspectionDetails items={getInspectionItems(reportDetail)} />,
-                },
-              ]}
-            />
+            <div className="margin-top-space-6">
+              <Tabs
+                defaultActiveKey="details"
+                items={[
+                  {
+                    key: 'details',
+                    label: 'Детали результатов инспекции',
+                    children: <InspectionDetails items={getInspectionItems(reportDetail)} />,
+                  },
+                ]}
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </Modal>
-  );
-});
+        )}
+      </Modal>
+    );
+  }
+);
 
 ReportDetailsModal.displayName = 'ReportDetailsModal';
 
