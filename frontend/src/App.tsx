@@ -129,7 +129,7 @@ function App() {
         <div className="logo logo-container">
           <span>KubeEye</span>
         </div>
-        <VersionDisplay version="3.2" />
+        <VersionDisplay version="3.3" />
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}

@@ -88,7 +88,7 @@ frontend:
   replicaCount: 1
   image:
     repository: kubeeye-frontend
-    tag: "v3.2"
+    tag: "v3.3"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -109,7 +109,7 @@ backend:
   replicaCount: 1
   image:
     repository: kubeeye-backend
-    tag: "v3.2"
+    tag: "v3.3"
     pullPolicy: IfNotPresent
   service:
     port: 8000
@@ -315,8 +315,8 @@ chart/kubeeye/
 
 ## Версии
 
-- **Chart version**: 3.2.0
-- **App version**: v3.2
+- **Chart version**: 3.3.0
+- **App version**: v3.3
 - **PostgreSQL**: 18.2.0 (Bitnami)
 
 ## Поддержка

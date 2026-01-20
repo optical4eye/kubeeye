@@ -215,7 +215,7 @@ class TestInspectionResultRepository:
                 "error": 0,
             },
             "execution_info": {
-                "execution_duration": 3.2,
+                "execution_duration": 3.3,
                 "triggered_by": "scheduled",
                 "inspectors_used": ["node"],
             },
