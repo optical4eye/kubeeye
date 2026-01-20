@@ -4,6 +4,7 @@
 GitOps manager for managing rules from Git repositories
 """
 
+import asyncio
 import json
 import os
 import pygit2
@@ -12,9 +13,11 @@ import yaml
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 import re
+from datetime import datetime, timedelta
 
 from core.logging import get_logger
 from core.config.settings import settings
+from core.common.cache_utils import CacheManager
 
 logger = get_logger(__name__)
 
@@ -79,8 +82,8 @@ GITOPS_ENV_VARS = {
 }
 
 
-class GitOpsRuleManager:
-    """GitOps rules manager"""
+class GitOpsManager:
+    """Unified GitOps manager for configuration, synchronization, and rule management"""
 
     def __init__(self):
         self.config_file = GITOPS_CONFIG_FILE
@@ -167,6 +170,33 @@ class GitOpsRuleManager:
                 config_to_save["repository"].pop("from_env")
 
             json.dump(config_to_save, f, indent=2, ensure_ascii=False)
+
+    def sync_repository_if_needed(self, repo_config: Dict, force: bool = False) -> Tuple[bool, str]:
+        """Sync Git repository if needed based on time interval"""
+        repo_name = repo_config["name"]
+
+        # Check if sync is needed based on time interval
+        cache_manager = CacheManager()
+        cache = cache_manager.get_or_create_cache("gitops_sync", maxsize=10, ttl=settings.kubeeye_gitops_sync_interval)
+
+        last_sync_key = f"last_sync_{repo_name}"
+        last_sync_time = cache.get(last_sync_key)
+
+        now = datetime.now()
+        sync_interval = timedelta(seconds=settings.kubeeye_gitops_sync_interval)
+
+        if not force and last_sync_time and (now - last_sync_time) < sync_interval:
+            logger.debug(f"GitOps sync skipped - last sync was {now - last_sync_time} ago (interval: {sync_interval})")
+            return True, f"Repository {repo_name} is up to date"
+
+        # Perform actual sync
+        success, message = self.clone_or_update_repo(repo_config)
+        if success:
+            # Update last sync time in cache
+            cache[last_sync_key] = now
+            logger.debug(f"Repository synchronized: {message}")
+
+        return success, message
 
     def clone_or_update_repo(self, repo_config: Dict) -> Tuple[bool, str]:
         """Clone or update Git repository"""
@@ -343,6 +373,72 @@ class GitOpsRuleManager:
         info["GIT_SSL_NO_VERIFY"] = git_ssl_no_verify if git_ssl_no_verify else "Not set"
 
         return info
+
+    async def sync_if_needed(self, use_gitops: bool, show_progress: bool = False) -> Tuple[bool, str]:
+        """
+        Synchronize GitOps repository if needed
+
+        Args:
+            use_gitops: whether GitOps mode is enabled
+            show_progress: whether to show progress messages
+
+        Returns:
+            (success, message) tuple
+        """
+        if not use_gitops:
+            return True, "GitOps not enabled"
+
+        try:
+            config = self.load_config()
+            current_repo = config.get("repository")
+
+            if not current_repo:
+                return True, "No GitOps repository configured"
+
+            if show_progress:
+                logger.info(f"Syncing GitOps repository {current_repo['name']}...")
+
+            success, message = self.clone_or_update_repo(current_repo)
+
+            if success:
+                logger.info(f"GitOps repository synchronized: {message}")
+                return True, message
+            else:
+                logger.warning(f"Failed to sync GitOps repository: {message}")
+                # Return True to keep GitOps mode, assume rules are already available
+                return True, f"GitOps sync failed but continuing: {message}"
+
+        except Exception as e:
+            error_msg = f"GitOps synchronization error: {str(e)}"
+            logger.error(error_msg)
+            # Return True to keep GitOps mode, assume rules are already available
+            return True, f"GitOps sync error but continuing: {error_msg}"
+
+    def is_configured(self) -> bool:
+        """Check if GitOps is configured"""
+        try:
+            config = self.load_config()
+            repository = config.get("repository")
+            return bool(repository)
+        except Exception as e:
+            logger.error(f"Error checking GitOps configuration: {str(e)}")
+            return False
+
+    def get_gitops_status(self) -> dict:
+        """Get current GitOps status"""
+        try:
+            config = self.load_config()
+            current_repo = config.get("repository")
+
+            return {
+                "enabled": bool(current_repo),
+                "repository": current_repo.get("name") if current_repo else None,
+                "url": current_repo.get("url") if current_repo else None,
+                "branch": current_repo.get("branch") if current_repo else None,
+            }
+        except Exception as e:
+            logger.error(f"Error getting GitOps status: {str(e)}")
+            return {"enabled": False, "error": str(e)}
 
     def force_reload_from_env(self):
         """Force reload configuration from ENV variables"""

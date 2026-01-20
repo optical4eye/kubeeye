@@ -17,9 +17,9 @@ router = APIRouter()
 async def get_gitops_status():
     """Get GitOps status"""
     try:
-        from infra.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsManager
 
-        manager = GitOpsRuleManager()
+        manager = GitOpsManager()
         config = manager.load_config()
         has_repo = bool(config.get("repository"))
 
@@ -37,9 +37,9 @@ async def get_gitops_status():
 async def get_gitops_config():
     """Get GitOps config (without sensitive information)"""
     try:
-        from infra.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsManager
 
-        manager = GitOpsRuleManager()
+        manager = GitOpsManager()
         config = manager.load_config()
 
         if config.get("repository"):
@@ -58,17 +58,17 @@ async def get_gitops_config():
 async def sync_gitops_repository():
     """Force sync GitOps repository"""
     try:
-        from infra.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsManager
 
-        gitops_manager = GitOpsRuleManager()
+        gitops_manager = GitOpsManager()
         config = gitops_manager.load_config()
         current_repo = config.get("repository")
 
         if not current_repo:
             return {"success": False, "message": "GitOps repository not configured"}
 
-        logger.debug(f"GitOps mode enabled, syncing repository {current_repo['name']}...")
-        success, message = gitops_manager.clone_or_update_repo(current_repo)
+        logger.debug(f"GitOps mode enabled, forcing sync of repository {current_repo['name']}...")
+        success, message = gitops_manager.sync_repository_if_needed(current_repo, force=True)
         if success:
             logger.debug(f"Repository synchronized: {message}")
             return {"message": "GitOps repository synchronized successfully"}

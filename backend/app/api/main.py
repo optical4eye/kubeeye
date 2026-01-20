@@ -37,7 +37,6 @@ from .shutdown import (
 )
 from .unified_middleware import RequestLoggingMiddleware, ValidationMiddleware
 
-
 # Import route modules
 from . import (
     clusters,

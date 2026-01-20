@@ -59,9 +59,9 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
         results_serializable = {}
         if results:
             for inspector_name, inspection_result in results.items():
-                if hasattr(inspection_result, 'get_summary'):
+                if hasattr(inspection_result, "get_summary"):
                     results_serializable[inspector_name] = inspection_result.get_summary()
-                elif hasattr(inspection_result, 'to_dict'):
+                elif hasattr(inspection_result, "to_dict"):
                     results_serializable[inspector_name] = inspection_result.to_dict()
                 else:
                     # Fallback: convert to string representation

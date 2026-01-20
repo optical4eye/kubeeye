@@ -26,6 +26,7 @@ Backend KubeEye - это серверная часть приложения дл
 - **Сервисный слой**: Выделение бизнес-логики в отдельные сервисы
 - **Контроллерный слой**: Унифицированная обработка API запросов
 - **Контекстный менеджер для БД**: Безопасное управление сессиями через `with_db_session()`
+- **GitOps менеджеры**: Объединение GitOpsRuleManager и GitOpsSyncManager в единый GitOpsManager для упрощения архитектуры и устранения дублирования
 
 ### Асинхронная генерация PDF
 - Генерация PDF через `asyncio.to_thread()` для неблокирующего выполнения
@@ -183,7 +184,7 @@ graph TB
 - [`services/components/inspection_engine.py`](backend/app/services/components/inspection_engine.py:1) - главный оркестратор инспекций
 - [`services/components/inspection_coordinator.py`](backend/app/services/components/inspection_coordinator.py:1) - координация инспекторов
 - [`services/components/inspection_result_manager.py`](backend/app/services/components/inspection_result_manager.py:1) - управление результатами инспекций
-- [`services/components/gitops_sync_manager.py`](backend/app/services/components/gitops_sync_manager.py:1) - синхронизация GitOps
+- [`services/components/gitops_sync_manager.py`](backend/app/services/components/gitops_sync_manager.py:1) - менеджер GitOps
 - [`services/components/inspection_config_manager.py`](backend/app/services/components/inspection_config_manager.py:1) - управление конфигурацией инспекций
 - [`services/components/report_cleanup_service.py`](backend/app/services/components/report_cleanup_service.py:1) - сервис очистки отчетов
 - [`services/inspectors/base_inspector.py`](backend/app/services/inspectors/base_inspector.py:1) - базовый класс инспектора
@@ -466,7 +467,7 @@ backend/
 │   │   │   ├── inspection_engine.py # Главный оркестратор
 │   │   │   ├── inspection_coordinator.py # Координация инспекторов
 │   │   │   ├── inspection_result_manager.py # Управление результатами
-│   │   │   ├── gitops_sync_manager.py # Синхронизация GitOps
+│   │   │   ├── gitops_sync_manager.py # Менеджер GitOps
 │   │   │   ├── inspection_config_manager.py # Управление конфигурацией
 │   │   │   ├── inspection_orchestrator.py # Оркестратор инспекций
 │   │   │   └── report_cleanup_service.py # Сервис очистки отчетов
@@ -598,6 +599,7 @@ backend/
 | `KUBEEYE_GITOPS_REPO_USERNAME` | `None` | Имя пользователя для GitOps |
 | `KUBEEYE_GITOPS_REPO_TOKEN` | `None` | Токен доступа для репозитория GitOps |
 | `KUBEEYE_GITOPS_REPO_DESCRIPTION` | `""` | Описание репозитория правил GitOps |
+| `KUBEEYE_GITOPS_SYNC_INTERVAL` | `300` | Интервал синхронизации GitOps в секундах (по умолчанию: 5 минут) |
 | `GIT_SSL_NO_VERIFY` | `None` | Отключает проверку SSL сертификатов в Git |
 
 ### Переменные окружения для инспектора узлов
@@ -1238,13 +1240,16 @@ GitOps интеграция для управления правилами ин�
 - `KUBEEYE_GITOPS_REPO_USERNAME` - Имя пользователя (по умолчанию: None)
 - `KUBEEYE_GITOPS_REPO_TOKEN` - Токен доступа (по умолчанию: None)
 - `KUBEEYE_GITOPS_REPO_DESCRIPTION` - Описание репозитория (по умолчанию: "")
+- `KUBEEYE_GITOPS_SYNC_INTERVAL` - Интервал синхронизации в секундах (по умолчанию: 300 - 5 минут)
 - `GIT_SSL_NO_VERIFY` - Отключение проверки SSL сертификатов (по умолчанию: None)
 
 ### Синхронизация правил
-- Автоматическая синхронизация при запуске инспекций
-- Ручная синхронизация через API
+- **Кэшированная синхронизация**: Синхронизация происходит только если прошло `KUBEEYE_GITOPS_SYNC_INTERVAL` секунд с момента последней синхронизации
+- Автоматическая синхронизация при запуске инспекций (с проверкой кэша)
+- Ручная синхронизация через API (принудительная, игнорирует кэш)
 - Валидация правил после синхронизации
 - Поддержка включенных/отключенных правил
+- Кэширование времени последней синхронизации для оптимизации производительности
 
 ### Структура правил в GitOps
 ```

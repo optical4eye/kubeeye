@@ -21,7 +21,7 @@ const NetworkConnectivity = () => {
   const [selectedNodes, setSelectedNodes] = useState([]);
   const [targetIp, setTargetIp] = useState('');
   const [targetPort, setTargetPort] = useState('');
-  const [timeout, setTimeout] = useState(5);
+  const [timeout, setTimeout] = useState(3);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [results, setResults] = useState([]);
@@ -315,8 +315,9 @@ const NetworkConnectivity = () => {
                   min={1}
                   max={30}
                   value={timeout}
-                  onChange={e => setTimeout(parseInt(e.target.value) || 5)}
+                  onChange={e => setTimeout(parseInt(e.target.value) || 3)}
                   className="width-120px"
+                  placeholder="3"
                 />
               </Form.Item>
             </Space>

@@ -251,9 +251,9 @@ class AsyncTaskQueue:
             # Serialize InspectionResult objects for WebSocket
             results_serializable = {}
             for inspector_name, inspection_result in results.items():
-                if hasattr(inspection_result, 'get_summary'):
+                if hasattr(inspection_result, "get_summary"):
                     results_serializable[inspector_name] = inspection_result.get_summary()
-                elif hasattr(inspection_result, 'to_dict'):
+                elif hasattr(inspection_result, "to_dict"):
                     results_serializable[inspector_name] = inspection_result.to_dict()
                 else:
                     # Fallback: convert to string representation
@@ -332,12 +332,15 @@ class AsyncTaskQueue:
                     task.progress_callback("Popeye scan completed")
 
                 # Publish task completed event
-                await publish_task_completed(task.task_id, {
-                    "success": True,
-                    "message": "Popeye scan completed successfully",
-                    "result_id": result_id,
-                    "scan_result": scan_result,
-                })
+                await publish_task_completed(
+                    task.task_id,
+                    {
+                        "success": True,
+                        "message": "Popeye scan completed successfully",
+                        "result_id": result_id,
+                        "scan_result": scan_result,
+                    },
+                )
 
                 return {
                     "success": True,

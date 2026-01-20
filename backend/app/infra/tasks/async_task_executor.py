@@ -76,7 +76,7 @@ class AsyncTaskExecutor(ITaskExecutor):
                 results_serializable = {}
                 if results:
                     for inspector_name, inspection_result in results.items():
-                        if hasattr(inspection_result, 'get_summary'):
+                        if hasattr(inspection_result, "get_summary"):
                             results_serializable[inspector_name] = inspection_result.get_summary()
                         else:
                             results_serializable[inspector_name] = inspection_result

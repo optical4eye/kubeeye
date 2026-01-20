@@ -58,7 +58,7 @@ class ClusterService:
         try:
             from infra.results.inspection_result import list_results
             from infra.rules.rule_loader import load_rules
-            from infra.gitops.gitops_manager import GitOpsRuleManager
+            from infra.gitops.gitops_manager import GitOpsManager
             from db.database import get_session_local
             from db.repositories.cluster_repository import ClusterRepository
             from db.repositories.inspection_result_repository import InspectionResultRepository
@@ -86,7 +86,7 @@ class ClusterService:
             total_rules = len(node_rules) + len(opa_rules)
 
             # Check if GitOps is configured and add GitOps rules
-            gitops_manager = GitOpsRuleManager()
+            gitops_manager = GitOpsManager()
             gitops_config = gitops_manager.load_config()
             if gitops_config.get("mode") == "gitops" and gitops_config.get("repository"):
                 try:

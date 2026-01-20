@@ -191,7 +191,9 @@ class NodeInspector(BaseInspector):
     def inspector_type(self) -> str:
         return "node"
 
-    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None) -> InspectionResult:
+    async def run_inspection(
+        self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None
+    ) -> InspectionResult:
         """
         Run inspection with simplified architecture
         """
@@ -680,7 +682,6 @@ class NodeInspector(BaseInspector):
         result["status"] = "skipped"
         result["severity"] = "info"
         return result
-
 
     def _format_unavailable_node_result(self, node: Dict) -> Dict:
         """Format result for unavailable node using dummy rule"""

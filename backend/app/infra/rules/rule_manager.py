@@ -52,9 +52,9 @@ class RuleManager:
     def should_use_gitops(cls) -> bool:
         """Determine whether to use GitOps rules"""
         try:
-            from infra.gitops.gitops_manager import GitOpsRuleManager
+            from infra.gitops.gitops_manager import GitOpsManager
 
-            gitops_manager = GitOpsRuleManager()
+            gitops_manager = GitOpsManager()
             config = gitops_manager.load_config()
 
             # If there is configuration from ENV variables, use GitOps

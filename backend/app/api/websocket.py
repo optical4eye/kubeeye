@@ -39,8 +39,7 @@ async def websocket_tasks_endpoint(websocket: WebSocket, client_id: Optional[str
             # In the future, this could handle subscription filters, etc.
             if data.strip():
                 await websocket_manager.send_personal_message(
-                    {"type": "echo", "message": f"Received: {data}"},
-                    websocket
+                    {"type": "echo", "message": f"Received: {data}"}, websocket
                 )
 
     except WebSocketDisconnect:

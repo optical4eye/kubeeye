@@ -16,26 +16,20 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
-def _sync_gitops_repository() -> bool:
-    """Sync GitOps repository"""
+def _sync_gitops_repository(force: bool = False) -> bool:
+    """Sync GitOps repository with time-based caching"""
     try:
-        from infra.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsManager
 
-        gitops_manager = GitOpsRuleManager()
+        gitops_manager = GitOpsManager()
         config = gitops_manager.load_config()
         current_repo = config.get("repository")
 
         if not current_repo:
             return False
 
-        logger.debug(f"GitOps mode enabled, syncing repository {current_repo['name']}...")
-        success, message = gitops_manager.clone_or_update_repo(current_repo)
-        if success:
-            logger.debug(f"Repository synchronized: {message}")
-            return True
-        else:
-            logger.error(f"Failed to sync repository: {message}")
-            return False
+        success, message = gitops_manager.sync_repository_if_needed(current_repo, force=force)
+        return success
     except Exception as e:
         logger.error(f"GitOps sync failed: {str(e)}")
         return False

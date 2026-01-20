@@ -105,13 +105,14 @@ class InspectionEngine:
 
             # Publish inspection completed event
             from core.events import publish_inspection_completed
+
             # Serialize results for event
             results_serializable = {}
             if all_results:
                 for inspector_name, inspection_result in all_results.items():
-                    if hasattr(inspection_result, 'get_summary'):
+                    if hasattr(inspection_result, "get_summary"):
                         results_serializable[inspector_name] = inspection_result.get_summary()
-                    elif hasattr(inspection_result, 'to_dict'):
+                    elif hasattr(inspection_result, "to_dict"):
                         results_serializable[inspector_name] = inspection_result.to_dict()
                     else:
                         results_serializable[inspector_name] = str(inspection_result)

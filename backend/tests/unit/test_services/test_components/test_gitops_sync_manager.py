@@ -23,7 +23,7 @@ class TestGitOpsSyncManager:
         """Create GitOpsSyncManager instance"""
         return GitOpsSyncManager()
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_init(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test GitOpsSyncManager initialization"""
         mock_gitops_manager_class.return_value = Mock()
@@ -32,7 +32,7 @@ class TestGitOpsSyncManager:
 
         assert manager._gitops_manager is None
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_get_gitops_manager_lazy_init(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test lazy initialization of GitOps manager"""
         mock_gitops_manager = Mock()
@@ -48,7 +48,7 @@ class TestGitOpsSyncManager:
         assert manager2 is mock_gitops_manager
         mock_gitops_manager_class.assert_called_once()  # Still only called once
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @pytest.mark.asyncio
     async def test_sync_if_needed_disabled(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test sync_if_needed when GitOps is disabled"""
@@ -58,7 +58,7 @@ class TestGitOpsSyncManager:
         assert message == "GitOps not enabled"
         mock_gitops_manager_class.assert_not_called()
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @pytest.mark.asyncio
     async def test_sync_if_needed_not_configured(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test sync_if_needed when GitOps is not configured"""
@@ -73,7 +73,7 @@ class TestGitOpsSyncManager:
         mock_gitops_manager.load_config.assert_called_once()
         mock_gitops_manager.clone_or_update_repo.assert_not_called()
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @pytest.mark.asyncio
     async def test_sync_if_needed_success(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test successful sync_if_needed"""
@@ -93,7 +93,7 @@ class TestGitOpsSyncManager:
             {"name": "test-repo", "url": "https://github.com/test/repo.git"}
         )
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @pytest.mark.asyncio
     async def test_sync_if_needed_sync_failure(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test sync_if_needed when sync fails but continues"""
@@ -109,7 +109,7 @@ class TestGitOpsSyncManager:
         assert success is True
         assert message == "GitOps sync failed but continuing: Sync failed"
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @pytest.mark.asyncio
     async def test_sync_if_needed_exception(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test sync_if_needed when exception occurs"""
@@ -122,7 +122,7 @@ class TestGitOpsSyncManager:
         assert success is True
         assert message == "GitOps sync error but continuing: GitOps synchronization error: Config error"
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_is_configured_true(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test is_configured when GitOps is configured"""
         mock_gitops_manager = Mock()
@@ -136,7 +136,7 @@ class TestGitOpsSyncManager:
         assert result is True
         mock_gitops_manager.load_config.assert_called_once()
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_is_configured_false(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test is_configured when GitOps is not configured"""
         mock_gitops_manager = Mock()
@@ -147,7 +147,7 @@ class TestGitOpsSyncManager:
 
         assert result is False
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_is_configured_exception(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test is_configured when exception occurs"""
         mock_gitops_manager = Mock()
@@ -158,7 +158,7 @@ class TestGitOpsSyncManager:
 
         assert result is False
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_get_gitops_status_enabled(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test get_gitops_status when enabled"""
         mock_gitops_manager = Mock()
@@ -177,7 +177,7 @@ class TestGitOpsSyncManager:
         }
         assert status == expected
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_get_gitops_status_disabled(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test get_gitops_status when disabled"""
         mock_gitops_manager = Mock()
@@ -189,7 +189,7 @@ class TestGitOpsSyncManager:
         expected = {"enabled": False, "repository": None, "url": None, "branch": None}
         assert status == expected
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_get_gitops_status_exception(self, mock_gitops_manager_class, gitops_sync_manager):
         """Test get_gitops_status when exception occurs"""
         mock_gitops_manager = Mock()

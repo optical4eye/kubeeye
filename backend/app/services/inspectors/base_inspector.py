@@ -95,7 +95,9 @@ class BaseInspector(ABC):
                 return rule
         return None
 
-    def _filter_active_rules(self, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None) -> List[Rule]:
+    def _filter_active_rules(
+        self, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None
+    ) -> List[Rule]:
         """
         Filter and return active (enabled) rules to execute
 
@@ -256,7 +258,9 @@ class BaseInspector(ABC):
 
         return None
 
-    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None) -> InspectionResult:
+    async def run_inspection(
+        self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None
+    ) -> InspectionResult:
         """
         Run inspection
 
@@ -272,7 +276,9 @@ class BaseInspector(ABC):
         logger.info(
             f"BaseInspector.run_inspection started - inspector type: {self.inspector_type}, cluster: {cluster_name}, source: {source_type}"
         )
-        logger.info(f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}, selected tags: {selected_tags}")
+        logger.info(
+            f"Total available rules: {len(self.rules)}, specified rule IDs: {rule_ids}, selected tags: {selected_tags}"
+        )
 
         result = InspectionResult(cluster_name, self.inspector_type)
 
