@@ -157,7 +157,7 @@ class ErrorHandler:
 
     @staticmethod
     def create_error_result(
-        rule: Any, error_msg: str, description: Optional[str] = None, severity: str = "error"
+        rule: Any, error_msg: str, description: Optional[str] = None, severity: str = "medium"
     ) -> Dict[str, Any]:
         """
         Create standardized error result for inspection rules

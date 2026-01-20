@@ -46,10 +46,12 @@ class AsyncTaskExecutor(ITaskExecutor):
 
                 cluster_name = task_data.get("cluster", "")
                 rules = task_data.get("rules", {})
+                tags = task_data.get("tags", {})
 
                 success, message, results = await execute_inspection_unified(
                     cluster_name=cluster_name,
                     selected_rules=rules,
+                    selected_tags=tags,
                     inspection_type="scheduled",
                     show_progress=False,
                     show_ui_feedback=False,
@@ -70,10 +72,19 @@ class AsyncTaskExecutor(ITaskExecutor):
 
                 logger.info(f"Task {task_id} completed in {execution_time:.2f}s, success: {success}")
 
+                # Serialize InspectionResult objects for JSON compatibility
+                results_serializable = {}
+                if results:
+                    for inspector_name, inspection_result in results.items():
+                        if hasattr(inspection_result, "get_summary"):
+                            results_serializable[inspector_name] = inspection_result.get_summary()
+                        else:
+                            results_serializable[inspector_name] = inspection_result
+
                 return {
                     "success": success,
                     "message": message,
-                    "results": results,
+                    "results": results_serializable,
                     "execution_time": execution_time,
                     "timestamp": datetime.now().isoformat(),
                     "attempts": attempt + 1,

@@ -85,7 +85,7 @@ class TestRulesAPI:
         mock_load_rules.assert_called_once_with(["node", "opa"], False)
         mock_log_stats.assert_called_once()
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @patch("api.rules._load_rules_for_types")
     @patch("api.rules._log_rules_statistics")
     @patch("api.rules._sync_gitops_repository")
@@ -119,7 +119,7 @@ class TestRulesAPI:
         assert len(result["rules"]["node"]) == 1
         assert len(result["rules"]["opa"]) == 1
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @patch("api.rules._load_rules_for_types")
     @patch("api.rules._log_rules_statistics")
     @patch("api.rules._sync_gitops_repository")
@@ -153,7 +153,7 @@ class TestRulesAPI:
         assert len(result["rules"]["node"]) == 0
         assert len(result["rules"]["opa"]) == 0
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @patch("api.rules._load_rules_for_types")
     @patch("api.rules._log_rules_statistics")
     @patch("api.rules._sync_gitops_repository")
@@ -191,7 +191,7 @@ class TestRulesAPI:
         assert len(result["rules"]["opa"]) == 1
         mock_load_rules.assert_called_once_with(["node", "opa"], False)
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     @patch("infra.rules.rule_manager.RuleManager.should_use_gitops")
     @pytest.mark.asyncio
     async def test_get_rules_exception(self, mock_should_use_gitops, mock_gitops_manager_class):
@@ -211,7 +211,7 @@ class TestRulesAPI:
         assert len(result["rules"]["node"]) == 0
         assert len(result["rules"]["opa"]) == 0
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_sync_gitops_repository_success(self, mock_gitops_manager_class):
         """Test successful GitOps repository sync"""
         # Mock GitOps manager
@@ -231,7 +231,7 @@ class TestRulesAPI:
         mock_gitops_manager.load_config.assert_called_once()
         mock_gitops_manager.clone_or_update_repo.assert_called_once_with({"name": "test-repo"})
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_sync_gitops_repository_no_config(self, mock_gitops_manager_class):
         """Test GitOps repository sync with no config"""
         # Mock GitOps manager
@@ -248,7 +248,7 @@ class TestRulesAPI:
         mock_gitops_manager.load_config.assert_called_once()
         mock_gitops_manager.clone_or_update_repo.assert_not_called()
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_sync_gitops_repository_sync_success_again(self, mock_gitops_manager_class):
         """Test GitOps repository sync with success again"""
         # Mock GitOps manager
@@ -268,7 +268,7 @@ class TestRulesAPI:
         mock_gitops_manager.load_config.assert_called_once()
         mock_gitops_manager.clone_or_update_repo.assert_called_once_with({"name": "test-repo"})
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_sync_gitops_repository_success_third(self, mock_gitops_manager_class):
         """Test GitOps repository sync with success third"""
         # Mock GitOps manager

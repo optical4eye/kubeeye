@@ -26,6 +26,7 @@ from .startup import (
     _start_cleanup_worker,
     _start_database_monitoring,
     _init_encryption_key,
+    _init_websocket_subscriptions,
 )
 from .shutdown import (
     _shutdown_task_queue,
@@ -35,7 +36,6 @@ from .shutdown import (
     _close_database_connections,
 )
 from .unified_middleware import RequestLoggingMiddleware, ValidationMiddleware
-
 
 # Import route modules
 from . import (
@@ -49,6 +49,7 @@ from . import (
     network,
     report_cleanup,
     secrets,
+    websocket,
 )
 
 # Import new route modules
@@ -78,6 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await _init_database()
     await _start_database_monitoring()
     await _init_encryption_key()
+    await _init_websocket_subscriptions()
     await _start_task_queue()
     await _start_cleanup_worker()
     await _start_task_manager()
@@ -152,6 +154,7 @@ app.add_middleware(
 app.include_router(routes_router)
 app.include_router(health_router)
 app.include_router(queue_router)
+app.include_router(websocket.router)
 
 app.include_router(clusters.router, prefix="/api", tags=["clusters"])
 app.include_router(inspection.router, prefix="/api", tags=["inspection"])

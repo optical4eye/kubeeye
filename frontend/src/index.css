@@ -1,8 +1,0 @@
-/* ===== MAIN CSS FILE ===== */
-
-/* Import modular CSS files for better organization and maintainability */
-
-@import url('theme.css');
-@import url('components.css');
-@import url('utilities.css');
-@import url('ant-design-overrides.css');

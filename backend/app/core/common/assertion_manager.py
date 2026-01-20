@@ -151,7 +151,7 @@ class AssertionManager:
                 "passed": False,
                 "pass_description": "",
                 "fail_description": f"Assertion evaluation error: {str(e)}",
-                "severity": "error",
+                "severity": "medium",
             }
 
     def _evaluate_detailed_mode(self, assertions: List[Dict], context: Dict[str, Any]) -> Dict[str, Any]:
@@ -187,7 +187,7 @@ class AssertionManager:
                 failed_assertion = {
                     "name": name,
                     "condition": condition,
-                    "severity": "error",
+                    "severity": "medium",
                     "description": f"Error evaluating assertion: {str(e)}",
                 }
                 failed_assertions.append(failed_assertion)
@@ -243,7 +243,7 @@ class AssertionManager:
         Returns:
             highest severity level
         """
-        severity_order = {"critical": 4, "error": 3, "warning": 2, "info": 1}
+        severity_order = {"critical": 6, "high": 5, "medium": 4, "low": 3, "warning": 2, "info": 1}
 
         max_order = 0
         highest_severity = "info"

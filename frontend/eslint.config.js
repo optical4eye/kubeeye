@@ -9,6 +9,9 @@ import globals from 'globals';
 export default [
   js.configs.recommended,
   {
+    ignores: ['backup/**'],
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parser: tsparser,

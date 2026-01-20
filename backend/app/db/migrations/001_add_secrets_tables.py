@@ -120,16 +120,12 @@ def downgrade():
         logger.info("Dropped secret_audit_log table")
 
         # Remove secret reference columns from clusters table
-        db.execute(
-            text(
-                """
+        db.execute(text("""
             ALTER TABLE clusters
             DROP COLUMN IF EXISTS password_secret_id,
             DROP COLUMN IF EXISTS ssh_key_secret_id,
             DROP COLUMN IF EXISTS kubeconfig_secret_id;
-        """
-            )
-        )
+        """))
         logger.info("Removed secret reference columns from clusters table")
 
         # Drop secrets table

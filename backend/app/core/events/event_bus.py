@@ -9,6 +9,16 @@ from dataclasses import dataclass
 from enum import Enum
 import asyncio
 from core.logging import get_logger
+from infra.websocket.websocket_manager import websocket_manager
+from infra.websocket.message_models import (
+    create_task_scheduled_message,
+    create_task_started_message,
+    create_task_completed_message,
+    create_task_failed_message,
+    create_inspection_started_message,
+    create_inspection_completed_message,
+    create_inspection_failed_message,
+)
 
 logger = get_logger(__name__)
 
@@ -178,8 +188,85 @@ class EventBus:
             logger.info("All subscribers cleared")
 
 
+# WebSocket event handlers
+async def handle_task_scheduled(event: Event):
+    """Handle task scheduled event and broadcast via WebSocket"""
+    task_id = event.data.get("task_id")
+    task_type = event.data.get("task_type")
+    if isinstance(task_id, str) and isinstance(task_type, str):
+        message = create_task_scheduled_message(task_id=task_id, task_type=task_type)
+        await websocket_manager.broadcast(message.dict())
+
+
+async def handle_task_started(event: Event):
+    """Handle task started event and broadcast via WebSocket"""
+    task_id = event.data.get("task_id")
+    task_type = event.data.get("task_type")
+    if isinstance(task_id, str) and isinstance(task_type, str):
+        message = create_task_started_message(task_id=task_id, task_type=task_type)
+        await websocket_manager.broadcast(message.dict())
+
+
+async def handle_task_completed(event: Event):
+    """Handle task completed event and broadcast via WebSocket"""
+    task_id = event.data.get("task_id")
+    result = event.data.get("result")
+    if isinstance(task_id, str):
+        message = create_task_completed_message(task_id=task_id, result=result)
+        await websocket_manager.broadcast(message.dict())
+
+
+async def handle_task_failed(event: Event):
+    """Handle task failed event and broadcast via WebSocket"""
+    task_id = event.data.get("task_id")
+    error = event.data.get("error")
+    if isinstance(task_id, str) and isinstance(error, str):
+        message = create_task_failed_message(task_id=task_id, error=error)
+        await websocket_manager.broadcast(message.dict())
+
+
+async def handle_inspection_started(event: Event):
+    """Handle inspection started event and broadcast via WebSocket"""
+    cluster_name = event.data.get("cluster_name")
+    config = event.data.get("config")
+    if isinstance(cluster_name, str) and isinstance(config, dict):
+        message = create_inspection_started_message(cluster_name=cluster_name, config=config)
+        await websocket_manager.broadcast(message.dict())
+
+
+async def handle_inspection_completed(event: Event):
+    """Handle inspection completed event and broadcast via WebSocket"""
+    cluster_name = event.data.get("cluster_name")
+    result = event.data.get("result")
+    if isinstance(cluster_name, str) and isinstance(result, dict):
+        message = create_inspection_completed_message(cluster_name=cluster_name, result=result)
+        await websocket_manager.broadcast(message.dict())
+
+
+async def handle_inspection_failed(event: Event):
+    """Handle inspection failed event and broadcast via WebSocket"""
+    cluster_name = event.data.get("cluster_name")
+    error = event.data.get("error")
+    if isinstance(cluster_name, str) and isinstance(error, str):
+        message = create_inspection_failed_message(cluster_name=cluster_name, error=error)
+        await websocket_manager.broadcast(message.dict())
+
+
 # Global event bus instance
 event_bus = EventBus()
+
+
+# Initialize WebSocket subscriptions
+async def init_websocket_subscriptions():
+    """Initialize WebSocket event subscriptions"""
+    await event_bus.subscribe(EventType.TASK_SCHEDULED, handle_task_scheduled)
+    await event_bus.subscribe(EventType.TASK_STARTED, handle_task_started)
+    await event_bus.subscribe(EventType.TASK_COMPLETED, handle_task_completed)
+    await event_bus.subscribe(EventType.TASK_FAILED, handle_task_failed)
+    await event_bus.subscribe(EventType.INSPECTION_STARTED, handle_inspection_started)
+    await event_bus.subscribe(EventType.INSPECTION_COMPLETED, handle_inspection_completed)
+    await event_bus.subscribe(EventType.INSPECTION_FAILED, handle_inspection_failed)
+    logger.info("WebSocket event subscriptions initialized")
 
 
 # Convenience functions for common event operations

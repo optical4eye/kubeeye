@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Form,
-  Select,
-  Checkbox,
-  Input,
-  Button,
-  Table,
-  message,
-  Space,
-  Tag,
-  Alert,
-} from 'antd';
+import { Card, Form, Select, Checkbox, Input, Button, Table, message, Space, Alert } from 'antd';
 import {
   WifiOutlined,
   CheckCircleOutlined,
@@ -23,6 +11,7 @@ import {
   getClustersForNetworkCheck,
   exportNetworkCheckResult,
 } from '../services/api';
+import { getStatusTag } from '../components/ui/statusUtils';
 
 const { Option } = Select;
 
@@ -32,7 +21,7 @@ const NetworkConnectivity = () => {
   const [selectedNodes, setSelectedNodes] = useState([]);
   const [targetIp, setTargetIp] = useState('');
   const [targetPort, setTargetPort] = useState('');
-  const [timeout, setTimeout] = useState(5);
+  const [timeout, setTimeout] = useState(3);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [results, setResults] = useState([]);
@@ -48,18 +37,11 @@ const NetworkConnectivity = () => {
       setLoading(true);
       const response = await getClustersForNetworkCheck();
       setClusters(response.data.clusters || []);
-    } catch (error) {
+    } catch {
       message.error('Ошибка загрузки кластеров');
-      console.error(error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleClusterChange = clusterName => {
-    setSelectedCluster(clusterName);
-    setSelectedNodes([]);
-    setResults([]);
   };
 
   const handleNodeSelection = (nodeIp, checked) => {
@@ -138,9 +120,8 @@ const NetworkConnectivity = () => {
       } else {
         message.warning(`${successCount} успешных, ${failCount} неудачных проверок`);
       }
-    } catch (error) {
+    } catch {
       message.error('Ошибка выполнения проверки подключения');
-      console.error(error);
     } finally {
       setChecking(false);
     }
@@ -170,9 +151,8 @@ const NetworkConnectivity = () => {
       window.URL.revokeObjectURL(url);
 
       message.success(`Результаты экспортированы в ${format.toUpperCase()}`);
-    } catch (error) {
+    } catch {
       message.error('Ошибка экспорта результатов');
-      console.error(error);
     }
   };
 
@@ -196,17 +176,6 @@ const NetworkConnectivity = () => {
             style={{ color: 'var(--status-pending)' }}
           />
         );
-    }
-  };
-
-  const getStatusTag = status => {
-    switch (status) {
-      case 'success':
-        return <Tag className="status-passed">Успешно</Tag>;
-      case 'failed':
-        return <Tag className="status-failed">Неудачно</Tag>;
-      default:
-        return <Tag className="status-unknown">Неизвестно</Tag>;
     }
   };
 
@@ -260,15 +229,21 @@ const NetworkConnectivity = () => {
       <div className="page-title">Проверка сетевых подключений</div>
       <div className="page-subtitle">Проверка доступности сетевых сервисов из узлов кластера</div>
 
-      <Space direction="vertical" size="large" className="width-100">
-        <Card title="Настройки проверки" loading={loading}>
-          <Form form={form} layout="vertical">
+      <Space direction="vertical" size="large" className="kube-width-100">
+        <Card
+          title="Настройки проверки"
+          loading={loading}
+          className="kube-width-100"
+          bodyStyle={{ width: '100%' }}
+        >
+          <Form form={form} layout="vertical" style={{ width: '100%' }}>
             <Form.Item name="cluster" label="Кластер" required>
               <Select
+                className="margin-top-space-2"
+                style={{ width: '100%' }}
                 placeholder="Выберите кластер"
+                onChange={setSelectedCluster}
                 value={selectedCluster}
-                onChange={handleClusterChange}
-                className="width-100"
               >
                 {clusters.map(cluster => (
                   <Option key={cluster.name} value={cluster.name}>
@@ -340,8 +315,9 @@ const NetworkConnectivity = () => {
                   min={1}
                   max={30}
                   value={timeout}
-                  onChange={e => setTimeout(parseInt(e.target.value) || 5)}
+                  onChange={e => setTimeout(parseInt(e.target.value) || 3)}
                   className="width-120px"
+                  placeholder="3"
                 />
               </Form.Item>
             </Space>
@@ -365,7 +341,7 @@ const NetworkConnectivity = () => {
             title={`Результаты проверки (${results.length} узлов)`}
             extra={
               resultId && (
-                <Space>
+                <Space wrap>
                   <Button onClick={() => exportResults('json')}>Экспорт JSON</Button>
                 </Space>
               )

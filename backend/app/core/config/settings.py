@@ -77,6 +77,9 @@ class Settings(BaseSettings):
     kubeeye_gitops_repo_username: Optional[str] = Field(default=None, description="GitOps repository username")
     kubeeye_gitops_repo_token: Optional[str] = Field(default=None, description="GitOps repository token")
     kubeeye_gitops_repo_description: str = Field(default="", description="GitOps repository description")
+    kubeeye_gitops_sync_interval: int = Field(
+        default=300, description="GitOps sync interval in seconds (default: 5 minutes)"
+    )
     git_ssl_no_verify: Optional[str] = Field(default=None, description="Disable SSL verification for Git operations")
 
 

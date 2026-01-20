@@ -221,39 +221,71 @@ class AsyncTaskQueue:
     async def _process_inspection_task(self, task: Task) -> Dict[str, Any]:
         """Process inspection task"""
         from services.components.inspection_engine import execute_inspection_unified
+        from core.events import publish_task_started, publish_task_completed, publish_task_failed
 
         payload = task.payload
+
+        # Publish task started event
+        await publish_task_started(task.task_id, task.task_type)
 
         # Call progress callback if provided
         if task.progress_callback:
             task.progress_callback("Starting inspection...")
 
-        # Execute inspection
-        success, message, results = await execute_inspection_unified(
-            cluster_name=payload["cluster_name"],
-            selected_rules=payload.get("selected_rules"),
-            inspection_type=payload.get("inspection_type", "immediate"),
-            show_progress=False,
-            show_ui_feedback=False,
-            use_gitops=payload.get("use_gitops", False),
-        )
+        try:
+            # Execute inspection
+            success, message, results = await execute_inspection_unified(
+                cluster_name=payload["cluster_name"],
+                selected_rules=payload.get("selected_rules"),
+                selected_tags=payload.get("selected_tags"),
+                inspection_type=payload.get("inspection_type", "immediate"),
+                show_progress=False,
+                show_ui_feedback=False,
+                use_gitops=payload.get("use_gitops", False),
+            )
 
-        if task.progress_callback:
-            task.progress_callback("Inspection completed")
+            if task.progress_callback:
+                task.progress_callback("Inspection completed")
 
-        # Inspection now always succeeds (errors are recorded in results)
-        return {
-            "success": success,
-            "message": message,
-            "results": results,
-        }
+            # Inspection now always succeeds (errors are recorded in results)
+            # Serialize InspectionResult objects for WebSocket
+            results_serializable = {}
+            for inspector_name, inspection_result in results.items():
+                if hasattr(inspection_result, "get_summary"):
+                    results_serializable[inspector_name] = inspection_result.get_summary()
+                elif hasattr(inspection_result, "to_dict"):
+                    results_serializable[inspector_name] = inspection_result.to_dict()
+                else:
+                    # Fallback: convert to string representation
+                    results_serializable[inspector_name] = str(inspection_result)
+
+            result = {
+                "success": success,
+                "message": message,
+                "results": results_serializable,
+            }
+
+            # Publish task completed event
+            await publish_task_completed(task.task_id, result)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Inspection task {task.task_id} failed: {e}")
+            # Publish task failed event
+            await publish_task_failed(task.task_id, str(e))
+            raise
 
     async def _process_popeye_task(self, task: Task) -> Dict[str, Any]:
         """Process Popeye scan task"""
         from services.inspectors.popeye.popeye_inspector import PopeyeInspector
         from infra.cluster.cluster_config import get_cluster
+        from core.events import publish_task_started, publish_task_completed, publish_task_failed
 
         payload = task.payload
+
+        # Publish task started event
+        await publish_task_started(task.task_id, task.task_type)
 
         # Call progress callback if provided
         if task.progress_callback:
@@ -299,6 +331,17 @@ class AsyncTaskQueue:
                 if task.progress_callback:
                     task.progress_callback("Popeye scan completed")
 
+                # Publish task completed event
+                await publish_task_completed(
+                    task.task_id,
+                    {
+                        "success": True,
+                        "message": "Popeye scan completed successfully",
+                        "result_id": result_id,
+                        "scan_result": scan_result,
+                    },
+                )
+
                 return {
                     "success": True,
                     "message": "Popeye scan completed successfully",
@@ -318,6 +361,8 @@ class AsyncTaskQueue:
 
         except Exception as e:
             logger.error(f"Popeye scan failed: {str(e)}")
+            # Publish task failed event
+            await publish_task_failed(task.task_id, str(e))
             raise
 
     async def _process_cleanup_task(self, task: Task) -> Dict[str, Any]:
@@ -350,6 +395,7 @@ async def get_task_queue() -> AsyncTaskQueue:
 async def submit_inspection_task(
     cluster_name: str,
     selected_rules: Optional[Dict[str, Any]] = None,
+    selected_tags: Optional[Dict[str, Any]] = None,
     inspection_type: str = "immediate",
     use_gitops: bool = False,
     progress_callback: Optional[Callable] = None,
@@ -359,6 +405,7 @@ async def submit_inspection_task(
     payload = {
         "cluster_name": cluster_name,
         "selected_rules": selected_rules,
+        "selected_tags": selected_tags,
         "inspection_type": inspection_type,
         "use_gitops": use_gitops,
     }

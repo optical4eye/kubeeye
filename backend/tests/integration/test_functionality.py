@@ -179,7 +179,7 @@ class TestGitOpsFunctionality:
         """Setup GitOps test environment"""
         self.client = TestClient(test_app)
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_gitops_status_when_not_configured(self, mock_gitops_manager):
         """Test GitOps status when repository is not configured"""
         # Mock GitOps manager to return no repository
@@ -195,7 +195,7 @@ class TestGitOpsFunctionality:
         assert data["status"] == "not_configured"
         assert data["repository"] is None
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_gitops_sync_success(self, mock_gitops_manager):
         """Test successful GitOps repository synchronization"""
         # Mock GitOps manager with configured repository
@@ -212,7 +212,7 @@ class TestGitOpsFunctionality:
         data = response.json()
         assert "synchronized successfully" in data["message"]
 
-    @patch("infra.gitops.gitops_manager.GitOpsRuleManager")
+    @patch("infra.gitops.gitops_manager.GitOpsManager")
     def test_gitops_sync_failure(self, mock_gitops_manager):
         """Test GitOps sync failure"""
         # Mock GitOps manager with sync failure

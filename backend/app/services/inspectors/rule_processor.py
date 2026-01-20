@@ -112,8 +112,10 @@ class RuleProcessor:
             Integer ordinal value of severity level
         """
         severity_order = {
-            "critical": 4,
-            "high": 3,
+            "critical": 6,
+            "high": 5,
+            "medium": 4,
+            "low": 3,
             "warning": 2,
             "info": 1,
             "unknown": 0,

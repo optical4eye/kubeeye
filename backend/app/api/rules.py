@@ -16,26 +16,20 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
-def _sync_gitops_repository() -> bool:
-    """Sync GitOps repository"""
+def _sync_gitops_repository(force: bool = False) -> bool:
+    """Sync GitOps repository with time-based caching"""
     try:
-        from infra.gitops.gitops_manager import GitOpsRuleManager
+        from infra.gitops.gitops_manager import GitOpsManager
 
-        gitops_manager = GitOpsRuleManager()
+        gitops_manager = GitOpsManager()
         config = gitops_manager.load_config()
         current_repo = config.get("repository")
 
         if not current_repo:
             return False
 
-        logger.debug(f"GitOps mode enabled, syncing repository {current_repo['name']}...")
-        success, message = gitops_manager.clone_or_update_repo(current_repo)
-        if success:
-            logger.debug(f"Repository synchronized: {message}")
-            return True
-        else:
-            logger.error(f"Failed to sync repository: {message}")
-            return False
+        success, message = gitops_manager.sync_repository_if_needed(current_repo, force=force)
+        return success
     except Exception as e:
         logger.error(f"GitOps sync failed: {str(e)}")
         return False
@@ -92,3 +86,37 @@ async def get_rules(tags: Optional[str] = None):
         logger.error(f"Failed to load rules: {str(e)}")
         # Return empty rules as fallback
         return {"rules": {"node": [], "opa": []}, "use_gitops": False}
+
+
+@router.get("/rules/tags")
+async def get_rule_tags():
+    """Get all unique tags from rules"""
+    try:
+        use_gitops = RuleManager.should_use_gitops()
+        logger.debug(f"GitOps mode: {use_gitops}")
+
+        # Sync GitOps repository if necessary
+        if use_gitops and not _sync_gitops_repository():
+            use_gitops = False
+
+        # Load rules
+        rules = _load_rules_for_types(["node", "opa"], use_gitops)
+
+        # Collect all unique tags with counts
+        tag_count = {}
+        for rule_type, rule_list in rules.items():
+            for rule in rule_list:
+                if rule.tags:
+                    for tag in rule.tags:
+                        tag_count[tag] = tag_count.get(tag, 0) + 1
+
+        # Sort tags by count descending
+        sorted_tags = sorted(tag_count.items(), key=lambda x: x[1], reverse=True)
+
+        logger.debug(f"Found {len(sorted_tags)} unique tags with counts: {sorted_tags}")
+
+        return {"tags": [{"tag": tag, "count": count} for tag, count in sorted_tags], "use_gitops": use_gitops}
+    except Exception as e:
+        logger.error(f"Failed to load rule tags: {str(e)}")
+        # Return empty tags as fallback
+        return {"tags": [], "use_gitops": False}

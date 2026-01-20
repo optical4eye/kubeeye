@@ -49,7 +49,6 @@ export const fetchData = async (fetchFn, errorMessage, onSuccess) => {
     return response.data;
   } catch (error) {
     const processedError = handleApiError(error, errorMessage);
-    console.error('API Error:', error);
     throw new Error(processedError);
   }
 };
@@ -62,12 +61,11 @@ export const apiRequest = async (
   try {
     const response = await requestFn();
     if (successMessage) {
-      console.log(successMessage);
+      // Success message can be handled by UI components
     }
     return response.data;
   } catch (error) {
     const processedError = handleApiError(error, errorMessage);
-    console.error('API Request Error:', error);
     throw new Error(processedError);
   }
 };

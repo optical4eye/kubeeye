@@ -168,6 +168,9 @@ class NodeInspector(BaseInspector):
         # Local connection status cache for current inspection
         self.connection_status_cache = {}
 
+        # Track reported unavailable nodes to avoid duplicates
+        self.unavailable_nodes_reported = set()
+
         # Execution statistics
         self.execution_stats = {
             "total_nodes": len(config),
@@ -188,7 +191,9 @@ class NodeInspector(BaseInspector):
     def inspector_type(self) -> str:
         return "node"
 
-    async def run_inspection(self, cluster_name: str, rule_ids: Optional[List[str]] = None) -> InspectionResult:
+    async def run_inspection(
+        self, cluster_name: str, rule_ids: Optional[List[str]] = None, selected_tags: Optional[List[str]] = None
+    ) -> InspectionResult:
         """
         Run inspection with simplified architecture
         """
@@ -219,33 +224,23 @@ class NodeInspector(BaseInspector):
             f"SSH connection check results: {len(available_nodes)} available, {len(self.nodes) - len(available_nodes)} unavailable"
         )
 
-        # If no available nodes, return only SSH errors
+        # If no available nodes, log and continue with rule execution (unavailable nodes will be reported in _apply_rule)
         if not available_nodes:
-            logger.error("No available nodes for inspection - returning only SSH connection errors")
-            ssh_errors = self.ssh_error_manager.get_all_connection_errors()
-            result = InspectionResult(cluster_name, self.inspector_type)
-            for error in ssh_errors:
-                result.add_item(error)
-            return result
+            logger.error("No available nodes for inspection - unavailable nodes will be reported per rule")
 
         # Log available nodes
         logger.info(f"Available nodes for rule execution: {[node.get('name', node['ip']) for node in available_nodes]}")
 
         # Execute inspection rules only on available nodes
-        result = await super().run_inspection(cluster_name, rule_ids or [])
+        result = await super().run_inspection(cluster_name, rule_ids or [], selected_tags)
 
-        # Add SSH connection errors to beginning of report
-        ssh_errors = self.ssh_error_manager.get_all_connection_errors()
-        if ssh_errors:
-            result.items = ssh_errors + result.items
-            logger.info(f"Added {len(ssh_errors)} SSH connection errors to report")
-
-        # Add results for unavailable nodes
-        unavailable_nodes = [node for node in self.nodes if node not in available_nodes]
-        for node in unavailable_nodes:
-            unavailable_result = self._format_node_unavailable_result(node)
-            result.add_item(unavailable_result)
-        logger.info(f"Added {len(unavailable_nodes)} unavailable node results to report")
+        # Ensure all unavailable nodes are reported
+        for node in self.nodes:
+            if self.ssh_error_manager.has_connection_error(node):
+                node_key = self.ssh_error_manager._get_node_key(node)
+                if node_key not in self.unavailable_nodes_reported:
+                    result.add_item(self._format_unavailable_node_result(node))
+                    self.unavailable_nodes_reported.add(node_key)
 
         inspection_duration = time.time() - inspection_start_time
         logger.info(f"Inspection completed - total results: {len(result.items)}")
@@ -398,10 +393,25 @@ class NodeInspector(BaseInspector):
         # Initialize results list
         node_results = []
 
-        # If no available nodes, skip
+        # If no available nodes, add results for unavailable nodes
         if not available_nodes:
-            logger.info(f"Rule {rule.id} - no nodes for execution, skipping")
-            return None
+            logger.info(f"Rule {rule.id} - no nodes for execution, adding unavailable results")
+            node_results = []
+            for node in target_nodes:
+                if self.ssh_error_manager.has_connection_error(node):
+                    node_key = self.ssh_error_manager._get_node_key(node)
+                    if node_key not in self.unavailable_nodes_reported:
+                        result = self._format_unavailable_node_result(node)
+                        node_results.append(result)
+                        self.unavailable_nodes_reported.add(node_key)
+            return {
+                "rule_id": rule.id,
+                "rule_name": rule.name,
+                "results": node_results,
+                "total_nodes": len(target_nodes),
+                "executed_nodes": 0,
+                "execution_time": 0.0,
+            }
 
         # Execute rule on available nodes and add to results
         if available_nodes:
@@ -673,13 +683,20 @@ class NodeInspector(BaseInspector):
         result["severity"] = "info"
         return result
 
-    def _format_unavailable_node_result(self, rule: Rule, node: Dict) -> Dict:
-        """Format result for unavailable node"""
+    def _format_unavailable_node_result(self, node: Dict) -> Dict:
+        """Format result for unavailable node using dummy rule"""
         node_name = node.get("name", node["ip"])
+        rule_data = {
+            "id": "node_unavailable",
+            "name": "Node unavailable",
+            "solution": "Resolve SSH connection issues",
+            "config": {"extractors": [], "assertions": []},
+        }
+        rule = Rule(rule_data)
         error_msg = f"Node {node_name} is unavailable for inspection due to SSH connection failure"
         result = self.rule_processor.result_formatter.error_result(rule, error_msg, f"Node {node_name} unavailable")
         result["node"] = {"ip": node["ip"], "name": node_name}
-        result["name"] = f"{rule.name} - {node_name} (unavailable)"
+        result["name"] = f"Node {node_name} unavailable"
         result["status"] = "exception"
         result["severity"] = "critical"
         result["details"] = (
@@ -687,19 +704,6 @@ class NodeInspector(BaseInspector):
             "The node was not accessible during the inspection period."
         )
         return result
-
-    def _format_node_unavailable_result(self, node: Dict) -> Dict:
-        """Format result for unavailable node (general, not rule-specific)"""
-        node_name = node.get("name", node["ip"])
-        return {
-            "type": "node_unavailable",
-            "name": f"Node {node_name} unavailable",
-            "description": f"Node {node_name} ({node['ip']}:{node.get('port', 22)}) is unavailable for inspection due to SSH connection failure",
-            "severity": "critical",
-            "status": "exception",
-            "node": {"ip": node["ip"], "name": node_name},
-            "details": f"SSH connection to node {node_name} failed. The node was not accessible during the inspection period.",
-        }
 
     def get_execution_stats(self) -> Dict:
         """Get execution statistics"""

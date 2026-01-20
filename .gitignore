@@ -4,7 +4,7 @@
 data
 postgres_data
 backend/data/
-
+frontend/node_modules
 # OSX trash
 .DS_Store
 

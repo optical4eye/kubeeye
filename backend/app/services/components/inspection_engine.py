@@ -31,6 +31,7 @@ class InspectionEngine:
         self,
         cluster_name: str,
         selected_rules: Optional[Dict[str, List[str]]] = None,
+        selected_tags: Optional[Dict[str, List[str]]] = None,
         inspection_type: str = "immediate",
         show_progress: bool = False,
         show_ui_feedback: bool = False,
@@ -89,7 +90,8 @@ class InspectionEngine:
                     cluster_name=cluster_name,
                     nodes=components["nodes"],
                     kubeconfig=components["kubeconfig"],
-                    selected_rules=selected_rules or {},
+                    selected_rules=selected_rules,
+                    selected_tags=selected_tags,
                     show_progress=show_progress,
                 )
 
@@ -101,6 +103,21 @@ class InspectionEngine:
                     all_results, cluster_name, cluster_config, inspection_type
                 )
 
+            # Publish inspection completed event
+            from core.events import publish_inspection_completed
+
+            # Serialize results for event
+            results_serializable = {}
+            if all_results:
+                for inspector_name, inspection_result in all_results.items():
+                    if hasattr(inspection_result, "get_summary"):
+                        results_serializable[inspector_name] = inspection_result.get_summary()
+                    elif hasattr(inspection_result, "to_dict"):
+                        results_serializable[inspector_name] = inspection_result.to_dict()
+                    else:
+                        results_serializable[inspector_name] = str(inspection_result)
+            await publish_inspection_completed(cluster_name, results_serializable)
+
             return success, message, all_results
 
 
@@ -110,6 +127,7 @@ inspection_engine = InspectionEngine()
 async def execute_inspection_unified(
     cluster_name: str,
     selected_rules: Optional[Dict[str, List[str]]] = None,
+    selected_tags: Optional[Dict[str, List[str]]] = None,
     inspection_type: str = "immediate",
     show_progress: bool = False,
     show_ui_feedback: bool = False,
@@ -119,6 +137,7 @@ async def execute_inspection_unified(
     return await inspection_engine.execute_inspection(
         cluster_name,
         selected_rules,
+        selected_tags,
         inspection_type,
         show_progress,
         show_ui_feedback,
