@@ -1,22 +1,24 @@
 import React from 'react';
 import { Table, Tag } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 const NodeTable = ({ nodes, loading, scrollY = 400 }) => {
+  const { t } = useTranslation();
   const nodeColumns = [
-    { title: 'NAME', dataIndex: 'name', key: 'name', ellipsis: true },
+    { title: t('clusters.nodeTable.name'), dataIndex: 'name', key: 'name', ellipsis: true },
     {
-      title: 'STATUS',
+      title: t('clusters.nodeTable.status'),
       dataIndex: 'status',
       key: 'status',
       render: status => {
         let className = 'status-not-ready';
-        let ariaLabel = 'Статус: ';
+        let ariaLabel = t('clusters.nodeTable.status') + ': ';
         if (status === 'Ready') {
           className = 'status-ready';
-          ariaLabel += 'Готов';
+          ariaLabel += t('clusters.nodeTable.ready');
         } else if (status === 'NotReady') {
           className = 'status-not-ready';
-          ariaLabel += 'Не готов';
+          ariaLabel += t('clusters.nodeTable.notReady');
         } else {
           ariaLabel += status;
         }
@@ -28,25 +30,25 @@ const NodeTable = ({ nodes, loading, scrollY = 400 }) => {
       },
     },
     {
-      title: 'ROLES',
+      title: t('clusters.nodeTable.roles'),
       dataIndex: 'roles',
       key: 'roles',
       responsive: ['md'],
-      render: roles => roles?.join(', ') || 'N/A',
+      render: roles => roles?.join(', ') || t('clusters.nodeTable.na'),
     },
-    { title: 'AGE', dataIndex: 'age', key: 'age', responsive: ['lg'] },
-    { title: 'VERSION', dataIndex: 'version', key: 'version', responsive: ['lg'] },
-    { title: 'INTERNAL-IP', dataIndex: 'internal_ip', key: 'internal_ip', responsive: ['xl'] },
-    { title: 'EXTERNAL-IP', dataIndex: 'external_ip', key: 'external_ip', responsive: ['xl'] },
-    { title: 'OS-IMAGE', dataIndex: 'os_image', key: 'os_image', responsive: ['xl'] },
+    { title: t('clusters.nodeTable.age'), dataIndex: 'age', key: 'age', responsive: ['lg'] },
+    { title: t('clusters.nodeTable.version'), dataIndex: 'version', key: 'version', responsive: ['lg'] },
+    { title: t('clusters.nodeTable.internalIp'), dataIndex: 'internal_ip', key: 'internal_ip', responsive: ['xl'] },
+    { title: t('clusters.nodeTable.externalIp'), dataIndex: 'external_ip', key: 'external_ip', responsive: ['xl'] },
+    { title: t('clusters.nodeTable.osImage'), dataIndex: 'os_image', key: 'os_image', responsive: ['xl'] },
     {
-      title: 'KERNEL-VERSION',
+      title: t('clusters.nodeTable.kernelVersion'),
       dataIndex: 'kernel_version',
       key: 'kernel_version',
       responsive: ['xl'],
     },
     {
-      title: 'CONTAINER-RUNTIME',
+      title: t('clusters.nodeTable.containerRuntime'),
       dataIndex: 'container_runtime',
       key: 'container_runtime',
       responsive: ['xl'],

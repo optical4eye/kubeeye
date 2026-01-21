@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Space, Modal, Tag, Tooltip, Table } from 'antd';
 import { KeyOutlined, InfoCircleOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { FormInstance } from 'antd/lib/form';
 import { Secret } from '../../types';
@@ -22,6 +23,7 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
   onGetNodesFromKubeconfig,
   isEditMode = false,
 }) => {
+  const { t } = useTranslation();
   const [secretModalVisible, setSecretModalVisible] = useState<boolean>(false);
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [targetField, setTargetField] = useState<string | null>(null);
@@ -79,31 +81,29 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
         form={form}
         layout="vertical"
         onFinish={onSubmit}
-        aria-label={isEditMode ? 'Форма редактирования кластера' : 'Форма создания кластера'}
+        aria-label={isEditMode ? t('clusters.clusterForm.updateCluster') : t('clusters.clusterForm.createCluster')}
       >
         <Form.Item
           name="name"
-          label="Имя кластера"
-          rules={[{ required: true, message: 'Введите имя кластера' }]}
+          label={t('clusters.clusterForm.clusterName')}
+          rules={[{ required: true, message: t('clusters.clusterForm.clusterNameRequired') }]}
         >
-          <Input placeholder="production" aria-label="Имя кластера" />
+          <Input placeholder={t('clusters.clusterForm.clusterNamePlaceholder')} aria-label={t('clusters.clusterForm.clusterName')} />
         </Form.Item>
 
         <Form.Item
           name="nodes_text"
           label={
             <Space>
-              <span>Список узлов</span>
+              <span>{t('clusters.clusterForm.nodesList')}</span>
             </Space>
           }
-          rules={[{ required: true, message: 'Добавьте хотя бы один узел' }]}
+          rules={[{ required: true, message: t('clusters.clusterForm.nodesRequired') }]}
         >
           <Input.TextArea
             rows={6}
-            placeholder={
-              'Добавьте SSH узлы для проверки в формате: IP:Port User AuthType ${secret:имя-секрета}\nПримеры:\n192.168.1.100:22 root password ${secret:имя-секрета}\n192.168.1.101:22 admin key ${secret:имя-секрета}'
-            }
-            aria-label="Список узлов в формате IP:Port User AuthType ${secret:имя-секрета}"
+            placeholder={t('clusters.clusterForm.nodesPlaceholder')}
+            aria-label={t('clusters.clusterForm.nodesList')}
           />
         </Form.Item>
 
@@ -113,19 +113,19 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
               className="action-button"
               icon={<KeyOutlined />}
               onClick={() => openSecretModal('nodes_text')}
-              aria-label="Вставить секрет в список узлов"
+              aria-label={t('clusters.clusterForm.insertSecretNodes')}
             >
-              Вставить секрет в узлы
+              {t('clusters.clusterForm.insertSecretNodes')}
             </Button>
             <Button
               className="action-button"
               onClick={onGetNodesFromKubeconfig}
-              aria-label="Получить узлы из k8s"
+              aria-label={t('clusters.clusterForm.getNodesFromK8s')}
             >
-              Получить узлы из k8s
+              {t('clusters.clusterForm.getNodesFromK8s')}
             </Button>
-            <Button className="action-button" onClick={onTestNodes} aria-label="Проверить узлы">
-              Проверить узлы
+            <Button className="action-button" onClick={onTestNodes} aria-label={t('clusters.clusterForm.testNodes')}>
+              {t('clusters.clusterForm.testNodes')}
             </Button>
           </Space>
         </Form.Item>
@@ -134,18 +134,18 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
           name="kubeconfig"
           label={
             <Space>
-              <span>Kubeconfig</span>
-              <Tooltip title="Используйте переменную ${secret:имя-секрета} для kubeconfig">
+              <span>{t('clusters.clusterForm.kubeconfig')}</span>
+              <Tooltip title={t('clusters.clusterForm.kubeconfigTooltip')}>
                 <InfoCircleOutlined style={{ color: 'var(--info-color)' }} />
               </Tooltip>
             </Space>
           }
-          rules={isEditMode ? [] : [{ required: true, message: 'Введите kubeconfig' }]}
+          rules={isEditMode ? [] : [{ required: true, message: t('clusters.clusterForm.kubeconfigRequired') }]}
         >
           <Input.TextArea
             rows={8}
-            placeholder="${secret:имя-секрета}"
-            aria-label="Содержимое kubeconfig файла"
+            placeholder={t('clusters.clusterForm.kubeconfigPlaceholder')}
+            aria-label={t('clusters.clusterForm.kubeconfig')}
           />
         </Form.Item>
 
@@ -155,16 +155,16 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
               className="action-button"
               icon={<KeyOutlined />}
               onClick={() => openSecretModal('kubeconfig')}
-              aria-label="Вставить секрет в kubeconfig"
+              aria-label={t('clusters.clusterForm.insertSecretKubeconfig')}
             >
-              Вставить секрет в kubeconfig
+              {t('clusters.clusterForm.insertSecretKubeconfig')}
             </Button>
             <Button
               className="action-button"
               onClick={onTestKubeconfig}
-              aria-label="Проверить kubeconfig"
+              aria-label={t('clusters.clusterForm.testKubeconfig')}
             >
-              Проверить kubeconfig
+              {t('clusters.clusterForm.testKubeconfig')}
             </Button>
           </Space>
         </Form.Item>
@@ -174,15 +174,15 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
             className="action-button"
             type="primary"
             htmlType="submit"
-            aria-label={isEditMode ? 'Обновить кластер' : 'Создать кластер'}
+            aria-label={isEditMode ? t('clusters.clusterForm.updateCluster') : t('clusters.clusterForm.createCluster')}
           >
-            {isEditMode ? 'Обновить кластер' : 'Создать кластер'}
+            {isEditMode ? t('clusters.clusterForm.updateCluster') : t('clusters.clusterForm.createCluster')}
           </Button>
         </Form.Item>
       </Form>
 
       <Modal
-        title="Выберите секрет"
+        title={t('clusters.clusterForm.selectSecret')}
         open={secretModalVisible}
         onCancel={() => setSecretModalVisible(false)}
         footer={null}
@@ -193,26 +193,26 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
           rowKey="id"
           pagination={{ pageSize: 5 }}
           columns={[
-            { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+            { title: t('clusters.clusterForm.id'), dataIndex: 'id', key: 'id', width: 80 },
             {
-              title: 'Название',
+              title: t('clusters.clusterForm.name'),
               dataIndex: 'name',
               key: 'name',
             },
             {
-              title: 'Тип',
+              title: t('clusters.clusterForm.type'),
               dataIndex: 'secret_type',
               key: 'secret_type',
               render: type => getSecretTypeIcon(type),
             },
             {
-              title: 'Описание',
+              title: t('clusters.clusterForm.description'),
               dataIndex: 'description',
               key: 'description',
               render: text => text || '-',
             },
             {
-              title: 'Действия',
+              title: t('clusters.clusterForm.select'),
               key: 'actions',
               render: (_, record) => (
                 <Button
@@ -220,14 +220,14 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
                   size="small"
                   className="action-button"
                   onClick={() => selectSecret(record.name)}
-                  aria-label={`Выбрать секрет ${record.name}`}
+                  aria-label={`${t('clusters.clusterForm.select')} ${record.name}`}
                 >
-                  Выбрать
+                  {t('clusters.clusterForm.select')}
                 </Button>
               ),
             },
           ]}
-          locale={{ emptyText: 'Нет доступных секретов' }}
+          locale={{ emptyText: t('clusters.clusterForm.noSecrets') }}
         />
       </Modal>
     </>

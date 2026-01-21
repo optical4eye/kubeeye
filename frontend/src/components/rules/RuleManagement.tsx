@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, Tabs, Table, Button, Select, Input, Space, Tag, Alert, message } from 'antd';
 const { Option } = Select;
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import * as api from '../../services/api';
 import { getSeverityTag } from '../ui/statusUtils';
 
 const RuleManagement = () => {
+  const { t } = useTranslation();
   const [rules, setRules] = useState({});
   const [useGitops, setUseGitops] = useState(false);
   const [gitopsConfig, setGitopsConfig] = useState(null);
@@ -48,7 +50,7 @@ const RuleManagement = () => {
       );
       console.log(`Loaded ${totalRules} rules, GitOps: ${response.data.use_gitops}`);
     } catch (error) {
-      message.error('Ошибка загрузки правил');
+      message.error(t('rules.errorLoadingRules'));
       console.error('Rules loading error:', error);
       // Set fallback data
       setRules({});
@@ -78,7 +80,7 @@ const RuleManagement = () => {
       await loadRules();
       await loadTags();
     } catch (error) {
-      message.error('Ошибка синхронизации GitOps репозитория');
+      message.error(t('rules.errorSyncGitops'));
       console.error('GitOps sync error:', error);
     } finally {
       setSyncing(false);
@@ -139,33 +141,29 @@ const RuleManagement = () => {
   };
 
   const getTypeLabel = type => {
-    const labels = {
-      node: 'Узлы',
-      opa: 'Kubernetes',
-    };
-    return labels[type] || type;
+    return t(`rules.typeLabels.${type}`, type);
   };
 
   const columns = [
     {
-      title: 'ID',
+      title: t('rules.columns.id'),
       dataIndex: 'id',
       key: 'id',
       width: 200,
     },
     {
-      title: 'Название',
+      title: t('rules.columns.name'),
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: 'Тип',
+      title: t('rules.columns.type'),
       dataIndex: 'type',
       key: 'type',
       render: type => getTypeLabel(type),
     },
     {
-      title: 'Теги',
+      title: t('rules.columns.tags'),
       dataIndex: 'tags',
       key: 'tags',
       render: tags =>
@@ -191,13 +189,13 @@ const RuleManagement = () => {
         ) : null,
     },
     {
-      title: 'Серьезность',
+      title: t('rules.columns.severity'),
       dataIndex: 'severity',
       key: 'severity',
       render: getSeverityTag,
     },
     {
-      title: 'Описание',
+      title: t('rules.columns.description'),
       dataIndex: 'description',
       key: 'description',
       ellipsis: true,
@@ -224,7 +222,7 @@ const RuleManagement = () => {
   const items = [
     {
       key: '1',
-      label: `Все правила (${stats.total})`,
+      label: `${t('rules.tabs.all')} (${stats.total})`,
       children: (
         <Card>
           <Table
@@ -239,7 +237,7 @@ const RuleManagement = () => {
     },
     {
       key: '2',
-      label: `Узлы (${stats.node})`,
+      label: `${t('rules.tabs.node')} (${stats.node})`,
       children: (
         <Card>
           <Table
@@ -254,7 +252,7 @@ const RuleManagement = () => {
     },
     {
       key: '4',
-      label: `Kubernetes (${stats.opa})`,
+      label: `${t('rules.tabs.kubernetes')} (${stats.opa})`,
       children: (
         <Card>
           <Table
@@ -269,15 +267,15 @@ const RuleManagement = () => {
     },
     {
       key: '5',
-      label: 'Настройки',
+      label: t('rules.tabs.settings'),
       children: (
         <Card>
           <Alert
-            message="Режим управления правилами"
+            message={t('rules.settings.modeTitle')}
             description={
               useGitops
-                ? 'Используется GitOps режим. Правила загружаются из Git репозитория. Изменения правил производятся через коммиты в репозиторий.'
-                : 'Используется локальный режим. Правила встроены в приложение и обновляются вместе с ним.'
+                ? t('rules.settings.gitopsDescription')
+                : t('rules.settings.localDescription')
             }
             type={useGitops ? 'info' : 'warning'}
             showIcon
@@ -286,41 +284,41 @@ const RuleManagement = () => {
 
           <Space direction="vertical">
             <div>
-              <strong>Текущий режим:</strong> {useGitops ? 'GitOps' : 'Локальный'}
+              <strong>{t('rules.settings.currentMode')}</strong> {useGitops ? t('rules.settings.gitopsMode') : t('rules.settings.localMode')}
             </div>
             <div>
-              <strong>Всего правил:</strong> {stats.total}
+              <strong>{t('rules.settings.totalRules')}</strong> {stats.total}
             </div>
             <div>
-              <strong>По типам:</strong>
+              <strong>{t('rules.settings.byType')}</strong>
               <ul>
-                <li>Узлы: {stats.node}</li>
-                <li>Безопасность: {stats.opa}</li>
+                <li>{t('rules.settings.nodes')} {stats.node}</li>
+                <li>{t('rules.settings.security')} {stats.opa}</li>
               </ul>
             </div>
             {useGitops && gitopsConfig && gitopsConfig.repository && (
               <div>
-                <strong>Информация о GitOps репозитории:</strong>
+                <strong>{t('rules.settings.gitopsInfo')}</strong>
                 <ul>
                   <li>
-                    <strong>Название:</strong> {gitopsConfig.repository.name}
+                    <strong>{t('rules.settings.name')}</strong> {gitopsConfig.repository.name}
                   </li>
                   <li>
-                    <strong>URL:</strong> {gitopsConfig.repository.url}
+                    <strong>{t('rules.settings.url')}</strong> {gitopsConfig.repository.url}
                   </li>
                   <li>
-                    <strong>Ветка:</strong> {gitopsConfig.repository.branch}
+                    <strong>{t('rules.settings.branch')}</strong> {gitopsConfig.repository.branch}
                   </li>
                   <li>
-                    <strong>Описание:</strong> {gitopsConfig.repository.description || 'Не указано'}
+                    <strong>{t('rules.settings.description')}</strong> {gitopsConfig.repository.description || t('rules.settings.description')}
                   </li>
                   <li>
-                    <strong>SSL верификация:</strong>{' '}
-                    {gitopsConfig.repository.insecure ? 'Отключена' : 'Включена'}
+                    <strong>{t('rules.settings.sslVerification')}</strong>{' '}
+                    {gitopsConfig.repository.insecure ? t('rules.settings.disabled') : t('rules.settings.enabled')}
                   </li>
                   {gitopsConfig.from_env && (
                     <li>
-                      <strong>Источник конфигурации:</strong> Переменные окружения
+                      <strong>{t('rules.settings.configSource')}</strong> {t('rules.settings.envVars')}
                     </li>
                   )}
                 </ul>
@@ -334,24 +332,24 @@ const RuleManagement = () => {
 
   return (
     <div>
-      <div className="page-title">Управление правилами инспекции</div>
+      <div className="page-title">{t('rules.title')}</div>
 
       <Card className="margin-bottom-space-4">
         <Space wrap>
           <Select
-            placeholder="Тип правил"
+            placeholder={t('rules.filters.ruleType')}
             className="width-150"
             onChange={value => setFilters(prev => ({ ...prev, type: value }))}
             value={filters.type}
           >
-            <Option value="all">Все типы</Option>
-            <Option value="node">Узлы</Option>
-            <Option value="opa">Безопасность</Option>
+            <Option value="all">{t('rules.filters.allTypes')}</Option>
+            <Option value="node">{t('rules.filters.nodes')}</Option>
+            <Option value="opa">{t('rules.filters.security')}</Option>
           </Select>
 
           <Select
             mode="multiple"
-            placeholder="Фильтр по тегам"
+            placeholder={t('rules.filters.filterByTags')}
             onChange={value => setFilters(prev => ({ ...prev, tags: value }))}
             value={filters.tags}
             allowClear
@@ -363,14 +361,14 @@ const RuleManagement = () => {
           />
 
           <Input
-            placeholder="Поиск по названию или описанию"
+            placeholder={t('rules.filters.search')}
             className="width-250"
             onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
             value={filters.search}
           />
 
           <Button icon={<ReloadOutlined />} onClick={loadRules}>
-            Обновить список rules
+            {t('rules.filters.refreshRules')}
           </Button>
 
           {useGitops && (
@@ -380,7 +378,7 @@ const RuleManagement = () => {
               loading={syncing}
               onClick={syncGitopsRepository}
             >
-              Синхронизировать репозиторий
+              {t('rules.filters.syncRepo')}
             </Button>
           )}
         </Space>

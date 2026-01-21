@@ -2,11 +2,13 @@ import React, { useEffect } from 'react';
 import { Card, Row, Col, Button, Table, message } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { getDashboardData } from '../services/api';
 import { DashboardStatistics, DashboardCharts } from '../components/dashboard';
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const {
     data: dashboardData,
@@ -18,7 +20,7 @@ const Dashboard = () => {
     staleTime: 2 * 60 * 1000, // 2 minutes for dashboard
     onError: error => {
       console.error('Dashboard error:', error);
-      message.error('Ошибка загрузки данных dashboard');
+      message.error(t('dashboard.errorLoading'));
     },
   });
 
@@ -47,7 +49,7 @@ const Dashboard = () => {
     total_clusters: 0,
     recent_scans: 0,
     recent_issues: 0,
-    latest_scan_time: 'Нет данных',
+    latest_scan_time: t('dashboard.noData'),
     total_rules: 0,
   };
 
@@ -55,23 +57,23 @@ const Dashboard = () => {
   const cluster_statuses = data.cluster_statuses || defaultData.cluster_statuses;
 
   const clusterColumns = [
-    { title: 'Кластер', dataIndex: 'name', key: 'name' },
-    { title: 'Статус', dataIndex: 'status', key: 'status' },
-    { title: 'Узлы', dataIndex: 'node_count', key: 'node_count' },
-    { title: 'Critical', dataIndex: 'critical_count', key: 'critical_count' },
-    { title: 'Warning', dataIndex: 'warning_count', key: 'warning_count' },
+    { title: t('dashboard.cluster'), dataIndex: 'name', key: 'name' },
+    { title: t('dashboard.status'), dataIndex: 'status', key: 'status' },
+    { title: t('dashboard.nodes'), dataIndex: 'node_count', key: 'node_count' },
+    { title: t('dashboard.critical'), dataIndex: 'critical_count', key: 'critical_count' },
+    { title: t('dashboard.warning'), dataIndex: 'warning_count', key: 'warning_count' },
     {
-      title: 'Последняя проверка',
+      title: t('dashboard.lastCheck'),
       dataIndex: 'last_scan',
       key: 'last_scan',
-      render: text => (text ? new Date(text).toLocaleString() : 'Не проверялся'),
+      render: text => (text ? new Date(text).toLocaleString() : t('dashboard.notChecked')),
     },
   ];
 
   return (
     <div>
-      <div className="page-title">Обзор кластеров</div>
-      <div className="page-subtitle">Мониторинг и инспекция Kubernetes кластеров</div>
+      <div className="page-title">{t('dashboard.title')}</div>
+      <div className="page-subtitle">{t('dashboard.subtitle')}</div>
 
       <Row gutter={16} className="dashboard-row">
         <Col span={24}>
@@ -79,9 +81,9 @@ const Dashboard = () => {
             icon={<ReloadOutlined />}
             onClick={loadDashboardData}
             loading={loading}
-            aria-label="Обновить данные dashboard"
+            aria-label={t('dashboard.refreshAria')}
           >
-            Обновить данные
+            {t('dashboard.refreshButton')}
           </Button>
         </Col>
       </Row>
@@ -90,7 +92,7 @@ const Dashboard = () => {
 
       <DashboardCharts dashboardData={data} />
 
-      <Card title="Детали кластеров">
+      <Card title={t('dashboard.clusterDetails')}>
         <Table
           columns={clusterColumns}
           dataSource={cluster_statuses}
@@ -98,7 +100,7 @@ const Dashboard = () => {
           pagination={{ pageSize: 10 }}
           scroll={{ y: 400 }}
           virtual={true}
-          aria-label="Таблица деталей кластеров"
+          aria-label={t('dashboard.clusterTableAria')}
         />
       </Card>
     </div>

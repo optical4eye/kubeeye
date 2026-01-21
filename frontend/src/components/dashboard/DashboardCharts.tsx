@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Row, Col } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   LineChart,
   Line,
@@ -24,6 +25,7 @@ interface DashboardChartsProps {
 }
 
 const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
+  const { t } = useTranslation();
   // Подготовка данных для линейного графика трендов с мемоизацией
   const trendData = React.useMemo(() => {
     if (!dashboardData || !dashboardData.recent_results) return [];
@@ -46,9 +48,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
     return (
       <Row gutter={16} className="dashboard-row">
         <Col span={24}>
-          <Card title="Тренды ошибок (7 дней)">
+          <Card title={t('charts.errorTrends')}>
             <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
-              Нет данных для отображения трендов
+              {t('charts.noData')}
             </div>
           </Card>
         </Col>
@@ -60,7 +62,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
     <>
       <Row gutter={16} className="dashboard-row">
         <Col span={24}>
-          <Card title="Тренды ошибок (7 дней)">
+          <Card title={t('charts.errorTrends')}>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -75,27 +77,27 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
                   }}
                   formatter={(value: number, name: string) => [`${value}`, name]}
-                  labelFormatter={(label: string) => `Дата: ${label}`}
+                  labelFormatter={(label: string) => `${t('charts.date')}: ${label}`}
                 />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="critical"
                   stroke="var(--ant-color-error)"
-                  name="Critical"
+                  name={t('charts.critical')}
                 />
                 <Line
                   type="monotone"
                   dataKey="warning"
                   stroke="var(--ant-color-warning)"
-                  name="Warning"
+                  name={t('charts.warning')}
                 />
-                <Line type="monotone" dataKey="info" stroke="var(--ant-color-info)" name="Other" />
+                <Line type="monotone" dataKey="info" stroke="var(--ant-color-info)" name={t('charts.other')} />
                 <Line
                   type="monotone"
                   dataKey="passed"
                   stroke="var(--ant-color-success)"
-                  name="Successful"
+                  name={t('charts.successful')}
                 />
               </LineChart>
             </ResponsiveContainer>

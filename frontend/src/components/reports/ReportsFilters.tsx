@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Select, Input, Space } from 'antd';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { Filters } from '../hooks/useReportsFilters';
 
 const { Option } = Select;
@@ -15,16 +16,18 @@ interface ReportsFiltersProps {
 
 const ReportsFilters: React.FC<ReportsFiltersProps> = React.memo(
   ({ clusters, filters, setFilters }) => {
+    const { t } = useTranslation();
+
     return (
       <Card className="margin-bottom-space-4">
         <Space wrap>
           <Select
-            placeholder="Кластер"
+            placeholder={t('reports.filters.clusterPlaceholder')}
             className="width-200"
             onChange={value => setFilters(prev => ({ ...prev, cluster: value }))}
             value={filters.cluster}
           >
-            <Option value="All">Все кластеры</Option>
+            <Option value="All">{t('reports.filters.allClusters')}</Option>
             {clusters.map(cluster => (
               <Option key={cluster} value={cluster}>
                 {cluster}
@@ -33,19 +36,19 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = React.memo(
           </Select>
 
           <Select
-            placeholder="Тип инспекции"
+            placeholder={t('reports.filters.inspectionTypePlaceholder')}
             className="width-150"
             onChange={value => setFilters(prev => ({ ...prev, inspectionType: value }))}
             value={filters.inspectionType}
           >
-            <Option value="All">Все типы</Option>
-            <Option value="popeye">Popeye</Option>
-            <Option value="network">Network</Option>
-            <Option value="cluster">Cluster</Option>
+            <Option value="All">{t('reports.filters.allTypes')}</Option>
+            <Option value="popeye">{t('reports.filters.inspectionTypes.popeye')}</Option>
+            <Option value="network">{t('reports.filters.inspectionTypes.network')}</Option>
+            <Option value="cluster">{t('reports.filters.inspectionTypes.cluster')}</Option>
           </Select>
 
           <DatePicker.RangePicker
-            placeholder={['Начальная дата', 'Конечная дата']}
+            placeholder={[t('reports.filters.startDate'), t('reports.filters.endDate')]}
             className="width-300"
             onChange={(dates) => setFilters(prev => ({ ...prev, dateRange: dates }))}
             value={filters.dateRange}
@@ -53,7 +56,7 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = React.memo(
           />
 
           <Search
-            placeholder="Поиск по кластеру или ID"
+            placeholder={t('reports.filters.searchPlaceholder')}
             className="width-250"
             onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
             value={filters.search}

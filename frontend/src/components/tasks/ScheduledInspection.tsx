@@ -17,6 +17,7 @@ import {
 } from 'antd';
 import { DeleteOutlined, PlayCircleFilled, EditOutlined } from '@ant-design/icons';
 import { format, parseISO, parse } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import * as api from '../../services/api';
 import { RuleSelector } from '../rules';
 import { getStatusTag } from '../ui/statusUtils';
@@ -25,6 +26,7 @@ import { Task, Cluster, Rule } from '../../types';
 const { Option } = Select;
 
 const ScheduledInspection = () => {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [rules, setRules] = useState<Record<string, Rule[]>>({});
@@ -57,7 +59,7 @@ const ScheduledInspection = () => {
       setClusters(clustersRes.data.clusters || []);
       setRules(rulesRes.data.rules || {});
     } catch (error) {
-      message.error('Ошибка загрузки данных');
+      message.error(t('scheduledInspection.errorLoadingData'));
       console.error(error);
     } finally {
       setLoading(false);
@@ -97,12 +99,12 @@ const ScheduledInspection = () => {
       };
 
       await api.createScheduledTask(taskData);
-      message.success('Задача создана успешно');
+      message.success(t('scheduledInspection.taskCreated'));
       form.resetFields();
       setSelectedRules({ node: [], opa: [] });
       loadData();
     } catch (error) {
-      message.error('Ошибка создания задачи');
+      message.error(t('scheduledInspection.errorCreatingTask'));
       console.error(error);
     }
   };
@@ -110,10 +112,10 @@ const ScheduledInspection = () => {
   const handleDeleteTask = async (taskId: string) => {
     try {
       await api.deleteScheduledTask(taskId);
-      message.success('Задача удалена');
+      message.success(t('scheduledInspection.taskDeleted'));
       loadData();
     } catch (error) {
-      message.error('Ошибка удаления задачи');
+      message.error(t('scheduledInspection.errorDeletingTask'));
       console.error(error);
     }
   };
@@ -121,10 +123,10 @@ const ScheduledInspection = () => {
   const handleRunTask = async (taskId: string) => {
     try {
       await api.runScheduledTask(taskId);
-      message.success('Задача запущена');
+      message.success(t('scheduledInspection.taskRun'));
       loadData();
     } catch (error) {
-      message.error('Ошибка запуска задачи');
+      message.error(t('scheduledInspection.errorRunningTask'));
       console.error(error);
     }
   };
@@ -193,62 +195,62 @@ const ScheduledInspection = () => {
       };
 
       await api.updateScheduledTask(editingTask.task_id, taskData);
-      message.success('Задача обновлена успешно');
+      message.success(t('scheduledInspection.taskUpdated'));
       setEditModalVisible(false);
       setEditingTask(null);
       editForm.resetFields();
       setSelectedRules({ node: [], opa: [] });
       loadData();
     } catch (error) {
-      message.error('Ошибка обновления задачи');
+      message.error(t('scheduledInspection.errorUpdatingTask'));
       console.error(error);
     }
   };
 
   const taskColumns = [
-    { title: 'Название', dataIndex: 'name', key: 'name' },
-    { title: 'Кластер', dataIndex: 'cluster', key: 'cluster' },
+    { title: t('scheduledInspection.name'), dataIndex: 'name', key: 'name' },
+    { title: t('scheduledInspection.cluster'), dataIndex: 'cluster', key: 'cluster' },
     {
-      title: 'Расписание',
+      title: t('scheduledInspection.schedule'),
       dataIndex: 'cron_expr',
       key: 'cron_expr',
-      render: (cron, record) => (record.task_type === 'once' ? 'Одноразовая' : cron),
+      render: (cron, record) => (record.task_type === 'once' ? t('scheduledInspection.oneTime') : cron),
     },
-    { title: 'Статус', dataIndex: 'last_status', key: 'last_status', render: getStatusTag },
+    { title: t('scheduledInspection.status'), dataIndex: 'last_status', key: 'last_status', render: getStatusTag },
     {
-      title: 'Включена',
+      title: t('scheduledInspection.enabled'),
       dataIndex: 'enabled',
       key: 'enabled',
       render: enabled => <Switch checked={enabled} disabled />,
     },
     {
-      title: 'Последний запуск',
+      title: t('scheduledInspection.lastRun'),
       dataIndex: 'last_run',
       key: 'last_run',
-      render: date => (date ? new Date(date).toLocaleString() : 'Не запускался'),
+      render: date => (date ? new Date(date).toLocaleString() : t('scheduledInspection.neverRun')),
     },
     {
-      title: 'Действия',
+      title: t('scheduledInspection.actions'),
       key: 'actions',
       render: (_, record) => (
         <Space wrap>
           <Button
             icon={<PlayCircleFilled />}
             onClick={() => handleRunTask(record.task_id)}
-            title="Запустить сейчас"
+            title={t('scheduledInspection.runNow')}
           />
           <Button
             icon={<EditOutlined />}
             onClick={() => handleEditTask(record)}
-            title="Редактировать"
+            title={t('scheduledInspection.edit')}
           />
           <Button
             icon={<DeleteOutlined />}
             danger
             onClick={() =>
               Modal.confirm({
-                title: 'Удалить задачу?',
-                content: 'Это действие нельзя отменить',
+                title: t('scheduledInspection.deleteTask'),
+                content: t('scheduledInspection.deleteConfirm'),
                 onOk: () => handleDeleteTask(record.task_id),
               })
             }
@@ -265,7 +267,7 @@ const ScheduledInspection = () => {
         items={[
           {
             key: '1',
-            label: 'Список задач',
+            label: t('scheduledInspection.taskList'),
             children: (
               <Card>
                 <Table
@@ -280,32 +282,32 @@ const ScheduledInspection = () => {
           },
           {
             key: '2',
-            label: 'Создать задачу',
+            label: t('scheduledInspection.createTask'),
             children: (
               <Card>
                 <Form form={form} layout="vertical" onFinish={handleCreateTask}>
                   <Form.Item
                     name="name"
-                    label="Название задачи"
-                    rules={[{ required: true, message: 'Введите название задачи' }]}
+                    label={t('scheduledInspection.taskName')}
+                    rules={[{ required: true, message: t('scheduledInspection.enterTaskName') }]}
                   >
-                    <Input placeholder="Ежедневная проверка" />
+                    <Input placeholder={t('scheduledInspection.dailyCheck')} />
                   </Form.Item>
 
                   <Form.Item
                     name="description"
-                    label="Описание"
-                    rules={[{ required: true, message: 'Введите описание задачи' }]}
+                    label={t('scheduledInspection.description')}
+                    rules={[{ required: true, message: t('scheduledInspection.enterDescription') }]}
                   >
-                    <Input.TextArea placeholder="Описание задачи" />
+                    <Input.TextArea placeholder={t('scheduledInspection.taskDescription')} />
                   </Form.Item>
 
                   <Form.Item
                     name="cluster"
-                    label="Кластер"
-                    rules={[{ required: true, message: 'Выберите кластер' }]}
+                    label={t('scheduledInspection.cluster')}
+                    rules={[{ required: true, message: t('scheduledInspection.selectCluster') }]}
                   >
-                    <Select placeholder="Выберите кластер">
+                    <Select placeholder={t('scheduledInspection.selectCluster')}>
                       {clusters.map(cluster => (
                         <Option key={cluster.name} value={cluster.name}>
                           {cluster.name}
@@ -316,12 +318,12 @@ const ScheduledInspection = () => {
 
                   <Form.Item
                     name="schedule_type"
-                    label="Тип расписания"
-                    rules={[{ required: true, message: 'Выберите тип расписания' }]}
+                    label={t('scheduledInspection.scheduleType')}
+                    rules={[{ required: true, message: t('scheduledInspection.selectScheduleType') }]}
                   >
-                    <Select placeholder="Выберите тип">
-                      <Option value="cron">Периодическая (Cron)</Option>
-                      <Option value="once">Одноразовая</Option>
+                    <Select placeholder={t('scheduledInspection.selectScheduleType')}>
+                      <Option value="cron">{t('scheduledInspection.periodicCron')}</Option>
+                      <Option value="once">{t('scheduledInspection.oneTime')}</Option>
                     </Select>
                   </Form.Item>
 
@@ -337,25 +339,25 @@ const ScheduledInspection = () => {
                         return (
                           <div>
                             <Alert
-                              message="Cron формат: мин час день месяц день_недели"
+                              message={t('scheduledInspection.cronFormat')}
                               type="info"
                               showIcon
                               className="margin-bottom-space-4"
                             />
                             <Space wrap>
-                              <Form.Item name="cron_min" label="Минуты" initialValue="0">
+                              <Form.Item name="cron_min" label={t('scheduledInspection.minutes')} initialValue="0">
                                 <Input placeholder="0" />
                               </Form.Item>
-                              <Form.Item name="cron_hour" label="Часы" initialValue="8">
+                              <Form.Item name="cron_hour" label={t('scheduledInspection.hours')} initialValue="8">
                                 <Input placeholder="8" />
                               </Form.Item>
-                              <Form.Item name="cron_dom" label="День месяца" initialValue="*">
+                              <Form.Item name="cron_dom" label={t('scheduledInspection.dayOfMonth')} initialValue="*">
                                 <Input placeholder="*" />
                               </Form.Item>
-                              <Form.Item name="cron_month" label="Месяц" initialValue="*">
+                              <Form.Item name="cron_month" label={t('scheduledInspection.month')} initialValue="*">
                                 <Input placeholder="*" />
                               </Form.Item>
-                              <Form.Item name="cron_dow" label="День недели" initialValue="*">
+                              <Form.Item name="cron_dow" label={t('scheduledInspection.dayOfWeek')} initialValue="*">
                                 <Input placeholder="*" />
                               </Form.Item>
                             </Space>
@@ -366,14 +368,14 @@ const ScheduledInspection = () => {
                           <Space>
                             <Form.Item
                               name="run_date"
-                              label="Дата выполнения"
+                              label={t('scheduledInspection.runDate')}
                               rules={[{ required: true }]}
                             >
                               <DatePicker />
                             </Form.Item>
                             <Form.Item
                               name="run_time"
-                              label="Время выполнения"
+                              label={t('scheduledInspection.runTime')}
                               rules={[{ required: true }]}
                             >
                               <TimePicker format="HH:mm" />
@@ -386,12 +388,12 @@ const ScheduledInspection = () => {
                   </Form.Item>
 
                   <div className="margin-top-space-6 margin-bottom-space-6">
-                    <h4>Выберите правила инспекции:</h4>
+                    <h4>{t('scheduledInspection.selectInspectionRules')}</h4>
                     <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
                       <div style={{ flex: 1 }}>
                         <RuleSelector
                           ruleType="node"
-                          title="Правила узлов"
+                          title={t('scheduledInspection.nodeRules')}
                           availableRules={rules.node || []}
                           selectedRules={selectedRules}
                           onRuleSelection={handleRuleSelection}
@@ -400,7 +402,7 @@ const ScheduledInspection = () => {
                       <div style={{ flex: 1 }}>
                         <RuleSelector
                           ruleType="opa"
-                          title="Правила Kubernetes"
+                          title={t('scheduledInspection.kubernetesRules')}
                           availableRules={rules.opa || []}
                           selectedRules={selectedRules}
                           onRuleSelection={handleRuleSelection}
@@ -411,7 +413,7 @@ const ScheduledInspection = () => {
 
                   <Form.Item
                     name="enabled"
-                    label="Включить задачу"
+                    label={t('scheduledInspection.enableTask')}
                     valuePropName="checked"
                     initialValue={true}
                   >
@@ -420,7 +422,7 @@ const ScheduledInspection = () => {
 
                   <Form.Item>
                     <Button type="primary" htmlType="submit">
-                      Создать задачу
+                      {t('scheduledInspection.createTaskButton')}
                     </Button>
                   </Form.Item>
                 </Form>
@@ -431,7 +433,7 @@ const ScheduledInspection = () => {
       />
 
       <Modal
-        title="Редактировать задачу"
+        title={t('scheduledInspection.editTask')}
         open={editModalVisible}
         onCancel={() => {
           setEditModalVisible(false);
@@ -445,26 +447,26 @@ const ScheduledInspection = () => {
         <Form form={editForm} layout="vertical" onFinish={handleUpdateTask}>
           <Form.Item
             name="name"
-            label="Название задачи"
-            rules={[{ required: true, message: 'Введите название задачи' }]}
+            label={t('scheduledInspection.taskName')}
+            rules={[{ required: true, message: t('scheduledInspection.enterTaskName') }]}
           >
-            <Input placeholder="Ежедневная проверка" />
+            <Input placeholder={t('scheduledInspection.dailyCheck')} />
           </Form.Item>
 
           <Form.Item
             name="description"
-            label="Описание"
-            rules={[{ required: true, message: 'Введите описание задачи' }]}
+            label={t('scheduledInspection.description')}
+            rules={[{ required: true, message: t('scheduledInspection.enterDescription') }]}
           >
-            <Input.TextArea placeholder="Описание задачи" />
+            <Input.TextArea placeholder={t('scheduledInspection.taskDescription')} />
           </Form.Item>
 
           <Form.Item
             name="cluster"
-            label="Кластер"
-            rules={[{ required: true, message: 'Выберите кластер' }]}
+            label={t('scheduledInspection.cluster')}
+            rules={[{ required: true, message: t('scheduledInspection.selectCluster') }]}
           >
-            <Select placeholder="Выберите кластер">
+            <Select placeholder={t('scheduledInspection.selectCluster')}>
               {clusters.map(cluster => (
                 <Option key={cluster.name} value={cluster.name}>
                   {cluster.name}
@@ -475,12 +477,12 @@ const ScheduledInspection = () => {
 
           <Form.Item
             name="schedule_type"
-            label="Тип расписания"
-            rules={[{ required: true, message: 'Выберите тип расписания' }]}
+            label={t('scheduledInspection.scheduleType')}
+            rules={[{ required: true, message: t('scheduledInspection.selectScheduleType') }]}
           >
-            <Select placeholder="Выберите тип">
-              <Option value="cron">Периодическая (Cron)</Option>
-              <Option value="once">Одноразовая</Option>
+            <Select placeholder={t('scheduledInspection.selectScheduleType')}>
+              <Option value="cron">{t('scheduledInspection.periodicCron')}</Option>
+              <Option value="once">{t('scheduledInspection.oneTime')}</Option>
             </Select>
           </Form.Item>
 
@@ -496,25 +498,25 @@ const ScheduledInspection = () => {
                 return (
                   <div>
                     <Alert
-                      message="Cron формат: мин час день месяц день_недели"
+                      message={t('scheduledInspection.cronFormat')}
                       type="info"
                       showIcon
                       style={{ marginBottom: 16 }}
                     />
                     <Space wrap>
-                      <Form.Item name="cron_min" label="Минуты" initialValue="0">
+                      <Form.Item name="cron_min" label={t('scheduledInspection.minutes')} initialValue="0">
                         <Input placeholder="0" />
                       </Form.Item>
-                      <Form.Item name="cron_hour" label="Часы" initialValue="8">
+                      <Form.Item name="cron_hour" label={t('scheduledInspection.hours')} initialValue="8">
                         <Input placeholder="8" />
                       </Form.Item>
-                      <Form.Item name="cron_dom" label="День месяца" initialValue="*">
+                      <Form.Item name="cron_dom" label={t('scheduledInspection.dayOfMonth')} initialValue="*">
                         <Input placeholder="*" />
                       </Form.Item>
-                      <Form.Item name="cron_month" label="Месяц" initialValue="*">
+                      <Form.Item name="cron_month" label={t('scheduledInspection.month')} initialValue="*">
                         <Input placeholder="*" />
                       </Form.Item>
-                      <Form.Item name="cron_dow" label="День недели" initialValue="*">
+                      <Form.Item name="cron_dow" label={t('scheduledInspection.dayOfWeek')} initialValue="*">
                         <Input placeholder="*" />
                       </Form.Item>
                     </Space>
@@ -523,12 +525,12 @@ const ScheduledInspection = () => {
               } else if (scheduleType === 'once') {
                 return (
                   <Space>
-                    <Form.Item name="run_date" label="Дата выполнения" rules={[{ required: true }]}>
+                    <Form.Item name="run_date" label={t('scheduledInspection.runDate')} rules={[{ required: true }]}>
                       <DatePicker />
                     </Form.Item>
                     <Form.Item
                       name="run_time"
-                      label="Время выполнения"
+                      label={t('scheduledInspection.runTime')}
                       rules={[{ required: true }]}
                     >
                       <TimePicker format="HH:mm" />
@@ -541,12 +543,12 @@ const ScheduledInspection = () => {
           </Form.Item>
 
           <div className="margin-top-space-6 margin-bottom-space-6">
-            <h4>Выберите правила инспекции:</h4>
+            <h4>{t('scheduledInspection.selectInspectionRules')}</h4>
             <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
               <div style={{ flex: 1 }}>
                 <RuleSelector
                   ruleType="node"
-                  title="Правила узлов"
+                  title={t('scheduledInspection.nodeRules')}
                   availableRules={rules.node || []}
                   selectedRules={selectedRules}
                   onRuleSelection={handleRuleSelection}
@@ -555,7 +557,7 @@ const ScheduledInspection = () => {
               <div style={{ flex: 1 }}>
                 <RuleSelector
                   ruleType="opa"
-                  title="Правила Kubernetes"
+                  title={t('scheduledInspection.kubernetesRules')}
                   availableRules={rules.opa || []}
                   selectedRules={selectedRules}
                   onRuleSelection={handleRuleSelection}
@@ -566,7 +568,7 @@ const ScheduledInspection = () => {
 
           <Form.Item
             name="enabled"
-            label="Включить задачу"
+            label={t('scheduledInspection.enableTask')}
             valuePropName="checked"
             initialValue={true}
           >
@@ -575,7 +577,7 @@ const ScheduledInspection = () => {
 
           <Form.Item>
             <Button type="primary" htmlType="submit">
-              Обновить задачу
+              {t('scheduledInspection.updateTask')}
             </Button>
           </Form.Item>
         </Form>

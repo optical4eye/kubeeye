@@ -1,6 +1,7 @@
 import React from 'react';
 import { Table, Button, Space, Tag, Modal } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 const ClusterList = ({
   clusters,
@@ -10,10 +11,11 @@ const ClusterList = ({
   onDelete,
   onRefresh: _onRefresh,
 }) => {
+  const { t } = useTranslation();
   const clusterColumns = [
-    { title: 'Имя кластера', dataIndex: 'name', key: 'name', width: 150, ellipsis: true },
+    { title: t('clusters.clusterName'), dataIndex: 'name', key: 'name', width: 150, ellipsis: true },
     {
-      title: 'Узлы',
+      title: t('clusters.nodes'),
       dataIndex: 'nodes',
       key: 'nodes',
       width: 80,
@@ -21,24 +23,24 @@ const ClusterList = ({
       render: nodes => nodes?.length || 0,
     },
     {
-      title: 'Версия k8s',
+      title: t('clusters.k8sVersion'),
       dataIndex: 'k8s_version',
       key: 'k8s_version',
       width: 120,
       responsive: ['lg'],
       render: k8s_version =>
         k8s_version ? (
-          <Tag className="status-configured" aria-label={`Версия Kubernetes: ${k8s_version}`}>
+          <Tag className="status-configured" aria-label={`Kubernetes version: ${k8s_version}`}>
             {k8s_version}
           </Tag>
         ) : (
-          <Tag className="status-not-configured" aria-label="Версия Kubernetes не определена">
-            Не настроен
+          <Tag className="status-not-configured" aria-label={t('clusters.notConfigured')}>
+            {t('clusters.notConfigured')}
           </Tag>
         ),
     },
     {
-      title: 'Сертификат истекает через',
+      title: t('clusters.certExpiry'),
       dataIndex: 'cert_expiry_days',
       key: 'cert_expiry',
       width: 150,
@@ -46,15 +48,15 @@ const ClusterList = ({
       render: days => {
         if (days === null || days === undefined) {
           return (
-            <Tag className="status-unknown" aria-label="Срок действия сертификата неизвестен">
-              Неизвестно
+            <Tag className="status-unknown" aria-label={t('clusters.unknown')}>
+              {t('clusters.unknown')}
             </Tag>
           );
         }
         if (days < 0) {
           return (
-            <Tag className="status-expired" aria-label="Срок действия сертификата истек">
-              Истек
+            <Tag className="status-expired" aria-label={t('clusters.expired')}>
+              {t('clusters.expired')}
             </Tag>
           );
         }
@@ -62,9 +64,9 @@ const ClusterList = ({
           return (
             <Tag
               className="status-expired"
-              aria-label={`Срок действия сертификата истекает через ${days} дней`}
+              aria-label={`${t('clusters.certExpiry')} ${days} ${t('clusters.days')}`}
             >
-              {days} дней
+              {days} {t('clusters.days')}
             </Tag>
           );
         }
@@ -72,24 +74,24 @@ const ClusterList = ({
           return (
             <Tag
               className="status-expires-soon"
-              aria-label={`Срок действия сертификата истекает через ${days} дней`}
+              aria-label={`${t('clusters.certExpiry')} ${days} ${t('clusters.days')}`}
             >
-              {days} дней
+              {days} {t('clusters.days')}
             </Tag>
           );
         }
         return (
           <Tag
             className="status-valid"
-            aria-label={`Срок действия сертификата истекает через ${days} дней`}
+            aria-label={`${t('clusters.certExpiry')} ${days} ${t('clusters.days')}`}
           >
-            {days} дней
+            {days} {t('clusters.days')}
           </Tag>
         );
       },
     },
     {
-      title: 'Действия',
+      title: t('clusters.actions'),
       key: 'actions',
       width: 200,
       render: (_, record) => (
@@ -98,17 +100,17 @@ const ClusterList = ({
             className="action-button"
             icon={<EyeOutlined />}
             onClick={() => onViewDetails(record)}
-            aria-label={`Просмотреть детали кластера ${record.name}`}
+            aria-label={`${t('clusters.details')} ${record.name}`}
           >
-            Детали
+            {t('clusters.details')}
           </Button>
           <Button
             className="action-button"
             icon={<EditOutlined />}
             onClick={() => onEdit(record)}
-            aria-label={`Редактировать кластер ${record.name}`}
+            aria-label={`${t('clusters.edit')} ${record.name}`}
           >
-            Редактировать
+            {t('clusters.edit')}
           </Button>
           <Button
             className="action-button"
@@ -116,14 +118,14 @@ const ClusterList = ({
             danger
             onClick={() =>
               Modal.confirm({
-                title: 'Удалить кластер?',
-                content: `Вы уверены, что хотите удалить кластер ${record.name}?`,
+                title: t('clusters.deleteConfirm'),
+                content: t('clusters.deleteConfirmText', { name: record.name }),
                 onOk: () => onDelete(record.name),
               })
             }
-            aria-label={`Удалить кластер ${record.name}`}
+            aria-label={`${t('clusters.delete')} ${record.name}`}
           >
-            Удалить
+            {t('clusters.delete')}
           </Button>
         </Space>
       ),

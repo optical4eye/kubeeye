@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getClusters,
@@ -13,6 +14,7 @@ import { parseNodesFromText, formatNodesForText } from '../utils/nodeParser';
 import { Cluster, ClusterNode, ClusterFormValues } from '../types/cluster';
 
 export const useClusters = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
   const [clusterDetails, setClusterDetails] = useState<Cluster | null>(null);
@@ -48,11 +50,11 @@ export const useClusters = () => {
       return createCluster(clusterData);
     },
     onSuccess: () => {
-      message.success('Кластер создан успешно');
+      message.success(t('clusters.messages.clusterCreated'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
     },
     onError: () => {
-      message.error('Ошибка создания кластера');
+      message.error(t('clusters.messages.clusterCreateError'));
     },
   });
 
@@ -64,14 +66,14 @@ export const useClusters = () => {
   const deleteClusterMutation = useMutation({
     mutationFn: deleteCluster,
     onSuccess: () => {
-      message.success('Кластер удален');
+      message.success(t('clusters.messages.clusterDeleted'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
       setSelectedCluster(null);
       setClusterDetails(null);
       setClusterNodes([]);
     },
     onError: () => {
-      message.error('Ошибка удаления кластера');
+      message.error(t('clusters.messages.clusterDeleteError'));
     },
   });
 
@@ -90,7 +92,7 @@ export const useClusters = () => {
         kubeconfig: data.kubeconfig || '',
       };
     } catch (error: unknown) {
-      message.error('Ошибка загрузки данных кластера');
+      message.error(t('clusters.messages.clusterLoadError'));
       throw error;
     }
   }, []);
@@ -113,7 +115,7 @@ export const useClusters = () => {
       return updateCluster(clusterName, clusterData);
     },
     onSuccess: () => {
-      message.success('Кластер обновлен успешно');
+      message.success(t('clusters.messages.clusterUpdated'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
       setSelectedCluster(null);
       if (clusterDetails) {
@@ -121,7 +123,7 @@ export const useClusters = () => {
       }
     },
     onError: () => {
-      message.error('Ошибка обновления кластера');
+      message.error(t('clusters.messages.clusterUpdateError'));
     },
   });
 
@@ -140,11 +142,11 @@ export const useClusters = () => {
       if (nodesData.status === 'success') {
         setClusterNodes(nodesData.nodes || []);
       } else {
-        message.error('Ошибка получения узлов кластера');
+        message.error(t('clusters.messages.clusterNodesError'));
         setClusterNodes([]);
       }
     } catch (error: unknown) {
-      let errorMessage = 'Не удалось получить информацию об узлах кластера';
+      let errorMessage = t('clusters.messages.clusterNodesFailed');
       const err = error as any;
       if (err.response?.data?.detail) {
         errorMessage = err.response.data.detail;

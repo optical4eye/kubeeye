@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { Card, Select, Button, Space, theme } from 'antd';
 import { PlayCircleOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { RuleSelector } from '../rules';
 import { Cluster, Rule } from '../../types';
 
@@ -44,6 +45,7 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
     onRunInspection,
     handleRuleSelection,
   }) => {
+    const { t } = useTranslation();
     const { token } = theme.useToken();
 
     const getAllTags = useCallback(() => {
@@ -59,11 +61,11 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
       <Card>
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
-            <div aria-label="Выберите кластер для инспекции">Выберите кластер для инспекции:</div>
+            <div aria-label={t('inspection.selectClusterLabel')}>{t('inspection.selectClusterLabel')}</div>
             <Select
               className="margin-top-space-2"
               style={{ width: '100%' }}
-              placeholder="Выберите кластер"
+              placeholder={t('inspection.selectClusterPlaceholder')}
               onChange={setSelectedCluster}
               value={selectedCluster}
             >
@@ -78,12 +80,12 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
           {/* Tag Filter */}
           {getAllTags().length > 0 && (
             <div>
-              <div aria-label="Фильтр по тегам правил">Фильтр по тегам правил (опционально):</div>
+              <div aria-label={t('inspection.filterByTagsAria')}>{t('inspection.filterByTagsLabel')}</div>
               <Select
                 mode="multiple"
                 className="margin-top-space-2"
                 style={{ width: '100%' }}
-                placeholder="Выберите теги для фильтрации правил"
+                placeholder={t('inspection.filterByTagsPlaceholder')}
                 onChange={setSelectedTags}
                 value={selectedTags}
                 allowClear
@@ -99,7 +101,7 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
             <div style={{ flex: 1 }}>
               <RuleSelector
                 ruleType="node"
-                title="Правила узлов"
+                title={t('inspection.nodeRulesTitle')}
                 availableRules={rules.node || []}
                 selectedRules={selectedRules}
                 onRuleSelection={handleRuleSelection}
@@ -108,7 +110,7 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
             <div style={{ flex: 1 }}>
               <RuleSelector
                 ruleType="opa"
-                title="Правила Kubernetes"
+                title={t('inspection.kubernetesRulesTitle')}
                 availableRules={rules.opa || []}
                 selectedRules={selectedRules}
                 onRuleSelection={handleRuleSelection}
@@ -121,16 +123,16 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
             <Card size="small" className="margin-top-space-4">
               <div className="flex-space-between">
                 <div>
-                  <strong>Выбранные правила:</strong>
+                  <strong>{t('inspection.selectedRules')}</strong>
                   <div className="margin-top-space-2">
                     {Object.entries(selectedRules).map(
                       ([type, rules]) =>
                         rules.length > 0 && (
                           <div key={type} style={{ marginBottom: token.marginXXS }}>
                             <span style={{ fontWeight: 'bold' }}>
-                              {type === 'node' ? 'Узлы' : 'Kubernetes'}:
+                              {type === 'node' ? t('inspection.nodeLabel') : t('inspection.kubernetesLabel')}:
                             </span>{' '}
-                            {rules.length} правил
+                            {rules.length} {t('inspection.totalRules')}
                           </div>
                         )
                     )}
@@ -138,7 +140,7 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-accent">{totalSelectedRules}</div>
-                  <div className="text-xs text-secondary">всего правил</div>
+                  <div className="text-xs text-secondary">{t('inspection.totalRules')}</div>
                 </div>
               </div>
             </Card>
@@ -153,7 +155,7 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
             size="large"
             className="margin-top-space-4"
           >
-            Запустить инспекцию
+            {t('inspection.runInspection')}
           </Button>
         </Space>
       </Card>

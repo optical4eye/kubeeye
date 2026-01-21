@@ -6,6 +6,7 @@ import {
   CloseCircleOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import {
   checkNetworkConnectivity,
   getClustersForNetworkCheck,
@@ -16,6 +17,7 @@ import { getStatusTag } from '../components/ui/statusUtils';
 const { Option } = Select;
 
 const NetworkConnectivity = () => {
+  const { t } = useTranslation();
   const [clusters, setClusters] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [selectedNodes, setSelectedNodes] = useState([]);
@@ -38,7 +40,7 @@ const NetworkConnectivity = () => {
       const response = await getClustersForNetworkCheck();
       setClusters(response.data.clusters || []);
     } catch {
-      message.error('Ошибка загрузки кластеров');
+      message.error(t('networkPage.messages.loadClustersError'));
     } finally {
       setLoading(false);
     }
@@ -65,23 +67,23 @@ const NetworkConnectivity = () => {
 
   const validateForm = () => {
     if (!selectedCluster) {
-      message.error('Выберите кластер');
+      message.error(t('networkPage.messages.selectCluster'));
       return false;
     }
     if (selectedNodes.length === 0) {
-      message.error('Выберите хотя бы один узел');
+      message.error(t('networkPage.messages.selectNode'));
       return false;
     }
     if (!targetIp) {
-      message.error('Введите IP-адрес');
+      message.error(t('networkPage.messages.enterIp'));
       return false;
     }
     if (!targetPort) {
-      message.error('Введите порт');
+      message.error(t('networkPage.messages.enterPort'));
       return false;
     }
     if (targetPort < 1 || targetPort > 65535) {
-      message.error('Порт должен быть числом от 1 до 65535');
+      message.error(t('networkPage.messages.portRange'));
       return false;
     }
     return true;
@@ -113,14 +115,14 @@ const NetworkConnectivity = () => {
       const failCount = checkResults.filter(r => r.status === 'failed').length;
 
       if (failCount === 0) {
-        message.success(`Все проверки успешны (${successCount})`);
+        message.success(t('networkPage.messages.allSuccessful', { count: successCount }));
       } else if (successCount === 0) {
-        message.error(`Все проверки неудачны (${failCount})`);
+        message.error(t('networkPage.messages.allFailed', { count: failCount }));
       } else {
-        message.warning(`${successCount} успешных, ${failCount} неудачных проверок`);
+        message.warning(t('networkPage.messages.mixed', { success: successCount, fail: failCount }));
       }
     } catch {
-      message.error('Ошибка выполнения проверки подключения');
+      message.error(t('networkPage.messages.checkError'));
     } finally {
       setChecking(false);
     }
@@ -128,7 +130,7 @@ const NetworkConnectivity = () => {
 
   const exportResults = async format => {
     if (!resultId) {
-      message.warning('Нет сохраненных результатов для экспорта');
+      message.warning(t('networkPage.messages.noResults'));
       return;
     }
 
@@ -149,9 +151,9 @@ const NetworkConnectivity = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      message.success(`Результаты экспортированы в ${format.toUpperCase()}`);
+      message.success(t('networkPage.messages.exported', { format: format.toUpperCase() }));
     } catch {
-      message.error('Ошибка экспорта результатов');
+      message.error(t('networkPage.messages.exportError'));
     }
   };
 
@@ -180,7 +182,7 @@ const NetworkConnectivity = () => {
 
   const resultColumns = [
     {
-      title: 'Статус',
+      title: t('networkPage.columns.status'),
       dataIndex: 'status',
       key: 'status',
       render: status => (
@@ -192,7 +194,7 @@ const NetworkConnectivity = () => {
       width: 120,
     },
     {
-      title: 'Узел',
+      title: t('networkPage.columns.node'),
       dataIndex: 'node_ip',
       key: 'node_ip',
       render: ip => (
@@ -202,19 +204,19 @@ const NetworkConnectivity = () => {
       ),
     },
     {
-      title: 'Цель',
+      title: t('networkPage.columns.target'),
       key: 'target',
       render: (_, record) => `${record.target_ip}:${record.target_port}`,
     },
     {
-      title: 'Время ответа',
+      title: t('networkPage.columns.responseTime'),
       dataIndex: 'response_time',
       key: 'response_time',
       render: time => `${time}s`,
       width: 120,
     },
     {
-      title: 'Ошибка',
+      title: t('networkPage.columns.error'),
       dataIndex: 'error',
       key: 'error',
       render: error => (error ? <span style={{ color: 'var(--error-color)' }}>{error}</span> : '-'),
@@ -225,35 +227,35 @@ const NetworkConnectivity = () => {
 
   return (
     <div>
-      <div className="page-title">Проверка сетевых подключений</div>
-      <div className="page-subtitle">Проверка доступности сетевых сервисов из узлов кластера</div>
+      <div className="page-title">{t('networkPage.title')}</div>
+      <div className="page-subtitle">{t('networkPage.subtitle')}</div>
 
       <Space direction="vertical" size="large" className="kube-width-100">
         <Card
-          title="Настройки проверки"
+          title={t('networkPage.settings')}
           loading={loading}
           className="kube-width-100"
           bodyStyle={{ width: '100%' }}
         >
           <Form form={form} layout="vertical" style={{ width: '100%' }}>
-            <Form.Item name="cluster" label="Кластер" required>
+            <Form.Item name="cluster" label={t('networkPage.cluster')} required>
               <Select
                 className="margin-top-space-2"
                 style={{ width: '100%' }}
-                placeholder="Выберите кластер"
+                placeholder={t('networkPage.selectClusterPlaceholder')}
                 onChange={setSelectedCluster}
                 value={selectedCluster}
               >
                 {clusters.map(cluster => (
                   <Option key={cluster.name} value={cluster.name}>
-                    {cluster.name} ({cluster.nodes.length} узлов)
+                    {cluster.name} ({cluster.nodes.length} {t('networkPage.nodes')})
                   </Option>
                 ))}
               </Select>
             </Form.Item>
 
             {selectedClusterData && (
-              <Form.Item label="Узлы для проверки" required>
+              <Form.Item label={t('networkPage.nodesForCheck')} required>
                 <div className="border-form">
                   <Checkbox
                     onChange={e => handleSelectAllNodes(e.target.checked)}
@@ -264,7 +266,7 @@ const NetworkConnectivity = () => {
                     }
                     style={{ marginBottom: '8px', fontWeight: 'bold' }}
                   >
-                    Выбрать все узлы
+                    {t('networkPage.selectAllNodes')}
                   </Checkbox>
                   <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
                     {selectedClusterData.nodes.map(node => (
@@ -283,14 +285,14 @@ const NetworkConnectivity = () => {
                   <div
                     style={{ marginTop: '8px', fontSize: '12px', color: 'var(--neutral-color)' }}
                   >
-                    Выбрано узлов: {selectedNodes.length}
+                    {t('networkPage.selectedNodesCount', { count: selectedNodes.length })}
                   </div>
                 )}
               </Form.Item>
             )}
 
             <Space>
-              <Form.Item name="target_ip" label="Целевой IP" required>
+              <Form.Item name="target_ip" label={t('networkPage.targetIp')} required>
                 <Input
                   placeholder="192.168.1.100"
                   value={targetIp}
@@ -299,7 +301,7 @@ const NetworkConnectivity = () => {
                 />
               </Form.Item>
 
-              <Form.Item name="target_port" label="Порт" required>
+              <Form.Item name="target_port" label={t('networkPage.port')} required>
                 <InputNumber
                   placeholder="80"
                   value={targetPort}
@@ -310,7 +312,7 @@ const NetworkConnectivity = () => {
                 />
               </Form.Item>
 
-              <Form.Item name="timeout" label="Таймаут (сек)">
+              <Form.Item name="timeout" label={t('networkPage.timeout')}>
                 <InputNumber
                   min={1}
                   max={30}
@@ -330,7 +332,7 @@ const NetworkConnectivity = () => {
                 loading={checking}
                 disabled={!selectedCluster || selectedNodes.length === 0}
               >
-                {checking ? 'Проверка...' : 'Проверить подключение'}
+                {checking ? t('networkPage.checking') : t('networkPage.checkConnectivity')}
               </Button>
             </Form.Item>
           </Form>
@@ -338,11 +340,11 @@ const NetworkConnectivity = () => {
 
         {results.length > 0 && (
           <Card
-            title={`Результаты проверки (${results.length} узлов)`}
+            title={t('networkPage.resultsTitle', { count: results.length })}
             extra={
               resultId && (
                 <Space wrap>
-                  <Button onClick={() => exportResults('json')}>Экспорт JSON</Button>
+                  <Button onClick={() => exportResults('json')}>{t('networkPage.exportJson')}</Button>
                 </Space>
               )
             }
@@ -357,7 +359,10 @@ const NetworkConnectivity = () => {
 
             <div className="margin-top-space-4">
               <Alert
-                message={`Статистика: ${results.filter(r => r.status === 'success').length} успешных, ${results.filter(r => r.status === 'failed').length} неудачных`}
+                message={t('networkPage.statisticsMessage', {
+                  success: results.filter(r => r.status === 'success').length,
+                  fail: results.filter(r => r.status === 'failed').length
+                })}
                 type={results.some(r => r.status === 'failed') ? 'warning' : 'success'}
                 showIcon
               />

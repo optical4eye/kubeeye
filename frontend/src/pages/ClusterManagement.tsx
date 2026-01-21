@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Tabs } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { useClusters } from '../hooks/useClusters';
 import { useClusterForm } from '../hooks/useClusterForm';
 import { useClusterModals } from '../hooks/useClusterModals';
@@ -12,6 +13,7 @@ import { Form } from 'antd';
 import { Cluster, ClusterFormValues } from '../types/cluster';
 
 const ClusterManagement = () => {
+  const { t } = useTranslation();
   const {
     clusters,
     loading,
@@ -94,11 +96,11 @@ const ClusterManagement = () => {
 
   return (
     <div>
-      <h1 className="page-title" aria-label="Управление кластерами">
-        Управление кластерами
+      <h1 className="page-title" aria-label={t('clusters.title')}>
+        {t('clusters.title')}
       </h1>
-      <p className="page-subtitle" aria-label="Настройка подключений к Kubernetes кластерам">
-        Настройка подключений к Kubernetes кластерам
+      <p className="page-subtitle" aria-label={t('clusters.subtitle')}>
+        {t('clusters.subtitle')}
       </p>
 
       <Tabs
@@ -106,7 +108,7 @@ const ClusterManagement = () => {
         items={[
           {
             key: '1',
-            label: 'Список кластеров',
+            label: t('clusters.list'),
             children: (
               <ClusterListContainer
                 clusters={clusters}
@@ -120,7 +122,7 @@ const ClusterManagement = () => {
           },
           {
             key: '2',
-            label: 'Добавить кластер',
+            label: t('clusters.add'),
             children: (
               <ClusterFormContainer
                 form={createForm}

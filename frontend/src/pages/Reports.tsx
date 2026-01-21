@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Collapse } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   getReports,
   getReport,
@@ -11,6 +12,7 @@ import { useReportsFilters } from '../hooks/useReportsFilters';
 import { ReportsFilters, ReportsTable, ReportDetailsModal } from '../components/reports';
 
 const Reports: React.FC = React.memo(() => {
+  const { t } = useTranslation();
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reportDetail, setReportDetail] = useState<any>(null);
@@ -25,7 +27,7 @@ const Reports: React.FC = React.memo(() => {
       const response = await getReports();
       setReports(response.data.reports || []);
     } catch (error) {
-      console.error('Ошибка загрузки отчетов:', error);
+      console.error(t('reports.errorLoadingReports'), error);
     } finally {
       setLoading(false);
     }
@@ -36,7 +38,7 @@ const Reports: React.FC = React.memo(() => {
       const response = await getCleanupConfig();
       setCleanupConfig(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки настроек очистки:', error);
+      console.error(t('reports.errorLoadingCleanup'), error);
     }
   };
 
@@ -62,7 +64,7 @@ const Reports: React.FC = React.memo(() => {
       setReportDetail(response.data);
       setDetailModalVisible(true);
     } catch (error) {
-      console.error('Ошибка загрузки отчета:', error);
+      console.error(t('reports.errorLoadingReport'), error);
     }
   };
 
@@ -71,7 +73,7 @@ const Reports: React.FC = React.memo(() => {
       await deleteReport(reportId);
       loadReports();
     } catch (error) {
-      console.error('Ошибка удаления отчета:', error);
+      console.error(t('reports.errorDeletingReport'), error);
     }
   };
 
@@ -94,7 +96,7 @@ const Reports: React.FC = React.memo(() => {
       link.click();
       link.remove();
     } catch (error) {
-      console.error('Ошибка экспорта отчета:', error);
+      console.error(t('reports.errorExportingReport'), error);
     }
   };
 
@@ -102,8 +104,8 @@ const Reports: React.FC = React.memo(() => {
 
   return (
     <div>
-      <div className="page-title">Отчеты инспекций</div>
-      <div className="page-subtitle">Просмотр и управление отчетами инспекций кластеров</div>
+      <div className="page-title">{t('reports.title')}</div>
+      <div className="page-subtitle">{t('reports.subtitle')}</div>
 
       {cleanupConfig && (
         <Collapse
@@ -111,22 +113,20 @@ const Reports: React.FC = React.memo(() => {
           items={[
             {
               key: 'cleanup-info',
-              label: 'Информация об автоочистке отчетов',
+              label: t('reports.cleanupInfo'),
               children: (
                 <div>
                   <p>
-                    Система автоматически удаляет старые отчеты для освобождения дискового
-                    пространства.
+                    {t('reports.autoDelete')}
                   </p>
                   <ul className="margin-top-space-2">
                     <li>
-                      <strong>Период хранения:</strong> {cleanupConfig.retention_days} дней
+                      <strong>{t('reports.retentionPeriod')}</strong> {cleanupConfig.retention_days} {t('clusters.days')}
                     </li>
                   </ul>
                   <p className="margin-top-space-2">
-                    <strong>Примечание:</strong> Автоочистка выполняется автоматически в фоновом
-                    режиме. Изменить настройки можно через переменную окружения{' '}
-                    <code>KUBEEYE_REPORT_RETENTION_DAYS</code> или файл конфигурации.
+                    <strong>{t('reports.note')}:</strong> {t('reports.autoCleanup')}
+                    <code>KUBEEYE_REPORT_RETENTION_DAYS</code> {t('reports.orConfigFile')}
                   </p>
                 </div>
               ),

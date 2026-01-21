@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Button, Descriptions, Statistic, Row, Col, Tabs, Table, Tooltip, Spin, Typography, Card, Progress } from 'antd';
 import { ExclamationCircleOutlined, WarningOutlined, InfoCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { getStatusTag, getSeverityTag } from '../ui/statusUtils';
@@ -116,6 +117,7 @@ const getSeverityColor = (severity: string) => {
 };
 
 const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.memo(({ items, severity }) => {
+  const { t } = useTranslation();
   const [filteredItems, setFilteredItems] = React.useState(items);
   const [statusFilter, setStatusFilter] = React.useState<string | null>(null);
   const [sortOrder, setSortOrder] = React.useState<'ascend' | 'descend' | null>(null);
@@ -151,28 +153,28 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
 
   const columns = [
     {
-      title: 'Название проверки',
+      title: t('reports.reportDetailsModal.table.checkName'),
       dataIndex: 'name',
       key: 'name',
       sorter: true,
       sortOrder: sortField === 'name' ? sortOrder : null,
     },
     {
-      title: 'Статус',
+      title: t('reports.status'),
       dataIndex: 'status',
       key: 'status',
       filters: [
-        { text: 'Successful', value: 'passed' },
-        { text: 'Предупреждение', value: 'warning' },
-        { text: 'Ошибка', value: 'failed' },
-        { text: 'Инфо', value: 'info' },
+        { text: t('statistics.successful'), value: 'passed' },
+        { text: t('statistics.warning'), value: 'warning' },
+        { text: t('reports.reportDetailsModal.table.failed'), value: 'failed' },
+        { text: t('reports.reportDetailsModal.table.info'), value: 'info' },
       ],
       filteredValue: statusFilter ? [statusFilter] : null,
       onFilter: (value: string, record: any) => record.status === value,
       render: (status: string) => getStatusTag(status),
     },
     {
-      title: 'Уровень серьезности',
+      title: t('reports.reportDetailsModal.table.severity'),
       dataIndex: 'severity',
       key: 'severity',
       render: (severity: string) => getSeverityTag(severity),
@@ -180,7 +182,7 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
       sortOrder: sortField === 'severity' ? sortOrder : null,
     },
     {
-      title: 'Описание',
+      title: t('reports.reportDetailsModal.table.description'),
       dataIndex: 'description',
       key: 'description',
       ellipsis: {
@@ -193,7 +195,7 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
       ),
     },
     {
-      title: 'Детали',
+      title: t('reports.reportDetailsModal.table.details'),
       dataIndex: 'details',
       key: 'details',
       ellipsis: {
@@ -206,7 +208,7 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
       ),
     },
     {
-      title: 'Решение',
+      title: t('reports.reportDetailsModal.table.solution'),
       dataIndex: 'solution',
       key: 'solution',
       ellipsis: {
@@ -231,7 +233,7 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
       style={{ width: '100%' }}
       virtual={true}
       onChange={handleTableChange}
-      aria-label={`Таблица деталей результатов инспекции ${severity || 'все'}`}
+      aria-label={t('reports.reportDetailsModal.table.ariaLabel', { severity: severity || t('reports.reportDetailsModal.tabs.all') })}
     />
   );
 });
@@ -240,15 +242,16 @@ InspectionDetails.displayName = 'InspectionDetails';
 
 const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
   ({ visible, onClose, reportDetail, loading = false }) => {
+    const { t } = useTranslation();
     return (
       <Modal
-        title="Детали отчета"
+        title={t('reports.reportDetailsModal.title')}
         open={visible}
         onCancel={onClose}
         width="90vw"
         footer={[
-          <Button key="close" onClick={onClose} aria-label="Закрыть детали отчета">
-            Закрыть
+          <Button key="close" onClick={onClose} aria-label={t('reports.reportDetailsModal.closeAriaLabel')}>
+            {t('reports.reportDetailsModal.close')}
           </Button>,
         ]}
       >
@@ -257,23 +260,23 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
         ) : reportDetail && (
           <div>
             <Descriptions bordered column={2}>
-              <Descriptions.Item label="ID отчета">
+              <Descriptions.Item label={t('reports.reportDetailsModal.reportId')}>
                 <Typography.Text>{reportDetail.result_id}</Typography.Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Кластер">
+              <Descriptions.Item label={t('reports.cluster')}>
                 <Typography.Text>{reportDetail.cluster_name}</Typography.Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Время">
+              <Descriptions.Item label={t('reports.time')}>
                 <Typography.Text>{new Date(reportDetail.timestamp).toLocaleString()}</Typography.Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Тип инспекции">
+              <Descriptions.Item label={t('reports.type')}>
                 <Typography.Text>
-                  {reportDetail.inspection_type === 'immediate' ? 'Немедленная' : 'Запланированная'}
+                  {reportDetail.inspection_type === 'immediate' ? t('reports.immediate') : t('reports.scheduled')}
                 </Typography.Text>
               </Descriptions.Item>
             </Descriptions>
 
-            <Card title="Статистика" className="margin-top-space-4">
+            <Card title={t('reports.reportDetailsModal.statistics')} className="margin-top-space-4">
               {(() => {
                 const total = (reportDetail.critical || 0) + (reportDetail.warning || 0) + (reportDetail.info || 0) + (reportDetail.passed || 0);
                 return (
@@ -283,7 +286,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                         <ExclamationCircleOutlined style={{ color: 'var(--ant-color-error)', fontSize: '20px' }} />
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>Critical</span>
+                            <span>{t('statistics.critical')}</span>
                             <span>{reportDetail.critical || 0}</span>
                           </div>
                           <Progress
@@ -299,7 +302,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                         <WarningOutlined style={{ color: 'var(--ant-color-warning)', fontSize: '20px' }} />
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>Warning</span>
+                            <span>{t('statistics.warning')}</span>
                             <span>{reportDetail.warning || 0}</span>
                           </div>
                           <Progress
@@ -315,7 +318,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                         <InfoCircleOutlined style={{ color: 'var(--ant-color-info)', fontSize: '20px' }} />
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>Other</span>
+                            <span>{t('statistics.other')}</span>
                             <span>{reportDetail.info || 0}</span>
                           </div>
                           <Progress
@@ -331,7 +334,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                         <CheckCircleOutlined style={{ color: 'var(--ant-color-success)', fontSize: '20px' }} />
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>Successful</span>
+                            <span>{t('statistics.successful')}</span>
                             <span>{reportDetail.passed || 0}</span>
                           </div>
                           <Progress
@@ -357,7 +360,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                      key: 'all',
                      label: (
                        <span>
-                         Все результаты
+                         {t('reports.reportDetailsModal.tabs.all')}
                          <span style={{ marginLeft: '8px' }}>{allItems.length}</span>
                        </span>
                      ),
@@ -368,7 +371,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                      label: (
                        <span>
                          {getSeverityIcon('critical')}
-                         <span style={{ marginLeft: '8px' }}>Critical</span>
+                         <span style={{ marginLeft: '8px' }}>{t('statistics.critical')}</span>
                          <span style={{ marginLeft: '8px' }}>{groupedItems.critical.length}</span>
                        </span>
                      ),
@@ -379,7 +382,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                      label: (
                        <span>
                          {getSeverityIcon('warning')}
-                         <span style={{ marginLeft: '8px' }}>Warning</span>
+                         <span style={{ marginLeft: '8px' }}>{t('statistics.warning')}</span>
                          <span style={{ marginLeft: '8px' }}>{groupedItems.warning.length}</span>
                        </span>
                      ),
@@ -390,7 +393,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                      label: (
                        <span>
                          {getSeverityIcon('other')}
-                         <span style={{ marginLeft: '8px' }}>Other</span>
+                         <span style={{ marginLeft: '8px' }}>{t('statistics.other')}</span>
                          <span style={{ marginLeft: '8px' }}>{groupedItems.other.length}</span>
                        </span>
                      ),
@@ -401,7 +404,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                      label: (
                        <span>
                          {getSeverityIcon('passed')}
-                         <span style={{ marginLeft: '8px' }}>Successful</span>
+                         <span style={{ marginLeft: '8px' }}>{t('statistics.successful')}</span>
                          <span style={{ marginLeft: '8px' }}>{groupedItems.passed.length}</span>
                        </span>
                      ),

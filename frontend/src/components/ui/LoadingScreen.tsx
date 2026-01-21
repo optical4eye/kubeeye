@@ -1,6 +1,7 @@
 import React from 'react';
 import { CloseCircleOutlined } from '@ant-design/icons';
 import { theme } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 interface LoadingScreenProps {
   message?: string;
@@ -8,16 +9,20 @@ interface LoadingScreenProps {
 }
 
 const LoadingScreen: React.FC<LoadingScreenProps> = ({
-  message = 'Система запускается',
-  subMessage = 'Пожалуйста, подождите...',
+  message,
+  subMessage,
 }) => {
+  const { t } = useTranslation();
   const { token } = theme.useToken();
   const statusInfo = {
     status: 'error' as const,
-    text: 'Недоступен',
+    text: t('loadingScreen.unavailable'),
     icon: <CloseCircleOutlined />,
     color: '#ff4d4f',
   };
+
+  const defaultMessage = t('loadingScreen.systemStarting');
+  const defaultSubMessage = t('loadingScreen.pleaseWait');
   return (
     <div
       style={{
@@ -42,7 +47,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
             margin: '0.5rem 0',
           }}
         >
-          Kubernetes Cluster Inspection Tool
+          {t('header.title')}
         </p>
       </div>
 
@@ -61,8 +66,8 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
             transform: 'translateX(-50%)',
           }}
         />
-        <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>{message}</h2>
-        <p style={{ color: '#a6a6a6', margin: '0.5rem 0' }}>{subMessage}</p>
+        <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>{message || defaultMessage}</h2>
+        <p style={{ color: '#a6a6a6', margin: '0.5rem 0' }}>{subMessage || defaultSubMessage}</p>
       </div>
 
       <div style={{ textAlign: 'center' }}>
@@ -77,10 +82,10 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
           }}
         >
           {statusInfo.icon}
-          <span style={{ color: 'white', fontSize: '1rem' }}>Backend: {statusInfo.text}</span>
+          <span style={{ color: 'white', fontSize: '1rem' }}>{t('loadingScreen.backend')}: {statusInfo.text}</span>
         </div>
         <p style={{ color: '#a6a6a6', fontSize: '0.9rem', margin: '0.5rem 0' }}>
-          Подготовка системы к работе...
+          {t('loadingScreen.preparingSystem')}
         </p>
       </div>
 

@@ -1,10 +1,12 @@
 import { useCallback } from 'react';
 import { message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { testClusterNodes, testClusterKubeconfig, getNodesFromKubeconfig } from '../services/api';
 import { parseNodesFromText } from '../utils/nodeParser';
 import { Cluster } from '../types/cluster';
 
 export const useClusterForm = (selectedCluster: Cluster | null) => {
+  const { t } = useTranslation();
   const handleTestNodes = async (editForm: any, createForm: any) => {
     let nodesToTest = null;
     let clusterName = selectedCluster?.name;
@@ -37,14 +39,14 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
 
       if (failCount > 0) {
         const failedList = failedNodes.join(', ');
-        message.error(`Не удалось подключиться: ${failedList}`);
+        message.error(t('clusters.messages.connectionFailed', { nodes: failedList }));
       } else if (results.length > 0) {
-        message.success(`Все узлы доступны (${successCount} успешно)`);
+        message.success(t('clusters.messages.allNodesAvailable', { count: successCount }));
       } else {
-        message.warning('Не получено результатов тестирования');
+        message.warning(t('clusters.messages.noTestResults'));
       }
     } catch (error: unknown) {
-      let errorMessage = 'Неизвестная ошибка';
+      let errorMessage = t('clusters.messages.unknownError');
       const err = error as any;
       if (err.response?.data) {
         const data = err.response.data;
@@ -68,7 +70,7 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      message.error(`Ошибка проверки узлов: ${errorMessage}`);
+      message.error(t('clusters.messages.testNodesError', { error: errorMessage }));
     }
   };
 
@@ -90,14 +92,14 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       const { success, message: testMessage } = response.data;
 
       if (success) {
-        message.success(`Kubeconfig проверен: ${testMessage}`);
+        message.success(t('clusters.messages.kubeconfigTested', { message: testMessage }));
       } else {
-        message.error(`Ошибка проверки kubeconfig: ${testMessage}`);
+        message.error(t('clusters.messages.kubeconfigTestError', { error: testMessage }));
       }
     } catch (error: unknown) {
       const errorMessage =
-        (error as any).response?.data?.detail || (error as Error).message || 'Неизвестная ошибка';
-      message.error(`Ошибка проверки kubeconfig: ${errorMessage}`);
+        (error as any).response?.data?.detail || (error as Error).message || t('clusters.messages.unknownError');
+      message.error(t('clusters.messages.kubeconfigTestError', { error: errorMessage }));
     }
   };
 
@@ -114,7 +116,7 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       }
 
       if (!kubeconfigToUse) {
-        message.error('Kubeconfig не указан');
+        message.error(t('clusters.messages.kubeconfigNotSpecified'));
         return;
       }
 
@@ -137,17 +139,17 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
           createForm.setFieldsValue({ nodes_text: nodesText });
         }
 
-        message.success(`Получено ${nodesData.nodes.length} узлов из кластера`);
+        message.success(t('clusters.messages.nodesRetrieved', { count: nodesData.nodes.length }));
       } else {
-        message.error('Ошибка получения узлов из кластера');
+        message.error(t('clusters.messages.getNodesError'));
       }
     } catch (error: unknown) {
       const errorMessage =
         (error as any).response?.data?.detail ||
         (error as any).response?.data?.error ||
         (error as Error).message ||
-        'Неизвестная ошибка';
-      message.error(`Ошибка получения узлов: ${errorMessage}`);
+        t('clusters.messages.unknownError');
+      message.error(t('clusters.messages.getNodesErrorDetail', { error: errorMessage }));
     }
   };
 

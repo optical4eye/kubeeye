@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Menu, Spin, ConfigProvider, theme as antdTheme, Switch, message } from 'antd';
+import { Layout, Menu, Spin, ConfigProvider, theme as antdTheme, Switch, message, Select } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   DashboardOutlined,
   ClusterOutlined,
@@ -37,9 +38,14 @@ const SecretManagement = lazy(() => import('./pages/SecretManagement'));
 const { Header, Sider, Content } = Layout;
 
 function App() {
-  const { theme, setTheme } = useUIStore();
+  const { theme, setTheme, language, setLanguage } = useUIStore();
+  const { t, i18n } = useTranslation();
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
   const [stopPolling, setStopPolling] = useState(false);
+
+  useEffect(() => {
+    i18n.changeLanguage(language);
+  }, [language, i18n]);
 
   // Check backend health continuously until successful connection
   const { data: healthStatus, error: healthError } = useQuery({
@@ -77,47 +83,47 @@ function App() {
     {
       key: '/',
       icon: <DashboardOutlined />,
-      label: 'Dashboard',
+      label: t('menu.dashboard'),
     },
     {
       key: '/clusters',
       icon: <ClusterOutlined />,
-      label: 'Кластеры',
+      label: t('menu.clusters'),
     },
     {
       key: '/secrets',
       icon: <LockOutlined />,
-      label: 'Секреты',
+      label: t('menu.secrets'),
     },
     {
       key: '/network',
       icon: <WifiOutlined />,
-      label: 'Сеть',
+      label: t('menu.network'),
     },
     {
       key: '/popeye',
       icon: <ScanOutlined />,
-      label: 'Popeye',
+      label: t('menu.popeye'),
     },
     {
       key: '/inspection',
       icon: <SearchOutlined />,
-      label: 'Инспекция',
+      label: t('menu.inspection'),
     },
     {
       key: '/reports',
       icon: <FileTextOutlined />,
-      label: 'Отчеты',
+      label: t('menu.reports'),
     },
     {
       key: '/rules',
       icon: <AntDesignOutlined />,
-      label: 'Правила',
+      label: t('menu.rules'),
     },
     {
       key: '/help',
       icon: <QuestionCircleOutlined />,
-      label: 'Помощь',
+      label: t('menu.help'),
     },
   ];
 
@@ -154,7 +160,7 @@ function App() {
         // Show loading screen during initial minimum time
         if (!minLoadingTimePassed) {
           return (
-            <LoadingScreen message="Подключение к системе..." subMessage="Пожалуйста, подождите" />
+            <LoadingScreen message={t('loading.connecting')} subMessage={t('loading.pleaseWait')} />
           );
         }
 
@@ -162,8 +168,8 @@ function App() {
         if (!isSystemReady) {
           return (
             <LoadingScreen
-              message="Проблема с подключением к системе"
-              subMessage="Пытаемся восстановить соединение..."
+              message={t('loading.connectionProblem')}
+              subMessage={t('loading.restoringConnection')}
             />
           );
         }
@@ -176,13 +182,23 @@ function App() {
                 <Layout className="main-layout-bg">
                   <Header className="header-bg">
                     <div className="header-content">
-                      <div className="header-title">Kubernetes Cluster Inspection Tool</div>
+                      <div className="header-title">{t('header.title')}</div>
                       <Switch
                         checked={theme === 'dark'}
                         onChange={checked => setTheme(checked ? 'dark' : 'light')}
                         checkedChildren={<SunOutlined />}
                         unCheckedChildren={<MoonOutlined />}
                         style={{ marginLeft: 'auto' }}
+                      />
+                      <Select
+                        value={language}
+                        onChange={(value) => setLanguage(value)}
+                        options={[
+                          { value: 'ru', label: 'RU' },
+                          { value: 'en', label: 'EN' }
+                        ]}
+                        style={{ width: 60, marginLeft: 10 }}
+                        size="small"
                       />
                     </div>
                   </Header>

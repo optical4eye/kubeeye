@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { getClusters, runInspectionAsync, getRules, getRuleTags } from '../services/api';
 import { ScheduledInspection, ActiveTasksList } from '../components/tasks';
 import { InspectionForm } from '../components/inspection';
@@ -20,6 +21,7 @@ interface Task {
 const { TabPane } = Tabs;
 
 const Inspection = React.memo(() => {
+  const { t } = useTranslation();
   const [clusters, setClusters] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [rules, setRules] = useState({});
@@ -39,7 +41,7 @@ const Inspection = React.memo(() => {
       const response = await getClusters();
       setClusters(response.data.clusters || []);
     } catch {
-      message.error('Ошибка загрузки кластеров');
+      message.error(t('inspection.errorLoadingClusters'));
     }
   }, []);
 
@@ -48,7 +50,7 @@ const Inspection = React.memo(() => {
       const response = await getRules(tags);
       setRules(response.data.rules || {});
     } catch {
-      message.error('Ошибка загрузки правил');
+      message.error(t('inspection.errorLoadingRules'));
     }
   }, []);
 
@@ -57,7 +59,7 @@ const Inspection = React.memo(() => {
       const response = await getRuleTags();
       setAvailableTags(response.data.tags || []);
     } catch {
-      message.error('Ошибка загрузки тегов');
+      message.error(t('inspection.errorLoadingTags'));
     }
   }, []);
 
@@ -81,7 +83,7 @@ const Inspection = React.memo(() => {
 
   const handleRunInspection = useCallback(async () => {
     if (!selectedCluster) {
-      message.error('Выберите кластер');
+      message.error(t('inspection.selectCluster'));
       return;
     }
 
@@ -90,7 +92,7 @@ const Inspection = React.memo(() => {
       0
     );
     if (totalSelectedRules === 0) {
-      message.error('Выберите хотя бы одно правило');
+      message.error(t('inspection.selectRule'));
       return;
     }
 
@@ -118,23 +120,19 @@ const Inspection = React.memo(() => {
       setActiveTasks(prev => [newTask, ...prev]);
       startTaskMonitoring(taskId);
 
-      message.success(`Инспекция запущена (ID: ${taskId})`);
+      message.success(t('inspection.inspectionStarted', { taskId }));
     } catch (error: any) {
       // Handle different types of errors
       if (error.code === 'ECONNABORTED') {
-        message.error(
-          `Таймаут подключения к кластеру ${selectedCluster}. Проверьте доступность узлов кластера.`
-        );
+        message.error(t('inspection.timeout', { cluster: selectedCluster }));
       } else if (error.message && error.message.includes('timeout')) {
-        message.error(
-          `Не удалось выполнить инспекцию кластера ${selectedCluster} из-за таймаута подключения`
-        );
+        message.error(t('inspection.timeoutFailed', { cluster: selectedCluster }));
       } else if (error.response?.status === 500) {
-        message.error('Ошибка сервера при выполнении инспекции');
+        message.error(t('inspection.serverError'));
       } else if (error.response?.data?.detail) {
-        message.error(`Ошибка: ${error.response.data.detail}`);
+        message.error(t('inspection.error', { detail: error.response.data.detail }));
       } else {
-        message.error('Ошибка выполнения инспекции');
+        message.error(t('inspection.executionError'));
       }
     } finally {
       setLoading(false);
@@ -155,13 +153,13 @@ const Inspection = React.memo(() => {
 
   return (
     <div>
-      <div className="page-title">Центр инспекции кластеров</div>
+      <div className="page-title">{t('inspection.title')}</div>
       <div className="page-subtitle">
-        Выполнение немедленной или запланированной инспекции, управление правилами инспекции
+        {t('inspection.subtitle')}
       </div>
 
       <Tabs defaultActiveKey="1">
-        <TabPane tab="Немедленная инспекция" key="1">
+        <TabPane tab={t('inspection.immediate')} key="1">
           <InspectionForm
             clusters={clusters}
             rules={rules}
@@ -183,7 +181,7 @@ const Inspection = React.memo(() => {
           />
         </TabPane>
 
-        <TabPane tab="Запланированная инспекция" key="2">
+        <TabPane tab={t('inspection.scheduled')} key="2">
           <ScheduledInspection />
         </TabPane>
       </Tabs>

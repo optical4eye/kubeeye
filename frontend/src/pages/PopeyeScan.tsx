@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Select, Button, message, Space, Tag, List, Typography, Spin, Radio } from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { getClusters } from '../services/api';
 import { getTaskStatusIcon } from '../components/ui/statusUtils';
 import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
@@ -25,6 +26,7 @@ interface Cluster {
 }
 
 const PopeyeScan = () => {
+  const { t } = useTranslation();
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   // Popeye reports are only available in HTML format
@@ -42,7 +44,7 @@ const PopeyeScan = () => {
       const response = await getClusters();
       setClusters(response.data.clusters || []);
     } catch (error) {
-      message.error('Ошибка загрузки кластеров');
+      message.error(t('popeye.errors.loadClusters'));
       console.error(error);
     }
   };
@@ -54,10 +56,10 @@ const PopeyeScan = () => {
       const response = await getPopeyeNamespaces(clusterName);
       setAvailableNamespaces(response.data.namespaces || []);
     } catch (error) {
-      message.error('Ошибка загрузки namespace');
-      console.error(error);
-      setAvailableNamespaces([]);
-    } finally {
+     message.error(t('popeye.errors.loadNamespaces'));
+     console.error(error);
+     setAvailableNamespaces([]);
+   } finally {
       setLoadingNamespaces(false);
     }
   };
@@ -77,10 +79,10 @@ const PopeyeScan = () => {
   }, [selectedCluster]);
 
   const handleRunPopeyeScan = async () => {
-    if (!selectedCluster) {
-      message.error('Выберите кластер');
-      return;
-    }
+     if (!selectedCluster) {
+       message.error(t('popeye.errors.selectCluster'));
+       return;
+     }
 
     const scanData = {
       cluster_name: selectedCluster,
@@ -108,12 +110,12 @@ const PopeyeScan = () => {
       setActiveTasks(prev => [newTask, ...prev]);
       startTaskMonitoring(taskId);
 
-      message.success(`Popeye сканирование запущено (ID: ${taskId})`);
+      message.success(t('popeye.errors.scanStarted', { taskId }));
     } catch (error) {
       if (error.response?.data?.detail) {
-        message.error(`Ошибка: ${error.response.data.detail}`);
+        message.error(t('popeye.errors.error', { detail: error.response.data.detail }));
       } else {
-        message.error('Ошибка запуска Popeye сканирования');
+        message.error(t('popeye.errors.startError'));
       }
       console.error('Popeye scan error:', error);
     } finally {
@@ -128,52 +130,51 @@ const PopeyeScan = () => {
 
   return (
     <div>
-      <div className="page-title">Popeye - Сканирование кластеров</div>
+      <div className="page-title">{t('popeye.title')}</div>
       <div className="page-subtitle">
-        Автоматическое сканирование Kubernetes кластеров на предмет потенциальных проблем и лучших
-        практик
+        {t('popeye.subtitle')}
       </div>
 
       <Card>
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
-            <div aria-label="Выберите кластер для сканирования">
-              Выберите кластер для сканирования:
+            <div aria-label={t('popeye.selectCluster')}>
+              {t('popeye.selectCluster')}
             </div>
             <Select
               className="margin-top-space-2"
               style={{ width: '100%' }}
-              placeholder="Выберите кластер"
+              placeholder={t('popeye.selectClusterPlaceholder')}
               onChange={setSelectedCluster}
               value={selectedCluster}
             >
               {clusters.map(cluster => (
                 <Option key={cluster.name} value={cluster.name}>
-                  {cluster.name} ({cluster.nodes?.length || 0} узлов)
+                  {cluster.name} ({cluster.nodes?.length || 0} {t('popeye.nodes')})
                 </Option>
               ))}
             </Select>
           </div>
 
           <div className="margin-top-space-4">
-            <div className="text-muted">Popeye отчеты доступны только в HTML формате</div>
+            <div className="text-muted">{t('popeye.htmlOnly')}</div>
           </div>
 
           <div className="margin-top-space-4">
-            <div aria-label="Выберите область сканирования">Выберите область сканирования:</div>
+            <div aria-label={t('popeye.scanArea')}>{t('popeye.scanArea')}</div>
             <Radio.Group
               value={allNamespaces ? 'all' : 'specific'}
               onChange={e => setAllNamespaces(e.target.value === 'all')}
               className="margin-top-space-2"
             >
-              <Radio value="all">Все namespaces</Radio>
-              <Radio value="specific">Конкретный namespace</Radio>
+              <Radio value="all">{t('popeye.allNamespaces')}</Radio>
+              <Radio value="specific">{t('popeye.specificNamespace')}</Radio>
             </Radio.Group>
             {!allNamespaces && (
               <Select
                 className="margin-top-space-2"
                 style={{ width: '100%' }}
-                placeholder={loadingNamespaces ? 'Загрузка namespace...' : 'Выберите namespace'}
+                placeholder={loadingNamespaces ? t('popeye.loadingNamespaces') : t('popeye.selectNamespace')}
                 onChange={setSelectedNamespace}
                 value={selectedNamespace}
                 loading={loadingNamespaces}
@@ -197,14 +198,14 @@ const PopeyeScan = () => {
             size="large"
             className="margin-top-space-4"
           >
-            Запустить сканирование Popeye
+            {t('popeye.startScan')}
           </Button>
         </Space>
       </Card>
 
       {/* Active Tasks Section */}
       {activeTasks.length > 0 && (
-        <Card title="Активные задачи сканирования" className="margin-top-space-4">
+        <Card title={t('popeye.activeTasks')} className="margin-top-space-4">
           <List
             dataSource={activeTasks}
             renderItem={task => (
@@ -217,7 +218,7 @@ const PopeyeScan = () => {
                       onClick={() => handleCancelTask(task.task_id)}
                       icon={<StopOutlined />}
                     >
-                      Отменить
+                      {t('popeye.cancel')}
                     </Button>
                   ),
                 ]}
@@ -228,14 +229,10 @@ const PopeyeScan = () => {
                     <Space direction="vertical" style={{ width: '100%' }}>
                       <Space>
                         <Typography.Text strong>
-                          Задача {task.task_id.split('_')[1]}
+                          {t('popeye.task')} {task.task_id.split('_')[1]}
                         </Typography.Text>
                         <Tag className={`status-${task.status}`}>
-                          {task.status === 'pending' && 'Ожидает'}
-                          {task.status === 'running' && 'Выполняется'}
-                          {task.status === 'completed' && 'Завершена'}
-                          {task.status === 'failed' && 'Ошибка'}
-                          {task.status === 'cancelled' && 'Отменена'}
+                          {t(`popeye.status.${task.status}`)}
                         </Tag>
                       </Space>
                       {task.status === 'running' && <Spin size="small" />}
@@ -243,22 +240,22 @@ const PopeyeScan = () => {
                   }
                   description={
                     <div>
-                      <div>Кластер: {task.payload?.cluster_name}</div>
-                      <div>Формат: {task.payload?.output_format?.toUpperCase()}</div>
+                      <div>{t('popeye.details.cluster')} {task.payload?.cluster_name}</div>
+                      <div>{t('popeye.details.format')} {task.payload?.output_format?.toUpperCase()}</div>
                       <div>
-                        Namespaces:{' '}
+                        {t('popeye.details.namespaces')}{' '}
                         {task.payload?.all_namespaces
-                          ? 'Все'
-                          : task.payload?.namespace || 'Указанный'}
+                          ? t('popeye.details.all')
+                          : task.payload?.namespace || t('popeye.details.specified')}
                       </div>
-                      <div>Создано: {formatTaskTime(task.created_at)}</div>
-                      {task.started_at && <div>Запущено: {formatTaskTime(task.started_at)}</div>}
+                      <div>{t('popeye.details.created')} {formatTaskTime(task.created_at)}</div>
+                      {task.started_at && <div>{t('popeye.details.started')} {formatTaskTime(task.started_at)}</div>}
                       {(task.completed_at || task.status === 'failed') && (
-                        <div>Завершено: {formatTaskTime(task.completed_at)}</div>
+                        <div>{t('popeye.details.completed')} {formatTaskTime(task.completed_at)}</div>
                       )}
                       {task.error && (
                         <div style={{ color: 'var(--error-color)', marginTop: 4 }}>
-                          Ошибка: {task.error}
+                          {t('popeye.details.error')} {task.error}
                         </div>
                       )}
                     </div>

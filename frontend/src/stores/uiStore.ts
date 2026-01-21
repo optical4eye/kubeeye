@@ -12,7 +12,7 @@ export const useUIStore = create<UIState>()(
   persist(
     set => ({
       theme: 'dark',
-      language: 'ru',
+      language: 'en',
       setTheme: theme => set({ theme }),
       setLanguage: language => set({ language }),
     }),

@@ -31,6 +31,7 @@ import {
   FileTextOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 const { Text } = Typography;
@@ -58,6 +59,7 @@ interface SecretFormData {
 }
 
 const SecretManagement: React.FC = () => {
+  const { t } = useTranslation();
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -77,7 +79,7 @@ const SecretManagement: React.FC = () => {
       const response = await axios.get('/api/secrets');
       setSecrets(response.data.secrets);
     } catch {
-      message.error('Не удалось загрузить секреты');
+      message.error(t('secrets.messages.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -109,10 +111,10 @@ const SecretManagement: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(`/api/secrets/${id}`);
-      message.success('Секрет успешно удален');
+      message.success(t('secrets.messages.deleteSuccess'));
       fetchSecrets();
     } catch {
-      message.error('Не удалось удалить секрет');
+      message.error(t('secrets.messages.deleteFailed'));
     }
   };
 
@@ -126,7 +128,7 @@ const SecretManagement: React.FC = () => {
       });
       setRevealModalVisible(true);
     } catch {
-      message.error('Не удалось расшифровать секрет');
+      message.error(t('secrets.messages.revealFailed'));
     } finally {
       setRevealLoading(false);
     }
@@ -138,10 +140,10 @@ const SecretManagement: React.FC = () => {
 
       if (modalMode === 'create') {
         await axios.post('/api/secrets', values);
-        message.success('Секрет успешно создан');
+        message.success(t('secrets.messages.createSuccess'));
       } else {
         await axios.put(`/api/secrets/${selectedSecret!.id}`, values);
-        message.success('Секрет успешно обновлен');
+        message.success(t('secrets.messages.updateSuccess'));
       }
 
       setModalVisible(false);
@@ -151,7 +153,7 @@ const SecretManagement: React.FC = () => {
       if (error instanceof Error) {
         message.error(error.message);
       } else {
-        message.error('Не удалось сохранить секрет');
+        message.error(t('secrets.messages.saveFailed'));
       }
     }
   };
@@ -165,7 +167,7 @@ const SecretManagement: React.FC = () => {
         message.error(response.data.message);
       }
     } catch {
-      message.error('Не удалось проверить секрет');
+      message.error(t('secrets.messages.testFailed'));
     }
   };
 
@@ -197,13 +199,13 @@ const SecretManagement: React.FC = () => {
 
   const columns = [
     {
-      title: 'ID',
+      title: t('secrets.columns.id'),
       dataIndex: 'id',
       key: 'id',
       width: 80,
     },
     {
-      title: 'Название',
+      title: t('secrets.columns.name'),
       dataIndex: 'name',
       key: 'name',
       render: (text: string, record: Secret) => (
@@ -214,7 +216,7 @@ const SecretManagement: React.FC = () => {
       ),
     },
     {
-      title: 'Тип',
+      title: t('secrets.columns.type'),
       dataIndex: 'secret_type',
       key: 'secret_type',
       render: (type: string) => (
@@ -224,23 +226,23 @@ const SecretManagement: React.FC = () => {
       ),
     },
     {
-      title: 'Описание',
+      title: t('secrets.columns.description'),
       dataIndex: 'description',
       key: 'description',
       render: (text: string | null) => text || '-',
     },
     {
-      title: 'Последнее использование',
+      title: t('secrets.columns.lastUsed'),
       dataIndex: 'last_used_at',
       key: 'last_used_at',
       render: (date: string | null) => (date ? new Date(date).toLocaleString('ru-RU') : '-'),
     },
     {
-      title: 'Действия',
+      title: t('secrets.columns.actions'),
       key: 'actions',
       render: (_: unknown, record: Secret) => (
         <Space size="small" wrap>
-          <Tooltip title="Просмотреть">
+          <Tooltip title={t('secrets.actions.view')}>
             <Button
               type="text"
               className="action-button"
@@ -248,7 +250,7 @@ const SecretManagement: React.FC = () => {
               onClick={() => handleReveal(record.id)}
             />
           </Tooltip>
-          <Tooltip title="Проверить">
+          <Tooltip title={t('secrets.actions.test')}>
             <Button
               type="text"
               className="action-button"
@@ -256,7 +258,7 @@ const SecretManagement: React.FC = () => {
               onClick={() => handleTest(record.id)}
             />
           </Tooltip>
-          <Tooltip title="Редактировать">
+          <Tooltip title={t('secrets.actions.edit')}>
             <Button
               type="text"
               className="action-button"
@@ -265,12 +267,12 @@ const SecretManagement: React.FC = () => {
             />
           </Tooltip>
           <Popconfirm
-            title="Вы уверены, что хотите удалить этот секрет?"
+            title={t('secrets.confirm.delete')}
             onConfirm={() => handleDelete(record.id)}
-            okText="Да"
-            cancelText="Нет"
+            okText={t('secrets.confirm.yes')}
+            cancelText={t('secrets.confirm.no')}
           >
-            <Tooltip title="Удалить">
+            <Tooltip title={t('secrets.actions.delete')}>
               <Button type="text" danger className="action-button" icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -281,21 +283,21 @@ const SecretManagement: React.FC = () => {
 
   return (
     <div className="secret-management">
-      <div className="page-title">Управление секретами</div>
-      <div className="page-subtitle">Управление секретами для подключения к кластерам</div>
+      <div className="page-title">{t('secrets.title')}</div>
+      <div className="page-subtitle">{t('secrets.subtitle')}</div>
 
       <Card>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
           <Alert
-            message="Безопасное хранение"
-            description="Все секреты шифруются перед сохранением в базе данных. Пароли и ключи никогда не отображаются в открытом виде."
+            message={t('secrets.secureStorage')}
+            description={t('secrets.secureDescription')}
             type="info"
             showIcon
           />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              Создать секрет
+              {t('secrets.createSecret')}
             </Button>
           </div>
 
@@ -307,14 +309,14 @@ const SecretManagement: React.FC = () => {
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
-              showTotal: total => `Всего: ${total}`,
+              showTotal: total => `${t('secrets.total')} ${total}`,
             }}
           />
         </Space>
       </Card>
 
       <Modal
-        title={modalMode === 'create' ? 'Создать секрет' : 'Редактировать секрет'}
+        title={modalMode === 'create' ? t('secrets.modal.create') : t('secrets.modal.edit')}
         open={modalVisible}
         onOk={handleModalOk}
         onCancel={() => {
@@ -322,43 +324,43 @@ const SecretManagement: React.FC = () => {
           form.resetFields();
         }}
         width={600}
-        okText="Сохранить"
-        cancelText="Отмена"
+        okText={t('secrets.modal.save')}
+        cancelText={t('secrets.modal.cancel')}
       >
         <Form form={form} layout="vertical" autoComplete="off">
           <Form.Item
-            label="Название"
+            label={t('secrets.form.name')}
             name="name"
             rules={[
-              { required: true, message: 'Пожалуйста, введите название' },
-              { min: 3, message: 'Название должно содержать минимум 3 символа' },
-              { max: 100, message: 'Название не должно превышать 100 символов' },
+              { required: true, message: t('secrets.form.nameRequired') },
+              { min: 3, message: t('secrets.form.nameMin') },
+              { max: 100, message: t('secrets.form.nameMax') },
             ]}
           >
-            <Input placeholder="Уникальное название секрета" />
+            <Input placeholder={t('secrets.form.namePlaceholder')} />
           </Form.Item>
 
           <Form.Item
-            label="Тип секрета"
+            label={t('secrets.form.type')}
             name="secret_type"
-            rules={[{ required: true, message: 'Пожалуйста, выберите тип' }]}
+            rules={[{ required: true, message: t('secrets.form.typeRequired') }]}
           >
-            <Select placeholder="Выберите тип секрета">
-              <Option value="password">Пароль</Option>
-              <Option value="ssh_key">SSH ключ</Option>
-              <Option value="kubeconfig">Kubeconfig</Option>
+            <Select placeholder={t('secrets.form.type')}>
+              <Option value="password">{t('secrets.form.password')}</Option>
+              <Option value="ssh_key">{t('secrets.form.sshKey')}</Option>
+              <Option value="kubeconfig">{t('secrets.form.kubeconfig')}</Option>
             </Select>
           </Form.Item>
 
           <Form.Item
-            label="Данные"
+            label={t('secrets.form.data')}
             name="data"
             rules={[
-              { required: true, message: 'Пожалуйста, введите данные' },
+              { required: true, message: t('secrets.form.dataRequired') },
               {
                 validator: (_, value) => {
                   if (!value || !value.trim()) {
-                    return Promise.reject('Данные не могут быть пустыми');
+                    return Promise.reject(t('secrets.form.dataEmpty'));
                   }
                   return Promise.resolve();
                 },
@@ -367,7 +369,7 @@ const SecretManagement: React.FC = () => {
           >
             <TextArea
               rows={6}
-              placeholder="Введите данные секрета"
+              placeholder={t('secrets.form.dataPlaceholder')}
               type={passwordVisible ? 'text' : 'password'}
               suffix={
                 <Button
@@ -379,14 +381,14 @@ const SecretManagement: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item label="Описание" name="description">
-            <TextArea rows={3} placeholder="Необязательное описание" />
+          <Form.Item label={t('secrets.form.description')} name="description">
+            <TextArea rows={3} placeholder={t('secrets.form.descriptionPlaceholder')} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Просмотр секрета"
+        title={t('secrets.viewModal.title')}
         open={revealModalVisible}
         onCancel={() => {
           setRevealModalVisible(false);
@@ -394,7 +396,7 @@ const SecretManagement: React.FC = () => {
         }}
         footer={[
           <Button key="close" onClick={() => setRevealModalVisible(false)}>
-            Закрыть
+            {t('secrets.viewModal.close')}
           </Button>,
         ]}
         width="90vw"
@@ -403,51 +405,51 @@ const SecretManagement: React.FC = () => {
           <Spin size="large" />
         ) : revealedSecret ? (
           <div>
-            <Card title="Информация о секрете" className="margin-bottom-space-4">
+            <Card title={t('secrets.viewModal.info')} className="margin-bottom-space-4">
               <Descriptions bordered column={2}>
-                <Descriptions.Item label="ID">
+                <Descriptions.Item label={t('secrets.viewModal.id')}>
                   <Typography.Text>{revealedSecret.secret.id}</Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Название">
+                <Descriptions.Item label={t('secrets.viewModal.name')}>
                   <Typography.Text>{revealedSecret.secret.name}</Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Тип">
+                <Descriptions.Item label={t('secrets.viewModal.type')}>
                   <Tag
                     className={`secret-type-tag ${getSecretTypeClass(revealedSecret.secret.secret_type)}`}
                   >
                     {revealedSecret.secret.secret_type}
                   </Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="Описание">
+                <Descriptions.Item label={t('secrets.viewModal.description')}>
                   <Typography.Text>{revealedSecret.secret.description || '-'}</Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Создан">
+                <Descriptions.Item label={t('secrets.viewModal.created')}>
                   <Typography.Text>{new Date(revealedSecret.secret.created_at).toLocaleString('ru-RU')}</Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Обновлен">
+                <Descriptions.Item label={t('secrets.viewModal.updated')}>
                   <Typography.Text>{new Date(revealedSecret.secret.updated_at).toLocaleString('ru-RU')}</Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Последнее использование">
+                <Descriptions.Item label={t('secrets.viewModal.lastUsed')}>
                   <Typography.Text>{revealedSecret.secret.last_used_at ? new Date(revealedSecret.secret.last_used_at).toLocaleString('ru-RU') : '-'}</Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Активен">
-                  <Typography.Text>{revealedSecret.secret.is_active ? 'Да' : 'Нет'}</Typography.Text>
+                <Descriptions.Item label={t('secrets.viewModal.active')}>
+                  <Typography.Text>{revealedSecret.secret.is_active ? t('secrets.viewModal.yes') : t('secrets.viewModal.no')}</Typography.Text>
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            <Card title="Статистика" className="margin-bottom-space-4">
+            <Card title={t('secrets.viewModal.stats')} className="margin-bottom-space-4">
               <Row gutter={16}>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title="Длина данных" value={revealedSecret.data.length} />
+                  <Statistic title={t('secrets.viewModal.dataLength')} value={revealedSecret.data.length} />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title="Строк" value={revealedSecret.data.split('\n').length} />
+                  <Statistic title={t('secrets.viewModal.lines')} value={revealedSecret.data.split('\n').length} />
                 </Col>
               </Row>
             </Card>
 
-            <Card title="Данные секрета">
+            <Card title={t('secrets.viewModal.secretData')}>
               <TextArea
                 value={revealedSecret.data}
                 rows={15}
@@ -457,8 +459,8 @@ const SecretManagement: React.FC = () => {
             </Card>
 
             <Alert
-              message="Предупреждение"
-              description="Эти данные чувствительны. Не делитесь ими и не сохраняйте в небезопасных местах."
+              message={t('secrets.viewModal.warning')}
+              description={t('secrets.viewModal.warningDescription')}
               type="warning"
               showIcon
               className="margin-top-space-4"
