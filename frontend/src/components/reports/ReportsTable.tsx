@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Table, Button, Space, Modal } from 'antd';
+import { Card, Table, Button, Dropdown, Tooltip, Popconfirm } from 'antd';
 import { DownloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { getStatusTag } from '../ui/statusUtils';
 import { Report } from '../../types';
@@ -70,58 +70,60 @@ const ReportsTable: React.FC<ReportsTableProps> = React.memo(
       {
         title: 'Действия',
         key: 'actions',
-        render: (_: unknown, record: Report) => (
-          <Space wrap>
-            <Button
-              icon={<EyeOutlined />}
-              onClick={() => onView(record.result_id)}
-              aria-label="Просмотр отчета"
-            >
-              Просмотр
-            </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() => onExport(record.result_id, 'json')}
-              disabled={record.inspection_type === 'popeye'}
-              aria-label="Экспорт отчета в JSON"
-            >
-              JSON
-            </Button>
-            {record.inspection_type === 'popeye' && (
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={() => onExport(record.result_id, 'html')}
-                aria-label="Экспорт отчета в HTML"
+        render: (_: unknown, record: Report) => {
+          return (
+            <Button.Group>
+              <Tooltip title="Просмотр отчета">
+                <Button icon={<EyeOutlined />} onClick={() => onView(record.result_id)} />
+              </Tooltip>
+              <Tooltip title="Экспорт отчета">
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: 'export-json',
+                        label: 'JSON',
+                        onClick: () => onExport(record.result_id, 'json'),
+                        disabled: record.inspection_type === 'popeye',
+                      },
+                      ...(record.inspection_type === 'popeye'
+                        ? [
+                            {
+                              key: 'export-html',
+                              label: 'HTML',
+                              onClick: () => onExport(record.result_id, 'html'),
+                            },
+                          ]
+                        : [
+                            {
+                              key: 'export-pdf',
+                              label: 'PDF',
+                              onClick: () => onExport(record.result_id, 'pdf'),
+                              disabled: record.inspection_type === 'network',
+                            },
+                          ]),
+                    ],
+                  }}
+                  trigger={['click']}
+                  placement="bottomRight"
+                >
+                  <Button icon={<DownloadOutlined />} />
+                </Dropdown>
+              </Tooltip>
+              <Popconfirm
+                title="Удалить отчет?"
+                description="Это действие нельзя отменить"
+                onConfirm={() => onDelete(record.result_id)}
+                okText="Да"
+                cancelText="Нет"
               >
-                HTML
-              </Button>
-            )}
-            {record.inspection_type !== 'popeye' && (
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={() => onExport(record.result_id, 'pdf')}
-                disabled={record.inspection_type === 'network'}
-                aria-label="Экспорт отчета в PDF"
-              >
-                PDF
-              </Button>
-            )}
-            <Button
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() =>
-                Modal.confirm({
-                  title: 'Удалить отчет?',
-                  content: 'Это действие нельзя отменить',
-                  onOk: () => onDelete(record.result_id),
-                })
-              }
-              aria-label="Удалить отчет"
-            >
-              Удалить
-            </Button>
-          </Space>
-        ),
+                <Tooltip title="Удалить отчет">
+                  <Button icon={<DeleteOutlined />} danger />
+                </Tooltip>
+              </Popconfirm>
+            </Button.Group>
+          );
+        },
       },
     ];
 

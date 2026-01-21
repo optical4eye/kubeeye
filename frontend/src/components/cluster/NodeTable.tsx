@@ -59,8 +59,8 @@ const NodeTable = ({ nodes, loading, scrollY = 400 }) => {
       dataSource={nodes}
       loading={loading}
       rowKey="name"
-      pagination={false}
-      scroll={{ y: scrollY }}
+      pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total, range) => `${range[0]}-${range[1]} из ${total}` }}
+      scroll={{ y: scrollY, x: 'max-content' }}
       virtual
       aria-label="Таблица узлов кластера"
     />

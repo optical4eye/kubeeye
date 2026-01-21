@@ -24,10 +24,11 @@ class TestClustersController:
     """Test cases for cluster management controller"""
 
     @pytest.mark.asyncio
+    @patch("services.cluster_service.K8sClient")
     @patch("services.cluster_service.get_cluster_cert_status")
     @patch("services.cluster_service.get_cluster")
     @patch("services.cluster_service.list_clusters")
-    async def test_get_clusters_success(self, mock_list_clusters, mock_get_cluster, mock_cert_status):
+    async def test_get_clusters_success(self, mock_list_clusters, mock_get_cluster, mock_cert_status, mock_k8s_client_class):
         """Test successful cluster listing"""
         logger.info("Starting test_get_clusters_success")
         # Mock cluster list
@@ -52,6 +53,12 @@ class TestClustersController:
         mock_cert_status.side_effect = [{"days_remaining": 30}, None]
         logger.info("Mock cert_status set")
 
+        # Mock K8sClient for version
+        mock_k8s_client = Mock()
+        mock_k8s_client.get_cluster_info = AsyncMock(return_value={"version": "v1.28.0"})
+        mock_k8s_client_class.return_value = mock_k8s_client
+        logger.info("Mock K8sClient set")
+
         logger.info("Calling get_clusters_list()")
         service = ClusterService()
         result = await service.get_clusters_list()
@@ -62,12 +69,12 @@ class TestClustersController:
 
         cluster1 = result["clusters"][0]
         assert cluster1["name"] == "cluster1"
-        assert cluster1["kubeconfig"] is True
+        assert cluster1["k8s_version"] == "v1.28.0"
         assert cluster1["cert_expiry_days"] == 30
 
         cluster2 = result["clusters"][1]
         assert cluster2["name"] == "cluster2"
-        assert cluster2["kubeconfig"] is False
+        assert cluster2["k8s_version"] is None
         assert cluster2["cert_expiry_days"] is None
         logger.info("test_get_clusters_success completed successfully")
 

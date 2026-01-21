@@ -251,11 +251,21 @@ class ClusterService:
 
                 nodes = await cluster_config.get_nodes()
 
+                # Get Kubernetes version for configured clusters
+                k8s_version = None
+                if kubeconfig:
+                    try:
+                        k8s_client = K8sClient(kubeconfig)
+                        cluster_info = await k8s_client.get_cluster_info()
+                        k8s_version = cluster_info.get("version")
+                    except Exception as e:
+                        logger.warning(f"Failed to get k8s version for cluster {cluster_name}: {e}")
+
                 cluster_data.append(
                     {
                         "name": cluster_name,
                         "nodes": nodes,
-                        "kubeconfig": kubeconfig is not None,
+                        "k8s_version": k8s_version,
                         "cert_expiry_days": cert_expiry_days,
                     }
                 )

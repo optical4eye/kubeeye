@@ -21,18 +21,18 @@ const ClusterList = ({
       render: nodes => nodes?.length || 0,
     },
     {
-      title: 'Kubeconfig',
-      dataIndex: 'kubeconfig',
-      key: 'kubeconfig',
+      title: 'Версия k8s',
+      dataIndex: 'k8s_version',
+      key: 'k8s_version',
       width: 120,
       responsive: ['lg'],
-      render: kubeconfig =>
-        kubeconfig ? (
-          <Tag className="status-configured" aria-label="Kubeconfig настроен">
-            Настроен
+      render: k8s_version =>
+        k8s_version ? (
+          <Tag className="status-configured" aria-label={`Версия Kubernetes: ${k8s_version}`}>
+            {k8s_version}
           </Tag>
         ) : (
-          <Tag className="status-not-configured" aria-label="Kubeconfig не настроен">
+          <Tag className="status-not-configured" aria-label="Версия Kubernetes не определена">
             Не настроен
           </Tag>
         ),

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Select, Checkbox, Input, Button, Table, message, Space, Alert } from 'antd';
+import { Card, Form, Select, Checkbox, Input, InputNumber, Button, Table, message, Space, Alert } from 'antd';
 import {
   WifiOutlined,
   CheckCircleOutlined,
@@ -20,8 +20,8 @@ const NetworkConnectivity = () => {
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [selectedNodes, setSelectedNodes] = useState([]);
   const [targetIp, setTargetIp] = useState('');
-  const [targetPort, setTargetPort] = useState('');
-  const [timeout, setTimeout] = useState(3);
+  const [targetPort, setTargetPort] = useState<number | null>(null);
+  const [timeout, setTimeout] = useState<number>(3);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [results, setResults] = useState([]);
@@ -80,8 +80,7 @@ const NetworkConnectivity = () => {
       message.error('Введите порт');
       return false;
     }
-    const portNum = parseInt(targetPort);
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+    if (targetPort < 1 || targetPort > 65535) {
       message.error('Порт должен быть числом от 1 до 65535');
       return false;
     }
@@ -100,7 +99,7 @@ const NetworkConnectivity = () => {
         cluster_name: selectedCluster,
         selected_nodes: selectedNodes,
         target_ip: targetIp,
-        target_port: parseInt(targetPort),
+        target_port: targetPort,
         timeout: timeout,
       };
 
@@ -301,21 +300,22 @@ const NetworkConnectivity = () => {
               </Form.Item>
 
               <Form.Item name="target_port" label="Порт" required>
-                <Input
+                <InputNumber
                   placeholder="80"
                   value={targetPort}
-                  onChange={e => setTargetPort(e.target.value)}
+                  onChange={value => setTargetPort(value)}
                   className="width-100px"
+                  min={1}
+                  max={65535}
                 />
               </Form.Item>
 
               <Form.Item name="timeout" label="Таймаут (сек)">
-                <Input
-                  type="number"
+                <InputNumber
                   min={1}
                   max={30}
                   value={timeout}
-                  onChange={e => setTimeout(parseInt(e.target.value) || 3)}
+                  onChange={value => setTimeout(value)}
                   className="width-120px"
                   placeholder="3"
                 />

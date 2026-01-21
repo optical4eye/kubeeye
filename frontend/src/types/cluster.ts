@@ -2,6 +2,8 @@ export interface Cluster {
   name: string;
   nodes?: any[];
   kubeconfig?: string;
+  k8s_version?: string;
+  cert_expiry_days?: number;
 }
 
 export interface ClusterNode {

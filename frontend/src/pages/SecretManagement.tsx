@@ -14,6 +14,11 @@ import {
   Card,
   Typography,
   Alert,
+  Descriptions,
+  Statistic,
+  Row,
+  Col,
+  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -62,6 +67,7 @@ const SecretManagement: React.FC = () => {
   const [revealedSecret, setRevealedSecret] = useState<{ data: string; secret: Secret } | null>(
     null
   );
+  const [revealLoading, setRevealLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [form] = Form.useForm<SecretFormData>();
 
@@ -111,6 +117,7 @@ const SecretManagement: React.FC = () => {
   };
 
   const handleReveal = async (id: number) => {
+    setRevealLoading(true);
     try {
       const response = await axios.post(`/api/secrets/${id}/reveal`);
       setRevealedSecret({
@@ -120,6 +127,8 @@ const SecretManagement: React.FC = () => {
       setRevealModalVisible(true);
     } catch {
       message.error('Не удалось расшифровать секрет');
+    } finally {
+      setRevealLoading(false);
     }
   };
 
@@ -388,43 +397,74 @@ const SecretManagement: React.FC = () => {
             Закрыть
           </Button>,
         ]}
-        width={700}
+        width="90vw"
       >
-        {revealedSecret && (
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <div>
-              <Text strong>Название:</Text>
-              <div>{revealedSecret.secret.name}</div>
-            </div>
-            <div>
-              <Text strong>Тип:</Text>
-              <div>
-                <Tag
-                  className={`secret-type-tag ${getSecretTypeClass(revealedSecret.secret.secret_type)}`}
-                >
-                  {revealedSecret.secret.secret_type}
-                </Tag>
-              </div>
-            </div>
-            <div>
-              <Text strong>Данные:</Text>
-              <div style={{ marginTop: '8px' }}>
-                <TextArea
-                  value={revealedSecret.data}
-                  rows={10}
-                  readOnly
-                  style={{ fontFamily: 'monospace' }}
-                />
-              </div>
-            </div>
+        {revealLoading ? (
+          <Spin size="large" />
+        ) : revealedSecret ? (
+          <div>
+            <Card title="Информация о секрете" className="margin-bottom-space-4">
+              <Descriptions bordered column={2}>
+                <Descriptions.Item label="ID">
+                  <Typography.Text>{revealedSecret.secret.id}</Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Название">
+                  <Typography.Text>{revealedSecret.secret.name}</Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Тип">
+                  <Tag
+                    className={`secret-type-tag ${getSecretTypeClass(revealedSecret.secret.secret_type)}`}
+                  >
+                    {revealedSecret.secret.secret_type}
+                  </Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Описание">
+                  <Typography.Text>{revealedSecret.secret.description || '-'}</Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Создан">
+                  <Typography.Text>{new Date(revealedSecret.secret.created_at).toLocaleString('ru-RU')}</Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Обновлен">
+                  <Typography.Text>{new Date(revealedSecret.secret.updated_at).toLocaleString('ru-RU')}</Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Последнее использование">
+                  <Typography.Text>{revealedSecret.secret.last_used_at ? new Date(revealedSecret.secret.last_used_at).toLocaleString('ru-RU') : '-'}</Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Активен">
+                  <Typography.Text>{revealedSecret.secret.is_active ? 'Да' : 'Нет'}</Typography.Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+
+            <Card title="Статистика" className="margin-bottom-space-4">
+              <Row gutter={16}>
+                <Col xs={24} sm={12} md={6}>
+                  <Statistic title="Длина данных" value={revealedSecret.data.length} />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Statistic title="Строк" value={revealedSecret.data.split('\n').length} />
+                </Col>
+              </Row>
+            </Card>
+
+            <Card title="Данные секрета">
+              <TextArea
+                value={revealedSecret.data}
+                rows={15}
+                readOnly
+                style={{ fontFamily: 'monospace', width: '100%' }}
+              />
+            </Card>
+
             <Alert
               message="Предупреждение"
               description="Эти данные чувствительны. Не делитесь ими и не сохраняйте в небезопасных местах."
               type="warning"
               showIcon
+              className="margin-top-space-4"
             />
-          </Space>
-        )}
+          </div>
+        ) : null}
       </Modal>
     </div>
   );

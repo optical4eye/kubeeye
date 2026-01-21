@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Button, Descriptions, Statistic, Row, Col, Tabs, Table, Tooltip } from 'antd';
+import { Modal, Button, Descriptions, Statistic, Row, Col, Tabs, Table, Tooltip, Spin, Typography, Card } from 'antd';
 import { getStatusTag, getSeverityTag } from '../ui/statusUtils';
 
 interface ReportDetail {
@@ -19,6 +19,7 @@ interface ReportDetailsModalProps {
   visible: boolean;
   onClose: () => void;
   reportDetail: ReportDetail | null;
+  loading?: boolean;
 }
 
 const getInspectionItems = (reportDetail: ReportDetail) => {
@@ -120,7 +121,7 @@ const InspectionDetails: React.FC<{ items: any[] }> = React.memo(({ items }) => 
       columns={columns}
       dataSource={items}
       rowKey={(record, index) => index || 0}
-      pagination={{ pageSize: 20 }}
+      pagination={{ pageSize: 20, showSizeChanger: true }}
       size="small"
       scroll={{ x: 'max-content' }}
       style={{ width: '100%' }}
@@ -133,62 +134,72 @@ const InspectionDetails: React.FC<{ items: any[] }> = React.memo(({ items }) => 
 InspectionDetails.displayName = 'InspectionDetails';
 
 const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
-  ({ visible, onClose, reportDetail }) => {
+  ({ visible, onClose, reportDetail, loading = false }) => {
     return (
       <Modal
         title="Детали отчета"
         open={visible}
         onCancel={onClose}
-        width={2500}
+        width="90vw"
         footer={[
           <Button key="close" onClick={onClose} aria-label="Закрыть детали отчета">
             Закрыть
           </Button>,
         ]}
       >
-        {reportDetail && (
+        {loading ? (
+          <Spin size="large" />
+        ) : reportDetail && (
           <div>
             <Descriptions bordered column={2}>
-              <Descriptions.Item label="ID отчета">{reportDetail.result_id}</Descriptions.Item>
-              <Descriptions.Item label="Кластер">{reportDetail.cluster_name}</Descriptions.Item>
+              <Descriptions.Item label="ID отчета">
+                <Typography.Text>{reportDetail.result_id}</Typography.Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Кластер">
+                <Typography.Text>{reportDetail.cluster_name}</Typography.Text>
+              </Descriptions.Item>
               <Descriptions.Item label="Время">
-                {new Date(reportDetail.timestamp).toLocaleString()}
+                <Typography.Text>{new Date(reportDetail.timestamp).toLocaleString()}</Typography.Text>
               </Descriptions.Item>
               <Descriptions.Item label="Тип инспекции">
-                {reportDetail.inspection_type === 'immediate' ? 'Немедленная' : 'Запланированная'}
+                <Typography.Text>
+                  {reportDetail.inspection_type === 'immediate' ? 'Немедленная' : 'Запланированная'}
+                </Typography.Text>
               </Descriptions.Item>
             </Descriptions>
 
-            <Row gutter={16} className="margin-top-space-4">
-              <Col xs={24} sm={12} md={6}>
-                <Statistic
-                  title="Критические"
-                  value={reportDetail.critical || 0}
-                  valueStyle={{ color: 'var(--ant-color-error)' }}
-                />
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Statistic
-                  title="Предупреждения"
-                  value={reportDetail.warning || 0}
-                  valueStyle={{ color: 'var(--ant-color-warning)' }}
-                />
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Statistic
-                  title="Другие ошибки"
-                  value={reportDetail.info || 0}
-                  valueStyle={{ color: 'var(--ant-color-info)' }}
-                />
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Statistic
-                  title="Успешно"
-                  value={reportDetail.passed || 0}
-                  valueStyle={{ color: 'var(--ant-color-success)' }}
-                />
-              </Col>
-            </Row>
+            <Card title="Статистика" className="margin-top-space-4">
+              <Row gutter={16}>
+                <Col xs={24} sm={12} md={6}>
+                  <Statistic
+                    title="Критические"
+                    value={reportDetail.critical || 0}
+                    valueStyle={{ color: 'var(--ant-color-error)' }}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Statistic
+                    title="Предупреждения"
+                    value={reportDetail.warning || 0}
+                    valueStyle={{ color: 'var(--ant-color-warning)' }}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Statistic
+                    title="Другие ошибки"
+                    value={reportDetail.info || 0}
+                    valueStyle={{ color: 'var(--ant-color-info)' }}
+                  />
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Statistic
+                    title="Успешно"
+                    value={reportDetail.passed || 0}
+                    valueStyle={{ color: 'var(--ant-color-success)' }}
+                  />
+                </Col>
+              </Row>
+            </Card>
 
             <div className="margin-top-space-6">
               <Tabs
