@@ -82,20 +82,20 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
                   type="monotone"
                   dataKey="critical"
                   stroke="var(--ant-color-error)"
-                  name="Критические"
+                  name="Critical"
                 />
                 <Line
                   type="monotone"
                   dataKey="warning"
                   stroke="var(--ant-color-warning)"
-                  name="Предупреждения"
+                  name="Warning"
                 />
-                <Line type="monotone" dataKey="info" stroke="var(--ant-color-info)" name="Другие" />
+                <Line type="monotone" dataKey="info" stroke="var(--ant-color-info)" name="Other" />
                 <Line
                   type="monotone"
                   dataKey="passed"
                   stroke="var(--ant-color-success)"
-                  name="Успешно"
+                  name="Successful"
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -24,25 +24,25 @@ const DashboardStatistics: React.FC<DashboardStatisticsProps> = ({ dashboardData
       </Col>
       <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic
-          title="Критические"
+          title="Critical"
           value={recent_results.reduce((sum, r) => sum + (r.critical || 0), 0)}
         />
       </Col>
       <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic
-          title="Предупреждения"
+          title="Warning"
           value={recent_results.reduce((sum, r) => sum + (r.warning || 0), 0)}
         />
       </Col>
       <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic
-          title="Другие"
+          title="Other"
           value={recent_results.reduce((sum, r) => sum + (r.info || 0), 0)}
         />
       </Col>
       <Col xs={24} sm={12} md={8} lg={6} xl={3}>
         <Statistic
-          title="Успешно"
+          title="Successful"
           value={recent_results.reduce((sum, r) => sum + (r.passed || 0), 0)}
         />
       </Col>

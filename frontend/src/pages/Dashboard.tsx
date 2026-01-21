@@ -58,8 +58,8 @@ const Dashboard = () => {
     { title: 'Кластер', dataIndex: 'name', key: 'name' },
     { title: 'Статус', dataIndex: 'status', key: 'status' },
     { title: 'Узлы', dataIndex: 'node_count', key: 'node_count' },
-    { title: 'Критические', dataIndex: 'critical_count', key: 'critical_count' },
-    { title: 'Предупреждения', dataIndex: 'warning_count', key: 'warning_count' },
+    { title: 'Critical', dataIndex: 'critical_count', key: 'critical_count' },
+    { title: 'Warning', dataIndex: 'warning_count', key: 'warning_count' },
     {
       title: 'Последняя проверка',
       dataIndex: 'last_scan',

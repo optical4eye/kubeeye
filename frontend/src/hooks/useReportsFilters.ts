@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Dayjs } from 'dayjs';
 
 export interface Filters {
   cluster: string;
-  period: string;
+  inspectionType: string;
+  dateRange: [Dayjs | null, Dayjs | null] | null;
   search: string;
 }
 
@@ -10,7 +12,8 @@ export const useReportsFilters = (reports: any[]) => {
   const [filteredReports, setFilteredReports] = useState<any[]>([]);
   const [filters, setFilters] = useState<Filters>({
     cluster: 'All',
-    period: 'All',
+    inspectionType: 'All',
+    dateRange: null,
     search: '',
   });
 
@@ -27,21 +30,17 @@ export const useReportsFilters = (reports: any[]) => {
       filtered = filtered.filter(report => report.cluster_name === filters.cluster);
     }
 
-    // Фильтр по периоду
-    const now = new Date();
-    if (filters.period !== 'All') {
-      const cutoffDate = new Date();
-      if (filters.period === 'Today') {
-        cutoffDate.setHours(0, 0, 0, 0);
-      } else if (filters.period === 'Last 7 days') {
-        cutoffDate.setDate(now.getDate() - 7);
-      } else if (filters.period === 'Last 30 days') {
-        cutoffDate.setDate(now.getDate() - 30);
-      }
+    // Фильтр по типу инспекции
+    if (filters.inspectionType !== 'All') {
+      filtered = filtered.filter(report => report.inspection_type === filters.inspectionType);
+    }
 
+    // Фильтр по диапазону дат
+    if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
+      const [startDate, endDate] = filters.dateRange;
       filtered = filtered.filter(report => {
         const reportDate = new Date(report.timestamp);
-        return reportDate >= cutoffDate;
+        return reportDate >= startDate.toDate() && reportDate <= endDate.toDate();
       });
     }
 

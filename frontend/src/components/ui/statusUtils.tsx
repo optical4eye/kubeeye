@@ -2,52 +2,60 @@ import React from 'react';
 import { Tag } from 'antd';
 
 // Utility functions for status tags
-export const getStatusTag = status => {
+export const getStatusTag = (status: string) => {
   switch (status) {
     case 'passed':
     case 'success':
-      return <Tag className="status-passed">Успешно</Tag>;
+      return <Tag color="success">Passed</Tag>;
     case 'exception':
-      return <Tag className="status-exception">Ошибка</Tag>;
+      return <Tag color="error">Error</Tag>;
     case 'failed':
-      return <Tag className="status-failed">Неудачно</Tag>;
+      return <Tag color="error">Failed</Tag>;
     case 'warning':
-      return <Tag className="status-warning">Предупреждение</Tag>;
+      return <Tag color="warning">Warning</Tag>;
     case 'pending':
-      return <Tag className="status-pending">Ожидает</Tag>;
+      return <Tag color="default">Pending</Tag>;
     case 'running':
-      return <Tag className="status-running">Выполняется</Tag>;
+      return <Tag color="processing">Running</Tag>;
     case 'completed':
-      return <Tag className="status-completed">Завершено</Tag>;
+      return <Tag color="success">Completed</Tag>;
     case 'cancelled':
-      return <Tag className="status-cancelled">Отменено</Tag>;
+      return <Tag color="default">Cancelled</Tag>;
     case 'unknown':
-      return <Tag className="status-unknown">Неизвестно</Tag>;
+      return <Tag color="default">Unknown</Tag>;
     default:
-      return <Tag className="status-unknown">Неизвестно</Tag>;
+      return <Tag color="default">Unknown</Tag>;
   }
 };
 
-export const getSeverityTag = severity => {
+export const getSeverityTag = (severity: string) => {
   switch (severity) {
     case 'critical':
-      return <Tag className="status-critical">Критическая</Tag>;
+      return <Tag color="error">Critical</Tag>;
     case 'high':
-      return <Tag className="status-high">Высокая</Tag>;
+      return <Tag color="error">High</Tag>;
     case 'medium':
-      return <Tag className="status-medium">Средняя</Tag>;
-    case 'low':
-      return <Tag className="status-low">Низкая</Tag>;
+      return <Tag color="warning">Medium</Tag>;
     case 'warning':
-      return <Tag className="status-warning">Предупреждение</Tag>;
+      return <Tag color="warning">Warning</Tag>;
     case 'info':
-      return <Tag className="status-info">Информация</Tag>;
+      return <Tag color="processing">Info</Tag>;
+    case 'other':
+      return <Tag color="default">Other</Tag>;
+    case 'passed':
+      return <Tag color="success">Passed</Tag>;
     default:
-      return <Tag className="status-unknown">Неизвестная</Tag>;
+      return <Tag color="default">Unknown</Tag>;
   }
 };
 
-export const getTaskStatusIcon = status => {
+export const getSeverityBadge = (count: number, type: 'critical' | 'warning' | 'other' | 'passed') => {
+  if (count === 0) return count;
+
+  return <span>{count}</span>;
+};
+
+export const getTaskStatusIcon = (status: string) => {
   switch (status) {
     case 'pending':
       return <span className="text-status-pending"></span>;

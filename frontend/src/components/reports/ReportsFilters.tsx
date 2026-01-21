@@ -1,5 +1,7 @@
 import React from 'react';
 import { Card, Select, Input, Space } from 'antd';
+import { DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { Filters } from '../hooks/useReportsFilters';
 
 const { Option } = Select;
@@ -31,16 +33,24 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = React.memo(
           </Select>
 
           <Select
-            placeholder="Период"
+            placeholder="Тип инспекции"
             className="width-150"
-            onChange={value => setFilters(prev => ({ ...prev, period: value }))}
-            value={filters.period}
+            onChange={value => setFilters(prev => ({ ...prev, inspectionType: value }))}
+            value={filters.inspectionType}
           >
-            <Option value="All">Все время</Option>
-            <Option value="Today">Сегодня</Option>
-            <Option value="Last 7 days">Последние 7 дней</Option>
-            <Option value="Last 30 days">Последние 30 дней</Option>
+            <Option value="All">Все типы</Option>
+            <Option value="popeye">Popeye</Option>
+            <Option value="network">Network</Option>
+            <Option value="cluster">Cluster</Option>
           </Select>
+
+          <DatePicker.RangePicker
+            placeholder={['Начальная дата', 'Конечная дата']}
+            className="width-300"
+            onChange={(dates) => setFilters(prev => ({ ...prev, dateRange: dates }))}
+            value={filters.dateRange}
+            format="DD.MM.YYYY"
+          />
 
           <Search
             placeholder="Поиск по кластеру или ID"

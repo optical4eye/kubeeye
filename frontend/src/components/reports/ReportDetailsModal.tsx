@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, Button, Descriptions, Statistic, Row, Col, Tabs, Table, Tooltip, Spin, Typography, Card } from 'antd';
+import { Modal, Button, Descriptions, Statistic, Row, Col, Tabs, Table, Tooltip, Spin, Typography, Card, Progress } from 'antd';
+import { ExclamationCircleOutlined, WarningOutlined, InfoCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { getStatusTag, getSeverityTag } from '../ui/statusUtils';
 
 interface ReportDetail {
@@ -56,17 +57,118 @@ const getInspectionItems = (reportDetail: ReportDetail) => {
   return [];
 };
 
-const InspectionDetails: React.FC<{ items: any[] }> = React.memo(({ items }) => {
+const groupItemsBySeverity = (items: any[]) => {
+  const groups: Record<string, any[]> = {
+    critical: [],
+    warning: [],
+    other: [],
+    passed: [],
+  };
+
+  items.forEach((item) => {
+    const severity = item.severity || 'info';
+    const status = item.status || 'unknown';
+
+    if (status === 'passed') {
+      groups.passed.push(item);
+    } else if (severity === 'critical') {
+      groups.critical.push(item);
+    } else if (severity === 'warning') {
+      groups.warning.push(item);
+    } else {
+      groups.other.push(item);
+    }
+  });
+
+  return groups;
+};
+
+const getSeverityIcon = (severity: string) => {
+  switch (severity) {
+    case 'critical':
+      return <ExclamationCircleOutlined style={{ color: 'var(--ant-color-error)' }} />;
+    case 'warning':
+      return <WarningOutlined style={{ color: 'var(--ant-color-warning)' }} />;
+    case 'other':
+    case 'info':
+      return <InfoCircleOutlined style={{ color: 'var(--ant-color-info)' }} />;
+    case 'passed':
+      return <CheckCircleOutlined style={{ color: 'var(--ant-color-success)' }} />;
+    default:
+      return <InfoCircleOutlined style={{ color: 'var(--ant-color-info)' }} />;
+  }
+};
+
+const getSeverityColor = (severity: string) => {
+  switch (severity) {
+    case 'critical':
+      return 'var(--ant-color-error)';
+    case 'warning':
+      return 'var(--ant-color-warning)';
+    case 'other':
+    case 'info':
+      return 'var(--ant-color-info)';
+    case 'passed':
+      return 'var(--ant-color-success)';
+    default:
+      return 'var(--ant-color-info)';
+  }
+};
+
+const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.memo(({ items, severity }) => {
+  const [filteredItems, setFilteredItems] = React.useState(items);
+  const [statusFilter, setStatusFilter] = React.useState<string | null>(null);
+  const [sortOrder, setSortOrder] = React.useState<'ascend' | 'descend' | null>(null);
+  const [sortField, setSortField] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let filtered = items;
+
+    if (statusFilter) {
+      filtered = filtered.filter(item => item.status === statusFilter);
+    }
+
+    if (sortField && sortOrder) {
+      filtered = [...filtered].sort((a, b) => {
+        const aVal = a[sortField] || '';
+        const bVal = b[sortField] || '';
+        if (sortOrder === 'ascend') {
+          return aVal.localeCompare(bVal);
+        } else {
+          return bVal.localeCompare(aVal);
+        }
+      });
+    }
+
+    setFilteredItems(filtered);
+  }, [items, statusFilter, sortField, sortOrder]);
+
+  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+    setStatusFilter(filters.status ? filters.status[0] : null);
+    setSortField(sorter.field);
+    setSortOrder(sorter.order);
+  };
+
   const columns = [
     {
       title: 'Название проверки',
       dataIndex: 'name',
       key: 'name',
+      sorter: true,
+      sortOrder: sortField === 'name' ? sortOrder : null,
     },
     {
       title: 'Статус',
       dataIndex: 'status',
       key: 'status',
+      filters: [
+        { text: 'Successful', value: 'passed' },
+        { text: 'Предупреждение', value: 'warning' },
+        { text: 'Ошибка', value: 'failed' },
+        { text: 'Инфо', value: 'info' },
+      ],
+      filteredValue: statusFilter ? [statusFilter] : null,
+      onFilter: (value: string, record: any) => record.status === value,
       render: (status: string) => getStatusTag(status),
     },
     {
@@ -74,6 +176,8 @@ const InspectionDetails: React.FC<{ items: any[] }> = React.memo(({ items }) => 
       dataIndex: 'severity',
       key: 'severity',
       render: (severity: string) => getSeverityTag(severity),
+      sorter: true,
+      sortOrder: sortField === 'severity' ? sortOrder : null,
     },
     {
       title: 'Описание',
@@ -119,14 +223,15 @@ const InspectionDetails: React.FC<{ items: any[] }> = React.memo(({ items }) => 
   return (
     <Table
       columns={columns}
-      dataSource={items}
+      dataSource={filteredItems}
       rowKey={(record, index) => index || 0}
       pagination={{ pageSize: 20, showSizeChanger: true }}
       size="small"
       scroll={{ x: 'max-content' }}
       style={{ width: '100%' }}
       virtual={true}
-      aria-label="Таблица деталей результатов инспекции"
+      onChange={handleTableChange}
+      aria-label={`Таблица деталей результатов инспекции ${severity || 'все'}`}
     />
   );
 });
@@ -169,49 +274,148 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
             </Descriptions>
 
             <Card title="Статистика" className="margin-top-space-4">
-              <Row gutter={16}>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic
-                    title="Критические"
-                    value={reportDetail.critical || 0}
-                    valueStyle={{ color: 'var(--ant-color-error)' }}
-                  />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic
-                    title="Предупреждения"
-                    value={reportDetail.warning || 0}
-                    valueStyle={{ color: 'var(--ant-color-warning)' }}
-                  />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic
-                    title="Другие ошибки"
-                    value={reportDetail.info || 0}
-                    valueStyle={{ color: 'var(--ant-color-info)' }}
-                  />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic
-                    title="Успешно"
-                    value={reportDetail.passed || 0}
-                    valueStyle={{ color: 'var(--ant-color-success)' }}
-                  />
-                </Col>
-              </Row>
+              {(() => {
+                const total = (reportDetail.critical || 0) + (reportDetail.warning || 0) + (reportDetail.info || 0) + (reportDetail.passed || 0);
+                return (
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12} md={6}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ExclamationCircleOutlined style={{ color: 'var(--ant-color-error)', fontSize: '20px' }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Critical</span>
+                            <span>{reportDetail.critical || 0}</span>
+                          </div>
+                          <Progress
+                            percent={total > 0 ? Math.round(((reportDetail.critical || 0) / total) * 100) : 0}
+                            strokeColor="var(--ant-color-error)"
+                            size="small"
+                          />
+                        </div>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={12} md={6}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <WarningOutlined style={{ color: 'var(--ant-color-warning)', fontSize: '20px' }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Warning</span>
+                            <span>{reportDetail.warning || 0}</span>
+                          </div>
+                          <Progress
+                            percent={total > 0 ? Math.round(((reportDetail.warning || 0) / total) * 100) : 0}
+                            strokeColor="var(--ant-color-warning)"
+                            size="small"
+                          />
+                        </div>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={12} md={6}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <InfoCircleOutlined style={{ color: 'var(--ant-color-info)', fontSize: '20px' }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Other</span>
+                            <span>{reportDetail.info || 0}</span>
+                          </div>
+                          <Progress
+                            percent={total > 0 ? Math.round(((reportDetail.info || 0) / total) * 100) : 0}
+                            strokeColor="var(--ant-color-info)"
+                            size="small"
+                          />
+                        </div>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={12} md={6}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CheckCircleOutlined style={{ color: 'var(--ant-color-success)', fontSize: '20px' }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Successful</span>
+                            <span>{reportDetail.passed || 0}</span>
+                          </div>
+                          <Progress
+                            percent={total > 0 ? Math.round(((reportDetail.passed || 0) / total) * 100) : 0}
+                            strokeColor="var(--ant-color-success)"
+                            size="small"
+                          />
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
+                );
+              })()}
             </Card>
 
             <div className="margin-top-space-6">
-              <Tabs
-                defaultActiveKey="details"
-                items={[
-                  {
-                    key: 'details',
-                    label: 'Детали результатов инспекции',
-                    children: <InspectionDetails items={getInspectionItems(reportDetail)} />,
-                  },
-                ]}
-              />
+              {(() => {
+                const allItems = getInspectionItems(reportDetail);
+                const groupedItems = groupItemsBySeverity(allItems);
+
+                const tabItems = [
+                   {
+                     key: 'all',
+                     label: (
+                       <span>
+                         Все результаты
+                         <span style={{ marginLeft: '8px' }}>{allItems.length}</span>
+                       </span>
+                     ),
+                     children: <InspectionDetails items={allItems} />,
+                   },
+                   {
+                     key: 'critical',
+                     label: (
+                       <span>
+                         {getSeverityIcon('critical')}
+                         <span style={{ marginLeft: '8px' }}>Critical</span>
+                         <span style={{ marginLeft: '8px' }}>{groupedItems.critical.length}</span>
+                       </span>
+                     ),
+                     children: <InspectionDetails items={groupedItems.critical} severity="critical" />,
+                   },
+                   {
+                     key: 'warning',
+                     label: (
+                       <span>
+                         {getSeverityIcon('warning')}
+                         <span style={{ marginLeft: '8px' }}>Warning</span>
+                         <span style={{ marginLeft: '8px' }}>{groupedItems.warning.length}</span>
+                       </span>
+                     ),
+                     children: <InspectionDetails items={groupedItems.warning} severity="warning" />,
+                   },
+                   {
+                     key: 'other',
+                     label: (
+                       <span>
+                         {getSeverityIcon('other')}
+                         <span style={{ marginLeft: '8px' }}>Other</span>
+                         <span style={{ marginLeft: '8px' }}>{groupedItems.other.length}</span>
+                       </span>
+                     ),
+                     children: <InspectionDetails items={groupedItems.other} severity="other" />,
+                   },
+                   {
+                     key: 'passed',
+                     label: (
+                       <span>
+                         {getSeverityIcon('passed')}
+                         <span style={{ marginLeft: '8px' }}>Successful</span>
+                         <span style={{ marginLeft: '8px' }}>{groupedItems.passed.length}</span>
+                       </span>
+                     ),
+                     children: <InspectionDetails items={groupedItems.passed} severity="passed" />,
+                   },
+                 ];
+
+                return (
+                  <Tabs
+                    defaultActiveKey="all"
+                    items={tabItems}
+                  />
+                );
+              })()}
             </div>
           </div>
         )}

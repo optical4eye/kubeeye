@@ -57,10 +57,11 @@ class InspectionResult:
             inspection_type: inspection type
         """
         self.cluster_name: str = cluster_name
-        self.inspection_type: str = inspection_type
+        # Normalize inspection type: popeye stays popeye, everything else becomes cluster
+        self.inspection_type: str = "popeye" if inspection_type == "popeye" else "cluster"
         self.timestamp: datetime = datetime.now()
         # Use different prefix based on inspection type
-        prefix = "popeye" if inspection_type == "popeye" else "cluster"
+        prefix = self.inspection_type
         self.result_id: str = f"{prefix}_{cluster_name}_{self.timestamp.strftime('%Y%m%d_%H%M%S')}"
         self.items: List[Dict[str, Any]] = []
 

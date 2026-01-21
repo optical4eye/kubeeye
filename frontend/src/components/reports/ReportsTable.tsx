@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Table, Button, Dropdown, Tooltip, Popconfirm } from 'antd';
 import { DownloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
-import { getStatusTag } from '../ui/statusUtils';
+import { getStatusTag, getSeverityBadge } from '../ui/statusUtils';
 import { Report } from '../../types';
 
 interface ReportsTableProps {
@@ -10,6 +10,7 @@ interface ReportsTableProps {
   onView: (reportId: string) => void;
   onDelete: (reportId: string) => void;
   onExport: (reportId: string, format: string) => void;
+  onSelectionChange: (selectedRows: Report[]) => void;
 }
 
 const ReportsTable: React.FC<ReportsTableProps> = React.memo(
@@ -44,28 +45,28 @@ const ReportsTable: React.FC<ReportsTableProps> = React.memo(
         render: (_: unknown, record: Report) => getStatusTag(record.status),
       },
       {
-        title: 'Критические',
+        title: 'Critical',
         dataIndex: 'critical',
         key: 'critical',
-        render: (value: number) => value || 0,
+        render: (value: number) => getSeverityBadge(value || 0, 'critical'),
       },
       {
-        title: 'Предупреждения',
+        title: 'Warning',
         dataIndex: 'warning',
         key: 'warning',
-        render: (value: number) => value || 0,
+        render: (value: number) => getSeverityBadge(value || 0, 'warning'),
       },
       {
-        title: 'Другие',
+        title: 'Other',
         dataIndex: 'info',
         key: 'info',
-        render: (value: number) => value || 0,
+        render: (value: number) => getSeverityBadge(value || 0, 'other'),
       },
       {
-        title: 'Успешно',
+        title: 'Successful',
         dataIndex: 'passed',
         key: 'passed',
-        render: (value: number) => value || 0,
+        render: (value: number) => getSeverityBadge(value || 0, 'passed'),
       },
       {
         title: 'Действия',
@@ -79,30 +80,37 @@ const ReportsTable: React.FC<ReportsTableProps> = React.memo(
               <Tooltip title="Экспорт отчета">
                 <Dropdown
                   menu={{
-                    items: [
-                      {
-                        key: 'export-json',
-                        label: 'JSON',
-                        onClick: () => onExport(record.result_id, 'json'),
-                        disabled: record.inspection_type === 'popeye',
-                      },
-                      ...(record.inspection_type === 'popeye'
-                        ? [
-                            {
-                              key: 'export-html',
-                              label: 'HTML',
-                              onClick: () => onExport(record.result_id, 'html'),
-                            },
-                          ]
-                        : [
-                            {
-                              key: 'export-pdf',
-                              label: 'PDF',
-                              onClick: () => onExport(record.result_id, 'pdf'),
-                              disabled: record.inspection_type === 'network',
-                            },
-                          ]),
-                    ],
+                    items: (() => {
+                      const exportItems = [];
+                      if (record.inspection_type === 'popeye') {
+                        exportItems.push({
+                          key: 'export-html',
+                          label: 'HTML',
+                          onClick: () => onExport(record.result_id, 'html'),
+                        });
+                      } else if (record.inspection_type === 'network') {
+                        exportItems.push({
+                          key: 'export-json',
+                          label: 'JSON',
+                          onClick: () => onExport(record.result_id, 'json'),
+                        });
+                      } else {
+                        // cluster
+                        exportItems.push(
+                          {
+                            key: 'export-json',
+                            label: 'JSON',
+                            onClick: () => onExport(record.result_id, 'json'),
+                          },
+                          {
+                            key: 'export-pdf',
+                            label: 'PDF',
+                            onClick: () => onExport(record.result_id, 'pdf'),
+                          },
+                        );
+                      }
+                      return exportItems;
+                    })(),
                   }}
                   trigger={['click']}
                   placement="bottomRight"
@@ -138,6 +146,9 @@ const ReportsTable: React.FC<ReportsTableProps> = React.memo(
           scroll={{ y: 400 }}
           virtual={true}
           aria-label="Таблица отчетов инспекций"
+          rowSelection={{
+            onChange: (_, selectedRows) => onSelectionChange(selectedRows),
+          }}
         />
       </Card>
     );

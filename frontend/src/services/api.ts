@@ -78,6 +78,7 @@ export const exportReport = (reportId, format) =>
   api.get(apiPath(`/reports/${reportId}/export/${format}`), {
     responseType: 'blob',
   });
+export const createImmediateReport = () => api.post(apiPath('/reports/immediate'));
 
 // Rules
 // GitOps

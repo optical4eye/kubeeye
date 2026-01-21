@@ -33,7 +33,7 @@ export const handleApiError = (error, defaultMessage = 'Произошла ош�
     // Нет ответа от сервера
     errorMessage = 'Сетевая ошибка: сервер не отвечает';
   } else {
-    // Другие ошибки
+    // Other
     errorMessage = error.message || defaultMessage;
   }
 

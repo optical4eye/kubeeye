@@ -130,6 +130,28 @@ async def get_report(report_id: str):
         # Sort the report items by severity
         sorted_report = sort_report_items_by_severity(report)
         logger.info("Report sorted successfully")
+
+        # Determine inspection type based on results
+        if "inspection_results" in sorted_report:
+            if "popeye" in sorted_report["inspection_results"]:
+                sorted_report["inspection_type"] = "popeye"
+            elif "network" in sorted_report["inspection_results"]:
+                sorted_report["inspection_type"] = "network"
+            else:
+                sorted_report["inspection_type"] = "cluster"
+        elif "items" in sorted_report:
+            # Determine type based on item categories
+            categories = set()
+            for item in sorted_report["items"]:
+                if "category" in item:
+                    categories.add(item["category"])
+            if "popeye" in categories:
+                sorted_report["inspection_type"] = "popeye"
+            elif "network" in categories:
+                sorted_report["inspection_type"] = "network"
+            else:
+                sorted_report["inspection_type"] = "cluster"
+
         return sorted_report
     except HTTPException:
         raise
