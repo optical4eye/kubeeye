@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Table, Button, Select, Input, Space, Tag, Alert, message } from 'antd';
+import { Card, Tabs, Table, Button, Select, Input, Space, Tag, Alert, message, Tooltip } from 'antd';
 const { Option } = Select;
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -191,7 +191,14 @@ const RuleManagement = () => {
       title: t('rules.columns.description'),
       dataIndex: 'description',
       key: 'description',
-      ellipsis: true,
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (text: string) => (
+        <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
+          <span style={{ cursor: 'pointer' }}>{text}</span>
+        </Tooltip>
+      ),
     },
   ];
 
