@@ -586,5 +586,15 @@
     "taskFailed": "Задача {{taskId}} завершилась с ошибкой: {{error}}",
     "taskCancelled": "Задача отменена",
     "cancelTaskError": "Ошибка отмены задачи"
+  },
+  "errorBoundary": {
+    "title": "Что-то пошло не так",
+    "subtitle": "Произошла ошибка при загрузке страницы.",
+    "retryButton": "Попробовать снова",
+    "homeButton": "На главную",
+    "errorDetailsTitle": "Детали ошибки (только в режиме разработки)",
+    "messageLabel": "Сообщение:",
+    "stackLabel": "Стек:",
+    "componentLabel": "Компонент:"
   }
 }

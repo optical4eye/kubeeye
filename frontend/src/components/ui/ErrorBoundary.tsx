@@ -1,10 +1,11 @@
 import React from 'react';
 import { Result, Button, Alert, Typography } from 'antd';
 import { ReloadOutlined, HomeOutlined } from '@ant-design/icons';
+import { withTranslation, WithTranslation } from 'react-i18next';
 
 const { Paragraph, Text } = Typography;
 
-interface ErrorBoundaryProps {
+interface ErrorBoundaryProps extends WithTranslation {
   children: React.ReactNode;
   fallback?: React.ComponentType<{ error: Error; resetError: () => void }>;
 }
@@ -57,6 +58,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   };
 
   render() {
+    const { t } = this.props;
     if (this.state.hasError) {
       const { error, errorInfo } = this.state;
       const isDevelopment = process.env.NODE_ENV === 'development';
@@ -67,24 +69,24 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
 
       return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', backgroundColor: 'black', color: 'white', minHeight: '100vh' }}>
+        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
           <Result
             status="error"
-            title="Что-то пошло не так"
-            subTitle="Произошла ошибка при загрузке страницы."
-            style={{ color: 'white' }}
+            title={t('errorBoundary.title')}
+            subTitle={t('errorBoundary.subtitle')}
+
             extra={
               <>
                 <Button
-                  type="default"
+                  type="primary"
                   icon={<ReloadOutlined />}
                   onClick={this.resetError}
-                  style={{ marginRight: 8, color: 'white', borderColor: 'white' }}
+                  style={{ marginRight: 8 }}
                 >
-                  Попробовать снова
+                  {t('errorBoundary.retryButton')}
                 </Button>
-                <Button type="default" icon={<HomeOutlined />} onClick={() => (window.location.href = '/')} style={{ color: 'white', borderColor: 'white' }}>
-                  На главную
+                <Button icon={<HomeOutlined />} onClick={() => (window.location.href = '/')}>
+                  {t('errorBoundary.homeButton')}
                 </Button>
               </>
             }
@@ -92,20 +94,20 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
           {isDevelopment && error && (
             <Alert
-              message="Детали ошибки (только в режиме разработки)"
+              message={t('errorBoundary.errorDetailsTitle')}
               description={
                 <div>
-                  <Paragraph style={{ color: 'white' }}>
-                    <Text strong style={{ color: 'white' }}>Сообщение:</Text> {error.message}
+                  <Paragraph>
+                    <Text strong>{t('errorBoundary.messageLabel')}</Text> {error.message}
                   </Paragraph>
-                  <Paragraph style={{ color: 'white' }}>
-                    <Text strong style={{ color: 'white' }}>Стек:</Text>
-                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px', color: 'white' }}>{error.stack}</pre>
+                  <Paragraph>
+                    <Text strong>{t('errorBoundary.stackLabel')}</Text>
+                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>{error.stack}</pre>
                   </Paragraph>
                   {errorInfo && (
-                    <Paragraph style={{ color: 'white' }}>
-                      <Text strong style={{ color: 'white' }}>Компонент:</Text>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px', color: 'white' }}>
+                    <Paragraph>
+                      <Text strong>{t('errorBoundary.componentLabel')}</Text>
+                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
                         {errorInfo.componentStack}
                       </pre>
                     </Paragraph>
@@ -113,7 +115,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 </div>
               }
               type="error"
-              style={{ marginTop: 16, color: 'white', backgroundColor: '#333', borderColor: '#555' }}
+              style={{ marginTop: 16 }}
             />
           )}
         </div>
@@ -124,4 +126,4 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-export default ErrorBoundary;
+export default withTranslation()(ErrorBoundary);

@@ -586,5 +586,15 @@
     "taskFailed": "Task {{taskId}} failed: {{error}}",
     "taskCancelled": "Task cancelled",
     "cancelTaskError": "Error cancelling task"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "subtitle": "An error occurred while loading the page.",
+    "retryButton": "Try again",
+    "homeButton": "Go home",
+    "errorDetailsTitle": "Error details (development mode only)",
+    "messageLabel": "Message:",
+    "stackLabel": "Stack:",
+    "componentLabel": "Component:"
   }
 }
