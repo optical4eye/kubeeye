@@ -50,17 +50,16 @@ function App() {
   const { theme, setTheme, language, setLanguage } = useUIStore();
   const { t, i18n } = useTranslation();
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
-  const [stopPolling, setStopPolling] = useState(false);
 
   useEffect(() => {
     i18n.changeLanguage(language);
   }, [language, i18n]);
 
-  // Check backend health continuously until successful connection
+  // Check backend health continuously
   const { data: healthStatus, error: healthError } = useQuery({
     queryKey: ['backend-health'],
     queryFn: getHealthStatus,
-    refetchInterval: stopPolling ? false : 5000, // Stop polling after successful connection
+    refetchInterval: 5000, // Continuously poll every 5 seconds
     retry: false, // Disable retry to immediately set error state
     staleTime: 2000,
     refetchOnWindowFocus: false, // Rarely changing data
@@ -71,13 +70,6 @@ function App() {
     !healthError &&
     (healthStatus?.data?.status === 'healthy' || healthStatus?.data?.status === 'ok');
   const isSystemReady = isBackendReady;
-
-  // Stop polling after successful backend connection
-  useEffect(() => {
-    if (isBackendReady && !stopPolling) {
-      setStopPolling(true);
-    }
-  }, [isBackendReady, stopPolling]);
 
   // Ensure minimum loading time for initial load
   useEffect(() => {
@@ -169,7 +161,11 @@ function App() {
         // Show loading screen during initial minimum time
         if (!minLoadingTimePassed) {
           return (
-            <LoadingScreen message={t('loading.connecting')} subMessage={t('loading.pleaseWait')} />
+            <LoadingScreen
+              message={t('loading.connecting')}
+              subMessage={t('loading.pleaseWait')}
+              isConnecting={true}
+            />
           );
         }
 
@@ -179,6 +175,7 @@ function App() {
             <LoadingScreen
               message={t('loading.connectionProblem')}
               subMessage={t('loading.restoringConnection')}
+              isConnecting={false}
             />
           );
         }

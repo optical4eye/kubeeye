@@ -6,17 +6,25 @@ import { useTranslation } from 'react-i18next';
 interface LoadingScreenProps {
   message?: string;
   subMessage?: string;
+  isConnecting?: boolean;
 }
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ message, subMessage }) => {
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ message, subMessage, isConnecting = false }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const statusInfo = {
-    status: 'error' as const,
-    text: t('loadingScreen.unavailable'),
-    icon: <CloseCircleOutlined />,
-    color: '#ff4d4f',
-  };
+  const statusInfo = isConnecting
+    ? {
+        status: 'processing' as const,
+        text: t('loadingScreen.connecting'),
+        icon: <div style={{ width: '16px', height: '16px', border: '2px solid #1890ff', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />,
+        color: '#1890ff',
+      }
+    : {
+        status: 'error' as const,
+        text: t('loadingScreen.unavailable'),
+        icon: <CloseCircleOutlined />,
+        color: '#ff4d4f',
+      };
 
   const defaultMessage = t('loadingScreen.systemStarting');
   const defaultSubMessage = t('loadingScreen.pleaseWait');
