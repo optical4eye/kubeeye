@@ -12,9 +12,7 @@ import {
   message,
   Popconfirm,
   Card,
-  Typography,
   Alert,
-  Descriptions,
   Statistic,
   Row,
   Col,
@@ -33,8 +31,6 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-
-const { Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -181,19 +177,6 @@ const SecretManagement: React.FC = () => {
         return <FileTextOutlined />;
       default:
         return <LockOutlined />;
-    }
-  };
-
-  const getSecretTypeClass = (type: string) => {
-    switch (type) {
-      case 'password':
-        return 'secret-type-password';
-      case 'ssh_key':
-        return 'secret-type-ssh-key';
-      case 'kubeconfig':
-        return 'secret-type-kubeconfig';
-      default:
-        return 'secret-type-default';
     }
   };
 

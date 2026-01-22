@@ -43,7 +43,7 @@ const PopeyeScan = () => {
     try {
       const response = await getClusters();
       setClusters(response.data.clusters || []);
-    } catch (error) {
+    } catch {
       message.error(t('popeye.errors.loadClusters'));
     }
   };
@@ -54,7 +54,7 @@ const PopeyeScan = () => {
       const { getPopeyeNamespaces } = await import('../services/api');
       const response = await getPopeyeNamespaces(clusterName);
       setAvailableNamespaces(response.data.namespaces || []);
-    } catch (error) {
+    } catch {
       message.error(t('popeye.errors.loadNamespaces'));
       setAvailableNamespaces([]);
     } finally {

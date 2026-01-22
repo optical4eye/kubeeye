@@ -245,7 +245,7 @@
     "autoDelete": "Система автоматически удаляет старые отчеты.",
     "retentionPeriod": "Период хранения:",
     "note": "Примечание:",
-    "autoCleanup": "Автоочистка выполняется автоматически. Изменить через KUBEEYE_REPORT_RETENTION_DAYS или конфиг.",
+    "autoCleanup": "Автоочистка выполняется автоматически. Изменить через KUBEEYE_REPORT_RETENTION_DAYS.",
     "id": "ID",
     "cluster": "Кластер",
     "time": "Время",
@@ -274,7 +274,6 @@
     "errorLoadingReport": "Ошибка загрузки отчета:",
     "errorDeletingReport": "Ошибка удаления отчета:",
     "errorExportingReport": "Ошибка экспорта:",
-    "orConfigFile": "или конфиг.",
     "reportDetailsModal": {
       "title": "Детали отчета",
       "close": "Закрыть",

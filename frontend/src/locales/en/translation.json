@@ -245,7 +245,7 @@
     "autoDelete": "System deletes old reports to free space.",
     "retentionPeriod": "Retention period:",
     "note": "Note:",
-    "autoCleanup": "Auto-cleanup runs in background. Change via KUBEEYE_REPORT_RETENTION_DAYS env var or config file.",
+    "autoCleanup": "Auto-cleanup runs in background. Change via KUBEEYE_REPORT_RETENTION_DAYS env var.",
     "id": "ID",
     "cluster": "Cluster",
     "time": "Time",
@@ -274,7 +274,6 @@
     "errorLoadingReport": "Error loading report:",
     "errorDeletingReport": "Error deleting report:",
     "errorExportingReport": "Error exporting report:",
-    "orConfigFile": "or config file.",
     "reportDetailsModal": {
       "title": "Report details",
       "close": "Close",

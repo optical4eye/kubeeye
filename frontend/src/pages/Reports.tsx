@@ -26,7 +26,7 @@ const Reports: React.FC = React.memo(() => {
       setLoading(true);
       const response = await getReports();
       setReports(response.data.reports || []);
-    } catch (error) {
+    } catch {
       // Error loading reports
     } finally {
       setLoading(false);
@@ -37,7 +37,7 @@ const Reports: React.FC = React.memo(() => {
     try {
       const response = await getCleanupConfig();
       setCleanupConfig(response.data);
-    } catch (error) {
+    } catch {
       // Error loading cleanup config
     }
   };
@@ -63,7 +63,7 @@ const Reports: React.FC = React.memo(() => {
       const response = await getReport(reportId);
       setReportDetail(response.data);
       setDetailModalVisible(true);
-    } catch (error) {
+    } catch {
       // Error loading report
     }
   };
@@ -72,7 +72,7 @@ const Reports: React.FC = React.memo(() => {
     try {
       await deleteReport(reportId);
       loadReports();
-    } catch (error) {
+    } catch {
       // Error deleting report
     }
   };
@@ -95,7 +95,7 @@ const Reports: React.FC = React.memo(() => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+    } catch {
       // Error exporting report
     }
   };
@@ -124,8 +124,7 @@ const Reports: React.FC = React.memo(() => {
                     </li>
                   </ul>
                   <p className="margin-top-space-2">
-                    <strong>{t('reports.note')}:</strong> {t('reports.autoCleanup')}
-                    <code>KUBEEYE_REPORT_RETENTION_DAYS</code> {t('reports.orConfigFile')}
+                    <strong>{t('reports.note')}</strong> {t('reports.autoCleanup')}
                   </p>
                 </div>
               ),

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, Select, Input, Space } from 'antd';
 import { DatePicker } from 'antd';
-import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Filters } from '../hooks/useReportsFilters';
 

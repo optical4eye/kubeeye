@@ -33,7 +33,7 @@ const RuleManagement = () => {
         try {
           const gitopsResponse = await api.getGitopsConfig();
           setGitopsConfig(gitopsResponse.data);
-        } catch (gitopsError) {
+        } catch {
           setGitopsConfig(null);
         }
       } else {
@@ -41,11 +41,11 @@ const RuleManagement = () => {
       }
 
       // Debug logging
-      const totalRules = Object.values(response.data.rules || {}).reduce(
+      Object.values(response.data.rules || {}).reduce(
         (sum, rules) => sum + (Array.isArray(rules) ? rules.length : 0),
         0
       );
-    } catch (error) {
+    } catch {
       message.error(t('rules.errorLoadingRules'));
       // Set fallback data
       setRules({});
@@ -60,7 +60,7 @@ const RuleManagement = () => {
     try {
       const response = await api.getRuleTags();
       setAvailableTags(response.data.tags || []);
-    } catch (error) {
+    } catch {
       setAvailableTags([]);
     }
   };
@@ -73,7 +73,7 @@ const RuleManagement = () => {
       // Reload rules after sync
       await loadRules();
       await loadTags();
-    } catch (error) {
+    } catch {
       message.error(t('rules.errorSyncGitops'));
     } finally {
       setSyncing(false);

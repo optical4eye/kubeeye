@@ -58,7 +58,7 @@ const ScheduledInspection = () => {
       setTasks(tasksRes.data.tasks || []);
       setClusters(clustersRes.data.clusters || []);
       setRules(rulesRes.data.rules || {});
-    } catch (error) {
+    } catch {
       message.error(t('scheduledInspection.errorLoadingData'));
     } finally {
       setLoading(false);
@@ -102,7 +102,7 @@ const ScheduledInspection = () => {
       form.resetFields();
       setSelectedRules({ node: [], opa: [] });
       loadData();
-    } catch (error) {
+    } catch {
       message.error(t('scheduledInspection.errorCreatingTask'));
     }
   };
@@ -112,7 +112,7 @@ const ScheduledInspection = () => {
       await api.deleteScheduledTask(taskId);
       message.success(t('scheduledInspection.taskDeleted'));
       loadData();
-    } catch (error) {
+    } catch {
       message.error(t('scheduledInspection.errorDeletingTask'));
     }
   };
@@ -122,7 +122,7 @@ const ScheduledInspection = () => {
       await api.runScheduledTask(taskId);
       message.success(t('scheduledInspection.taskRun'));
       loadData();
-    } catch (error) {
+    } catch {
       message.error(t('scheduledInspection.errorRunningTask'));
     }
   };
@@ -197,7 +197,7 @@ const ScheduledInspection = () => {
       editForm.resetFields();
       setSelectedRules({ node: [], opa: [] });
       loadData();
-    } catch (error) {
+    } catch {
       message.error(t('scheduledInspection.errorUpdatingTask'));
     }
   };

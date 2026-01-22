@@ -42,7 +42,7 @@ export class WebSocketClient {
           try {
             const message: MessageType = JSON.parse(event.data);
             this.messageHandlers.forEach(handler => handler(message));
-          } catch (error) {
+          } catch {
             // Failed to parse WebSocket message
           }
         };

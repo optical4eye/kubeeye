@@ -60,7 +60,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       });
 
       // Set up error handling
-      manager.onError(error => {
+      manager.onError(_error => {
         set({ connectionError: 'WebSocket connection error' });
       });
 

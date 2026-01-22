@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { testClusterNodes, testClusterKubeconfig, getNodesFromKubeconfig } from '../services/api';

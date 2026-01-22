@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { message } from 'antd';
 
 // Типы для ошибок
 interface ApiError {
@@ -9,21 +10,26 @@ interface ApiError {
 
 // Hook для централизованной обработки API ошибок
 export const useApiErrorHandler = () => {
-  const handleError = useCallback((error: ApiError | Error | any, customMessage?: string) => {
-    let message = customMessage || 'Произошла ошибка при выполнении запроса';
+  const handleError = useCallback((error: ApiError | Error | any, _customMessage?: string) => {
+    let customMessage: string;
 
-    if (error instanceof Error) {
-      message = error.message;
+    if (_customMessage) {
+      customMessage = _customMessage;
+    } else if (error instanceof Error) {
+      customMessage = error.message;
     } else if (error?.message) {
-      message = error.message;
+      customMessage = error.message;
     } else if (typeof error === 'string') {
-      message = error;
+      customMessage = error;
+    } else {
+      customMessage = 'An unexpected error occurred';
     }
 
-    // Здесь можно добавить логику для показа уведомлений, например, toast
+    // Логирование ошибки в консоль
+    console.error('API Error:', customMessage, error);
 
-    // Пример: если есть toast library, раскомментировать
-    // toast.error(message);
+    // Отображение ошибки через message
+    message.error(customMessage);
 
     // Можно добавить логику для отправки ошибок в аналитику или логи
   }, []);

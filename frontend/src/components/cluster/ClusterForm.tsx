@@ -32,7 +32,7 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
     try {
       const response = await axios.get('/api/secrets');
       setSecrets(response.data.secrets || []);
-    } catch (error) {
+    } catch {
       // Failed to load secrets
     }
   };

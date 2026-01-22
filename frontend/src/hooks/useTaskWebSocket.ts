@@ -38,7 +38,7 @@ export const useTaskWebSocket = (
       .then(() => {
         // WebSocket connected for task monitoring
       })
-      .catch(error => {
+      .catch(() => {
         // WebSocket connection failed
       });
 
@@ -112,7 +112,7 @@ export const useTaskWebSocket = (
     message.error(t('tasks.taskFailed', { taskId: task.task_id, error: error || task.error }));
   };
 
-  const startTaskMonitoring = (taskId: string) => {
+  const startTaskMonitoring = (_taskId: string) => {
     // WebSocket is handling updates automatically
   };
 

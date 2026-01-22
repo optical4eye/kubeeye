@@ -51,7 +51,7 @@ export const getSeverityTag = (severity: string) => {
 
 export const getSeverityBadge = (
   count: number,
-  type: 'critical' | 'warning' | 'other' | 'passed'
+  _type: 'critical' | 'warning' | 'other' | 'passed'
 ) => {
   if (count === 0) return count;
 

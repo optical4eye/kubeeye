@@ -4,7 +4,6 @@ import {
   Modal,
   Button,
   Descriptions,
-  Statistic,
   Row,
   Col,
   Tabs,
@@ -119,36 +118,15 @@ const getSeverityIcon = (severity: string) => {
   }
 };
 
-const getSeverityColor = (severity: string) => {
-  switch (severity) {
-    case 'critical':
-      return 'var(--ant-color-error)';
-    case 'warning':
-      return 'var(--ant-color-warning)';
-    case 'other':
-    case 'info':
-      return 'var(--ant-color-info)';
-    case 'passed':
-      return 'var(--ant-color-success)';
-    default:
-      return 'var(--ant-color-info)';
-  }
-};
-
 const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.memo(
   ({ items, severity }) => {
     const { t } = useTranslation();
     const [filteredItems, setFilteredItems] = React.useState(items);
-    const [statusFilter, setStatusFilter] = React.useState<string | null>(null);
     const [sortOrder, setSortOrder] = React.useState<'ascend' | 'descend' | null>(null);
     const [sortField, setSortField] = React.useState<string | null>(null);
 
     React.useEffect(() => {
       let filtered = items;
-
-      if (statusFilter) {
-        filtered = filtered.filter(item => item.status === statusFilter);
-      }
 
       if (sortField && sortOrder) {
         filtered = [...filtered].sort((a, b) => {
@@ -163,10 +141,9 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
       }
 
       setFilteredItems(filtered);
-    }, [items, statusFilter, sortField, sortOrder]);
+    }, [items, sortField, sortOrder]);
 
     const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-      setStatusFilter(filters.status ? filters.status[0] : null);
       setSortField(sorter.field);
       setSortOrder(sorter.order);
     };
@@ -183,14 +160,6 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
         title: t('reports.status'),
         dataIndex: 'status',
         key: 'status',
-        filters: [
-          { text: t('statistics.successful'), value: 'passed' },
-          { text: t('statistics.warning'), value: 'warning' },
-          { text: t('reports.reportDetailsModal.table.failed'), value: 'failed' },
-          { text: t('reports.reportDetailsModal.table.info'), value: 'info' },
-        ],
-        filteredValue: statusFilter ? [statusFilter] : null,
-        onFilter: (value: string, record: any) => record.status === value,
         render: (status: string) => getStatusTag(status),
       },
       {

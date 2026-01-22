@@ -67,22 +67,23 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
 
       return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', backgroundColor: 'black', color: 'white', minHeight: '100vh' }}>
           <Result
             status="error"
             title="Что-то пошло не так"
             subTitle="Произошла ошибка при загрузке страницы."
+            style={{ color: 'white' }}
             extra={
               <>
                 <Button
-                  type="primary"
+                  type="default"
                   icon={<ReloadOutlined />}
                   onClick={this.resetError}
-                  style={{ marginRight: 8 }}
+                  style={{ marginRight: 8, color: 'white', borderColor: 'white' }}
                 >
                   Попробовать снова
                 </Button>
-                <Button icon={<HomeOutlined />} onClick={() => (window.location.href = '/')}>
+                <Button type="default" icon={<HomeOutlined />} onClick={() => (window.location.href = '/')} style={{ color: 'white', borderColor: 'white' }}>
                   На главную
                 </Button>
               </>
@@ -94,17 +95,17 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               message="Детали ошибки (только в режиме разработки)"
               description={
                 <div>
-                  <Paragraph>
-                    <Text strong>Сообщение:</Text> {error.message}
+                  <Paragraph style={{ color: 'white' }}>
+                    <Text strong style={{ color: 'white' }}>Сообщение:</Text> {error.message}
                   </Paragraph>
-                  <Paragraph>
-                    <Text strong>Стек:</Text>
-                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>{error.stack}</pre>
+                  <Paragraph style={{ color: 'white' }}>
+                    <Text strong style={{ color: 'white' }}>Стек:</Text>
+                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px', color: 'white' }}>{error.stack}</pre>
                   </Paragraph>
                   {errorInfo && (
-                    <Paragraph>
-                      <Text strong>Компонент:</Text>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
+                    <Paragraph style={{ color: 'white' }}>
+                      <Text strong style={{ color: 'white' }}>Компонент:</Text>
+                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px', color: 'white' }}>
                         {errorInfo.componentStack}
                       </pre>
                     </Paragraph>
@@ -112,7 +113,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 </div>
               }
               type="error"
-              style={{ marginTop: 16 }}
+              style={{ marginTop: 16, color: 'white', backgroundColor: '#333', borderColor: '#555' }}
             />
           )}
         </div>

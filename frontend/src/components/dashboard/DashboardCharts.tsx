@@ -101,7 +101,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={CustomTooltip} />
                 <Legend />
                 <Area
                   type="monotone"

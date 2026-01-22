@@ -15,7 +15,7 @@ interface ReportsTableProps {
 }
 
 const ReportsTable: React.FC<ReportsTableProps> = React.memo(
-  ({ filteredReports, loading, onView, onDelete, onExport }) => {
+  ({ filteredReports, loading, onView, onDelete, onExport, onSelectionChange }) => {
     const { t } = useTranslation();
     const columns = [
       {
