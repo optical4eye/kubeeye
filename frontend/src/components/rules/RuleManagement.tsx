@@ -25,7 +25,6 @@ const RuleManagement = () => {
     try {
       setLoading(true);
       const response = await api.getRules();
-      console.log('Rules API response:', response.data);
       setRules(response.data.rules || {});
       setUseGitops(response.data.use_gitops || false);
 
@@ -34,9 +33,7 @@ const RuleManagement = () => {
         try {
           const gitopsResponse = await api.getGitopsConfig();
           setGitopsConfig(gitopsResponse.data);
-          console.log('GitOps config loaded:', gitopsResponse.data);
         } catch (gitopsError) {
-          console.error('Failed to load GitOps config:', gitopsError);
           setGitopsConfig(null);
         }
       } else {
@@ -48,10 +45,8 @@ const RuleManagement = () => {
         (sum, rules) => sum + (Array.isArray(rules) ? rules.length : 0),
         0
       );
-      console.log(`Loaded ${totalRules} rules, GitOps: ${response.data.use_gitops}`);
     } catch (error) {
       message.error(t('rules.errorLoadingRules'));
-      console.error('Rules loading error:', error);
       // Set fallback data
       setRules({});
       setUseGitops(false);
@@ -66,7 +61,6 @@ const RuleManagement = () => {
       const response = await api.getRuleTags();
       setAvailableTags(response.data.tags || []);
     } catch (error) {
-      console.error('Error loading tags:', error);
       setAvailableTags([]);
     }
   };
@@ -81,7 +75,6 @@ const RuleManagement = () => {
       await loadTags();
     } catch (error) {
       message.error(t('rules.errorSyncGitops'));
-      console.error('GitOps sync error:', error);
     } finally {
       setSyncing(false);
     }
@@ -284,7 +277,8 @@ const RuleManagement = () => {
 
           <Space direction="vertical">
             <div>
-              <strong>{t('rules.settings.currentMode')}</strong> {useGitops ? t('rules.settings.gitopsMode') : t('rules.settings.localMode')}
+              <strong>{t('rules.settings.currentMode')}</strong>{' '}
+              {useGitops ? t('rules.settings.gitopsMode') : t('rules.settings.localMode')}
             </div>
             <div>
               <strong>{t('rules.settings.totalRules')}</strong> {stats.total}
@@ -292,8 +286,12 @@ const RuleManagement = () => {
             <div>
               <strong>{t('rules.settings.byType')}</strong>
               <ul>
-                <li>{t('rules.settings.nodes')} {stats.node}</li>
-                <li>{t('rules.settings.security')} {stats.opa}</li>
+                <li>
+                  {t('rules.settings.nodes')} {stats.node}
+                </li>
+                <li>
+                  {t('rules.settings.security')} {stats.opa}
+                </li>
               </ul>
             </div>
             {useGitops && gitopsConfig && gitopsConfig.repository && (
@@ -310,15 +308,19 @@ const RuleManagement = () => {
                     <strong>{t('rules.settings.branch')}</strong> {gitopsConfig.repository.branch}
                   </li>
                   <li>
-                    <strong>{t('rules.settings.description')}</strong> {gitopsConfig.repository.description || t('rules.settings.description')}
+                    <strong>{t('rules.settings.description')}</strong>{' '}
+                    {gitopsConfig.repository.description || t('rules.settings.description')}
                   </li>
                   <li>
                     <strong>{t('rules.settings.sslVerification')}</strong>{' '}
-                    {gitopsConfig.repository.insecure ? t('rules.settings.disabled') : t('rules.settings.enabled')}
+                    {gitopsConfig.repository.insecure
+                      ? t('rules.settings.disabled')
+                      : t('rules.settings.enabled')}
                   </li>
                   {gitopsConfig.from_env && (
                     <li>
-                      <strong>{t('rules.settings.configSource')}</strong> {t('rules.settings.envVars')}
+                      <strong>{t('rules.settings.configSource')}</strong>{' '}
+                      {t('rules.settings.envVars')}
                     </li>
                   )}
                 </ul>

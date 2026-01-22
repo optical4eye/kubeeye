@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Select, Checkbox, Input, InputNumber, Button, Table, message, Space, Alert } from 'antd';
+import {
+  Card,
+  Form,
+  Select,
+  Checkbox,
+  Input,
+  InputNumber,
+  Button,
+  Table,
+  message,
+  Space,
+  Alert,
+} from 'antd';
 import {
   WifiOutlined,
   CheckCircleOutlined,
@@ -119,7 +131,9 @@ const NetworkConnectivity = () => {
       } else if (successCount === 0) {
         message.error(t('networkPage.messages.allFailed', { count: failCount }));
       } else {
-        message.warning(t('networkPage.messages.mixed', { success: successCount, fail: failCount }));
+        message.warning(
+          t('networkPage.messages.mixed', { success: successCount, fail: failCount })
+        );
       }
     } catch {
       message.error(t('networkPage.messages.checkError'));
@@ -344,7 +358,9 @@ const NetworkConnectivity = () => {
             extra={
               resultId && (
                 <Space wrap>
-                  <Button onClick={() => exportResults('json')}>{t('networkPage.exportJson')}</Button>
+                  <Button onClick={() => exportResults('json')}>
+                    {t('networkPage.exportJson')}
+                  </Button>
                 </Space>
               )
             }
@@ -361,7 +377,7 @@ const NetworkConnectivity = () => {
               <Alert
                 message={t('networkPage.statisticsMessage', {
                   success: results.filter(r => r.status === 'success').length,
-                  fail: results.filter(r => r.status === 'failed').length
+                  fail: results.filter(r => r.status === 'failed').length,
                 })}
                 type={results.some(r => r.status === 'failed') ? 'warning' : 'success'}
                 showIcon

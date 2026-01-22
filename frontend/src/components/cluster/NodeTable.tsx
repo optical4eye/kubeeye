@@ -37,10 +37,30 @@ const NodeTable = ({ nodes, loading, scrollY = 400 }) => {
       render: roles => roles?.join(', ') || t('clusters.nodeTable.na'),
     },
     { title: t('clusters.nodeTable.age'), dataIndex: 'age', key: 'age', responsive: ['lg'] },
-    { title: t('clusters.nodeTable.version'), dataIndex: 'version', key: 'version', responsive: ['lg'] },
-    { title: t('clusters.nodeTable.internalIp'), dataIndex: 'internal_ip', key: 'internal_ip', responsive: ['xl'] },
-    { title: t('clusters.nodeTable.externalIp'), dataIndex: 'external_ip', key: 'external_ip', responsive: ['xl'] },
-    { title: t('clusters.nodeTable.osImage'), dataIndex: 'os_image', key: 'os_image', responsive: ['xl'] },
+    {
+      title: t('clusters.nodeTable.version'),
+      dataIndex: 'version',
+      key: 'version',
+      responsive: ['lg'],
+    },
+    {
+      title: t('clusters.nodeTable.internalIp'),
+      dataIndex: 'internal_ip',
+      key: 'internal_ip',
+      responsive: ['xl'],
+    },
+    {
+      title: t('clusters.nodeTable.externalIp'),
+      dataIndex: 'external_ip',
+      key: 'external_ip',
+      responsive: ['xl'],
+    },
+    {
+      title: t('clusters.nodeTable.osImage'),
+      dataIndex: 'os_image',
+      key: 'os_image',
+      responsive: ['xl'],
+    },
     {
       title: t('clusters.nodeTable.kernelVersion'),
       dataIndex: 'kernel_version',
@@ -61,7 +81,11 @@ const NodeTable = ({ nodes, loading, scrollY = 400 }) => {
       dataSource={nodes}
       loading={loading}
       rowKey="name"
-      pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total, range) => `${range[0]}-${range[1]} из ${total}` }}
+      pagination={{
+        pageSize: 10,
+        showSizeChanger: true,
+        showTotal: (total, range) => `${range[0]}-${range[1]} из ${total}`,
+      }}
       scroll={{ y: scrollY, x: 'max-content' }}
       virtual
       aria-label="Таблица узлов кластера"

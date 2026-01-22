@@ -21,7 +21,6 @@ export const useApiErrorHandler = () => {
     }
 
     // Здесь можно добавить логику для показа уведомлений, например, toast
-    console.error('API Error:', message, error);
 
     // Пример: если есть toast library, раскомментировать
     // toast.error(message);

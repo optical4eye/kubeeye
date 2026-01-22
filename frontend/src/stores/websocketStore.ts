@@ -61,7 +61,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
 
       // Set up error handling
       manager.onError(error => {
-        console.error('WebSocket error:', error);
         set({ connectionError: 'WebSocket connection error' });
       });
 
@@ -82,7 +81,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         connectionError: null,
       });
     } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
       set({
         isConnecting: false,
         connectionError: error instanceof Error ? error.message : 'Failed to connect',
@@ -141,7 +139,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
     if (connectionManager) {
       connectionManager.sendMessage(message);
     } else {
-      console.warn('WebSocket not connected. Cannot send message.');
+      // WebSocket not connected. Cannot send message.
     }
   },
 
@@ -150,7 +148,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
     if (connectionManager) {
       connectionManager.sendJsonMessage(message);
     } else {
-      console.warn('WebSocket not connected. Cannot send message.');
+      // WebSocket not connected. Cannot send message.
     }
   },
 }));

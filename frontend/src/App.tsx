@@ -1,6 +1,15 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { Layout, Menu, Spin, ConfigProvider, theme as antdTheme, Switch, message, Select } from 'antd';
+import {
+  Layout,
+  Menu,
+  Spin,
+  ConfigProvider,
+  theme as antdTheme,
+  Switch,
+  message,
+  Select,
+} from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   DashboardOutlined,
@@ -192,10 +201,10 @@ function App() {
                       />
                       <Select
                         value={language}
-                        onChange={(value) => setLanguage(value)}
+                        onChange={value => setLanguage(value)}
                         options={[
                           { value: 'ru', label: 'RU' },
-                          { value: 'en', label: 'EN' }
+                          { value: 'en', label: 'EN' },
                         ]}
                         style={{ width: 60, marginLeft: 10 }}
                         size="small"

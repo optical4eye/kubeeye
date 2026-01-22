@@ -27,7 +27,7 @@ const Reports: React.FC = React.memo(() => {
       const response = await getReports();
       setReports(response.data.reports || []);
     } catch (error) {
-      console.error(t('reports.errorLoadingReports'), error);
+      // Error loading reports
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,7 @@ const Reports: React.FC = React.memo(() => {
       const response = await getCleanupConfig();
       setCleanupConfig(response.data);
     } catch (error) {
-      console.error(t('reports.errorLoadingCleanup'), error);
+      // Error loading cleanup config
     }
   };
 
@@ -64,7 +64,7 @@ const Reports: React.FC = React.memo(() => {
       setReportDetail(response.data);
       setDetailModalVisible(true);
     } catch (error) {
-      console.error(t('reports.errorLoadingReport'), error);
+      // Error loading report
     }
   };
 
@@ -73,7 +73,7 @@ const Reports: React.FC = React.memo(() => {
       await deleteReport(reportId);
       loadReports();
     } catch (error) {
-      console.error(t('reports.errorDeletingReport'), error);
+      // Error deleting report
     }
   };
 
@@ -96,7 +96,7 @@ const Reports: React.FC = React.memo(() => {
       link.click();
       link.remove();
     } catch (error) {
-      console.error(t('reports.errorExportingReport'), error);
+      // Error exporting report
     }
   };
 
@@ -116,12 +116,11 @@ const Reports: React.FC = React.memo(() => {
               label: t('reports.cleanupInfo'),
               children: (
                 <div>
-                  <p>
-                    {t('reports.autoDelete')}
-                  </p>
+                  <p>{t('reports.autoDelete')}</p>
                   <ul className="margin-top-space-2">
                     <li>
-                      <strong>{t('reports.retentionPeriod')}</strong> {cleanupConfig.retention_days} {t('clusters.days')}
+                      <strong>{t('reports.retentionPeriod')}</strong> {cleanupConfig.retention_days}{' '}
+                      {t('clusters.days')}
                     </li>
                   </ul>
                   <p className="margin-top-space-2">

@@ -20,11 +20,7 @@ const Help = () => {
       <div className="page-subtitle">{t('help.subtitle')}</div>
 
       <Tabs defaultActiveKey="1" aria-label={t('help.sectionsAria')}>
-        <Tabs.TabPane
-          tab={t('help.tabs.tools')}
-          key="1"
-          aria-label={t('help.tabs.tools')}
-        >
+        <Tabs.TabPane tab={t('help.tabs.tools')} key="1" aria-label={t('help.tabs.tools')}>
           <Suspense fallback={<Spin />}>
             <IntroductionTab />
           </Suspense>
@@ -36,11 +32,7 @@ const Help = () => {
           </Suspense>
         </Tabs.TabPane>
 
-        <Tabs.TabPane
-          tab={t('help.tabs.security')}
-          key="3"
-          aria-label={t('help.tabs.security')}
-        >
+        <Tabs.TabPane tab={t('help.tabs.security')} key="3" aria-label={t('help.tabs.security')}>
           <Suspense fallback={<Spin />}>
             <SecurityTab />
           </Suspense>

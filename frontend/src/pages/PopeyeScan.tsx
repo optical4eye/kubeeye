@@ -45,7 +45,6 @@ const PopeyeScan = () => {
       setClusters(response.data.clusters || []);
     } catch (error) {
       message.error(t('popeye.errors.loadClusters'));
-      console.error(error);
     }
   };
 
@@ -56,10 +55,9 @@ const PopeyeScan = () => {
       const response = await getPopeyeNamespaces(clusterName);
       setAvailableNamespaces(response.data.namespaces || []);
     } catch (error) {
-     message.error(t('popeye.errors.loadNamespaces'));
-     console.error(error);
-     setAvailableNamespaces([]);
-   } finally {
+      message.error(t('popeye.errors.loadNamespaces'));
+      setAvailableNamespaces([]);
+    } finally {
       setLoadingNamespaces(false);
     }
   };
@@ -79,10 +77,10 @@ const PopeyeScan = () => {
   }, [selectedCluster]);
 
   const handleRunPopeyeScan = async () => {
-     if (!selectedCluster) {
-       message.error(t('popeye.errors.selectCluster'));
-       return;
-     }
+    if (!selectedCluster) {
+      message.error(t('popeye.errors.selectCluster'));
+      return;
+    }
 
     const scanData = {
       cluster_name: selectedCluster,
@@ -117,7 +115,6 @@ const PopeyeScan = () => {
       } else {
         message.error(t('popeye.errors.startError'));
       }
-      console.error('Popeye scan error:', error);
     } finally {
       setLoading(false);
     }
@@ -131,16 +128,12 @@ const PopeyeScan = () => {
   return (
     <div>
       <div className="page-title">{t('popeye.title')}</div>
-      <div className="page-subtitle">
-        {t('popeye.subtitle')}
-      </div>
+      <div className="page-subtitle">{t('popeye.subtitle')}</div>
 
       <Card>
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
-            <div aria-label={t('popeye.selectCluster')}>
-              {t('popeye.selectCluster')}
-            </div>
+            <div aria-label={t('popeye.selectCluster')}>{t('popeye.selectCluster')}</div>
             <Select
               className="margin-top-space-2"
               style={{ width: '100%' }}
@@ -174,7 +167,9 @@ const PopeyeScan = () => {
               <Select
                 className="margin-top-space-2"
                 style={{ width: '100%' }}
-                placeholder={loadingNamespaces ? t('popeye.loadingNamespaces') : t('popeye.selectNamespace')}
+                placeholder={
+                  loadingNamespaces ? t('popeye.loadingNamespaces') : t('popeye.selectNamespace')
+                }
                 onChange={setSelectedNamespace}
                 value={selectedNamespace}
                 loading={loadingNamespaces}
@@ -240,18 +235,30 @@ const PopeyeScan = () => {
                   }
                   description={
                     <div>
-                      <div>{t('popeye.details.cluster')} {task.payload?.cluster_name}</div>
-                      <div>{t('popeye.details.format')} {task.payload?.output_format?.toUpperCase()}</div>
+                      <div>
+                        {t('popeye.details.cluster')} {task.payload?.cluster_name}
+                      </div>
+                      <div>
+                        {t('popeye.details.format')} {task.payload?.output_format?.toUpperCase()}
+                      </div>
                       <div>
                         {t('popeye.details.namespaces')}{' '}
                         {task.payload?.all_namespaces
                           ? t('popeye.details.all')
                           : task.payload?.namespace || t('popeye.details.specified')}
                       </div>
-                      <div>{t('popeye.details.created')} {formatTaskTime(task.created_at)}</div>
-                      {task.started_at && <div>{t('popeye.details.started')} {formatTaskTime(task.started_at)}</div>}
+                      <div>
+                        {t('popeye.details.created')} {formatTaskTime(task.created_at)}
+                      </div>
+                      {task.started_at && (
+                        <div>
+                          {t('popeye.details.started')} {formatTaskTime(task.started_at)}
+                        </div>
+                      )}
                       {(task.completed_at || task.status === 'failed') && (
-                        <div>{t('popeye.details.completed')} {formatTaskTime(task.completed_at)}</div>
+                        <div>
+                          {t('popeye.details.completed')} {formatTaskTime(task.completed_at)}
+                        </div>
                       )}
                       {task.error && (
                         <div style={{ color: 'var(--error-color)', marginTop: 4 }}>

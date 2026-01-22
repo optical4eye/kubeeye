@@ -45,8 +45,8 @@ interface Secret {
   description: string | null;
   secret_metadata: Record<string, unknown>;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   last_used_at: string | null;
 }
 
@@ -232,6 +232,28 @@ const SecretManagement: React.FC = () => {
       render: (text: string | null) => text || '-',
     },
     {
+      title: t('secrets.columns.created'),
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date: string | null) => (date ? new Date(date).toLocaleString('ru-RU') : '-'),
+    },
+    {
+      title: t('secrets.columns.updated'),
+      dataIndex: 'updated_at',
+      key: 'updated_at',
+      render: (date: string | null) => (date ? new Date(date).toLocaleString('ru-RU') : '-'),
+    },
+    {
+      title: t('secrets.columns.active'),
+      dataIndex: 'is_active',
+      key: 'is_active',
+      render: (active: boolean) => (
+        <Tag color={active ? 'green' : 'red'}>
+          {active ? t('secrets.viewModal.yes') : t('secrets.viewModal.no')}
+        </Tag>
+      ),
+    },
+    {
       title: t('secrets.columns.lastUsed'),
       dataIndex: 'last_used_at',
       key: 'last_used_at',
@@ -405,46 +427,19 @@ const SecretManagement: React.FC = () => {
           <Spin size="large" />
         ) : revealedSecret ? (
           <div>
-            <Card title={t('secrets.viewModal.info')} className="margin-bottom-space-4">
-              <Descriptions bordered column={2}>
-                <Descriptions.Item label={t('secrets.viewModal.id')}>
-                  <Typography.Text>{revealedSecret.secret.id}</Typography.Text>
-                </Descriptions.Item>
-                <Descriptions.Item label={t('secrets.viewModal.name')}>
-                  <Typography.Text>{revealedSecret.secret.name}</Typography.Text>
-                </Descriptions.Item>
-                <Descriptions.Item label={t('secrets.viewModal.type')}>
-                  <Tag
-                    className={`secret-type-tag ${getSecretTypeClass(revealedSecret.secret.secret_type)}`}
-                  >
-                    {revealedSecret.secret.secret_type}
-                  </Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label={t('secrets.viewModal.description')}>
-                  <Typography.Text>{revealedSecret.secret.description || '-'}</Typography.Text>
-                </Descriptions.Item>
-                <Descriptions.Item label={t('secrets.viewModal.created')}>
-                  <Typography.Text>{new Date(revealedSecret.secret.created_at).toLocaleString('ru-RU')}</Typography.Text>
-                </Descriptions.Item>
-                <Descriptions.Item label={t('secrets.viewModal.updated')}>
-                  <Typography.Text>{new Date(revealedSecret.secret.updated_at).toLocaleString('ru-RU')}</Typography.Text>
-                </Descriptions.Item>
-                <Descriptions.Item label={t('secrets.viewModal.lastUsed')}>
-                  <Typography.Text>{revealedSecret.secret.last_used_at ? new Date(revealedSecret.secret.last_used_at).toLocaleString('ru-RU') : '-'}</Typography.Text>
-                </Descriptions.Item>
-                <Descriptions.Item label={t('secrets.viewModal.active')}>
-                  <Typography.Text>{revealedSecret.secret.is_active ? t('secrets.viewModal.yes') : t('secrets.viewModal.no')}</Typography.Text>
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-
             <Card title={t('secrets.viewModal.stats')} className="margin-bottom-space-4">
               <Row gutter={16}>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title={t('secrets.viewModal.dataLength')} value={revealedSecret.data.length} />
+                  <Statistic
+                    title={t('secrets.viewModal.dataLength')}
+                    value={revealedSecret.data.length}
+                  />
                 </Col>
                 <Col xs={24} sm={12} md={6}>
-                  <Statistic title={t('secrets.viewModal.lines')} value={revealedSecret.data.split('\n').length} />
+                  <Statistic
+                    title={t('secrets.viewModal.lines')}
+                    value={revealedSecret.data.split('\n').length}
+                  />
                 </Col>
               </Row>
             </Card>

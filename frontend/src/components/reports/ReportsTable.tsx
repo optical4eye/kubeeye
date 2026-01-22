@@ -107,7 +107,7 @@ const ReportsTable: React.FC<ReportsTableProps> = React.memo(
                             key: 'export-pdf',
                             label: t('reports.pdf'),
                             onClick: () => onExport(record.result_id, 'pdf'),
-                          },
+                          }
                         );
                       }
                       return exportItems;

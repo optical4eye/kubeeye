@@ -23,10 +23,7 @@ export const useClusters = () => {
   const [nodeFilter, setNodeFilter] = useState('all');
 
   // Query for clusters with 10 minutes staleTime
-  const {
-    data: clustersData,
-    isLoading: loading,
-  } = useQuery({
+  const { data: clustersData, isLoading: loading } = useQuery({
     queryKey: ['clusters'],
     queryFn: async () => {
       const response = await getClusters();
@@ -50,36 +47,42 @@ export const useClusters = () => {
       return createCluster(clusterData);
     },
     onSuccess: () => {
-      message.success(t('clusters.messages.clusterCreated'));
+      message.success(t('clusters.nodeTable.messages.clusterCreated'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
     },
     onError: () => {
-      message.error(t('clusters.messages.clusterCreateError'));
+      message.error(t('clusters.nodeTable.messages.clusterCreateError'));
     },
   });
 
-  const handleCreateCluster = useCallback((values: ClusterFormValues) => {
-    createClusterMutation.mutate(values);
-  }, [createClusterMutation]);
+  const handleCreateCluster = useCallback(
+    (values: ClusterFormValues) => {
+      createClusterMutation.mutate(values);
+    },
+    [createClusterMutation]
+  );
 
   // Mutation for deleting cluster
   const deleteClusterMutation = useMutation({
     mutationFn: deleteCluster,
     onSuccess: () => {
-      message.success(t('clusters.messages.clusterDeleted'));
+      message.success(t('clusters.nodeTable.messages.clusterDeleted'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
       setSelectedCluster(null);
       setClusterDetails(null);
       setClusterNodes([]);
     },
     onError: () => {
-      message.error(t('clusters.messages.clusterDeleteError'));
+      message.error(t('clusters.nodeTable.messages.clusterDeleteError'));
     },
   });
 
-  const handleDeleteCluster = useCallback((clusterName: string) => {
-    deleteClusterMutation.mutate(clusterName);
-  }, [deleteClusterMutation]);
+  const handleDeleteCluster = useCallback(
+    (clusterName: string) => {
+      deleteClusterMutation.mutate(clusterName);
+    },
+    [deleteClusterMutation]
+  );
 
   const loadClusterDetails = useCallback(async (clusterName: string) => {
     try {
@@ -92,7 +95,7 @@ export const useClusters = () => {
         kubeconfig: data.kubeconfig || '',
       };
     } catch (error: unknown) {
-      message.error(t('clusters.messages.clusterLoadError'));
+      message.error(t('clusters.nodeTable.messages.clusterLoadError'));
       throw error;
     }
   }, []);
@@ -115,7 +118,7 @@ export const useClusters = () => {
       return updateCluster(clusterName, clusterData);
     },
     onSuccess: () => {
-      message.success(t('clusters.messages.clusterUpdated'));
+      message.success(t('clusters.nodeTable.messages.clusterUpdated'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
       setSelectedCluster(null);
       if (clusterDetails) {
@@ -123,15 +126,18 @@ export const useClusters = () => {
       }
     },
     onError: () => {
-      message.error(t('clusters.messages.clusterUpdateError'));
+      message.error(t('clusters.nodeTable.messages.clusterUpdateError'));
     },
   });
 
-  const handleEditCluster = useCallback((values: ClusterFormValues) => {
-    if (selectedCluster) {
-      updateClusterMutation.mutate({ clusterName: selectedCluster.name, values });
-    }
-  }, [selectedCluster, updateClusterMutation]);
+  const handleEditCluster = useCallback(
+    (values: ClusterFormValues) => {
+      if (selectedCluster) {
+        updateClusterMutation.mutate({ clusterName: selectedCluster.name, values });
+      }
+    },
+    [selectedCluster, updateClusterMutation]
+  );
 
   const loadClusterNodes = useCallback(async (clusterName: string) => {
     try {
@@ -142,11 +148,11 @@ export const useClusters = () => {
       if (nodesData.status === 'success') {
         setClusterNodes(nodesData.nodes || []);
       } else {
-        message.error(t('clusters.messages.clusterNodesError'));
+        message.error(t('clusters.nodeTable.messages.clusterNodesError'));
         setClusterNodes([]);
       }
     } catch (error: unknown) {
-      let errorMessage = t('clusters.messages.clusterNodesFailed');
+      let errorMessage = t('clusters.nodeTable.messages.clusterNodesFailed');
       const err = error as any;
       if (err.response?.data?.detail) {
         errorMessage = err.response.data.detail;
@@ -161,11 +167,14 @@ export const useClusters = () => {
     }
   }, []);
 
-  const handleShowClusterDetails = useCallback((cluster: Cluster) => {
-    setSelectedCluster(cluster);
-    setClusterDetails(cluster);
-    loadClusterNodes(cluster.name);
-  }, [loadClusterNodes]);
+  const handleShowClusterDetails = useCallback(
+    (cluster: Cluster) => {
+      setSelectedCluster(cluster);
+      setClusterDetails(cluster);
+      loadClusterNodes(cluster.name);
+    },
+    [loadClusterNodes]
+  );
 
   const filteredNodes = clusterNodes.filter(node => {
     if (nodeFilter === 'all') return true;

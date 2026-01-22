@@ -61,7 +61,9 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
       <Card>
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
-            <div aria-label={t('inspection.selectClusterLabel')}>{t('inspection.selectClusterLabel')}</div>
+            <div aria-label={t('inspection.selectClusterLabel')}>
+              {t('inspection.selectClusterLabel')}
+            </div>
             <Select
               className="margin-top-space-2"
               style={{ width: '100%' }}
@@ -80,7 +82,9 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
           {/* Tag Filter */}
           {getAllTags().length > 0 && (
             <div>
-              <div aria-label={t('inspection.filterByTagsAria')}>{t('inspection.filterByTagsLabel')}</div>
+              <div aria-label={t('inspection.filterByTagsAria')}>
+                {t('inspection.filterByTagsLabel')}
+              </div>
               <Select
                 mode="multiple"
                 className="margin-top-space-2"
@@ -130,7 +134,10 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
                         rules.length > 0 && (
                           <div key={type} style={{ marginBottom: token.marginXXS }}>
                             <span style={{ fontWeight: 'bold' }}>
-                              {type === 'node' ? t('inspection.nodeLabel') : t('inspection.kubernetesLabel')}:
+                              {type === 'node'
+                                ? t('inspection.nodeLabel')
+                                : t('inspection.kubernetesLabel')}
+                              :
                             </span>{' '}
                             {rules.length} {t('inspection.totalRules')}
                           </div>

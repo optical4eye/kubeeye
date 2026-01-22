@@ -19,7 +19,6 @@ const Dashboard = () => {
     queryFn: getDashboardData,
     staleTime: 2 * 60 * 1000, // 2 minutes for dashboard
     onError: error => {
-      console.error('Dashboard error:', error);
       message.error(t('dashboard.errorLoading'));
     },
   });

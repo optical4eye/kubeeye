@@ -8,10 +8,7 @@ interface LoadingScreenProps {
   subMessage?: string;
 }
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({
-  message,
-  subMessage,
-}) => {
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ message, subMessage }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const statusInfo = {
@@ -66,7 +63,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
             transform: 'translateX(-50%)',
           }}
         />
-        <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>{message || defaultMessage}</h2>
+        <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>
+          {message || defaultMessage}
+        </h2>
         <p style={{ color: '#a6a6a6', margin: '0.5rem 0' }}>{subMessage || defaultSubMessage}</p>
       </div>
 
@@ -82,7 +81,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
           }}
         >
           {statusInfo.icon}
-          <span style={{ color: 'white', fontSize: '1rem' }}>{t('loadingScreen.backend')}: {statusInfo.text}</span>
+          <span style={{ color: 'white', fontSize: '1rem' }}>
+            {t('loadingScreen.backend')}: {statusInfo.text}
+          </span>
         </div>
         <p style={{ color: '#a6a6a6', fontSize: '0.9rem', margin: '0.5rem 0' }}>
           {t('loadingScreen.preparingSystem')}

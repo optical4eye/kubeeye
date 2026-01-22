@@ -60,7 +60,6 @@ const ScheduledInspection = () => {
       setRules(rulesRes.data.rules || {});
     } catch (error) {
       message.error(t('scheduledInspection.errorLoadingData'));
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -105,7 +104,6 @@ const ScheduledInspection = () => {
       loadData();
     } catch (error) {
       message.error(t('scheduledInspection.errorCreatingTask'));
-      console.error(error);
     }
   };
 
@@ -116,7 +114,6 @@ const ScheduledInspection = () => {
       loadData();
     } catch (error) {
       message.error(t('scheduledInspection.errorDeletingTask'));
-      console.error(error);
     }
   };
 
@@ -127,7 +124,6 @@ const ScheduledInspection = () => {
       loadData();
     } catch (error) {
       message.error(t('scheduledInspection.errorRunningTask'));
-      console.error(error);
     }
   };
 
@@ -203,7 +199,6 @@ const ScheduledInspection = () => {
       loadData();
     } catch (error) {
       message.error(t('scheduledInspection.errorUpdatingTask'));
-      console.error(error);
     }
   };
 
@@ -214,9 +209,15 @@ const ScheduledInspection = () => {
       title: t('scheduledInspection.schedule'),
       dataIndex: 'cron_expr',
       key: 'cron_expr',
-      render: (cron, record) => (record.task_type === 'once' ? t('scheduledInspection.oneTime') : cron),
+      render: (cron, record) =>
+        record.task_type === 'once' ? t('scheduledInspection.oneTime') : cron,
     },
-    { title: t('scheduledInspection.status'), dataIndex: 'last_status', key: 'last_status', render: getStatusTag },
+    {
+      title: t('scheduledInspection.status'),
+      dataIndex: 'last_status',
+      key: 'last_status',
+      render: getStatusTag,
+    },
     {
       title: t('scheduledInspection.enabled'),
       dataIndex: 'enabled',
@@ -319,7 +320,9 @@ const ScheduledInspection = () => {
                   <Form.Item
                     name="schedule_type"
                     label={t('scheduledInspection.scheduleType')}
-                    rules={[{ required: true, message: t('scheduledInspection.selectScheduleType') }]}
+                    rules={[
+                      { required: true, message: t('scheduledInspection.selectScheduleType') },
+                    ]}
                   >
                     <Select placeholder={t('scheduledInspection.selectScheduleType')}>
                       <Option value="cron">{t('scheduledInspection.periodicCron')}</Option>
@@ -345,19 +348,39 @@ const ScheduledInspection = () => {
                               className="margin-bottom-space-4"
                             />
                             <Space wrap>
-                              <Form.Item name="cron_min" label={t('scheduledInspection.minutes')} initialValue="0">
+                              <Form.Item
+                                name="cron_min"
+                                label={t('scheduledInspection.minutes')}
+                                initialValue="0"
+                              >
                                 <Input placeholder="0" />
                               </Form.Item>
-                              <Form.Item name="cron_hour" label={t('scheduledInspection.hours')} initialValue="8">
+                              <Form.Item
+                                name="cron_hour"
+                                label={t('scheduledInspection.hours')}
+                                initialValue="8"
+                              >
                                 <Input placeholder="8" />
                               </Form.Item>
-                              <Form.Item name="cron_dom" label={t('scheduledInspection.dayOfMonth')} initialValue="*">
+                              <Form.Item
+                                name="cron_dom"
+                                label={t('scheduledInspection.dayOfMonth')}
+                                initialValue="*"
+                              >
                                 <Input placeholder="*" />
                               </Form.Item>
-                              <Form.Item name="cron_month" label={t('scheduledInspection.month')} initialValue="*">
+                              <Form.Item
+                                name="cron_month"
+                                label={t('scheduledInspection.month')}
+                                initialValue="*"
+                              >
                                 <Input placeholder="*" />
                               </Form.Item>
-                              <Form.Item name="cron_dow" label={t('scheduledInspection.dayOfWeek')} initialValue="*">
+                              <Form.Item
+                                name="cron_dow"
+                                label={t('scheduledInspection.dayOfWeek')}
+                                initialValue="*"
+                              >
                                 <Input placeholder="*" />
                               </Form.Item>
                             </Space>
@@ -504,19 +527,39 @@ const ScheduledInspection = () => {
                       style={{ marginBottom: 16 }}
                     />
                     <Space wrap>
-                      <Form.Item name="cron_min" label={t('scheduledInspection.minutes')} initialValue="0">
+                      <Form.Item
+                        name="cron_min"
+                        label={t('scheduledInspection.minutes')}
+                        initialValue="0"
+                      >
                         <Input placeholder="0" />
                       </Form.Item>
-                      <Form.Item name="cron_hour" label={t('scheduledInspection.hours')} initialValue="8">
+                      <Form.Item
+                        name="cron_hour"
+                        label={t('scheduledInspection.hours')}
+                        initialValue="8"
+                      >
                         <Input placeholder="8" />
                       </Form.Item>
-                      <Form.Item name="cron_dom" label={t('scheduledInspection.dayOfMonth')} initialValue="*">
+                      <Form.Item
+                        name="cron_dom"
+                        label={t('scheduledInspection.dayOfMonth')}
+                        initialValue="*"
+                      >
                         <Input placeholder="*" />
                       </Form.Item>
-                      <Form.Item name="cron_month" label={t('scheduledInspection.month')} initialValue="*">
+                      <Form.Item
+                        name="cron_month"
+                        label={t('scheduledInspection.month')}
+                        initialValue="*"
+                      >
                         <Input placeholder="*" />
                       </Form.Item>
-                      <Form.Item name="cron_dow" label={t('scheduledInspection.dayOfWeek')} initialValue="*">
+                      <Form.Item
+                        name="cron_dow"
+                        label={t('scheduledInspection.dayOfWeek')}
+                        initialValue="*"
+                      >
                         <Input placeholder="*" />
                       </Form.Item>
                     </Space>
@@ -525,7 +568,11 @@ const ScheduledInspection = () => {
               } else if (scheduleType === 'once') {
                 return (
                   <Space>
-                    <Form.Item name="run_date" label={t('scheduledInspection.runDate')} rules={[{ required: true }]}>
+                    <Form.Item
+                      name="run_date"
+                      label={t('scheduledInspection.runDate')}
+                      rules={[{ required: true }]}
+                    >
                       <DatePicker />
                     </Form.Item>
                     <Form.Item

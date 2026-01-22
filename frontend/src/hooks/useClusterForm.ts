@@ -39,14 +39,16 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
 
       if (failCount > 0) {
         const failedList = failedNodes.join(', ');
-        message.error(t('clusters.messages.connectionFailed', { nodes: failedList }));
+        message.error(t('clusters.nodeTable.messages.connectionFailed', { nodes: failedList }));
       } else if (results.length > 0) {
-        message.success(t('clusters.messages.allNodesAvailable', { count: successCount }));
+        message.success(
+          t('clusters.nodeTable.messages.allNodesAvailable', { count: successCount })
+        );
       } else {
-        message.warning(t('clusters.messages.noTestResults'));
+        message.warning(t('clusters.nodeTable.messages.noTestResults'));
       }
     } catch (error: unknown) {
-      let errorMessage = t('clusters.messages.unknownError');
+      let errorMessage = t('clusters.nodeTable.messages.unknownError');
       const err = error as any;
       if (err.response?.data) {
         const data = err.response.data;
@@ -70,7 +72,7 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      message.error(t('clusters.messages.testNodesError', { error: errorMessage }));
+      message.error(t('clusters.nodeTable.messages.testNodesError', { error: errorMessage }));
     }
   };
 
@@ -92,14 +94,18 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       const { success, message: testMessage } = response.data;
 
       if (success) {
-        message.success(t('clusters.messages.kubeconfigTested', { message: testMessage }));
+        message.success(
+          t('clusters.nodeTable.messages.kubeconfigTested', { message: testMessage })
+        );
       } else {
-        message.error(t('clusters.messages.kubeconfigTestError', { error: testMessage }));
+        message.error(t('clusters.nodeTable.messages.kubeconfigTestError', { error: testMessage }));
       }
     } catch (error: unknown) {
       const errorMessage =
-        (error as any).response?.data?.detail || (error as Error).message || t('clusters.messages.unknownError');
-      message.error(t('clusters.messages.kubeconfigTestError', { error: errorMessage }));
+        (error as any).response?.data?.detail ||
+        (error as Error).message ||
+        t('clusters.nodeTable.messages.unknownError');
+      message.error(t('clusters.nodeTable.messages.kubeconfigTestError', { error: errorMessage }));
     }
   };
 
@@ -116,7 +122,7 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       }
 
       if (!kubeconfigToUse) {
-        message.error(t('clusters.messages.kubeconfigNotSpecified'));
+        message.error(t('clusters.nodeTable.messages.kubeconfigNotSpecified'));
         return;
       }
 
@@ -139,17 +145,19 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
           createForm.setFieldsValue({ nodes_text: nodesText });
         }
 
-        message.success(t('clusters.messages.nodesRetrieved', { count: nodesData.nodes.length }));
+        message.success(
+          t('clusters.nodeTable.messages.nodesRetrieved', { count: nodesData.nodes.length })
+        );
       } else {
-        message.error(t('clusters.messages.getNodesError'));
+        message.error(t('clusters.nodeTable.messages.getNodesError'));
       }
     } catch (error: unknown) {
       const errorMessage =
         (error as any).response?.data?.detail ||
         (error as any).response?.data?.error ||
         (error as Error).message ||
-        t('clusters.messages.unknownError');
-      message.error(t('clusters.messages.getNodesErrorDetail', { error: errorMessage }));
+        t('clusters.nodeTable.messages.unknownError');
+      message.error(t('clusters.nodeTable.messages.getNodesErrorDetail', { error: errorMessage }));
     }
   };
 

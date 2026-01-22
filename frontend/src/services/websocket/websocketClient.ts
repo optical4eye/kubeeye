@@ -33,7 +33,6 @@ export class WebSocketClient {
         this.ws = new WebSocket(fullUrl);
 
         this.ws.onopen = () => {
-          console.log('WebSocket connected');
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           resolve();
@@ -44,19 +43,17 @@ export class WebSocketClient {
             const message: MessageType = JSON.parse(event.data);
             this.messageHandlers.forEach(handler => handler(message));
           } catch (error) {
-            console.error('Failed to parse WebSocket message:', error);
+            // Failed to parse WebSocket message
           }
         };
 
         this.ws.onerror = error => {
-          console.error('WebSocket error:', error);
           this.errorHandlers.forEach(handler => handler(error));
           this.isConnecting = false;
           reject(error);
         };
 
         this.ws.onclose = event => {
-          console.log('WebSocket closed:', event.code, event.reason);
           this.closeHandlers.forEach(handler => handler(event));
           this.isConnecting = false;
 
@@ -74,9 +71,6 @@ export class WebSocketClient {
 
   private attemptReconnect(): void {
     this.reconnectAttempts++;
-    console.log(
-      `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
-    );
 
     setTimeout(() => {
       this.connect().catch(() => {
@@ -97,7 +91,7 @@ export class WebSocketClient {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(message);
     } else {
-      console.warn('WebSocket is not connected. Cannot send message.');
+      // WebSocket is not connected. Cannot send message.
     }
   }
 

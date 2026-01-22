@@ -1,7 +1,26 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, Descriptions, Statistic, Row, Col, Tabs, Table, Tooltip, Spin, Typography, Card, Progress } from 'antd';
-import { ExclamationCircleOutlined, WarningOutlined, InfoCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import {
+  Modal,
+  Button,
+  Descriptions,
+  Statistic,
+  Row,
+  Col,
+  Tabs,
+  Table,
+  Tooltip,
+  Spin,
+  Typography,
+  Card,
+  Progress,
+} from 'antd';
+import {
+  ExclamationCircleOutlined,
+  WarningOutlined,
+  InfoCircleOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
 import { getStatusTag, getSeverityTag } from '../ui/statusUtils';
 
 interface ReportDetail {
@@ -66,7 +85,7 @@ const groupItemsBySeverity = (items: any[]) => {
     passed: [],
   };
 
-  items.forEach((item) => {
+  items.forEach(item => {
     const severity = item.severity || 'info';
     const status = item.status || 'unknown';
 
@@ -116,127 +135,131 @@ const getSeverityColor = (severity: string) => {
   }
 };
 
-const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.memo(({ items, severity }) => {
-  const { t } = useTranslation();
-  const [filteredItems, setFilteredItems] = React.useState(items);
-  const [statusFilter, setStatusFilter] = React.useState<string | null>(null);
-  const [sortOrder, setSortOrder] = React.useState<'ascend' | 'descend' | null>(null);
-  const [sortField, setSortField] = React.useState<string | null>(null);
+const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.memo(
+  ({ items, severity }) => {
+    const { t } = useTranslation();
+    const [filteredItems, setFilteredItems] = React.useState(items);
+    const [statusFilter, setStatusFilter] = React.useState<string | null>(null);
+    const [sortOrder, setSortOrder] = React.useState<'ascend' | 'descend' | null>(null);
+    const [sortField, setSortField] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    let filtered = items;
+    React.useEffect(() => {
+      let filtered = items;
 
-    if (statusFilter) {
-      filtered = filtered.filter(item => item.status === statusFilter);
-    }
+      if (statusFilter) {
+        filtered = filtered.filter(item => item.status === statusFilter);
+      }
 
-    if (sortField && sortOrder) {
-      filtered = [...filtered].sort((a, b) => {
-        const aVal = a[sortField] || '';
-        const bVal = b[sortField] || '';
-        if (sortOrder === 'ascend') {
-          return aVal.localeCompare(bVal);
-        } else {
-          return bVal.localeCompare(aVal);
-        }
-      });
-    }
+      if (sortField && sortOrder) {
+        filtered = [...filtered].sort((a, b) => {
+          const aVal = a[sortField] || '';
+          const bVal = b[sortField] || '';
+          if (sortOrder === 'ascend') {
+            return aVal.localeCompare(bVal);
+          } else {
+            return bVal.localeCompare(aVal);
+          }
+        });
+      }
 
-    setFilteredItems(filtered);
-  }, [items, statusFilter, sortField, sortOrder]);
+      setFilteredItems(filtered);
+    }, [items, statusFilter, sortField, sortOrder]);
 
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-    setStatusFilter(filters.status ? filters.status[0] : null);
-    setSortField(sorter.field);
-    setSortOrder(sorter.order);
-  };
+    const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+      setStatusFilter(filters.status ? filters.status[0] : null);
+      setSortField(sorter.field);
+      setSortOrder(sorter.order);
+    };
 
-  const columns = [
-    {
-      title: t('reports.reportDetailsModal.table.checkName'),
-      dataIndex: 'name',
-      key: 'name',
-      sorter: true,
-      sortOrder: sortField === 'name' ? sortOrder : null,
-    },
-    {
-      title: t('reports.status'),
-      dataIndex: 'status',
-      key: 'status',
-      filters: [
-        { text: t('statistics.successful'), value: 'passed' },
-        { text: t('statistics.warning'), value: 'warning' },
-        { text: t('reports.reportDetailsModal.table.failed'), value: 'failed' },
-        { text: t('reports.reportDetailsModal.table.info'), value: 'info' },
-      ],
-      filteredValue: statusFilter ? [statusFilter] : null,
-      onFilter: (value: string, record: any) => record.status === value,
-      render: (status: string) => getStatusTag(status),
-    },
-    {
-      title: t('reports.reportDetailsModal.table.severity'),
-      dataIndex: 'severity',
-      key: 'severity',
-      render: (severity: string) => getSeverityTag(severity),
-      sorter: true,
-      sortOrder: sortField === 'severity' ? sortOrder : null,
-    },
-    {
-      title: t('reports.reportDetailsModal.table.description'),
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: {
-        showTitle: false,
+    const columns = [
+      {
+        title: t('reports.reportDetailsModal.table.checkName'),
+        dataIndex: 'name',
+        key: 'name',
+        sorter: true,
+        sortOrder: sortField === 'name' ? sortOrder : null,
       },
-      render: (text: string) => (
-        <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
-          <span style={{ cursor: 'pointer' }}>{text}</span>
-        </Tooltip>
-      ),
-    },
-    {
-      title: t('reports.reportDetailsModal.table.details'),
-      dataIndex: 'details',
-      key: 'details',
-      ellipsis: {
-        showTitle: false,
+      {
+        title: t('reports.status'),
+        dataIndex: 'status',
+        key: 'status',
+        filters: [
+          { text: t('statistics.successful'), value: 'passed' },
+          { text: t('statistics.warning'), value: 'warning' },
+          { text: t('reports.reportDetailsModal.table.failed'), value: 'failed' },
+          { text: t('reports.reportDetailsModal.table.info'), value: 'info' },
+        ],
+        filteredValue: statusFilter ? [statusFilter] : null,
+        onFilter: (value: string, record: any) => record.status === value,
+        render: (status: string) => getStatusTag(status),
       },
-      render: (text: string) => (
-        <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
-          <span style={{ cursor: 'pointer' }}>{text}</span>
-        </Tooltip>
-      ),
-    },
-    {
-      title: t('reports.reportDetailsModal.table.solution'),
-      dataIndex: 'solution',
-      key: 'solution',
-      ellipsis: {
-        showTitle: false,
+      {
+        title: t('reports.reportDetailsModal.table.severity'),
+        dataIndex: 'severity',
+        key: 'severity',
+        render: (severity: string) => getSeverityTag(severity),
+        sorter: true,
+        sortOrder: sortField === 'severity' ? sortOrder : null,
       },
-      render: (text: string) => (
-        <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
-          <span style={{ cursor: 'pointer' }}>{text}</span>
-        </Tooltip>
-      ),
-    },
-  ];
+      {
+        title: t('reports.reportDetailsModal.table.description'),
+        dataIndex: 'description',
+        key: 'description',
+        ellipsis: {
+          showTitle: false,
+        },
+        render: (text: string) => (
+          <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
+            <span style={{ cursor: 'pointer' }}>{text}</span>
+          </Tooltip>
+        ),
+      },
+      {
+        title: t('reports.reportDetailsModal.table.details'),
+        dataIndex: 'details',
+        key: 'details',
+        ellipsis: {
+          showTitle: false,
+        },
+        render: (text: string) => (
+          <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
+            <span style={{ cursor: 'pointer' }}>{text}</span>
+          </Tooltip>
+        ),
+      },
+      {
+        title: t('reports.reportDetailsModal.table.solution'),
+        dataIndex: 'solution',
+        key: 'solution',
+        ellipsis: {
+          showTitle: false,
+        },
+        render: (text: string) => (
+          <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
+            <span style={{ cursor: 'pointer' }}>{text}</span>
+          </Tooltip>
+        ),
+      },
+    ];
 
-  return (
-    <Table
-      columns={columns}
-      dataSource={filteredItems}
-      rowKey={(record, index) => index || 0}
-      pagination={{ pageSize: 20, showSizeChanger: true }}
-      size="small"
-      scroll={{ x: 'max-content' }}
-      style={{ width: '100%' }}
-      virtual={true}
-      onChange={handleTableChange}
-      aria-label={t('reports.reportDetailsModal.table.ariaLabel', { severity: severity || t('reports.reportDetailsModal.tabs.all') })}
-    />
-  );
-});
+    return (
+      <Table
+        columns={columns}
+        dataSource={filteredItems}
+        rowKey={(record, index) => index || 0}
+        pagination={{ pageSize: 20, showSizeChanger: true }}
+        size="small"
+        scroll={{ x: 'max-content' }}
+        style={{ width: '100%' }}
+        virtual={true}
+        onChange={handleTableChange}
+        aria-label={t('reports.reportDetailsModal.table.ariaLabel', {
+          severity: severity || t('reports.reportDetailsModal.tabs.all'),
+        })}
+      />
+    );
+  }
+);
 
 InspectionDetails.displayName = 'InspectionDetails';
 
@@ -250,177 +273,239 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
         onCancel={onClose}
         width="90vw"
         footer={[
-          <Button key="close" onClick={onClose} aria-label={t('reports.reportDetailsModal.closeAriaLabel')}>
+          <Button
+            key="close"
+            onClick={onClose}
+            aria-label={t('reports.reportDetailsModal.closeAriaLabel')}
+          >
             {t('reports.reportDetailsModal.close')}
           </Button>,
         ]}
       >
         {loading ? (
           <Spin size="large" />
-        ) : reportDetail && (
-          <div>
-            <Descriptions bordered column={2}>
-              <Descriptions.Item label={t('reports.reportDetailsModal.reportId')}>
-                <Typography.Text>{reportDetail.result_id}</Typography.Text>
-              </Descriptions.Item>
-              <Descriptions.Item label={t('reports.cluster')}>
-                <Typography.Text>{reportDetail.cluster_name}</Typography.Text>
-              </Descriptions.Item>
-              <Descriptions.Item label={t('reports.time')}>
-                <Typography.Text>{new Date(reportDetail.timestamp).toLocaleString()}</Typography.Text>
-              </Descriptions.Item>
-              <Descriptions.Item label={t('reports.type')}>
-                <Typography.Text>
-                  {reportDetail.inspection_type === 'immediate' ? t('reports.immediate') : t('reports.scheduled')}
-                </Typography.Text>
-              </Descriptions.Item>
-            </Descriptions>
+        ) : (
+          reportDetail && (
+            <div>
+              <Descriptions bordered column={2}>
+                <Descriptions.Item label={t('reports.reportDetailsModal.reportId')}>
+                  <Typography.Text>{reportDetail.result_id}</Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label={t('reports.cluster')}>
+                  <Typography.Text>{reportDetail.cluster_name}</Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label={t('reports.time')}>
+                  <Typography.Text>
+                    {new Date(reportDetail.timestamp).toLocaleString()}
+                  </Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label={t('reports.type')}>
+                  <Typography.Text>
+                    {reportDetail.inspection_type === 'immediate'
+                      ? t('reports.immediate')
+                      : t('reports.scheduled')}
+                  </Typography.Text>
+                </Descriptions.Item>
+              </Descriptions>
 
-            <Card title={t('reports.reportDetailsModal.statistics')} className="margin-top-space-4">
-              {(() => {
-                const total = (reportDetail.critical || 0) + (reportDetail.warning || 0) + (reportDetail.info || 0) + (reportDetail.passed || 0);
-                return (
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12} md={6}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <ExclamationCircleOutlined style={{ color: 'var(--ant-color-error)', fontSize: '20px' }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>{t('statistics.critical')}</span>
-                            <span>{reportDetail.critical || 0}</span>
-                          </div>
-                          <Progress
-                            percent={total > 0 ? Math.round(((reportDetail.critical || 0) / total) * 100) : 0}
-                            strokeColor="var(--ant-color-error)"
-                            size="small"
+              <Card
+                title={t('reports.reportDetailsModal.statistics')}
+                className="margin-top-space-4"
+              >
+                {(() => {
+                  const total =
+                    (reportDetail.critical || 0) +
+                    (reportDetail.warning || 0) +
+                    (reportDetail.info || 0) +
+                    (reportDetail.passed || 0);
+                  return (
+                    <Row gutter={16}>
+                      <Col xs={24} sm={12} md={6}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ExclamationCircleOutlined
+                            style={{ color: 'var(--ant-color-error)', fontSize: '20px' }}
                           />
-                        </div>
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12} md={6}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <WarningOutlined style={{ color: 'var(--ant-color-warning)', fontSize: '20px' }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>{t('statistics.warning')}</span>
-                            <span>{reportDetail.warning || 0}</span>
+                          <div style={{ flex: 1 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <span>{t('statistics.critical')}</span>
+                              <span>{reportDetail.critical || 0}</span>
+                            </div>
+                            <Progress
+                              percent={
+                                total > 0
+                                  ? Math.round(((reportDetail.critical || 0) / total) * 100)
+                                  : 0
+                              }
+                              strokeColor="var(--ant-color-error)"
+                              size="small"
+                            />
                           </div>
-                          <Progress
-                            percent={total > 0 ? Math.round(((reportDetail.warning || 0) / total) * 100) : 0}
-                            strokeColor="var(--ant-color-warning)"
-                            size="small"
-                          />
                         </div>
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12} md={6}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <InfoCircleOutlined style={{ color: 'var(--ant-color-info)', fontSize: '20px' }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>{t('statistics.other')}</span>
-                            <span>{reportDetail.info || 0}</span>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <WarningOutlined
+                            style={{ color: 'var(--ant-color-warning)', fontSize: '20px' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <span>{t('statistics.warning')}</span>
+                              <span>{reportDetail.warning || 0}</span>
+                            </div>
+                            <Progress
+                              percent={
+                                total > 0
+                                  ? Math.round(((reportDetail.warning || 0) / total) * 100)
+                                  : 0
+                              }
+                              strokeColor="var(--ant-color-warning)"
+                              size="small"
+                            />
                           </div>
-                          <Progress
-                            percent={total > 0 ? Math.round(((reportDetail.info || 0) / total) * 100) : 0}
-                            strokeColor="var(--ant-color-info)"
-                            size="small"
-                          />
                         </div>
-                      </div>
-                    </Col>
-                    <Col xs={24} sm={12} md={6}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CheckCircleOutlined style={{ color: 'var(--ant-color-success)', fontSize: '20px' }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>{t('statistics.successful')}</span>
-                            <span>{reportDetail.passed || 0}</span>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <InfoCircleOutlined
+                            style={{ color: 'var(--ant-color-info)', fontSize: '20px' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <span>{t('statistics.other')}</span>
+                              <span>{reportDetail.info || 0}</span>
+                            </div>
+                            <Progress
+                              percent={
+                                total > 0 ? Math.round(((reportDetail.info || 0) / total) * 100) : 0
+                              }
+                              strokeColor="var(--ant-color-info)"
+                              size="small"
+                            />
                           </div>
-                          <Progress
-                            percent={total > 0 ? Math.round(((reportDetail.passed || 0) / total) * 100) : 0}
-                            strokeColor="var(--ant-color-success)"
-                            size="small"
-                          />
                         </div>
-                      </div>
-                    </Col>
-                  </Row>
-                );
-              })()}
-            </Card>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <CheckCircleOutlined
+                            style={{ color: 'var(--ant-color-success)', fontSize: '20px' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <span>{t('statistics.successful')}</span>
+                              <span>{reportDetail.passed || 0}</span>
+                            </div>
+                            <Progress
+                              percent={
+                                total > 0
+                                  ? Math.round(((reportDetail.passed || 0) / total) * 100)
+                                  : 0
+                              }
+                              strokeColor="var(--ant-color-success)"
+                              size="small"
+                            />
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  );
+                })()}
+              </Card>
 
-            <div className="margin-top-space-6">
-              {(() => {
-                const allItems = getInspectionItems(reportDetail);
-                const groupedItems = groupItemsBySeverity(allItems);
+              <div className="margin-top-space-6">
+                {(() => {
+                  const allItems = getInspectionItems(reportDetail);
+                  const groupedItems = groupItemsBySeverity(allItems);
 
-                const tabItems = [
-                   {
-                     key: 'all',
-                     label: (
-                       <span>
-                         {t('reports.reportDetailsModal.tabs.all')}
-                         <span style={{ marginLeft: '8px' }}>{allItems.length}</span>
-                       </span>
-                     ),
-                     children: <InspectionDetails items={allItems} />,
-                   },
-                   {
-                     key: 'critical',
-                     label: (
-                       <span>
-                         {getSeverityIcon('critical')}
-                         <span style={{ marginLeft: '8px' }}>{t('statistics.critical')}</span>
-                         <span style={{ marginLeft: '8px' }}>{groupedItems.critical.length}</span>
-                       </span>
-                     ),
-                     children: <InspectionDetails items={groupedItems.critical} severity="critical" />,
-                   },
-                   {
-                     key: 'warning',
-                     label: (
-                       <span>
-                         {getSeverityIcon('warning')}
-                         <span style={{ marginLeft: '8px' }}>{t('statistics.warning')}</span>
-                         <span style={{ marginLeft: '8px' }}>{groupedItems.warning.length}</span>
-                       </span>
-                     ),
-                     children: <InspectionDetails items={groupedItems.warning} severity="warning" />,
-                   },
-                   {
-                     key: 'other',
-                     label: (
-                       <span>
-                         {getSeverityIcon('other')}
-                         <span style={{ marginLeft: '8px' }}>{t('statistics.other')}</span>
-                         <span style={{ marginLeft: '8px' }}>{groupedItems.other.length}</span>
-                       </span>
-                     ),
-                     children: <InspectionDetails items={groupedItems.other} severity="other" />,
-                   },
-                   {
-                     key: 'passed',
-                     label: (
-                       <span>
-                         {getSeverityIcon('passed')}
-                         <span style={{ marginLeft: '8px' }}>{t('statistics.successful')}</span>
-                         <span style={{ marginLeft: '8px' }}>{groupedItems.passed.length}</span>
-                       </span>
-                     ),
-                     children: <InspectionDetails items={groupedItems.passed} severity="passed" />,
-                   },
-                 ];
+                  const tabItems = [
+                    {
+                      key: 'all',
+                      label: (
+                        <span>
+                          {t('reports.reportDetailsModal.tabs.all')}
+                          <span style={{ marginLeft: '8px' }}>{allItems.length}</span>
+                        </span>
+                      ),
+                      children: <InspectionDetails items={allItems} />,
+                    },
+                    {
+                      key: 'critical',
+                      label: (
+                        <span>
+                          {getSeverityIcon('critical')}
+                          <span style={{ marginLeft: '8px' }}>{t('statistics.critical')}</span>
+                          <span style={{ marginLeft: '8px' }}>{groupedItems.critical.length}</span>
+                        </span>
+                      ),
+                      children: (
+                        <InspectionDetails items={groupedItems.critical} severity="critical" />
+                      ),
+                    },
+                    {
+                      key: 'warning',
+                      label: (
+                        <span>
+                          {getSeverityIcon('warning')}
+                          <span style={{ marginLeft: '8px' }}>{t('statistics.warning')}</span>
+                          <span style={{ marginLeft: '8px' }}>{groupedItems.warning.length}</span>
+                        </span>
+                      ),
+                      children: (
+                        <InspectionDetails items={groupedItems.warning} severity="warning" />
+                      ),
+                    },
+                    {
+                      key: 'other',
+                      label: (
+                        <span>
+                          {getSeverityIcon('other')}
+                          <span style={{ marginLeft: '8px' }}>{t('statistics.other')}</span>
+                          <span style={{ marginLeft: '8px' }}>{groupedItems.other.length}</span>
+                        </span>
+                      ),
+                      children: <InspectionDetails items={groupedItems.other} severity="other" />,
+                    },
+                    {
+                      key: 'passed',
+                      label: (
+                        <span>
+                          {getSeverityIcon('passed')}
+                          <span style={{ marginLeft: '8px' }}>{t('statistics.successful')}</span>
+                          <span style={{ marginLeft: '8px' }}>{groupedItems.passed.length}</span>
+                        </span>
+                      ),
+                      children: <InspectionDetails items={groupedItems.passed} severity="passed" />,
+                    },
+                  ];
 
-                return (
-                  <Tabs
-                    defaultActiveKey="all"
-                    items={tabItems}
-                  />
-                );
-              })()}
+                  return <Tabs defaultActiveKey="all" items={tabItems} />;
+                })()}
+              </div>
             </div>
-          </div>
+          )
         )}
       </Modal>
     );

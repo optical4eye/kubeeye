@@ -13,7 +13,13 @@ const ClusterList = ({
 }) => {
   const { t } = useTranslation();
   const clusterColumns = [
-    { title: t('clusters.clusterName'), dataIndex: 'name', key: 'name', width: 150, ellipsis: true },
+    {
+      title: t('clusters.clusterName'),
+      dataIndex: 'name',
+      key: 'name',
+      width: 150,
+      ellipsis: true,
+    },
     {
       title: t('clusters.nodes'),
       dataIndex: 'nodes',

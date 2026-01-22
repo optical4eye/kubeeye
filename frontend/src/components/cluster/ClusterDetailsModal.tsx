@@ -1,5 +1,17 @@
 import React from 'react';
-import { Modal, Button, Space, Select, Descriptions, Statistic, Row, Col, Typography, Card, Spin } from 'antd';
+import {
+  Modal,
+  Button,
+  Space,
+  Select,
+  Descriptions,
+  Statistic,
+  Row,
+  Col,
+  Typography,
+  Card,
+  Spin,
+} from 'antd';
 import { useTranslation } from 'react-i18next';
 import NodeTable from './NodeTable';
 import { Cluster, ClusterNode } from '../../types';
@@ -59,7 +71,9 @@ const ClusterDetailsModal: React.FC<ClusterDetailsModalProps> = ({
                 <Typography.Text>{cluster.nodes?.length || 0}</Typography.Text>
               </Descriptions.Item>
               <Descriptions.Item label={t('clusters.k8sVersion')}>
-                <Typography.Text>{cluster.k8s_version || t('clusters.notConfigured')}</Typography.Text>
+                <Typography.Text>
+                  {cluster.k8s_version || t('clusters.notConfigured')}
+                </Typography.Text>
               </Descriptions.Item>
             </Descriptions>
           </Card>
@@ -96,7 +110,11 @@ const ClusterDetailsModal: React.FC<ClusterDetailsModalProps> = ({
           <Card title={t('clusters.nodeManagement')}>
             <div style={{ marginBottom: '20px' }}>
               <Space wrap>
-                <Button onClick={onRefreshNodes} loading={nodesLoading} aria-label={t('clusters.refreshNodes')}>
+                <Button
+                  onClick={onRefreshNodes}
+                  loading={nodesLoading}
+                  aria-label={t('clusters.refreshNodes')}
+                >
                   {t('clusters.refreshNodes')}
                 </Button>
                 <Select

@@ -154,9 +154,7 @@ const Inspection = React.memo(() => {
   return (
     <div>
       <div className="page-title">{t('inspection.title')}</div>
-      <div className="page-subtitle">
-        {t('inspection.subtitle')}
-      </div>
+      <div className="page-subtitle">{t('inspection.subtitle')}</div>
 
       <Tabs defaultActiveKey="1">
         <TabPane tab={t('inspection.immediate')} key="1">

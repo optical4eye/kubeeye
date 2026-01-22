@@ -33,7 +33,7 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
       const response = await axios.get('/api/secrets');
       setSecrets(response.data.secrets || []);
     } catch (error) {
-      console.error('Failed to load secrets:', error);
+      // Failed to load secrets
     }
   };
 
@@ -81,14 +81,21 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
         form={form}
         layout="vertical"
         onFinish={onSubmit}
-        aria-label={isEditMode ? t('clusters.clusterForm.updateCluster') : t('clusters.clusterForm.createCluster')}
+        aria-label={
+          isEditMode
+            ? t('clusters.clusterForm.updateCluster')
+            : t('clusters.clusterForm.createCluster')
+        }
       >
         <Form.Item
           name="name"
           label={t('clusters.clusterForm.clusterName')}
           rules={[{ required: true, message: t('clusters.clusterForm.clusterNameRequired') }]}
         >
-          <Input placeholder={t('clusters.clusterForm.clusterNamePlaceholder')} aria-label={t('clusters.clusterForm.clusterName')} />
+          <Input
+            placeholder={t('clusters.clusterForm.clusterNamePlaceholder')}
+            aria-label={t('clusters.clusterForm.clusterName')}
+          />
         </Form.Item>
 
         <Form.Item
@@ -124,7 +131,11 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
             >
               {t('clusters.clusterForm.getNodesFromK8s')}
             </Button>
-            <Button className="action-button" onClick={onTestNodes} aria-label={t('clusters.clusterForm.testNodes')}>
+            <Button
+              className="action-button"
+              onClick={onTestNodes}
+              aria-label={t('clusters.clusterForm.testNodes')}
+            >
               {t('clusters.clusterForm.testNodes')}
             </Button>
           </Space>
@@ -140,7 +151,11 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
               </Tooltip>
             </Space>
           }
-          rules={isEditMode ? [] : [{ required: true, message: t('clusters.clusterForm.kubeconfigRequired') }]}
+          rules={
+            isEditMode
+              ? []
+              : [{ required: true, message: t('clusters.clusterForm.kubeconfigRequired') }]
+          }
         >
           <Input.TextArea
             rows={8}
@@ -174,9 +189,15 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
             className="action-button"
             type="primary"
             htmlType="submit"
-            aria-label={isEditMode ? t('clusters.clusterForm.updateCluster') : t('clusters.clusterForm.createCluster')}
+            aria-label={
+              isEditMode
+                ? t('clusters.clusterForm.updateCluster')
+                : t('clusters.clusterForm.createCluster')
+            }
           >
-            {isEditMode ? t('clusters.clusterForm.updateCluster') : t('clusters.clusterForm.createCluster')}
+            {isEditMode
+              ? t('clusters.clusterForm.updateCluster')
+              : t('clusters.clusterForm.createCluster')}
           </Button>
         </Form.Item>
       </Form>

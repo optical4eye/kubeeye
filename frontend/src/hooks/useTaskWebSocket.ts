@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { cancelInspectionTask } from '../services/api';
 import { WebSocketConnectionManager } from '../services/websocket/connectionManager';
 import { TaskMessage } from '../services/websocket/messageTypes';
@@ -20,6 +21,7 @@ export const useTaskWebSocket = (
   activeTasks: Task[],
   setActiveTasks: React.Dispatch<React.SetStateAction<Task[]>>
 ) => {
+  const { t } = useTranslation();
   const wsManagerRef = useRef<WebSocketConnectionManager | null>(null);
 
   // Initialize WebSocket connection
@@ -34,10 +36,10 @@ export const useTaskWebSocket = (
     wsManagerRef.current
       .connect()
       .then(() => {
-        console.log('WebSocket connected for task monitoring');
+        // WebSocket connected for task monitoring
       })
       .catch(error => {
-        console.error('WebSocket connection failed:', error);
+        // WebSocket connection failed
       });
 
     // Subscribe to task messages
@@ -93,7 +95,7 @@ export const useTaskWebSocket = (
   }, []);
 
   const showCompletionMessage = (task: Task) => {
-    message.success(`Задача ${task.task_id} завершена успешно. Отчет доступен в разделе "Отчеты"`);
+    message.success(t('tasks.taskCompleted', { taskId: task.task_id }));
 
     // Trigger a custom event to notify other components about the new report
     window.dispatchEvent(
@@ -107,12 +109,11 @@ export const useTaskWebSocket = (
   };
 
   const showErrorMessage = (task: Task, error?: string) => {
-    message.error(`Задача ${task.task_id} завершилась с ошибкой: ${error || task.error}`);
+    message.error(t('tasks.taskFailed', { taskId: task.task_id, error: error || task.error }));
   };
 
   const startTaskMonitoring = (taskId: string) => {
     // WebSocket is handling updates automatically
-    console.log(`Monitoring task ${taskId} via WebSocket`);
   };
 
   const handleCancelTask = async (taskId: string) => {
@@ -130,9 +131,9 @@ export const useTaskWebSocket = (
       setActiveTasks(prev =>
         prev.map(t => (t.task_id === taskId ? { ...t, status: 'cancelled' } : t))
       );
-      message.success('Задача отменена');
+      message.success(t('tasks.taskCancelled'));
     } catch {
-      message.error('Ошибка отмены задачи');
+      message.error(t('tasks.cancelTaskError'));
     }
   };
 

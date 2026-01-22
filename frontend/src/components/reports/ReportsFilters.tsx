@@ -50,7 +50,7 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = React.memo(
           <DatePicker.RangePicker
             placeholder={[t('reports.filters.startDate'), t('reports.filters.endDate')]}
             className="width-300"
-            onChange={(dates) => setFilters(prev => ({ ...prev, dateRange: dates }))}
+            onChange={dates => setFilters(prev => ({ ...prev, dateRange: dates }))}
             value={filters.dateRange}
             format="DD.MM.YYYY"
           />
