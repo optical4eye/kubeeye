@@ -6,7 +6,8 @@ WebSocket message models for real-time communication
 
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
+from api.version import VERSION
 
 
 class WebSocketMessage(BaseModel):
@@ -73,47 +74,69 @@ class InspectionFailedMessage(InspectionMessage):
     type: str = "inspection_failed"
 
 
+class SystemStatusMessage(WebSocketMessage):
+    """Message for system status updates"""
+
+    type: str = "system_status"
+    payload: Dict[str, Any]  # status, queue, clusters_count, version
+
+
 # Convenience functions for creating messages
 def create_task_scheduled_message(task_id: str, task_type: str) -> TaskScheduledMessage:
     """Create a task scheduled message"""
     return TaskScheduledMessage(
-        payload={"task_id": task_id, "task_type": task_type}, timestamp=datetime.utcnow().isoformat()
+        payload={"task_id": task_id, "task_type": task_type}, timestamp=datetime.now(timezone.utc).isoformat()
     )
 
 
 def create_task_started_message(task_id: str, task_type: str) -> TaskStartedMessage:
     """Create a task started message"""
     return TaskStartedMessage(
-        payload={"task_id": task_id, "task_type": task_type}, timestamp=datetime.utcnow().isoformat()
+        payload={"task_id": task_id, "task_type": task_type}, timestamp=datetime.now(timezone.utc).isoformat()
     )
 
 
 def create_task_completed_message(task_id: str, result: Any) -> TaskCompletedMessage:
     """Create a task completed message"""
-    return TaskCompletedMessage(payload={"task_id": task_id, "result": result}, timestamp=datetime.utcnow().isoformat())
+    return TaskCompletedMessage(payload={"task_id": task_id, "result": result}, timestamp=datetime.now(timezone.utc).isoformat())
 
 
 def create_task_failed_message(task_id: str, error: str) -> TaskFailedMessage:
     """Create a task failed message"""
-    return TaskFailedMessage(payload={"task_id": task_id, "error": error}, timestamp=datetime.utcnow().isoformat())
+    return TaskFailedMessage(payload={"task_id": task_id, "error": error}, timestamp=datetime.now(timezone.utc).isoformat())
 
 
 def create_inspection_started_message(cluster_name: str, config: Dict[str, Any]) -> InspectionStartedMessage:
     """Create an inspection started message"""
     return InspectionStartedMessage(
-        payload={"cluster_name": cluster_name, "config": config}, timestamp=datetime.utcnow().isoformat()
+        payload={"cluster_name": cluster_name, "config": config}, timestamp=datetime.now(timezone.utc).isoformat()
     )
 
 
 def create_inspection_completed_message(cluster_name: str, result: Dict[str, Any]) -> InspectionCompletedMessage:
     """Create an inspection completed message"""
     return InspectionCompletedMessage(
-        payload={"cluster_name": cluster_name, "result": result}, timestamp=datetime.utcnow().isoformat()
+        payload={"cluster_name": cluster_name, "result": result}, timestamp=datetime.now(timezone.utc).isoformat()
     )
 
 
 def create_inspection_failed_message(cluster_name: str, error: str) -> InspectionFailedMessage:
     """Create an inspection failed message"""
     return InspectionFailedMessage(
-        payload={"cluster_name": cluster_name, "error": error}, timestamp=datetime.utcnow().isoformat()
+        payload={"cluster_name": cluster_name, "error": error}, timestamp=datetime.now(timezone.utc).isoformat()
+    )
+
+
+def create_system_status_message(
+    status: str, queue: Dict[str, Any], clusters_count: Optional[int] = None, version: str = VERSION
+) -> SystemStatusMessage:
+    """Create a system status message"""
+    return SystemStatusMessage(
+        payload={
+            "status": status,
+            "queue": queue,
+            "clusters_count": clusters_count,
+            "version": version,
+        },
+        timestamp=datetime.now(timezone.utc).isoformat(),
     )

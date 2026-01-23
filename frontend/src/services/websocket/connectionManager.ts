@@ -1,7 +1,7 @@
 // WebSocket connection manager for managing subscriptions and message handling
 
 import { WebSocketClient } from './websocketClient';
-import { MessageType, TaskMessage, InspectionMessage } from './messageTypes';
+import { MessageType, TaskMessage, InspectionMessage, SystemStatusMessage } from './messageTypes';
 
 export type MessageHandler<T extends MessageType> = (message: T) => void;
 
@@ -9,11 +9,11 @@ export class WebSocketConnectionManager {
   private client: WebSocketClient;
   private taskHandlers: MessageHandler<TaskMessage>[] = [];
   private inspectionHandlers: MessageHandler<InspectionMessage>[] = [];
+  private systemStatusHandlers: MessageHandler<SystemStatusMessage>[] = [];
   private generalHandlers: MessageHandler<MessageType>[] = [];
 
-  constructor(baseUrl: string, clientId?: string) {
-    // Assuming the WebSocket endpoint is at /ws/tasks
-    const wsUrl = `${baseUrl}/ws/tasks`;
+  constructor(baseUrl: string, endpoint: string, clientId?: string) {
+    const wsUrl = `${baseUrl}${endpoint}`;
     this.client = new WebSocketClient(wsUrl, clientId);
 
     // Set up message routing
@@ -43,6 +43,8 @@ export class WebSocketConnectionManager {
       this.taskHandlers.forEach(handler => handler(message));
     } else if (this.isInspectionMessage(message)) {
       this.inspectionHandlers.forEach(handler => handler(message));
+    } else if (this.isSystemStatusMessage(message)) {
+      this.systemStatusHandlers.forEach(handler => handler(message));
     }
   }
 
@@ -56,6 +58,10 @@ export class WebSocketConnectionManager {
     return ['inspection_started', 'inspection_completed', 'inspection_failed'].includes(
       message.type
     );
+  }
+
+  private isSystemStatusMessage(message: MessageType): message is SystemStatusMessage {
+    return message.type === 'system_status';
   }
 
   // Subscription methods
@@ -75,6 +81,15 @@ export class WebSocketConnectionManager {
 
   unsubscribeFromInspections(handler: MessageHandler<InspectionMessage>): void {
     this.inspectionHandlers = this.inspectionHandlers.filter(h => h !== handler);
+  }
+
+  subscribeToSystemStatus(handler: MessageHandler<SystemStatusMessage>): () => void {
+    this.systemStatusHandlers.push(handler);
+    return () => this.unsubscribeFromSystemStatus(handler);
+  }
+
+  unsubscribeFromSystemStatus(handler: MessageHandler<SystemStatusMessage>): void {
+    this.systemStatusHandlers = this.systemStatusHandlers.filter(h => h !== handler);
   }
 
   subscribeToAll(handler: MessageHandler<MessageType>): () => void {

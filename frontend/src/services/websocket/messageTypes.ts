@@ -26,7 +26,22 @@ export interface InspectionMessage extends WebSocketMessage {
   };
 }
 
-export type MessageType = TaskMessage | InspectionMessage | WebSocketMessage;
+export interface SystemStatusMessage extends WebSocketMessage {
+  type: 'system_status';
+  payload: {
+    status: 'healthy' | 'unhealthy';
+    timestamp: string;
+    queue: {
+      running: boolean;
+      active_workers: number;
+      pending_tasks: number;
+    };
+    clusters_count?: number;
+    version: string;
+  };
+}
+
+export type MessageType = TaskMessage | InspectionMessage | SystemStatusMessage | WebSocketMessage;
 
 // Echo message for responses
 export interface EchoMessage extends WebSocketMessage {

@@ -18,7 +18,9 @@ from infra.websocket.message_models import (
     create_inspection_started_message,
     create_inspection_completed_message,
     create_inspection_failed_message,
+    create_system_status_message,
 )
+from api.version import VERSION
 
 logger = get_logger(__name__)
 
@@ -45,6 +47,7 @@ class EventType(Enum):
     TASK_STARTED = "task_started"
     TASK_COMPLETED = "task_completed"
     TASK_FAILED = "task_failed"
+    SYSTEM_STATUS = "system_status"
 
 
 @dataclass
@@ -252,6 +255,19 @@ async def handle_inspection_failed(event: Event):
         await websocket_manager.broadcast(message.dict())
 
 
+async def handle_system_status(event: Event):
+    """Handle system status event and broadcast via WebSocket"""
+    status = event.data.get("status")
+    queue = event.data.get("queue")
+    clusters_count = event.data.get("clusters_count")
+    version = event.data.get("version", VERSION)
+    if isinstance(status, str) and isinstance(queue, dict):
+        message = create_system_status_message(
+            status=status, queue=queue, clusters_count=clusters_count, version=version
+        )
+        await websocket_manager.broadcast(message.dict())
+
+
 # Global event bus instance
 event_bus = EventBus()
 
@@ -266,6 +282,7 @@ async def init_websocket_subscriptions():
     await event_bus.subscribe(EventType.INSPECTION_STARTED, handle_inspection_started)
     await event_bus.subscribe(EventType.INSPECTION_COMPLETED, handle_inspection_completed)
     await event_bus.subscribe(EventType.INSPECTION_FAILED, handle_inspection_failed)
+    await event_bus.subscribe(EventType.SYSTEM_STATUS, handle_system_status)
     logger.info("WebSocket event subscriptions initialized")
 
 

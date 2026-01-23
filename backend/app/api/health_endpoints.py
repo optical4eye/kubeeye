@@ -12,9 +12,7 @@ from fastapi import APIRouter, HTTPException
 
 # Local imports
 from core.logging import log_api_request, get_system_health, get_logger
-
-# Version definition (moved from main.py)
-VERSION = "3.3.0"
+from .version import VERSION
 
 router = APIRouter()
 

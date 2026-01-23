@@ -7,10 +7,11 @@ import {
   ConfigProvider,
   theme as antdTheme,
   Switch,
-  message,
+  message as antdMessage,
   Select,
 } from 'antd';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import {
   DashboardOutlined,
   ClusterOutlined,
@@ -24,12 +25,12 @@ import {
   MoonOutlined,
   AntDesignOutlined,
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
 import VersionDisplay from './components/ui/VersionDisplay';
 import LoadingScreen from './components/ui/LoadingScreen';
 import { useUIStore } from './stores/uiStore';
-import { getHealthStatus } from './services/api';
 import { getThemeConfig } from './theme/themeConfig';
+import { getHealthStatus } from './services/api';
+import { useSystemStatusWebSocket } from './hooks/useSystemStatusWebSocket';
 
 // Removed DB health check
 
@@ -55,7 +56,10 @@ function App() {
     i18n.changeLanguage(language);
   }, [language, i18n]);
 
-  // Check backend health continuously
+  // Use WebSocket for real-time system status
+  const { isReady, message, subMessage, isConnecting } = useSystemStatusWebSocket();
+
+  // Fallback to polling health check
   const { data: healthStatus, error: healthError } = useQuery({
     queryKey: ['backend-health'],
     queryFn: getHealthStatus,
@@ -69,7 +73,7 @@ function App() {
   const isBackendReady =
     !healthError &&
     (healthStatus?.data?.status === 'healthy' || healthStatus?.data?.status === 'ok');
-  const isSystemReady = isBackendReady;
+  const isSystemReady = isReady || isBackendReady; // Use WebSocket status if available, fallback to polling
 
   // Ensure minimum loading time for initial load
   useEffect(() => {
@@ -147,7 +151,7 @@ function App() {
     );
   };
 
-  const [, contextHolder] = message.useMessage();
+  const [, contextHolder] = antdMessage.useMessage();
 
   return (
     <ConfigProvider
@@ -162,9 +166,9 @@ function App() {
         if (!minLoadingTimePassed) {
           return (
             <LoadingScreen
-              message={t('loading.connecting')}
-              subMessage={t('loading.pleaseWait')}
-              isConnecting={true}
+              message={message || t('loading.connecting')}
+              subMessage={subMessage || t('loading.pleaseWait')}
+              isConnecting={isConnecting}
             />
           );
         }
@@ -173,9 +177,9 @@ function App() {
         if (!isSystemReady) {
           return (
             <LoadingScreen
-              message={t('loading.connectionProblem')}
-              subMessage={t('loading.restoringConnection')}
-              isConnecting={false}
+              message={message || t('loading.connectionProblem')}
+              subMessage={subMessage || t('loading.restoringConnection')}
+              isConnecting={!isReady}
             />
           );
         }

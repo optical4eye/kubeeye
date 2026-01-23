@@ -17,6 +17,7 @@
     "restoringConnection": "Восстановление соединения..."
   },
   "loadingScreen": {
+    "connecting": "Подключение...",
     "systemStarting": "Запуск системы",
     "pleaseWait": "Подождите...",
     "unavailable": "Недоступен",

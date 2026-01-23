@@ -31,7 +31,7 @@ export const useTaskWebSocket = (
     const host = window.location.host;
     const baseUrl = `${protocol}//${host}`;
 
-    wsManagerRef.current = new WebSocketConnectionManager(baseUrl);
+    wsManagerRef.current = new WebSocketConnectionManager(baseUrl, '/ws/tasks');
 
     wsManagerRef.current
       .connect()

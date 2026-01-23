@@ -57,20 +57,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ message, subMessage, isCo
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            width: '48px',
-            height: '48px',
-            border: '4px solid #434343',
-            borderTop: '4px solid white',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0.5rem 0',
-            position: 'relative',
-            left: '50%',
-            transform: 'translateX(-50%)',
-          }}
-        />
         <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>
           {message || defaultMessage}
         </h2>

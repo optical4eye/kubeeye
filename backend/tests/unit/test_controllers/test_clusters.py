@@ -28,7 +28,9 @@ class TestClustersController:
     @patch("services.cluster_service.get_cluster_cert_status")
     @patch("services.cluster_service.get_cluster")
     @patch("services.cluster_service.list_clusters")
-    async def test_get_clusters_success(self, mock_list_clusters, mock_get_cluster, mock_cert_status, mock_k8s_client_class):
+    async def test_get_clusters_success(
+        self, mock_list_clusters, mock_get_cluster, mock_cert_status, mock_k8s_client_class
+    ):
         """Test successful cluster listing"""
         logger.info("Starting test_get_clusters_success")
         # Mock cluster list

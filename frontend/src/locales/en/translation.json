@@ -17,6 +17,7 @@
     "restoringConnection": "Restoring connection..."
   },
   "loadingScreen": {
+    "connecting": "Connecting...",
     "systemStarting": "System starting",
     "pleaseWait": "Please wait...",
     "unavailable": "Unavailable",
