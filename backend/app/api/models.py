@@ -17,10 +17,33 @@ class ClusterCreate(BaseModel):
     """Model for creating a new cluster configuration"""
 
     name: Annotated[str, StringConstraints(min_length=1, max_length=100, strip_whitespace=True)] = Field(
-        ..., description="Unique name for cluster"
+        ..., description="Unique name for cluster", examples=["production-cluster"]
     )
-    nodes: List[Dict[str, Any]] = Field(..., description="List of cluster nodes with connection details")
-    kubeconfig: Optional[str] = Field(None, description="Base64 encoded kubeconfig content")
+    nodes: List[Dict[str, Any]] = Field(
+        ...,
+        description="List of cluster nodes with connection details",
+        examples=[
+            [
+                {
+                    "ip": "192.168.1.10",
+                    "port": 22,
+                    "auth": {"type": "password", "username": "kube", "password": "secret123"},
+                    "name": "master-node"
+                },
+                {
+                    "ip": "192.168.1.11",
+                    "port": 22,
+                    "auth": {"type": "key", "username": "kube", "key_path": "/path/to/key"},
+                    "name": "worker-node-1"
+                }
+            ]
+        ]
+    )
+    kubeconfig: Optional[str] = Field(
+        None,
+        description="Base64 encoded kubeconfig content",
+        examples=["LS0tLS1CRUdJTi..."]
+    )
 
     @field_validator("name")
     @classmethod
@@ -63,7 +86,24 @@ class ClusterCreate(BaseModel):
 class NodesTestRequest(BaseModel):
     """Model for testing node connectivity"""
 
-    nodes: List[Dict[str, Any]] = Field(..., description="List of nodes to test connectivity")
+    nodes: List[Dict[str, Any]] = Field(
+        ...,
+        description="List of nodes to test connectivity",
+        examples=[
+            [
+                {
+                    "ip": "192.168.1.10",
+                    "port": 22,
+                    "auth": {"type": "password", "username": "kube", "password": "secret123"}
+                },
+                {
+                    "ip": "192.168.1.11",
+                    "port": 22,
+                    "auth": {"type": "key", "username": "kube", "key_path": "/path/to/key"}
+                }
+            ]
+        ]
+    )
 
     @field_validator("nodes")
     @classmethod
@@ -87,24 +127,44 @@ class NodesTestRequest(BaseModel):
 class KubeconfigTestRequest(BaseModel):
     """Model for testing kubeconfig validity"""
 
-    kubeconfig: str = Field(..., description="Base64 encoded kubeconfig content to test")
+    kubeconfig: str = Field(
+        ...,
+        description="Base64 encoded kubeconfig content to test",
+        examples=["LS0tLS1CRUdJTi..."]
+    )
 
 
 class GetNodesFromKubeconfigRequest(BaseModel):
     """Model for getting nodes from kubeconfig"""
 
-    kubeconfig: str = Field(..., description="Base64 encoded kubeconfig content")
+    kubeconfig: str = Field(
+        ...,
+        description="Base64 encoded kubeconfig content",
+        examples=["LS0tLS1CRUdJTi..."]
+    )
 
 
 class InspectionRequest(BaseModel):
     """Model for requesting cluster inspection"""
 
     cluster_name: Annotated[str, StringConstraints(min_length=1, max_length=100, strip_whitespace=True)] = Field(
-        ..., description="Name of cluster to inspect"
+        ..., description="Name of cluster to inspect", examples=["production-cluster"]
     )
-    selected_rules: Optional[Dict[str, List[str]]] = Field(None, description="Rules to apply by type (node, opa)")
-    selected_tags: Optional[Dict[str, List[str]]] = Field(None, description="Tags to filter rules by type (node, opa)")
-    inspection_type: str = Field("immediate", description="Type of inspection: immediate or scheduled")
+    selected_rules: Optional[Dict[str, List[str]]] = Field(
+        None,
+        description="Rules to apply by type (node, opa)",
+        examples=[{"node": ["check_kernel_version", "check_disk_space"], "opa": ["check_pod_security"]}]
+    )
+    selected_tags: Optional[Dict[str, List[str]]] = Field(
+        None,
+        description="Tags to filter rules by type (node, opa)",
+        examples=[{"node": ["security", "performance"], "opa": ["compliance"]}]
+    )
+    inspection_type: str = Field(
+        "immediate",
+        description="Type of inspection: immediate or scheduled",
+        examples=["immediate"]
+    )
 
     @field_validator("cluster_name")
     @classmethod
@@ -123,20 +183,36 @@ class ScheduledTaskCreate(BaseModel):
     """Model for creating scheduled inspection tasks"""
 
     name: Annotated[str, StringConstraints(min_length=1, max_length=100, strip_whitespace=True)] = Field(
-        ..., description="Unique name for the scheduled task"
+        ..., description="Unique name for the scheduled task", examples=["daily-security-check"]
     )
     description: Annotated[str, StringConstraints(min_length=1, max_length=500, strip_whitespace=True)] = Field(
-        ..., description="Description of task"
+        ..., description="Description of task", examples=["Daily security inspection of production cluster"]
     )
     cluster: Annotated[str, StringConstraints(min_length=1, max_length=100, strip_whitespace=True)] = Field(
-        ..., description="Target cluster name"
+        ..., description="Target cluster name", examples=["production-cluster"]
     )
-    cron_expr: str = Field(..., description="Cron expression for scheduling")
-    rules: Dict[str, List[str]] = Field(..., description="Rules configuration for inspection")
-    tags: Optional[Dict[str, List[str]]] = Field(None, description="Tags to filter rules by type (node, opa)")
-    enabled: bool = Field(True, description="Whether task is enabled")
-    task_type: Optional[str] = Field(None, description="Type of scheduled task")
-    run_datetime: Optional[str] = Field(None, description="Specific datetime to run (alternative to cron)")
+    cron_expr: str = Field(
+        ...,
+        description="Cron expression for scheduling",
+        examples=["0 2 * * *"]
+    )
+    rules: Dict[str, List[str]] = Field(
+        ...,
+        description="Rules configuration for inspection",
+        examples=[{"node": ["check_kernel_version", "check_disk_space"], "opa": ["check_pod_security"]}]
+    )
+    tags: Optional[Dict[str, List[str]]] = Field(
+        None,
+        description="Tags to filter rules by type (node, opa)",
+        examples=[{"node": ["security"], "opa": ["compliance"]}]
+    )
+    enabled: bool = Field(True, description="Whether task is enabled", examples=[True])
+    task_type: Optional[str] = Field(None, description="Type of scheduled task", examples=["inspection"])
+    run_datetime: Optional[str] = Field(
+        None,
+        description="Specific datetime to run (alternative to cron)",
+        examples=["2024-01-15T14:30:00Z"]
+    )
 
     @field_validator("name")
     @classmethod
@@ -152,12 +228,25 @@ class ScheduledTaskCreate(BaseModel):
 
 
 class GitOpsConfig(BaseModel):
-    repository: Optional[Dict[str, Any]] = None
+    repository: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Git repository configuration",
+        examples=[{
+            "url": "https://github.com/user/kubeeye-rules.git",
+            "branch": "main",
+            "path": "rules",
+            "auth": {"type": "token", "token": "ghp_..."}
+        }]
+    )
 
 
 class RuleUpdate(BaseModel):
-    enabled: Optional[bool] = None
-    config: Optional[Dict[str, Any]] = None
+    enabled: Optional[bool] = Field(None, description="Whether the rule is enabled", examples=[True])
+    config: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Rule configuration parameters",
+        examples=[{"severity": "high", "timeout": 30}]
+    )
 
 
 # New models for queue management with validation
@@ -170,9 +259,17 @@ class QueueStatusRequest(BaseModel):
 class QueueTasksRequest(BaseModel):
     """Model for queue tasks request with validation"""
 
-    limit: int = Field(default=50, ge=1, le=1000, description="Maximum number of tasks to return (1-1000)")
+    limit: int = Field(
+        default=50,
+        ge=1,
+        le=1000,
+        description="Maximum number of tasks to return (1-1000)",
+        examples=[50]
+    )
     status_filter: Optional[str] = Field(
-        None, description="Filter tasks by status (pending, running, completed, failed)"
+        None,
+        description="Filter tasks by status (pending, running, completed, failed)",
+        examples=["pending"]
     )
 
     @field_validator("status_filter")
@@ -186,7 +283,7 @@ class TaskIdRequest(BaseModel):
     """Model for task ID requests with validation"""
 
     task_id: Annotated[str, StringConstraints(min_length=1, max_length=100, strip_whitespace=True)] = Field(
-        ..., description="Unique identifier for task"
+        ..., description="Unique identifier for task", examples=["task-12345"]
     )
 
     @field_validator("task_id")

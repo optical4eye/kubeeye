@@ -109,6 +109,8 @@ app = FastAPI(
     * **Scheduled Inspections**: Automate regular cluster assessments
     * **Report Generation**: Export inspection results in multiple formats (JSON, Excel, PDF)
     * **GitOps Integration**: Manage inspection rules through Git repositories
+    * **Real-time Monitoring**: WebSocket support for live inspection progress
+    * **Queue Management**: Asynchronous task processing with status tracking
 
     ## Security
 
@@ -117,14 +119,97 @@ app = FastAPI(
     ## Authentication
 
     Currently uses basic authentication. For production deployments, consider implementing proper authentication mechanisms.
+
+    ## API Endpoints
+
+    ### Core Endpoints
+    - `GET /` - API information and available endpoints
+    - `GET /api/info` - Detailed API information
+
+    ### Cluster Management
+    - `GET /api/dashboard` - Dashboard data
+    - `GET /api/clusters` - List all clusters
+    - `POST /api/clusters` - Create new cluster
+    - `GET /api/clusters/{cluster_name}` - Get cluster details
+    - `PUT /api/clusters/{cluster_name}` - Update cluster
+    - `DELETE /api/clusters/{cluster_name}` - Delete cluster
+    - `GET /api/clusters/{cluster_name}/nodes` - Get cluster nodes
+    - `GET /api/clusters/{cluster_name}/namespaces` - Get cluster namespaces
+    - `POST /api/clusters/{cluster_name}/test-nodes` - Test node connectivity
+    - `POST /api/clusters/{cluster_name}/test-kubeconfig` - Test kubeconfig validity
+
+    ### Inspections
+    - `POST /api/inspection` - Run immediate inspection
+    - `POST /api/inspection/async` - Run async inspection
+    - `GET /api/inspection/task/{task_id}` - Get inspection task status
+    - `DELETE /api/inspection/task/{task_id}` - Cancel inspection task
+
+    ### Reports
+    - `GET /api/reports` - List inspection reports
+    - `GET /api/reports/{report_id}` - Get specific report
+    - `DELETE /api/reports/{report_id}` - Delete report
+    - `GET /api/reports/{report_id}/export` - Export report in various formats
+
+    ### Scheduled Tasks
+    - `GET /api/scheduled-tasks` - List scheduled tasks
+    - `POST /api/scheduled-tasks` - Create scheduled task
+    - `GET /api/scheduled-tasks/{task_name}` - Get task details
+    - `PUT /api/scheduled-tasks/{task_name}` - Update task
+    - `DELETE /api/scheduled-tasks/{task_name}` - Delete task
+    - `POST /api/scheduled-tasks/{task_name}/run` - Run task immediately
+
+    ### Rules Management
+    - `GET /api/rules` - List available rules
+    - `GET /api/rules/{rule_type}` - Get rules by type
+    - `PUT /api/rules/{rule_type}/{rule_name}` - Update rule configuration
+
+    ### GitOps
+    - `GET /api/gitops/config` - Get GitOps configuration
+    - `POST /api/gitops/config` - Update GitOps configuration
+    - `POST /api/gitops/sync` - Sync rules from Git repository
+
+    ### Network Checks
+    - `POST /api/network-check` - Perform network connectivity checks
+
+    ### Report Cleanup
+    - `POST /api/cleanup/reports` - Clean up old reports
+
+    ### Secrets Management
+    - `GET /api/secrets` - List secrets
+    - `POST /api/secrets` - Create secret
+    - `GET /api/secrets/{secret_name}` - Get secret details
+    - `PUT /api/secrets/{secret_name}` - Update secret
+    - `DELETE /api/secrets/{secret_name}` - Delete secret
+
+    ### Health Checks
+    - `GET /api/health` - Overall health status
+    - `GET /api/health/db` - Database health
+    - `GET /api/health/db/monitor` - Database monitoring status
+    - `GET /api/health/db/recover` - Database recovery
+
+    ### Queue Management
+    - `GET /api/queue/status` - Queue status
+    - `GET /api/queue/tasks` - List queued tasks
+    - `DELETE /api/queue/tasks/{task_id}` - Cancel queued task
+
+    ### WebSocket
+    - `WebSocket /api/ws/{client_id}` - Real-time inspection progress
+
+    ## Documentation
+
+    - **Swagger UI**: `/docs`
+    - **ReDoc**: `/redoc`
+    - **OpenAPI JSON**: `/openapi.json`
     """,
     version=VERSION,
     contact={
         "name": "KubeEye Team",
         "url": "https://github.com/optical4eye/kubeeye",
+        "email": "support@kubeeye.io",
     },
     license_info={
         "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
     },
     docs_url="/docs",
     redoc_url="/redoc",

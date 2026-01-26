@@ -12,6 +12,28 @@ from infra.tasks.task_queue import submit_inspection_task, get_task_queue
 from core.common.unified_validation import validate_task_id
 from .models import InspectionRequest
 
+# Response models for better OpenAPI documentation
+class InspectionResponse(BaseModel):
+    """Response model for inspection results"""
+    message: str
+    results: Dict[str, Any]
+
+class AsyncInspectionResponse(BaseModel):
+    """Response model for async inspection submission"""
+    task_id: str
+    message: str
+    status: str
+
+class TaskStatusResponse(BaseModel):
+    """Response model for task status"""
+    task_id: str
+    status: str
+    progress: Optional[Dict[str, Any]] = None
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    created_at: str
+    updated_at: str
+
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -28,9 +50,30 @@ class AsyncInspectionRequest(BaseModel):
     use_gitops: bool = False
 
 
-@router.post("/inspection")
+@router.post(
+    "/inspection",
+    summary="Run immediate cluster inspection",
+    description="""
+    Execute a synchronous security inspection on the specified Kubernetes cluster.
+
+    This endpoint runs inspections immediately and returns results directly.
+    For large clusters or complex inspections, consider using the async endpoint.
+
+    **Supported inspection types:**
+    - Node-level security checks (SSH-based)
+    - OPA policy validation
+    - Popeye resource analysis
+
+    **Response includes:**
+    - Inspection results by inspector type
+    - Security findings and recommendations
+    - Compliance status
+    """,
+    response_model=InspectionResponse,
+    response_description="Inspection results with security findings and compliance status"
+)
 async def run_immediate_inspection(request: InspectionRequest, background_tasks: BackgroundTasks):
-    """Run inspection synchronously"""
+    """Run synchronous cluster inspection with comprehensive security analysis."""
     try:
         logger.info(f"Starting synchronous inspection for cluster: {request.cluster_name}")
 
@@ -76,9 +119,29 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
         raise HTTPException(status_code=500, detail=f"Inspection error: {str(e)}")
 
 
-@router.post("/inspection/async")
+@router.post(
+    "/inspection/async",
+    summary="Run asynchronous cluster inspection",
+    description="""
+    Submit a cluster inspection task to the background queue for asynchronous processing.
+
+    This endpoint is recommended for:
+    - Large clusters with many nodes
+    - Complex inspections with multiple rule types
+    - Scheduled or automated workflows
+
+    The task will be processed in the background and results can be retrieved using the task status endpoint.
+
+    **Returns:**
+    - Task ID for status tracking
+    - Initial status (pending)
+    """,
+    response_model=AsyncInspectionResponse,
+    response_description="Task submission confirmation with task ID",
+    status_code=202
+)
 async def run_async_inspection(request: AsyncInspectionRequest):
-    """Run inspection asynchronously using task queue"""
+    """Submit cluster inspection to background queue for asynchronous processing."""
     try:
         logger.info(f"Submitting async inspection task for cluster: {request.cluster_name}")
 
@@ -107,9 +170,29 @@ async def run_async_inspection(request: AsyncInspectionRequest):
         raise HTTPException(status_code=500, detail=f"Failed to submit task: {str(e)}")
 
 
-@router.get("/inspection/task/{task_id}")
+@router.get(
+    "/inspection/task/{task_id}",
+    summary="Get inspection task status",
+    description="""
+    Retrieve the current status and progress of an asynchronous inspection task.
+
+    **Status values:**
+    - `pending`: Task is queued and waiting to start
+    - `running`: Task is currently executing
+    - `completed`: Task finished successfully with results
+    - `failed`: Task encountered an error
+
+    **Response includes:**
+    - Current status and progress information
+    - Results when task is completed
+    - Error details if task failed
+    - Timestamps for task lifecycle
+    """,
+    response_model=TaskStatusResponse,
+    response_description="Current task status with progress and results if available"
+)
 async def get_inspection_task_status(task_id: str):
-    """Get status of async inspection task"""
+    """Get current status and progress of asynchronous inspection task."""
     try:
         # Validate task_id using centralized validation
         validated_task_id = validate_task_id(task_id)
@@ -130,9 +213,26 @@ async def get_inspection_task_status(task_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
 
 
-@router.delete("/inspection/task/{task_id}")
+@router.delete(
+    "/inspection/task/{task_id}",
+    summary="Cancel inspection task",
+    description="""
+    Cancel a running or pending asynchronous inspection task.
+
+    **Note:** Only pending or running tasks can be cancelled.
+    Completed or failed tasks cannot be cancelled.
+
+    **Response:** Confirmation message indicating successful cancellation.
+    """,
+    response_description="Task cancellation confirmation",
+    responses={
+        200: {"description": "Task cancelled successfully"},
+        400: {"description": "Task cannot be cancelled (already completed or running)"},
+        404: {"description": "Task not found"}
+    }
+)
 async def cancel_inspection_task(task_id: str):
-    """Cancel async inspection task"""
+    """Cancel a running or pending asynchronous inspection task."""
     try:
         # Validate task_id using centralized validation
         validated_task_id = validate_task_id(task_id)

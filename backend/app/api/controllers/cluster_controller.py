@@ -5,7 +5,7 @@ Cluster controller - API endpoints для работы с кластерами
 """
 
 from fastapi import APIRouter, Depends
-from typing import Optional
+from typing import Optional, Dict, Any, List
 
 from api.models import ClusterCreate, NodesTestRequest, KubeconfigTestRequest, GetNodesFromKubeconfigRequest
 from api.unified_middleware import api_error_handler, validate_cluster_name_decorator
@@ -25,204 +25,274 @@ def get_cluster_service() -> ClusterService:
     return ClusterService()
 
 
-@router.get("/dashboard")
+@router.get(
+    "/dashboard",
+    summary="Get dashboard data",
+    description="""
+    Retrieve aggregated data for the dashboard including:
+    - Total number of clusters
+    - Cluster health status
+    - Recent inspection results
+    - Scheduled tasks summary
+    """,
+    response_description="Dashboard data with cluster statistics and recent activity"
+)
 @api_error_handler
-async def get_dashboard(service: ClusterService = Depends(get_cluster_service)):
+async def get_dashboard(service: ClusterService = Depends(get_cluster_service)) -> Dict[str, Any]:
     """
-    Получить данные для дашборда
+    Get dashboard data with cluster statistics and recent activity.
 
     Returns:
-        Dict с данными дашборда
+        Dict containing dashboard metrics and summaries
     """
     return await service.get_dashboard_data()
 
 
-@router.get("/clusters")
+@router.get(
+    "/clusters",
+    summary="List all clusters",
+    description="Retrieve a list of all configured Kubernetes clusters with their basic information and status.",
+    response_description="List of clusters with metadata"
+)
 @api_error_handler
-async def get_clusters(service: ClusterService = Depends(get_cluster_service)):
+async def get_clusters(service: ClusterService = Depends(get_cluster_service)) -> Dict[str, Any]:
     """
-    Получить список кластеров
+    Get list of all configured clusters.
 
     Returns:
-        Dict со списком кластеров
+        Dict containing list of clusters with their details
     """
     return await service.get_clusters_list()
 
 
-@router.post("/clusters")
+@router.post(
+    "/clusters",
+    summary="Create new cluster",
+    description="""
+    Create a new Kubernetes cluster configuration.
+
+    The cluster can be configured with either:
+    - Node-based connection (SSH to individual nodes)
+    - Kubeconfig-based connection (standard Kubernetes config)
+
+    All node connections will be validated for security.
+    """,
+    response_description="Success message with cluster creation confirmation",
+    status_code=201
+)
 @api_error_handler
 async def create_cluster(
     cluster: ClusterCreate,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Создать новый кластер
+    Create a new cluster configuration.
 
     Args:
-        cluster: Данные для создания кластера
+        cluster: Cluster creation data including nodes and kubeconfig
 
     Returns:
-        Dict с сообщением об успехе
+        Dict with success message and cluster details
     """
     return await service.create_cluster(cluster.model_dump())
 
 
-@router.put("/clusters/{cluster_name}")
+@router.put(
+    "/clusters/{cluster_name}",
+    summary="Update cluster configuration",
+    description="Update an existing cluster's configuration including nodes and kubeconfig.",
+    response_description="Success message with update confirmation"
+)
 @api_error_handler
 @validate_cluster_name_decorator
 async def update_cluster(
     cluster_name: str,
     cluster: ClusterCreate,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Обновить кластер
+    Update cluster configuration.
 
     Args:
-        cluster_name: Имя кластера
-        cluster: Данные для обновления кластера
+        cluster_name: Name of the cluster to update
+        cluster: Updated cluster data
 
     Returns:
-        Dict с сообщением об успехе
+        Dict with success message
     """
     return await service.update_cluster(cluster_name, cluster.model_dump())
 
 
-@router.delete("/clusters/{cluster_name}")
+@router.delete(
+    "/clusters/{cluster_name}",
+    summary="Delete cluster",
+    description="Remove a cluster configuration and all associated data.",
+    response_description="Success message with deletion confirmation"
+)
 @api_error_handler
 @validate_cluster_name_decorator
 async def remove_cluster(
     cluster_name: str,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Удалить кластер
+    Delete a cluster configuration.
 
     Args:
-        cluster_name: Имя кластера
+        cluster_name: Name of the cluster to delete
 
     Returns:
-        Dict с сообщением об успехе
+        Dict with success message
     """
     return await service.delete_cluster(cluster_name)
 
 
-@router.get("/clusters/{cluster_name}")
+@router.get(
+    "/clusters/{cluster_name}",
+    summary="Get cluster details",
+    description="Retrieve detailed information about a specific cluster including nodes, status, and configuration.",
+    response_description="Detailed cluster information"
+)
 @api_error_handler
 @validate_cluster_name_decorator
 async def get_cluster_details(
     cluster_name: str,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Получить детали кластера
+    Get detailed cluster information.
 
     Args:
-        cluster_name: Имя кластера
+        cluster_name: Name of the cluster
 
     Returns:
-        Dict с деталями кластера
+        Dict with comprehensive cluster details
     """
     return await service.get_cluster_details(cluster_name)
 
 
-@router.get("/clusters/{cluster_name}/nodes")
+@router.get(
+    "/clusters/{cluster_name}/nodes",
+    summary="Get cluster nodes",
+    description="Retrieve information about all nodes in the Kubernetes cluster.",
+    response_description="List of cluster nodes with their status and specifications"
+)
 @api_error_handler
 @validate_cluster_name_decorator
 async def get_cluster_nodes(
     cluster_name: str,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Получить узлы кластера из Kubernetes
+    Get nodes information from Kubernetes cluster.
 
     Args:
-        cluster_name: Имя кластера
+        cluster_name: Name of the cluster
 
     Returns:
-        Dict с информацией об узлах
+        Dict with nodes information
     """
     return await service.get_cluster_nodes(cluster_name)
 
 
-@router.get("/clusters/{cluster_name}/namespaces")
+@router.get(
+    "/clusters/{cluster_name}/namespaces",
+    summary="Get cluster namespaces",
+    description="Retrieve all namespaces in the Kubernetes cluster.",
+    response_description="List of namespaces in the cluster"
+)
 @api_error_handler
 @validate_cluster_name_decorator
 async def get_cluster_namespaces(
     cluster_name: str,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Получить пространства имен кластера из Kubernetes
+    Get namespaces from Kubernetes cluster.
 
     Args:
-        cluster_name: Имя кластера
+        cluster_name: Name of the cluster
 
     Returns:
-        Dict с информацией о пространствах имен
+        Dict with namespaces information
     """
     return await service.get_cluster_namespaces(cluster_name)
 
 
-@router.post("/clusters/{cluster_name}/test-nodes")
+@router.post(
+    "/clusters/{cluster_name}/test-nodes",
+    summary="Test node connectivity",
+    description="Test SSH connectivity to all nodes in the cluster or specific nodes provided in the request.",
+    response_description="Connectivity test results for each node"
+)
 @api_error_handler
 @validate_cluster_name_decorator
 async def test_cluster_nodes(
     cluster_name: str,
     request: Optional[NodesTestRequest] = None,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Тестировать соединение со всеми узлами кластера
+    Test connectivity to cluster nodes.
 
     Args:
-        cluster_name: Имя кластера
-        request: Опциональный запрос с узлами для тестирования
+        cluster_name: Name of the cluster
+        request: Optional request with specific nodes to test
 
     Returns:
-        Dict с результатами тестирования
+        Dict with test results for each node
     """
     validated_cluster_name = validate_cluster_name(cluster_name)
     request_nodes = request.nodes if request else None
     return await service.test_cluster_nodes(validated_cluster_name, request_nodes)
 
 
-@router.post("/clusters/{cluster_name}/test-kubeconfig")
+@router.post(
+    "/clusters/{cluster_name}/test-kubeconfig",
+    summary="Test kubeconfig validity",
+    description="Validate the kubeconfig for the cluster and test connectivity to the Kubernetes API.",
+    response_description="Kubeconfig validation results"
+)
 @api_error_handler
 @validate_cluster_name_decorator
 async def test_cluster_kubeconfig(
     cluster_name: str,
     request: Optional[KubeconfigTestRequest] = None,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Тестировать валидность kubeconfig кластера
+    Test kubeconfig validity for the cluster.
 
     Args:
-        cluster_name: Имя кластера
-        request: Опциональный запрос с kubeconfig для тестирования
+        cluster_name: Name of the cluster
+        request: Optional request with kubeconfig to test
 
     Returns:
-        Dict с результатом теста
+        Dict with validation results
     """
     validated_cluster_name = validate_cluster_name(cluster_name)
     request_kubeconfig = request.kubeconfig if request else None
     return await service.test_cluster_kubeconfig(validated_cluster_name, request_kubeconfig)
 
 
-@router.post("/clusters/get-nodes-from-kubeconfig")
+@router.post(
+    "/clusters/get-nodes-from-kubeconfig",
+    summary="Extract nodes from kubeconfig",
+    description="Parse kubeconfig and extract node information for cluster setup.",
+    response_description="List of nodes extracted from kubeconfig"
+)
 @api_error_handler
 async def get_nodes_from_kubeconfig(
     request: GetNodesFromKubeconfigRequest,
     service: ClusterService = Depends(get_cluster_service),
-):
+) -> Dict[str, Any]:
     """
-    Получить список узлов из kubeconfig
+    Get nodes information from kubeconfig.
 
     Args:
-        request: Запрос с kubeconfig
+        request: Request containing kubeconfig
 
     Returns:
-        Dict с информацией об узлах
+        Dict with extracted nodes information
     """
     return await service.get_nodes_from_kubeconfig(request.kubeconfig)
