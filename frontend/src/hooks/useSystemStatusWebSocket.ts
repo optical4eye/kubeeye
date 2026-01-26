@@ -51,19 +51,33 @@ export const useSystemStatusWebSocket = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const baseUrl = `${protocol}//${host}`;
+    const wsUrl = `${baseUrl}/ws/system-status`;
+
+    console.log('WebSocket: Attempting to connect to:', wsUrl);
 
     wsManagerRef.current = new WebSocketConnectionManager(baseUrl, '/ws/system-status');
 
     wsManagerRef.current
       .connect()
       .then(() => {
+        console.log('WebSocket: Connected successfully to system status');
         // WebSocket connected for system status monitoring
         setSystemStatus(prev => ({ ...prev, isConnecting: false }));
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('WebSocket: Connection failed:', error);
         // WebSocket connection failed, fallback to connecting state
         setSystemStatus(prev => ({ ...prev, isConnecting: true }));
       });
+
+    // Add error and close handlers for logging
+    wsManagerRef.current.onError((error) => {
+      console.error('WebSocket: Error event:', error);
+    });
+
+    wsManagerRef.current.onClose((event) => {
+      console.log('WebSocket: Closed with code:', event.code, 'reason:', event.reason);
+    });
 
     // Subscribe to system status messages
     const unsubscribe = wsManagerRef.current.subscribeToSystemStatus(

@@ -30,14 +30,19 @@ class WebSocketManager:
             client_id: Optional client identifier
         """
         async with self.connection_lock:
+            logger.debug(f"Attempting to accept WebSocket connection. Current connections: {len(self.active_connections)}")
             if len(self.active_connections) >= self.max_connections:
-                await websocket.close(code=1008)  # Policy violation
                 logger.warning(f"Connection rejected: max connections ({self.max_connections}) reached")
+                await websocket.close(code=1008)  # Policy violation
                 return
 
-            await websocket.accept()
-            self.active_connections.append(websocket)
-            logger.info(f"WebSocket connection established. Total connections: {len(self.active_connections)}")
+            try:
+                await websocket.accept()
+                self.active_connections.append(websocket)
+                logger.info(f"WebSocket connection established. Client: {client_id}, Total connections: {len(self.active_connections)}")
+            except Exception as e:
+                logger.error(f"Failed to accept WebSocket connection: {e}")
+                raise
 
     async def disconnect(self, websocket: WebSocket):
         """
@@ -60,9 +65,15 @@ class WebSocketManager:
             websocket: Target WebSocket connection
         """
         try:
-            await websocket.send_text(json.dumps(message))
+            logger.debug(f"Sending personal message to websocket: {type(message)}")
+            json_message = json.dumps(message)
+            logger.debug(f"JSON message length: {len(json_message)}")
+            await websocket.send_text(json_message)
+            logger.debug("Successfully sent personal message")
         except Exception as e:
             logger.error(f"Failed to send personal message: {e}")
+            import traceback
+            logger.error(f"Send message traceback: {traceback.format_exc()}")
             # Remove broken connection
             await self.disconnect(websocket)
 

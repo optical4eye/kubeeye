@@ -152,6 +152,17 @@ class AsyncTaskQueue:
             return True
         return False
 
+    async def get_status(self) -> Dict[str, Any]:
+        """Get queue status"""
+        running_tasks = sum(1 for task in self.tasks.values() if task.status == TaskStatus.RUNNING)
+        pending_tasks = sum(1 for task in self.tasks.values() if task.status == TaskStatus.PENDING)
+
+        return {
+            "running": self.running,
+            "active_workers": running_tasks,
+            "pending_tasks": pending_tasks,
+        }
+
     async def _worker_loop(self, worker_id: int):
         """Worker loop for processing tasks"""
         logger.info(f"Worker {worker_id} started")
