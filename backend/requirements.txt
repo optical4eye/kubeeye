@@ -26,5 +26,5 @@ httpx>=0.28.1  # Modern async HTTP client
 # Database dependencies
 asyncpg>=0.31.0  # Async PostgreSQL driver
 psycopg2-binary>=2.9.11  # Synchronous PostgreSQL driver (legacy)
-SQLAlchemy>=2.0.45  # Async ORM with eager loading support
+sqlalchemy[asyncio]>=2.1.0b1  # Async ORM with eager loading support
 cachetools>=6.2.4  # Thread-safe caching with TTL

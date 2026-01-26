@@ -66,9 +66,11 @@ export const useSystemStatusWebSocket = () => {
       });
 
     // Subscribe to system status messages
-    const unsubscribe = wsManagerRef.current.subscribeToSystemStatus((message: SystemStatusMessage) => {
-      handleSystemStatusMessage(message);
-    });
+    const unsubscribe = wsManagerRef.current.subscribeToSystemStatus(
+      (message: SystemStatusMessage) => {
+        handleSystemStatusMessage(message);
+      }
+    );
 
     return () => {
       unsubscribe();

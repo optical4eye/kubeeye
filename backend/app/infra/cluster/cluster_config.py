@@ -96,10 +96,6 @@ class ClusterConfig:
         # Create a copy of node information
         node_copy = node_info.copy()
 
-        # Ensure password is stored in plain text
-        if node_copy.get("auth_type") == "password" and node_copy.get("password"):
-            node_copy["password_encrypted"] = False
-
         # Update node information
         for i, node in enumerate(self.config["nodes"]):
             if node["ip"] == node_info["ip"]:
@@ -193,13 +189,6 @@ class ClusterConfig:
                         if "ssh_key" in resolved_node and resolved_node["ssh_key"] is not None:
                             resolved_node["ssh_key"] = str(resolved_node["ssh_key"])
 
-                        # Explicitly remove password encryption flag
-                        if resolved_node.get("password_encrypted"):
-                            logger.info(
-                                f"Password for node {resolved_node.get('ip')} is marked as encrypted, but will be used in plain text"
-                            )
-                            resolved_node["password_encrypted"] = False
-
                         nodes.append(resolved_node)
                 finally:
                     await db.close()
@@ -207,9 +196,6 @@ class ClusterConfig:
             # Return nodes without parsing secrets (for UI display)
             for node in self.config["nodes"]:
                 node_copy = node.copy()
-                # Explicitly remove password encryption flag
-                if node_copy.get("password_encrypted"):
-                    node_copy["password_encrypted"] = False
                 nodes.append(node_copy)
 
         return nodes

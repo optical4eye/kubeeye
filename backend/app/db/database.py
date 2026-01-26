@@ -130,7 +130,6 @@ async def close_database():
 
 # Backward compatibility aliases
 AsyncConnectionMonitor = DatabaseMonitor
-AsyncTransactionManager = DatabaseTransactionManager
 
 
 def get_async_monitor() -> DatabaseMonitor:
@@ -198,7 +197,6 @@ __all__ = [
     "DatabaseConnectionManager",
     "DatabaseMonitor",
     "DatabaseTransactionManager",
-    "AsyncTransactionManager",
     "AsyncConnectionMonitor",
     "get_async_monitor",
     "start_connection_monitoring",

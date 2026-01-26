@@ -74,7 +74,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             status="error"
             title={t('errorBoundary.title')}
             subTitle={t('errorBoundary.subtitle')}
-
             extra={
               <>
                 <Button

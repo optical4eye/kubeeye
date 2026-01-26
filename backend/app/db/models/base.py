@@ -6,7 +6,12 @@ Base model with common fields
 
 from sqlalchemy import Column, Integer, DateTime
 from sqlalchemy.sql import func
-from db.database import Base
+from sqlalchemy.orm import DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    """Registry-based declarative base"""
+    pass
 
 
 class BaseModel(Base):

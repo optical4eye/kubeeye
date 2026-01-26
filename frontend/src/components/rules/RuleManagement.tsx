@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Table, Button, Select, Input, Space, Tag, Alert, message, Tooltip } from 'antd';
+import {
+  Card,
+  Tabs,
+  Table,
+  Button,
+  Select,
+  Input,
+  Space,
+  Tag,
+  Alert,
+  message,
+  Tooltip,
+} from 'antd';
 const { Option } = Select;
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';

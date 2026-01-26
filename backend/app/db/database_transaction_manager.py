@@ -7,8 +7,7 @@ Database transaction manager - handles async database transactions
 from typing import AsyncGenerator, Any
 from contextlib import asynccontextmanager
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncTransaction
 
 from core.logging import get_logger
 
@@ -16,71 +15,53 @@ logger = get_logger(__name__)
 
 
 class DatabaseTransactionManager:
-    """Extended manager for async database transactions"""
+    """Extended manager for async database transactions with nested support"""
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        self._nested_level = 0
-        self._savepoints = []
+        self._transactions: list[AsyncTransaction] = []
 
     async def __aenter__(self):
-        if self._nested_level == 0:
-            # Start transaction
-            await self.session.begin()
+        if not self._transactions:
+            # Start root transaction
+            tx = await self.session.begin()
         else:
-            # Create savepoint for nested transaction
-            savepoint_name = f"sp_{self._nested_level}"
-            await self.session.execute(text(f"SAVEPOINT {savepoint_name}"))
-            self._savepoints.append(savepoint_name)
-        self._nested_level += 1
+            # Start nested transaction (savepoint)
+            tx = await self._transactions[-1].begin_nested()
+        self._transactions.append(tx)
+        await tx.__aenter__()
         return self.session
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        self._nested_level -= 1
-
-        if exc_type:
-            if self._nested_level == 0:
-                # Rollback main transaction
-                await self.session.rollback()
-                logger.error(f"Transaction failed: {exc_val}")
-            else:
-                # Rollback to savepoint for nested transaction
-                savepoint_name = self._savepoints.pop()
-                await self.session.execute(text(f"ROLLBACK TO SAVEPOINT {savepoint_name}"))
-                logger.warning(f"Nested transaction failed, rolled back to savepoint: {exc_val}")
-        else:
-            if self._nested_level == 0:
-                # Commit main transaction
-                await self.session.commit()
-            # For nested transactions, don't commit yet - let outer transaction handle it
+        if self._transactions:
+            tx = self._transactions.pop()
+            await tx.__aexit__(exc_type, exc_val, exc_tb)
 
     async def commit(self):
-        """Manually commit the transaction"""
-        if self._nested_level == 1:
-            await self.session.commit()
-        else:
-            raise RuntimeError("Cannot manually commit nested transaction")
+        """Manually commit the current transaction level"""
+        if not self._transactions:
+            raise RuntimeError("No active transaction to commit")
+        tx = self._transactions[-1]
+        await tx.commit()
+        self._transactions.pop()
 
     async def rollback(self):
-        """Manually rollback the transaction"""
-        if self._nested_level == 1:
-            await self.session.rollback()
-        else:
-            raise RuntimeError("Cannot manually rollback nested transaction")
+        """Manually rollback the current transaction level"""
+        if not self._transactions:
+            raise RuntimeError("No active transaction to rollback")
+        tx = self._transactions[-1]
+        await tx.rollback()
+        self._transactions.pop()
 
     @property
     def is_active(self) -> bool:
         """Check if transaction is active"""
-        return self._nested_level > 0
+        return bool(self._transactions)
 
     @property
     def nesting_level(self) -> int:
         """Get current nesting level"""
-        return self._nested_level
-
-
-# Backward compatibility alias
-AsyncTransactionManager = DatabaseTransactionManager
+        return len(self._transactions)
 
 
 @asynccontextmanager

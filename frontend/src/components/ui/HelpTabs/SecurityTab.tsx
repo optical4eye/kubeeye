@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, Row, Col, Typography, Divider } from 'antd';
 import { SAFE_COMMANDS } from './constants';
+import CodeHighlighter from '../CodeHighlighter';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -8,13 +9,12 @@ const CommandList = ({ title, commands, description }) => (
   <>
     <Title level={4}>{title}</Title>
     {description && <Paragraph>{description}</Paragraph>}
-    <ul>
-      {commands.map((item, index) => (
-        <li key={index}>
-          <Text strong>{item.category}:</Text> <code>{item.commands}</code>
-        </li>
-      ))}
-    </ul>
+    {commands.map((item, index) => (
+      <div key={index} style={{ marginBottom: '16px' }}>
+        <Text strong>{item.category}:</Text>
+        <CodeHighlighter code={item.commands} language="bash" />
+      </div>
+    ))}
   </>
 );
 
@@ -67,9 +67,11 @@ const SecurityTab = () => {
           />
 
           <Paragraph>
-            <Text strong>Пример безопасного правила:</Text> Используйте команды вроде{' '}
-            <code>{`df -h / | tail -1 | awk '{print $5}' | sed 's/%//'`}</code> для проверки
-            использования диска, которая только читает данные без каких-либо изменений.
+            <Text strong>Пример безопасного правила:</Text> Используйте команды вроде:
+          </Paragraph>
+          <CodeHighlighter code={`df -h / | tail -1 | awk '{print $5}' | sed 's/%//'`} language="bash" />
+          <Paragraph>
+            для проверки использования диска, которая только читает данные без каких-либо изменений.
           </Paragraph>
         </Card>
       </Col>

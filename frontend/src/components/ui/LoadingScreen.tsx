@@ -9,14 +9,29 @@ interface LoadingScreenProps {
   isConnecting?: boolean;
 }
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ message, subMessage, isConnecting = false }) => {
+const LoadingScreen: React.FC<LoadingScreenProps> = ({
+  message,
+  subMessage,
+  isConnecting = false,
+}) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const statusInfo = isConnecting
     ? {
         status: 'processing' as const,
         text: t('loadingScreen.connecting'),
-        icon: <div style={{ width: '16px', height: '16px', border: '2px solid #1890ff', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />,
+        icon: (
+          <div
+            style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid #1890ff',
+              borderTop: '2px solid transparent',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          />
+        ),
         color: '#1890ff',
       }
     : {
