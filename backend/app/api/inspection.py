@@ -12,20 +12,26 @@ from infra.tasks.task_queue import submit_inspection_task, get_task_queue
 from core.common.unified_validation import validate_task_id
 from .models import InspectionRequest
 
+
 # Response models for better OpenAPI documentation
 class InspectionResponse(BaseModel):
     """Response model for inspection results"""
+
     message: str
     results: Dict[str, Any]
 
+
 class AsyncInspectionResponse(BaseModel):
     """Response model for async inspection submission"""
+
     task_id: str
     message: str
     status: str
 
+
 class TaskStatusResponse(BaseModel):
     """Response model for task status"""
+
     task_id: str
     status: str
     progress: Optional[Dict[str, Any]] = None
@@ -33,6 +39,7 @@ class TaskStatusResponse(BaseModel):
     error: Optional[str] = None
     created_at: str
     updated_at: str
+
 
 from core.logging import get_logger
 
@@ -70,7 +77,7 @@ class AsyncInspectionRequest(BaseModel):
     - Compliance status
     """,
     response_model=InspectionResponse,
-    response_description="Inspection results with security findings and compliance status"
+    response_description="Inspection results with security findings and compliance status",
 )
 async def run_immediate_inspection(request: InspectionRequest, background_tasks: BackgroundTasks):
     """Run synchronous cluster inspection with comprehensive security analysis."""
@@ -138,7 +145,7 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
     """,
     response_model=AsyncInspectionResponse,
     response_description="Task submission confirmation with task ID",
-    status_code=202
+    status_code=202,
 )
 async def run_async_inspection(request: AsyncInspectionRequest):
     """Submit cluster inspection to background queue for asynchronous processing."""
@@ -189,7 +196,7 @@ async def run_async_inspection(request: AsyncInspectionRequest):
     - Timestamps for task lifecycle
     """,
     response_model=TaskStatusResponse,
-    response_description="Current task status with progress and results if available"
+    response_description="Current task status with progress and results if available",
 )
 async def get_inspection_task_status(task_id: str):
     """Get current status and progress of asynchronous inspection task."""
@@ -228,8 +235,8 @@ async def get_inspection_task_status(task_id: str):
     responses={
         200: {"description": "Task cancelled successfully"},
         400: {"description": "Task cannot be cancelled (already completed or running)"},
-        404: {"description": "Task not found"}
-    }
+        404: {"description": "Task not found"},
+    },
 )
 async def cancel_inspection_task(task_id: str):
     """Cancel a running or pending asynchronous inspection task."""

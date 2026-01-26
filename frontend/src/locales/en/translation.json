@@ -597,5 +597,19 @@
     "messageLabel": "Message:",
     "stackLabel": "Stack:",
     "componentLabel": "Component:"
+  },
+  "websocket": {
+    "connected": "Connected",
+    "connecting": "Connecting",
+    "disconnected": "Disconnected",
+    "error": "Connection Error",
+    "unknown": "Unknown",
+    "connectedTooltip": "WebSocket connection is active",
+    "connectingTooltip": "Establishing WebSocket connection...",
+    "disconnectedTooltip": "WebSocket connection lost",
+    "errorTooltip": "WebSocket connection failed",
+    "unknownTooltip": "Connection status unknown",
+    "reconnect": "Reconnect",
+    "fallbackToPolling": "WebSocket unavailable, using polling for updates"
   }
 }

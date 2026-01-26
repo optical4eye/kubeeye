@@ -597,5 +597,19 @@
     "messageLabel": "Сообщение:",
     "stackLabel": "Стек:",
     "componentLabel": "Компонент:"
+  },
+  "websocket": {
+    "connected": "Подключено",
+    "connecting": "Подключение",
+    "disconnected": "Отключено",
+    "error": "Ошибка подключения",
+    "unknown": "Неизвестно",
+    "connectedTooltip": "WebSocket соединение активно",
+    "connectingTooltip": "Устанавливается WebSocket соединение...",
+    "disconnectedTooltip": "WebSocket соединение потеряно",
+    "errorTooltip": "Ошибка WebSocket соединения",
+    "unknownTooltip": "Статус соединения неизвестен",
+    "reconnect": "Переподключить",
+    "fallbackToPolling": "WebSocket недоступен, используется опрос для обновлений"
   }
 }

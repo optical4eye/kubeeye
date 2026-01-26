@@ -5,7 +5,7 @@ Cluster controller - API endpoints для работы с кластерами
 """
 
 from fastapi import APIRouter, Depends
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 from api.models import ClusterCreate, NodesTestRequest, KubeconfigTestRequest, GetNodesFromKubeconfigRequest
 from api.unified_middleware import api_error_handler, validate_cluster_name_decorator
@@ -35,7 +35,7 @@ def get_cluster_service() -> ClusterService:
     - Recent inspection results
     - Scheduled tasks summary
     """,
-    response_description="Dashboard data with cluster statistics and recent activity"
+    response_description="Dashboard data with cluster statistics and recent activity",
 )
 @api_error_handler
 async def get_dashboard(service: ClusterService = Depends(get_cluster_service)) -> Dict[str, Any]:
@@ -52,7 +52,7 @@ async def get_dashboard(service: ClusterService = Depends(get_cluster_service)) 
     "/clusters",
     summary="List all clusters",
     description="Retrieve a list of all configured Kubernetes clusters with their basic information and status.",
-    response_description="List of clusters with metadata"
+    response_description="List of clusters with metadata",
 )
 @api_error_handler
 async def get_clusters(service: ClusterService = Depends(get_cluster_service)) -> Dict[str, Any]:
@@ -78,7 +78,7 @@ async def get_clusters(service: ClusterService = Depends(get_cluster_service)) -
     All node connections will be validated for security.
     """,
     response_description="Success message with cluster creation confirmation",
-    status_code=201
+    status_code=201,
 )
 @api_error_handler
 async def create_cluster(
@@ -101,7 +101,7 @@ async def create_cluster(
     "/clusters/{cluster_name}",
     summary="Update cluster configuration",
     description="Update an existing cluster's configuration including nodes and kubeconfig.",
-    response_description="Success message with update confirmation"
+    response_description="Success message with update confirmation",
 )
 @api_error_handler
 @validate_cluster_name_decorator
@@ -127,7 +127,7 @@ async def update_cluster(
     "/clusters/{cluster_name}",
     summary="Delete cluster",
     description="Remove a cluster configuration and all associated data.",
-    response_description="Success message with deletion confirmation"
+    response_description="Success message with deletion confirmation",
 )
 @api_error_handler
 @validate_cluster_name_decorator
@@ -151,7 +151,7 @@ async def remove_cluster(
     "/clusters/{cluster_name}",
     summary="Get cluster details",
     description="Retrieve detailed information about a specific cluster including nodes, status, and configuration.",
-    response_description="Detailed cluster information"
+    response_description="Detailed cluster information",
 )
 @api_error_handler
 @validate_cluster_name_decorator
@@ -175,7 +175,7 @@ async def get_cluster_details(
     "/clusters/{cluster_name}/nodes",
     summary="Get cluster nodes",
     description="Retrieve information about all nodes in the Kubernetes cluster.",
-    response_description="List of cluster nodes with their status and specifications"
+    response_description="List of cluster nodes with their status and specifications",
 )
 @api_error_handler
 @validate_cluster_name_decorator
@@ -199,7 +199,7 @@ async def get_cluster_nodes(
     "/clusters/{cluster_name}/namespaces",
     summary="Get cluster namespaces",
     description="Retrieve all namespaces in the Kubernetes cluster.",
-    response_description="List of namespaces in the cluster"
+    response_description="List of namespaces in the cluster",
 )
 @api_error_handler
 @validate_cluster_name_decorator
@@ -223,7 +223,7 @@ async def get_cluster_namespaces(
     "/clusters/{cluster_name}/test-nodes",
     summary="Test node connectivity",
     description="Test SSH connectivity to all nodes in the cluster or specific nodes provided in the request.",
-    response_description="Connectivity test results for each node"
+    response_description="Connectivity test results for each node",
 )
 @api_error_handler
 @validate_cluster_name_decorator
@@ -251,7 +251,7 @@ async def test_cluster_nodes(
     "/clusters/{cluster_name}/test-kubeconfig",
     summary="Test kubeconfig validity",
     description="Validate the kubeconfig for the cluster and test connectivity to the Kubernetes API.",
-    response_description="Kubeconfig validation results"
+    response_description="Kubeconfig validation results",
 )
 @api_error_handler
 @validate_cluster_name_decorator
@@ -279,7 +279,7 @@ async def test_cluster_kubeconfig(
     "/clusters/get-nodes-from-kubeconfig",
     summary="Extract nodes from kubeconfig",
     description="Parse kubeconfig and extract node information for cluster setup.",
-    response_description="List of nodes extracted from kubeconfig"
+    response_description="List of nodes extracted from kubeconfig",
 )
 @api_error_handler
 async def get_nodes_from_kubeconfig(

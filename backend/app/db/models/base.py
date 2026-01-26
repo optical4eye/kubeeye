@@ -11,6 +11,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 class Base(DeclarativeBase):
     """Registry-based declarative base"""
+
     pass
 
 

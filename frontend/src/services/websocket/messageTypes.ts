@@ -4,6 +4,7 @@ export interface WebSocketMessage {
   type: string;
   payload: Record<string, any>;
   timestamp: string; // ISO string
+  target?: string[];
 }
 
 export interface TaskMessage extends WebSocketMessage {
@@ -41,7 +42,7 @@ export interface SystemStatusMessage extends WebSocketMessage {
   };
 }
 
-export type MessageType = TaskMessage | InspectionMessage | SystemStatusMessage | WebSocketMessage;
+export type MessageType = TaskMessage | InspectionMessage | SystemStatusMessage | PingMessage | PongMessage | WebSocketMessage;
 
 // Echo message for responses
 export interface EchoMessage extends WebSocketMessage {
@@ -49,4 +50,16 @@ export interface EchoMessage extends WebSocketMessage {
   payload: {
     message: string;
   };
+}
+
+// Ping message for keep-alive
+export interface PingMessage extends WebSocketMessage {
+  type: 'ping';
+  payload: Record<string, any>; // Can be empty or contain timestamp
+}
+
+// Pong message for keep-alive response
+export interface PongMessage extends WebSocketMessage {
+  type: 'pong';
+  payload: Record<string, any>; // Can be empty or contain timestamp
 }

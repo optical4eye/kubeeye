@@ -12,9 +12,8 @@ export class WebSocketConnectionManager {
   private systemStatusHandlers: MessageHandler<SystemStatusMessage>[] = [];
   private generalHandlers: MessageHandler<MessageType>[] = [];
 
-  constructor(baseUrl: string, endpoint: string, clientId?: string) {
-    const wsUrl = `${baseUrl}${endpoint}`;
-    this.client = new WebSocketClient(wsUrl, clientId);
+  constructor(url: string, clientId?: string) {
+    this.client = new WebSocketClient(url, clientId);
 
     // Set up message routing
     this.client.onMessage(message => {
@@ -22,8 +21,11 @@ export class WebSocketConnectionManager {
     });
   }
 
-  async connect(): Promise<void> {
+  async connect(targets?: string[]): Promise<void> {
     await this.client.connect();
+    if (targets && targets.length > 0) {
+      this.subscribeToTargets(targets);
+    }
   }
 
   disconnect(): void {
@@ -101,6 +103,16 @@ export class WebSocketConnectionManager {
     this.generalHandlers = this.generalHandlers.filter(h => h !== handler);
   }
 
+  // Subscribe to targets
+  subscribeToTargets(targets: string[]): void {
+    const subscribeMessage = {
+      type: 'subscribe',
+      payload: { targets },
+      timestamp: new Date().toISOString(),
+    };
+    this.client.sendJson(subscribeMessage);
+  }
+
   // Send messages to server
   sendMessage(message: string): void {
     this.client.send(message);
@@ -111,11 +123,13 @@ export class WebSocketConnectionManager {
   }
 
   // Event handlers
-  onError(handler: (error: Event) => void): void {
+  onError(handler: (error: Event) => void): () => void {
     this.client.onError(handler);
+    return () => this.client.offError(handler);
   }
 
-  onClose(handler: (event: CloseEvent) => void): void {
+  onClose(handler: (event: CloseEvent) => void): () => void {
     this.client.onClose(handler);
+    return () => this.client.offClose(handler);
   }
 }

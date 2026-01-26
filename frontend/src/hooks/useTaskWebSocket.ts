@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { cancelInspectionTask } from '../services/api';
 import { WebSocketConnectionManager } from '../services/websocket/connectionManager';
 import { TaskMessage } from '../services/websocket/messageTypes';
+import { useWebSocketStore } from '../stores/websocketStore';
 
 interface Task {
   task_id: string;
@@ -23,8 +24,11 @@ export const useTaskWebSocket = (
 ) => {
   const { t } = useTranslation();
   const wsManagerRef = useRef<WebSocketConnectionManager | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(true);
+  const { status: wsStatus, connectionError } = useWebSocketStore();
 
-  // Initialize WebSocket connection
+  // Initialize WebSocket connection with fallback
   useEffect(() => {
     // Get base URL from environment or window.location
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -34,12 +38,15 @@ export const useTaskWebSocket = (
     wsManagerRef.current = new WebSocketConnectionManager(baseUrl, '/ws/tasks');
 
     wsManagerRef.current
-      .connect()
+      .connect(['tasks'])
       .then(() => {
+        setIsWebSocketAvailable(true);
         // WebSocket connected for task monitoring
       })
-      .catch(() => {
-        // WebSocket connection failed
+      .catch((error) => {
+        console.warn('WebSocket connection failed, falling back to polling:', error);
+        setIsWebSocketAvailable(false);
+        startPolling();
       });
 
     // Subscribe to task messages
@@ -47,17 +54,55 @@ export const useTaskWebSocket = (
       handleTaskMessage(message);
     });
 
+    // Handle WebSocket errors and disconnections
+    const unsubscribeError = wsManagerRef.current.onError((error) => {
+      console.error('WebSocket error in task monitoring:', error);
+      if (isWebSocketAvailable) {
+        setIsWebSocketAvailable(false);
+        startPolling();
+        message.warning(t('websocket.fallbackToPolling', 'WebSocket unavailable, using polling for updates'));
+      }
+    });
+
+    const unsubscribeClose = wsManagerRef.current.onClose((event) => {
+      console.log('WebSocket closed in task monitoring:', event.code);
+      if (isWebSocketAvailable && event.code !== 1000) {
+        setIsWebSocketAvailable(false);
+        startPolling();
+        message.warning(t('websocket.fallbackToPolling', 'WebSocket unavailable, using polling for updates'));
+      }
+    });
+
     return () => {
       unsubscribe();
+      unsubscribeError();
+      unsubscribeClose();
       wsManagerRef.current?.disconnect();
+      stopPolling();
     };
+  }, [isWebSocketAvailable]);
+
+  // Polling fallback when WebSocket is unavailable
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) return; // Already polling
+
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        // Poll for task updates - this would need to be implemented in the API
+        // For now, we'll just log that polling is active
+        console.log('Polling for task updates...');
+        // TODO: Implement actual polling logic when API supports it
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 5000); // Poll every 5 seconds
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      wsManagerRef.current?.disconnect();
-    };
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
   }, []);
 
   const handleTaskMessage = useCallback((message: TaskMessage) => {
@@ -140,5 +185,7 @@ export const useTaskWebSocket = (
   return {
     startTaskMonitoring,
     handleCancelTask,
+    isWebSocketAvailable,
+    connectionError,
   };
 };

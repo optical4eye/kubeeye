@@ -11,7 +11,6 @@ import {
   Select,
 } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import {
   DashboardOutlined,
   ClusterOutlined,
@@ -27,9 +26,9 @@ import {
 } from '@ant-design/icons';
 import VersionDisplay from './components/ui/VersionDisplay';
 import LoadingScreen from './components/ui/LoadingScreen';
+import { WebSocketStatusIndicator } from './components/ui';
 import { useUIStore } from './stores/uiStore';
 import { getThemeConfig } from './theme/themeConfig';
-import { getHealthStatus } from './services/api';
 import { useSystemStatusWebSocket } from './hooks/useSystemStatusWebSocket';
 
 // Removed DB health check
@@ -59,21 +58,8 @@ function App() {
   // Use WebSocket for real-time system status
   const { isReady, message, subMessage, isConnecting } = useSystemStatusWebSocket();
 
-  // Fallback to polling health check
-  const { data: healthStatus, error: healthError } = useQuery({
-    queryKey: ['backend-health'],
-    queryFn: getHealthStatus,
-    refetchInterval: 5000, // Continuously poll every 5 seconds
-    retry: false, // Disable retry to immediately set error state
-    staleTime: 2000,
-    refetchOnWindowFocus: false, // Rarely changing data
-  });
-
   // Show loading screen if backend is not ready
-  const isBackendReady =
-    !healthError &&
-    (healthStatus?.data?.status === 'healthy' || healthStatus?.data?.status === 'ok');
-  const isSystemReady = isReady || isBackendReady; // Use WebSocket status if available, fallback to polling
+  const isSystemReady = isReady; // Use only WebSocket status
 
   // Ensure minimum loading time for initial load
   useEffect(() => {
@@ -193,23 +179,25 @@ function App() {
                   <Header className="header-bg">
                     <div className="header-content">
                       <div className="header-title">{t('header.title')}</div>
-                      <Switch
-                        checked={theme === 'dark'}
-                        onChange={checked => setTheme(checked ? 'dark' : 'light')}
-                        checkedChildren={<SunOutlined />}
-                        unCheckedChildren={<MoonOutlined />}
-                        style={{ marginLeft: 'auto' }}
-                      />
-                      <Select
-                        value={language}
-                        onChange={value => setLanguage(value)}
-                        options={[
-                          { value: 'ru', label: 'RU' },
-                          { value: 'en', label: 'EN' },
-                        ]}
-                        style={{ width: 60, marginLeft: 10 }}
-                        size="small"
-                      />
+                      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <WebSocketStatusIndicator />
+                        <Switch
+                          checked={theme === 'dark'}
+                          onChange={checked => setTheme(checked ? 'dark' : 'light')}
+                          checkedChildren={<SunOutlined />}
+                          unCheckedChildren={<MoonOutlined />}
+                        />
+                        <Select
+                          value={language}
+                          onChange={value => setLanguage(value)}
+                          options={[
+                            { value: 'ru', label: 'RU' },
+                            { value: 'en', label: 'EN' },
+                          ]}
+                          style={{ width: 60 }}
+                          size="small"
+                        />
+                      </div>
                     </div>
                   </Header>
                   <Content className="content-area">

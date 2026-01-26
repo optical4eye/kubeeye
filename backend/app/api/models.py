@@ -28,21 +28,19 @@ class ClusterCreate(BaseModel):
                     "ip": "192.168.1.10",
                     "port": 22,
                     "auth": {"type": "password", "username": "kube", "password": "secret123"},
-                    "name": "master-node"
+                    "name": "master-node",
                 },
                 {
                     "ip": "192.168.1.11",
                     "port": 22,
                     "auth": {"type": "key", "username": "kube", "key_path": "/path/to/key"},
-                    "name": "worker-node-1"
-                }
+                    "name": "worker-node-1",
+                },
             ]
-        ]
+        ],
     )
     kubeconfig: Optional[str] = Field(
-        None,
-        description="Base64 encoded kubeconfig content",
-        examples=["LS0tLS1CRUdJTi..."]
+        None, description="Base64 encoded kubeconfig content", examples=["LS0tLS1CRUdJTi..."]
     )
 
     @field_validator("name")
@@ -94,15 +92,15 @@ class NodesTestRequest(BaseModel):
                 {
                     "ip": "192.168.1.10",
                     "port": 22,
-                    "auth": {"type": "password", "username": "kube", "password": "secret123"}
+                    "auth": {"type": "password", "username": "kube", "password": "secret123"},
                 },
                 {
                     "ip": "192.168.1.11",
                     "port": 22,
-                    "auth": {"type": "key", "username": "kube", "key_path": "/path/to/key"}
-                }
+                    "auth": {"type": "key", "username": "kube", "key_path": "/path/to/key"},
+                },
             ]
-        ]
+        ],
     )
 
     @field_validator("nodes")
@@ -128,20 +126,14 @@ class KubeconfigTestRequest(BaseModel):
     """Model for testing kubeconfig validity"""
 
     kubeconfig: str = Field(
-        ...,
-        description="Base64 encoded kubeconfig content to test",
-        examples=["LS0tLS1CRUdJTi..."]
+        ..., description="Base64 encoded kubeconfig content to test", examples=["LS0tLS1CRUdJTi..."]
     )
 
 
 class GetNodesFromKubeconfigRequest(BaseModel):
     """Model for getting nodes from kubeconfig"""
 
-    kubeconfig: str = Field(
-        ...,
-        description="Base64 encoded kubeconfig content",
-        examples=["LS0tLS1CRUdJTi..."]
-    )
+    kubeconfig: str = Field(..., description="Base64 encoded kubeconfig content", examples=["LS0tLS1CRUdJTi..."])
 
 
 class InspectionRequest(BaseModel):
@@ -153,17 +145,15 @@ class InspectionRequest(BaseModel):
     selected_rules: Optional[Dict[str, List[str]]] = Field(
         None,
         description="Rules to apply by type (node, opa)",
-        examples=[{"node": ["check_kernel_version", "check_disk_space"], "opa": ["check_pod_security"]}]
+        examples=[{"node": ["check_kernel_version", "check_disk_space"], "opa": ["check_pod_security"]}],
     )
     selected_tags: Optional[Dict[str, List[str]]] = Field(
         None,
         description="Tags to filter rules by type (node, opa)",
-        examples=[{"node": ["security", "performance"], "opa": ["compliance"]}]
+        examples=[{"node": ["security", "performance"], "opa": ["compliance"]}],
     )
     inspection_type: str = Field(
-        "immediate",
-        description="Type of inspection: immediate or scheduled",
-        examples=["immediate"]
+        "immediate", description="Type of inspection: immediate or scheduled", examples=["immediate"]
     )
 
     @field_validator("cluster_name")
@@ -191,27 +181,21 @@ class ScheduledTaskCreate(BaseModel):
     cluster: Annotated[str, StringConstraints(min_length=1, max_length=100, strip_whitespace=True)] = Field(
         ..., description="Target cluster name", examples=["production-cluster"]
     )
-    cron_expr: str = Field(
-        ...,
-        description="Cron expression for scheduling",
-        examples=["0 2 * * *"]
-    )
+    cron_expr: str = Field(..., description="Cron expression for scheduling", examples=["0 2 * * *"])
     rules: Dict[str, List[str]] = Field(
         ...,
         description="Rules configuration for inspection",
-        examples=[{"node": ["check_kernel_version", "check_disk_space"], "opa": ["check_pod_security"]}]
+        examples=[{"node": ["check_kernel_version", "check_disk_space"], "opa": ["check_pod_security"]}],
     )
     tags: Optional[Dict[str, List[str]]] = Field(
         None,
         description="Tags to filter rules by type (node, opa)",
-        examples=[{"node": ["security"], "opa": ["compliance"]}]
+        examples=[{"node": ["security"], "opa": ["compliance"]}],
     )
     enabled: bool = Field(True, description="Whether task is enabled", examples=[True])
     task_type: Optional[str] = Field(None, description="Type of scheduled task", examples=["inspection"])
     run_datetime: Optional[str] = Field(
-        None,
-        description="Specific datetime to run (alternative to cron)",
-        examples=["2024-01-15T14:30:00Z"]
+        None, description="Specific datetime to run (alternative to cron)", examples=["2024-01-15T14:30:00Z"]
     )
 
     @field_validator("name")
@@ -231,21 +215,21 @@ class GitOpsConfig(BaseModel):
     repository: Optional[Dict[str, Any]] = Field(
         None,
         description="Git repository configuration",
-        examples=[{
-            "url": "https://github.com/user/kubeeye-rules.git",
-            "branch": "main",
-            "path": "rules",
-            "auth": {"type": "token", "token": "ghp_..."}
-        }]
+        examples=[
+            {
+                "url": "https://github.com/user/kubeeye-rules.git",
+                "branch": "main",
+                "path": "rules",
+                "auth": {"type": "token", "token": "ghp_..."},
+            }
+        ],
     )
 
 
 class RuleUpdate(BaseModel):
     enabled: Optional[bool] = Field(None, description="Whether the rule is enabled", examples=[True])
     config: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Rule configuration parameters",
-        examples=[{"severity": "high", "timeout": 30}]
+        None, description="Rule configuration parameters", examples=[{"severity": "high", "timeout": 30}]
     )
 
 
@@ -260,16 +244,10 @@ class QueueTasksRequest(BaseModel):
     """Model for queue tasks request with validation"""
 
     limit: int = Field(
-        default=50,
-        ge=1,
-        le=1000,
-        description="Maximum number of tasks to return (1-1000)",
-        examples=[50]
+        default=50, ge=1, le=1000, description="Maximum number of tasks to return (1-1000)", examples=[50]
     )
     status_filter: Optional[str] = Field(
-        None,
-        description="Filter tasks by status (pending, running, completed, failed)",
-        examples=["pending"]
+        None, description="Filter tasks by status (pending, running, completed, failed)", examples=["pending"]
     )
 
     @field_validator("status_filter")
