@@ -89,16 +89,21 @@ export class WebSocketClient {
     this.reconnectAttempts++;
 
     // Exponential backoff with jitter
-    const exponentialDelay = Math.min(this.baseDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxDelay);
+    const exponentialDelay = Math.min(
+      this.baseDelay * Math.pow(2, this.reconnectAttempts - 1),
+      this.maxDelay
+    );
     const jitter = Math.random() * this.jitterMax;
     const delay = exponentialDelay + jitter;
 
     setTimeout(() => {
-      this.connect().then(() => {
-        this.reconnectSuccessHandlers.forEach(handler => handler());
-      }).catch(() => {
-        // Reconnect failed, will try again if attempts remain
-      });
+      this.connect()
+        .then(() => {
+          this.reconnectSuccessHandlers.forEach(handler => handler());
+        })
+        .catch(() => {
+          // Reconnect failed, will try again if attempts remain
+        });
     }, delay);
   }
 
@@ -163,15 +168,10 @@ export class WebSocketClient {
   }
 
   isConnected(): boolean {
-
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
-
   }
 
   getReadyState(): number | undefined {
-
     return this.ws?.readyState;
-
   }
-
 }

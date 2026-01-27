@@ -50,7 +50,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
   connectionManager: null,
 
   connect: async (baseUrl: string, clientId?: string) => {
-    const { connectionManager, isConnecting, status } = get();
+    const { isConnecting, status } = get();
 
     if (isConnecting || status === 'connected') {
       return;
@@ -60,7 +60,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       status: 'connecting',
       isConnecting: true,
       connectionError: null,
-      reconnectAttempts: 0
+      reconnectAttempts: 0,
     });
 
     try {
@@ -81,7 +81,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           status: 'error',
           connectionError: 'WebSocket connection error',
           isConnected: false,
-          isConnecting: false
+          isConnecting: false,
         });
       });
 
@@ -90,13 +90,13 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         set({
           status: 'disconnected',
           isConnected: false,
-          isConnecting: false
+          isConnecting: false,
         });
         if (event.code !== 1000) {
           // Not a clean disconnect
           set({
             status: 'error',
-            connectionError: `Connection closed: ${event.reason || 'Unknown reason'}`
+            connectionError: `Connection closed: ${event.reason || 'Unknown reason'}`,
           });
         }
       });
@@ -110,7 +110,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         isConnecting: false,
         connectionError: null,
         lastConnectionTime: new Date(),
-        reconnectAttempts: 0
+        reconnectAttempts: 0,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to connect';
@@ -118,7 +118,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         status: 'error',
         isConnecting: false,
         connectionError: errorMessage,
-        reconnectAttempts: get().reconnectAttempts + 1
+        reconnectAttempts: get().reconnectAttempts + 1,
       });
       throw error;
     }

@@ -178,7 +178,14 @@ function App() {
                   <Header className="header-bg">
                     <div className="header-content">
                       <div className="header-title">{t('header.title')}</div>
-                      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div
+                        style={{
+                          marginLeft: 'auto',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '16px',
+                        }}
+                      >
                         <Switch
                           checked={theme === 'dark'}
                           onChange={checked => setTheme(checked ? 'dark' : 'light')}

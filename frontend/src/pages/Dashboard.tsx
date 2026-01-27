@@ -9,9 +9,7 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  const {
-    data: dashboardData,
-  } = useQuery({
+  const { data: dashboardData } = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
     staleTime: 2 * 60 * 1000, // 2 minutes for dashboard

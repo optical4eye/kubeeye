@@ -42,7 +42,13 @@ export interface SystemStatusMessage extends WebSocketMessage {
   };
 }
 
-export type MessageType = TaskMessage | InspectionMessage | SystemStatusMessage | PingMessage | PongMessage | WebSocketMessage;
+export type MessageType =
+  | TaskMessage
+  | InspectionMessage
+  | SystemStatusMessage
+  | PingMessage
+  | PongMessage
+  | WebSocketMessage;
 
 // Echo message for responses
 export interface EchoMessage extends WebSocketMessage {

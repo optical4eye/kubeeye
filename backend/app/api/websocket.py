@@ -83,15 +83,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: Optional[str] = No
                         )
             except json.JSONDecodeError:
                 logger.warning(f"Invalid JSON received from client {client_id}: {data}")
-                await websocket_manager.send_personal_message(
-                    {"type": "error", "message": "Invalid JSON"}, websocket
-                )
+                await websocket_manager.send_personal_message({"type": "error", "message": "Invalid JSON"}, websocket)
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket connection closed. Client: {client_id}")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         import traceback
+
         logger.error(f"Traceback: {traceback.format_exc()}")
     finally:
         # Cancel tasks

@@ -24,7 +24,7 @@ export const useTaskWebSocket = (
 ) => {
   const { t } = useTranslation();
   const wsManagerRef = useRef<WebSocketConnectionManager | null>(null);
-  const { status: wsStatus, connectionError } = useWebSocketStore();
+  const { connectionError } = useWebSocketStore();
   const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(true);
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden);
 
@@ -43,7 +43,7 @@ export const useTaskWebSocket = (
         .then(() => {
           // WebSocket connected for task monitoring
         })
-        .catch((error) => {
+        .catch(error => {
           console.error('WebSocket connection failed:', error);
           // Don't show error message here - reconnection logic will handle it
         });
@@ -55,23 +55,29 @@ export const useTaskWebSocket = (
     });
 
     // Handle WebSocket errors and disconnections
-    const unsubscribeError = wsManagerRef.current.onError((error) => {
+    const unsubscribeError = wsManagerRef.current.onError(error => {
       console.error('WebSocket error in task monitoring:', error);
       if (!document.hidden) {
-        message.error(t('websocket.error', 'WebSocket error occurred. Task monitoring may be unavailable.'));
+        message.error(
+          t('websocket.error', 'WebSocket error occurred. Task monitoring may be unavailable.')
+        );
       }
     });
 
-    const unsubscribeClose = wsManagerRef.current.onClose((event) => {
+    const unsubscribeClose = wsManagerRef.current.onClose(event => {
       if (event.code !== 1000 && !document.hidden) {
-        message.warning(t('websocket.reconnecting', 'WebSocket unavailable, attempting to reconnect'));
+        message.warning(
+          t('websocket.reconnecting', 'WebSocket unavailable, attempting to reconnect')
+        );
       }
     });
 
     const unsubscribeReconnectFailed = wsManagerRef.current.onReconnectFailed(() => {
       setIsWebSocketAvailable(false);
       if (!document.hidden) {
-        message.warning(t('websocket.unavailable', 'WebSocket unavailable, task monitoring may be limited'));
+        message.warning(
+          t('websocket.unavailable', 'WebSocket unavailable, task monitoring may be limited')
+        );
       }
     });
 
@@ -83,7 +89,7 @@ export const useTaskWebSocket = (
         wsManagerRef.current?.disconnect();
       } else {
         // Reconnect when tab becomes visible
-        wsManagerRef.current?.connect(['tasks']).catch((error) => {
+        wsManagerRef.current?.connect(['tasks']).catch(error => {
           console.error('WebSocket reconnection failed:', error);
         });
       }

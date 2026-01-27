@@ -135,7 +135,7 @@ class WebSocketManager:
             logger.debug("No active connections to broadcast to")
             return
 
-        targets = message.get('target')
+        targets = message.get("target")
         disconnected = []
         message_json = await asyncio.to_thread(json.dumps, message)
 
@@ -224,20 +224,28 @@ class WebSocketManager:
                     if state["awaiting_pong"] and state["ping_sent"]:
                         current_time = asyncio.get_event_loop().time()
                         elapsed = current_time - state["ping_sent"]
-                        logger.debug(f"Checking heartbeat timeout for websocket: {websocket}, elapsed: {elapsed:.2f}s, awaiting_pong: {state['awaiting_pong']}")
+                        logger.debug(
+                            f"Checking heartbeat timeout for websocket: {websocket}, elapsed: {elapsed:.2f}s, awaiting_pong: {state['awaiting_pong']}"
+                        )
                         if elapsed > 10:  # 10 second timeout
                             state["failed_attempts"] += 1
                             if state["failed_attempts"] >= 3:
-                                logger.warning(f"Heartbeat timeout after {state['failed_attempts']} attempts for websocket: {websocket}, closing connection")
+                                logger.warning(
+                                    f"Heartbeat timeout after {state['failed_attempts']} attempts for websocket: {websocket}, closing connection"
+                                )
                                 try:
-                                    error_msg = create_error_message("Heartbeat timeout", {"attempts": state["failed_attempts"]})
+                                    error_msg = create_error_message(
+                                        "Heartbeat timeout", {"attempts": state["failed_attempts"]}
+                                    )
                                     await self.send_personal_message(error_msg.dict(), websocket)
                                 except Exception:
                                     pass
                                 await self._close_connection(websocket, code=1008, reason="Heartbeat timeout")
                                 break
                             else:
-                                logger.warning(f"Heartbeat timeout attempt {state['failed_attempts']} for websocket: {websocket}")
+                                logger.warning(
+                                    f"Heartbeat timeout attempt {state['failed_attempts']} for websocket: {websocket}"
+                                )
 
                     # Send ping
                     try:

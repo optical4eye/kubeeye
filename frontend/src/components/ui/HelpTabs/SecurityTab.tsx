@@ -69,7 +69,10 @@ const SecurityTab = () => {
           <Paragraph>
             <Text strong>Пример безопасного правила:</Text> Используйте команды вроде:
           </Paragraph>
-          <CodeHighlighter code={`df -h / | tail -1 | awk '{print $5}' | sed 's/%//'`} language="bash" />
+          <CodeHighlighter
+            code={`df -h / | tail -1 | awk '{print $5}' | sed 's/%//'`}
+            language="bash"
+          />
           <Paragraph>
             для проверки использования диска, которая только читает данные без каких-либо изменений.
           </Paragraph>

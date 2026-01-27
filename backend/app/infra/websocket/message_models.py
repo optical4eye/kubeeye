@@ -22,12 +22,12 @@ class WebSocketMessage(BaseModel):
 
     def to_json_bytes(self) -> bytes:
         """Serialize message to JSON bytes."""
-        return self.model_dump_json().encode('utf-8')
+        return self.model_dump_json().encode("utf-8")
 
     @classmethod
-    def from_json_bytes(cls, data: bytes) -> 'WebSocketMessage':
+    def from_json_bytes(cls, data: bytes) -> "WebSocketMessage":
         """Deserialize message from JSON bytes."""
-        return cls.model_validate_json(data.decode('utf-8'))
+        return cls.model_validate_json(data.decode("utf-8"))
 
 
 class TaskMessage(WebSocketMessage):
@@ -118,49 +118,63 @@ class ErrorMessage(WebSocketMessage):
 def create_task_scheduled_message(task_id: str, task_type: str) -> TaskScheduledMessage:
     """Create a task scheduled message"""
     return TaskScheduledMessage(
-        payload={"task_id": task_id, "task_type": task_type}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z', target=["tasks"]
+        payload={"task_id": task_id, "task_type": task_type},
+        timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z",
+        target=["tasks"],
     )
 
 
 def create_task_started_message(task_id: str, task_type: str) -> TaskStartedMessage:
     """Create a task started message"""
     return TaskStartedMessage(
-        payload={"task_id": task_id, "task_type": task_type}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z', target=["tasks"]
+        payload={"task_id": task_id, "task_type": task_type},
+        timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z",
+        target=["tasks"],
     )
 
 
 def create_task_completed_message(task_id: str, result: Any) -> TaskCompletedMessage:
     """Create a task completed message"""
     return TaskCompletedMessage(
-        payload={"task_id": task_id, "result": result}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z', target=["tasks"]
+        payload={"task_id": task_id, "result": result},
+        timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z",
+        target=["tasks"],
     )
 
 
 def create_task_failed_message(task_id: str, error: str) -> TaskFailedMessage:
     """Create a task failed message"""
     return TaskFailedMessage(
-        payload={"task_id": task_id, "error": error}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z', target=["tasks"]
+        payload={"task_id": task_id, "error": error},
+        timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z",
+        target=["tasks"],
     )
 
 
 def create_inspection_started_message(cluster_name: str, config: Dict[str, Any]) -> InspectionStartedMessage:
     """Create an inspection started message"""
     return InspectionStartedMessage(
-        payload={"cluster_name": cluster_name, "config": config}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z', target=["inspections"]
+        payload={"cluster_name": cluster_name, "config": config},
+        timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z",
+        target=["inspections"],
     )
 
 
 def create_inspection_completed_message(cluster_name: str, result: Dict[str, Any]) -> InspectionCompletedMessage:
     """Create an inspection completed message"""
     return InspectionCompletedMessage(
-        payload={"cluster_name": cluster_name, "result": result}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z', target=["inspections"]
+        payload={"cluster_name": cluster_name, "result": result},
+        timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z",
+        target=["inspections"],
     )
 
 
 def create_inspection_failed_message(cluster_name: str, error: str) -> InspectionFailedMessage:
     """Create an inspection failed message"""
     return InspectionFailedMessage(
-        payload={"cluster_name": cluster_name, "error": error}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z', target=["inspections"]
+        payload={"cluster_name": cluster_name, "error": error},
+        timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z",
+        target=["inspections"],
     )
 
 
@@ -175,19 +189,19 @@ def create_system_status_message(
             "clusters_count": clusters_count,
             "version": version,
         },
-        timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z',
+        timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z",
         target=["system_status"],
     )
 
 
 def create_ping_message() -> PingMessage:
     """Create a ping message"""
-    return PingMessage(payload={}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z')
+    return PingMessage(payload={}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z")
 
 
 def create_pong_message() -> PongMessage:
     """Create a pong message"""
-    return PongMessage(payload={}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z')
+    return PongMessage(payload={}, timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z")
 
 
 def create_error_message(error: str, details: Optional[Dict[str, Any]] = None) -> ErrorMessage:
@@ -195,4 +209,4 @@ def create_error_message(error: str, details: Optional[Dict[str, Any]] = None) -
     payload = {"error": error}
     if details:
         payload["details"] = details
-    return ErrorMessage(payload=payload, timestamp=datetime.now(timezone.utc).isoformat()[:23] + 'Z')
+    return ErrorMessage(payload=payload, timestamp=datetime.now(timezone.utc).isoformat()[:23] + "Z")
