@@ -30,9 +30,10 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
   const trendData = React.useMemo(() => {
     if (!dashboardData || !dashboardData.recent_results) return [];
     return dashboardData.recent_results
+      .sort((a: { timestamp: string }, b: { timestamp: string }) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
       .slice(0, 7)
       .map((result: { timestamp: string; critical?: number; warning?: number; info?: number }) => ({
-        date: new Date(result.timestamp).toLocaleDateString(),
+        date: new Date(result.timestamp).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }),
         critical: result.critical || 0,
         warning: result.warning || 0,
         info: result.info || 0,
