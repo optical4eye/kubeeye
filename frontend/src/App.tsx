@@ -26,7 +26,6 @@ import {
 } from '@ant-design/icons';
 import VersionDisplay from './components/ui/VersionDisplay';
 import LoadingScreen from './components/ui/LoadingScreen';
-import { WebSocketStatusIndicator } from './components/ui';
 import { useUIStore } from './stores/uiStore';
 import { getThemeConfig } from './theme/themeConfig';
 import { useSystemStatusWebSocket } from './hooks/useSystemStatusWebSocket';
@@ -180,7 +179,6 @@ function App() {
                     <div className="header-content">
                       <div className="header-title">{t('header.title')}</div>
                       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <WebSocketStatusIndicator />
                         <Switch
                           checked={theme === 'dark'}
                           onChange={checked => setTheme(checked ? 'dark' : 'light')}

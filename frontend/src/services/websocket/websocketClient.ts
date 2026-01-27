@@ -1,6 +1,6 @@
 // WebSocket client for connecting to backend WebSocket endpoint
 
-import { WebSocketMessage, MessageType, PingMessage, PongMessage } from './messageTypes';
+import { WebSocketMessage, MessageType, PongMessage } from './messageTypes';
 
 export class WebSocketClient {
   private ws: WebSocket | null = null;
@@ -15,10 +15,8 @@ export class WebSocketClient {
   private messageHandlers: ((message: MessageType) => void)[] = [];
   private errorHandlers: ((error: Event) => void)[] = [];
   private closeHandlers: ((event: CloseEvent) => void)[] = [];
-  private pingInterval: number | null = null;
-  private pongTimeout: number | null = null;
-  private pingIntervalMs = 30000; // 30 seconds
-  private pongTimeoutMs = 10000; // 10 seconds
+  private reconnectFailedHandlers: (() => void)[] = [];
+  private reconnectSuccessHandlers: (() => void)[] = [];
 
   constructor(url: string, clientId?: string) {
     this.url = url;
@@ -41,7 +39,6 @@ export class WebSocketClient {
         this.ws.onopen = () => {
           this.isConnecting = false;
           this.reconnectAttempts = 0; // Reset attempts on successful connection
-          console.log('WebSocket: Connection opened successfully, resetting reconnect attempts');
           // Backend handles heartbeat, no need to start ping-pong from frontend
           resolve();
         };
@@ -57,8 +54,6 @@ export class WebSocketClient {
                 timestamp: new Date().toISOString(),
               };
               this.sendJson(pongMessage);
-            } else if (message.type === 'pong') {
-              this.handlePong();
             }
             this.messageHandlers.forEach(handler => handler(message));
           } catch {
@@ -78,10 +73,9 @@ export class WebSocketClient {
 
           // Attempt to reconnect if not intentionally closed
           if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
-            console.log(`WebSocket: Connection closed (code: ${event.code}), attempting reconnect`);
             this.attemptReconnect();
           } else {
-            console.log(`WebSocket: Connection closed (code: ${event.code}), not reconnecting. Attempts: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+            this.reconnectFailedHandlers.forEach(handler => handler());
           }
         };
       } catch (error) {
@@ -93,26 +87,22 @@ export class WebSocketClient {
 
   private attemptReconnect(): void {
     this.reconnectAttempts++;
-    console.log(`WebSocket: Attempting reconnect ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
 
     // Exponential backoff with jitter
     const exponentialDelay = Math.min(this.baseDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxDelay);
     const jitter = Math.random() * this.jitterMax;
     const delay = exponentialDelay + jitter;
 
-    console.log(`WebSocket: Reconnect delay: ${delay.toFixed(0)}ms (exponential: ${exponentialDelay.toFixed(0)}ms, jitter: ${jitter.toFixed(0)}ms)`);
-
     setTimeout(() => {
       this.connect().then(() => {
-        console.log('WebSocket: Reconnect successful');
+        this.reconnectSuccessHandlers.forEach(handler => handler());
       }).catch(() => {
-        console.log('WebSocket: Reconnect failed, will try again if attempts remain');
+        // Reconnect failed, will try again if attempts remain
       });
     }, delay);
   }
 
   disconnect(): void {
-    this.stopPingPong();
     if (this.ws) {
       this.ws.close(1000, 'Client disconnect');
       this.ws = null;
@@ -156,54 +146,32 @@ export class WebSocketClient {
     this.closeHandlers = this.closeHandlers.filter(h => h !== handler);
   }
 
+  onReconnectFailed(handler: () => void): void {
+    this.reconnectFailedHandlers.push(handler);
+  }
+
+  offReconnectFailed(handler: () => void): void {
+    this.reconnectFailedHandlers = this.reconnectFailedHandlers.filter(h => h !== handler);
+  }
+
+  onReconnectSuccess(handler: () => void): void {
+    this.reconnectSuccessHandlers.push(handler);
+  }
+
+  offReconnectSuccess(handler: () => void): void {
+    this.reconnectSuccessHandlers = this.reconnectSuccessHandlers.filter(h => h !== handler);
+  }
+
   isConnected(): boolean {
+
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+
   }
 
   getReadyState(): number | undefined {
+
     return this.ws?.readyState;
+
   }
 
-  private startPingPong(): void {
-    this.stopPingPong(); // Ensure no existing intervals
-    this.pingInterval = window.setInterval(() => {
-      this.sendPing();
-    }, this.pingIntervalMs);
-  }
-
-  private stopPingPong(): void {
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
-    if (this.pongTimeout) {
-      clearTimeout(this.pongTimeout);
-      this.pongTimeout = null;
-    }
-  }
-
-  private sendPing(): void {
-    if (this.isConnected()) {
-      const pingMessage: PingMessage = {
-        type: 'ping',
-        payload: {
-          timestamp: new Date().toISOString(),
-        },
-        timestamp: new Date().toISOString(),
-      };
-      this.sendJson(pingMessage);
-      // Set timeout for pong response
-      this.pongTimeout = window.setTimeout(() => {
-        console.warn('WebSocket: Pong timeout, closing connection');
-        this.disconnect();
-      }, this.pongTimeoutMs);
-    }
-  }
-
-  private handlePong(): void {
-    if (this.pongTimeout) {
-      clearTimeout(this.pongTimeout);
-      this.pongTimeout = null;
-    }
-  }
 }

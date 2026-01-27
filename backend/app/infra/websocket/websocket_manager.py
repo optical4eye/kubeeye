@@ -10,7 +10,7 @@ import asyncio
 from fastapi import WebSocket, WebSocketDisconnect
 from core.logging import get_logger
 from core.common.metrics import metrics
-from .message_models import create_ping_message
+from .message_models import create_ping_message, create_error_message
 
 logger = get_logger(__name__)
 
@@ -22,7 +22,7 @@ class WebSocketManager:
         self.active_connections: List[WebSocket] = []
         self.connection_lock = asyncio.Lock()
         self.max_connections = 1000  # Configurable limit
-        # Heartbeat tracking: websocket -> {"last_pong": timestamp, "ping_sent": timestamp, "awaiting_pong": bool}
+        # Heartbeat tracking: websocket -> {"last_pong": timestamp, "ping_sent": timestamp, "awaiting_pong": bool, "failed_attempts": int}
         self.heartbeat_states: Dict[WebSocket, Dict[str, Any]] = {}
         self.heartbeat_lock = asyncio.Lock()
         # Target subscriptions: websocket -> list of targets
@@ -55,6 +55,7 @@ class WebSocketManager:
                         "last_pong": asyncio.get_event_loop().time(),
                         "ping_sent": None,
                         "awaiting_pong": False,
+                        "failed_attempts": 0,
                     }
                 logger.info(
                     f"WebSocket connection established. Client: {client_id}, Total connections: {len(self.active_connections)}"
@@ -112,6 +113,13 @@ class WebSocketManager:
             import traceback
 
             logger.error(f"Send message traceback: {traceback.format_exc()}")
+            # Try to send error message before disconnecting
+            try:
+                error_msg = create_error_message("Failed to send message", {"error": str(e)})
+                json_error = json.dumps(error_msg.dict())
+                await websocket.send_text(json_error)
+            except Exception:
+                pass
             # Remove broken connection
             await self.disconnect(websocket)
 
@@ -147,6 +155,13 @@ class WebSocketManager:
                 await connection.send_text(message_json)
             except Exception as e:
                 logger.error(f"Failed to broadcast to connection: {e}")
+                # Try to send error message before disconnecting
+                try:
+                    error_msg = create_error_message("Failed to broadcast message", {"error": str(e)})
+                    json_error = json.dumps(error_msg.dict())
+                    await connection.send_text(json_error)
+                except Exception:
+                    pass
                 disconnected.append(connection)
 
         # Clean up disconnected connections
@@ -186,6 +201,7 @@ class WebSocketManager:
                 state["last_pong"] = current_time
                 state["awaiting_pong"] = False
                 state["ping_sent"] = None
+                state["failed_attempts"] = 0  # Reset failed attempts on successful pong
                 logger.debug(f"Pong received from websocket: {websocket}, elapsed: {elapsed:.2f}s")
 
     async def start_heartbeat(self, websocket: WebSocket):
@@ -210,9 +226,18 @@ class WebSocketManager:
                         elapsed = current_time - state["ping_sent"]
                         logger.debug(f"Checking heartbeat timeout for websocket: {websocket}, elapsed: {elapsed:.2f}s, awaiting_pong: {state['awaiting_pong']}")
                         if elapsed > 10:  # 10 second timeout
-                            logger.warning(f"Heartbeat timeout for websocket: {websocket}, elapsed: {elapsed:.2f}s, closing connection")
-                            await self._close_connection(websocket, code=1008, reason="Heartbeat timeout")
-                            break
+                            state["failed_attempts"] += 1
+                            if state["failed_attempts"] >= 3:
+                                logger.warning(f"Heartbeat timeout after {state['failed_attempts']} attempts for websocket: {websocket}, closing connection")
+                                try:
+                                    error_msg = create_error_message("Heartbeat timeout", {"attempts": state["failed_attempts"]})
+                                    await self.send_personal_message(error_msg.dict(), websocket)
+                                except Exception:
+                                    pass
+                                await self._close_connection(websocket, code=1008, reason="Heartbeat timeout")
+                                break
+                            else:
+                                logger.warning(f"Heartbeat timeout attempt {state['failed_attempts']} for websocket: {websocket}")
 
                     # Send ping
                     try:
@@ -223,6 +248,11 @@ class WebSocketManager:
                         logger.debug(f"Ping sent to websocket: {websocket}")
                     except Exception as e:
                         logger.error(f"Failed to send ping to websocket: {e}")
+                        try:
+                            error_msg = create_error_message("Failed to send ping", {"error": str(e)})
+                            await self.send_personal_message(error_msg.dict(), websocket)
+                        except Exception:
+                            pass
                         await self._close_connection(websocket, code=1008, reason="Ping send failed")
                         break
 

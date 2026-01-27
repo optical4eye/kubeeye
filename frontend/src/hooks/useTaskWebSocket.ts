@@ -24,9 +24,9 @@ export const useTaskWebSocket = (
 ) => {
   const { t } = useTranslation();
   const wsManagerRef = useRef<WebSocketConnectionManager | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(true);
   const { status: wsStatus, connectionError } = useWebSocketStore();
+  const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(true);
+  const [isTabVisible, setIsTabVisible] = useState(!document.hidden);
 
   // Initialize WebSocket connection with fallback
   useEffect(() => {
@@ -35,19 +35,19 @@ export const useTaskWebSocket = (
     const host = window.location.host;
     const baseUrl = `${protocol}//${host}`;
 
-    wsManagerRef.current = new WebSocketConnectionManager(baseUrl, '/ws/tasks');
+    wsManagerRef.current = new WebSocketConnectionManager(baseUrl, '/ws');
 
-    wsManagerRef.current
-      .connect(['tasks'])
-      .then(() => {
-        setIsWebSocketAvailable(true);
-        // WebSocket connected for task monitoring
-      })
-      .catch((error) => {
-        console.warn('WebSocket connection failed, falling back to polling:', error);
-        setIsWebSocketAvailable(false);
-        startPolling();
-      });
+    if (isTabVisible) {
+      wsManagerRef.current
+        .connect(['tasks'])
+        .then(() => {
+          // WebSocket connected for task monitoring
+        })
+        .catch((error) => {
+          console.error('WebSocket connection failed:', error);
+          // Don't show error message here - reconnection logic will handle it
+        });
+    }
 
     // Subscribe to task messages
     const unsubscribe = wsManagerRef.current.subscribeToTasks((message: TaskMessage) => {
@@ -57,52 +57,48 @@ export const useTaskWebSocket = (
     // Handle WebSocket errors and disconnections
     const unsubscribeError = wsManagerRef.current.onError((error) => {
       console.error('WebSocket error in task monitoring:', error);
-      if (isWebSocketAvailable) {
-        setIsWebSocketAvailable(false);
-        startPolling();
-        message.warning(t('websocket.fallbackToPolling', 'WebSocket unavailable, using polling for updates'));
+      if (!document.hidden) {
+        message.error(t('websocket.error', 'WebSocket error occurred. Task monitoring may be unavailable.'));
       }
     });
 
     const unsubscribeClose = wsManagerRef.current.onClose((event) => {
-      console.log('WebSocket closed in task monitoring:', event.code);
-      if (isWebSocketAvailable && event.code !== 1000) {
-        setIsWebSocketAvailable(false);
-        startPolling();
-        message.warning(t('websocket.fallbackToPolling', 'WebSocket unavailable, using polling for updates'));
+      if (event.code !== 1000 && !document.hidden) {
+        message.warning(t('websocket.reconnecting', 'WebSocket unavailable, attempting to reconnect'));
       }
     });
 
+    const unsubscribeReconnectFailed = wsManagerRef.current.onReconnectFailed(() => {
+      setIsWebSocketAvailable(false);
+      if (!document.hidden) {
+        message.warning(t('websocket.unavailable', 'WebSocket unavailable, task monitoring may be limited'));
+      }
+    });
+
+    // Handle visibility change - disconnect when tab is hidden
+    const handleVisibilityChange = () => {
+      const visible = !document.hidden;
+      setIsTabVisible(visible);
+      if (!visible) {
+        wsManagerRef.current?.disconnect();
+      } else {
+        // Reconnect when tab becomes visible
+        wsManagerRef.current?.connect(['tasks']).catch((error) => {
+          console.error('WebSocket reconnection failed:', error);
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       unsubscribe();
       unsubscribeError();
       unsubscribeClose();
+      unsubscribeReconnectFailed();
       wsManagerRef.current?.disconnect();
-      stopPolling();
     };
-  }, [isWebSocketAvailable]);
-
-  // Polling fallback when WebSocket is unavailable
-  const startPolling = useCallback(() => {
-    if (pollingIntervalRef.current) return; // Already polling
-
-    pollingIntervalRef.current = setInterval(async () => {
-      try {
-        // Poll for task updates - this would need to be implemented in the API
-        // For now, we'll just log that polling is active
-        console.log('Polling for task updates...');
-        // TODO: Implement actual polling logic when API supports it
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    }, 5000); // Poll every 5 seconds
-  }, []);
-
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
   }, []);
 
   const handleTaskMessage = useCallback((message: TaskMessage) => {

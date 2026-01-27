@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { Card, Row, Col, Button, Table, message } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { Card, Table, message } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getDashboardData } from '../services/api';
@@ -12,8 +11,6 @@ const Dashboard = () => {
 
   const {
     data: dashboardData,
-    isLoading: loading,
-    refetch,
   } = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
@@ -22,10 +19,6 @@ const Dashboard = () => {
       message.error(t('dashboard.errorLoading'));
     },
   });
-
-  const loadDashboardData = () => {
-    refetch();
-  };
 
   useEffect(() => {
     // Listen for new report events
@@ -73,19 +66,6 @@ const Dashboard = () => {
     <div>
       <div className="page-title">{t('dashboard.title')}</div>
       <div className="page-subtitle">{t('dashboard.subtitle')}</div>
-
-      <Row gutter={16} className="dashboard-row">
-        <Col span={24}>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={loadDashboardData}
-            loading={loading}
-            aria-label={t('dashboard.refreshAria')}
-          >
-            {t('dashboard.refreshButton')}
-          </Button>
-        </Col>
-      </Row>
 
       <DashboardStatistics dashboardData={data} />
 

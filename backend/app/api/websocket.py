@@ -1,11 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-WebSocket endpoints for real-time communication
-"""
+# WebSocket endpoints for real-time communication
 
 from typing import Optional
 import json
+import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from infra.websocket.websocket_manager import websocket_manager
 from infra.websocket.message_models import create_pong_message
@@ -17,10 +14,10 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.websocket("/ws/tasks")
-async def websocket_tasks_endpoint(websocket: WebSocket, client_id: Optional[str] = None):
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, client_id: Optional[str] = None):
     """
-    WebSocket endpoint for task-related real-time updates
+    Unified WebSocket endpoint for real-time updates
 
     Args:
         websocket: WebSocket connection
@@ -30,17 +27,17 @@ async def websocket_tasks_endpoint(websocket: WebSocket, client_id: Optional[str
 
     client_id = client_id or "anonymous"
     await websocket_manager.connect(websocket, client_id)
-    logger.info(f"WebSocket connection established for tasks endpoint. Client: {client_id}")
+    logger.info(f"WebSocket connection established. Client: {client_id}")
 
     heartbeat_task = None
+    status_update_task = None
     try:
-        # Start heartbeat for tasks endpoint
+        # Start heartbeat
         heartbeat_task = asyncio.create_task(websocket_manager.start_heartbeat(websocket))
 
+        update_count = 0
         while True:
-            # Keep the connection alive and wait for any client messages
-            # Currently, this endpoint is primarily for server-to-client messages
-            # But we can extend it to handle client-to-server messages if needed
+            # Wait for client messages
             data = await websocket.receive_text()
             logger.debug(f"Received message from client {client_id}: {data}")
 
@@ -61,6 +58,23 @@ async def websocket_tasks_endpoint(websocket: WebSocket, client_id: Optional[str
                     targets = message.get("payload", {}).get("targets", [])
                     await websocket_manager.set_connection_targets(websocket, targets)
                     logger.debug(f"Set targets for client {client_id}: {targets}")
+
+                    # If subscribing to system_status, start periodic updates
+                    if "system_status" in targets and (status_update_task is None or status_update_task.done()):
+                        # Send initial status
+                        logger.debug(f"Sending initial status update for client: {client_id}")
+                        await send_system_status_update(websocket)
+                        # Start periodic updates
+                        status_update_task = asyncio.create_task(send_periodic_status_updates(websocket, client_id))
+                    elif "system_status" not in targets:
+                        # Cancel status updates if no longer subscribed
+                        if status_update_task and not status_update_task.done():
+                            status_update_task.cancel()
+                            try:
+                                await status_update_task
+                            except asyncio.CancelledError:
+                                pass
+                            status_update_task = None
                 else:
                     # Handle other messages or echo
                     if data.strip():
@@ -74,112 +88,41 @@ async def websocket_tasks_endpoint(websocket: WebSocket, client_id: Optional[str
                 )
 
     except WebSocketDisconnect:
-        logger.info(f"WebSocket connection closed for tasks endpoint. Client: {client_id}")
+        logger.info(f"WebSocket connection closed. Client: {client_id}")
     except Exception as e:
-        logger.error(f"WebSocket error for tasks endpoint: {e}")
-    finally:
-        # Cancel heartbeat task
-        if heartbeat_task and not heartbeat_task.done():
-            heartbeat_task.cancel()
-            try:
-                await heartbeat_task
-            except asyncio.CancelledError:
-                pass
-        await websocket_manager.disconnect(websocket)
-
-
-@router.websocket("/ws/system-status")
-async def websocket_system_status_endpoint(websocket: WebSocket, client_id: Optional[str] = None):
-    """
-    WebSocket endpoint for system status real-time updates
-
-    Args:
-        websocket: WebSocket connection
-        client_id: Optional client identifier for tracking connections
-    """
-    from infra.dependency_injection.container import get_service
-    import asyncio
-
-    client_id = client_id or "anonymous"
-    logger.info(f"WebSocket connection attempt for system-status endpoint. Client: {client_id}")
-
-    try:
-        await websocket_manager.connect(websocket, client_id)
-        logger.info(f"WebSocket connection established for system-status endpoint. Client: {client_id}")
-    except Exception as e:
-        logger.error(
-            f"Failed to establish WebSocket connection for system-status endpoint. Client: {client_id}, Error: {e}"
-        )
-        return
-
-    heartbeat_task = None
-    try:
-        # Send initial status
-        logger.debug(f"Sending initial status update for client: {client_id}")
-        await send_system_status_update(websocket)
-
-        # Start heartbeat
-        heartbeat_task = asyncio.create_task(websocket_manager.start_heartbeat(websocket))
-
-        update_count = 0
-        # Send periodic updates every 30 seconds and handle client messages
-        while True:
-            # Wait for either timeout or client message
-            try:
-                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
-                logger.debug(f"Received message from client {client_id}: {data}")
-
-                # Parse the message
-                try:
-                    message = json.loads(data)
-                    message_type = message.get("type")
-
-                    if message_type == "pong":
-                        await websocket_manager.handle_pong(websocket)
-                        logger.debug(f"Handled pong from client {client_id}")
-                    elif message_type == "ping":
-                        # Respond with pong
-                        pong_message = create_pong_message()
-                        await websocket_manager.send_personal_message(pong_message.dict(), websocket)
-                        logger.debug(f"Responded with pong to ping from client {client_id}")
-                    elif message_type == "subscribe":
-                        targets = message.get("payload", {}).get("targets", [])
-                        await websocket_manager.set_connection_targets(websocket, targets)
-                        logger.debug(f"Set targets for client {client_id}: {targets}")
-                    else:
-                        # Handle other messages or echo
-                        await websocket_manager.send_personal_message(
-                            {"type": "echo", "message": f"Received: {data}"}, websocket
-                        )
-                except json.JSONDecodeError:
-                    logger.warning(f"Invalid JSON received from client {client_id}: {data}")
-                    await websocket_manager.send_personal_message(
-                        {"type": "error", "message": "Invalid JSON"}, websocket
-                    )
-
-            except asyncio.TimeoutError:
-                # Timeout reached, send status update
-                update_count += 1
-                logger.debug(f"Sending periodic status update #{update_count} for client: {client_id}")
-                await send_system_status_update(websocket)
-
-    except WebSocketDisconnect:
-        logger.info(f"WebSocket connection closed for system-status endpoint. Client: {client_id}")
-    except Exception as e:
-        logger.error(f"WebSocket error for system-status endpoint. Client: {client_id}, Error: {e}")
+        logger.error(f"WebSocket error: {e}")
         import traceback
-
         logger.error(f"Traceback: {traceback.format_exc()}")
     finally:
-        # Cancel heartbeat task
+        # Cancel tasks
         if heartbeat_task and not heartbeat_task.done():
             heartbeat_task.cancel()
             try:
                 await heartbeat_task
             except asyncio.CancelledError:
                 pass
-        logger.debug(f"Disconnecting WebSocket for client: {client_id}")
+        if status_update_task and not status_update_task.done():
+            status_update_task.cancel()
+            try:
+                await status_update_task
+            except asyncio.CancelledError:
+                pass
         await websocket_manager.disconnect(websocket)
+
+
+async def send_periodic_status_updates(websocket: WebSocket, client_id: str):
+    """Send periodic system status updates to the websocket"""
+    try:
+        update_count = 0
+        while True:
+            await asyncio.sleep(30.0)  # Send every 30 seconds
+            update_count += 1
+            logger.debug(f"Sending periodic status update #{update_count} for client: {client_id}")
+            await send_system_status_update(websocket)
+    except asyncio.CancelledError:
+        logger.debug(f"Periodic status updates cancelled for client: {client_id}")
+    except Exception as e:
+        logger.error(f"Error in periodic status updates for client {client_id}: {e}")
 
 
 async def send_system_status_update(websocket: WebSocket):

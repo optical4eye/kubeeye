@@ -10,6 +10,8 @@ interface SystemStatus {
   message?: string;
   subMessage?: string;
   isConnecting: boolean;
+  wsStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
+  wsError?: string;
 }
 
 export const useSystemStatusWebSocket = () => {
@@ -19,19 +21,19 @@ export const useSystemStatusWebSocket = () => {
     message: undefined,
     subMessage: undefined,
     isConnecting: true,
+    wsStatus: 'connecting',
+    wsError: undefined,
   });
   const [isWebSocketAvailable, setIsWebSocketAvailable] = useState(true);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [isTabVisible, setIsTabVisible] = useState(!document.hidden);
   const wsManagerRef = useRef<WebSocketConnectionManager | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isWarningShownRef = useRef(false);
   const { status: wsStatus } = useWebSocketStore();
 
   const handleSystemStatusMessage = useCallback((message: SystemStatusMessage) => {
     const { status, queue } = message.payload;
     const isReady = status === 'healthy';
     const isConnecting = !isReady && queue.running;
-
-    console.log('WebSocket: Handling system status message:', { status, queue, isReady, isConnecting });
 
     let messageText: string | undefined;
     let subMessageText: string | undefined;
@@ -47,13 +49,13 @@ export const useSystemStatusWebSocket = () => {
       subMessageText = 'Checking system status';
     }
 
-    console.log('WebSocket: Setting system status:', { isReady, message: messageText, subMessage: subMessageText, isConnecting });
-
     setSystemStatus({
       isReady,
       message: messageText,
       subMessage: subMessageText,
       isConnecting,
+      wsStatus: 'connected', // WebSocket is connected since we received a message
+      wsError: undefined,
     });
   }, []);
 
@@ -63,111 +65,127 @@ export const useSystemStatusWebSocket = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/system-status`;
 
-    console.log('WebSocket: Attempting to connect to:', wsUrl);
 
-    wsManagerRef.current = new WebSocketConnectionManager(wsUrl.replace('/ws/system-status', ''), '/ws/system-status');
+    wsManagerRef.current = new WebSocketConnectionManager(wsUrl.replace('/ws/system-status', ''), '/ws');
 
-    wsManagerRef.current
-      .connect(['system_status'])
-      .then(() => {
-        console.log('WebSocket: Connected successfully to system status');
-        setIsWebSocketAvailable(true);
-        setConnectionAttempts(0);
-        // WebSocket connected for system status monitoring
-        setSystemStatus(prev => ({ ...prev, isConnecting: false }));
-      })
-      .catch((error) => {
-        console.error('WebSocket: Connection failed:', error);
-        setIsWebSocketAvailable(false);
-        setConnectionAttempts(prev => prev + 1);
-        startPolling();
-        message.warning(t('websocket.systemStatusFallback', 'System status monitoring unavailable, using polling'));
-        // WebSocket connection failed, fallback to connecting state
-        setSystemStatus(prev => ({ ...prev, isConnecting: true }));
-      });
+    if (isTabVisible) {
+      wsManagerRef.current
+        .connect(['system_status'])
+        .then(() => {
+          setIsWebSocketAvailable(true);
+          isWarningShownRef.current = false;
+          // WebSocket connected for system status monitoring
+          setSystemStatus(prev => ({ ...prev, isConnecting: false, wsStatus: 'connected', wsError: undefined }));
+        })
+        .catch((error) => {
+          console.error('WebSocket: Connection failed:', error);
+          setIsWebSocketAvailable(false);
+          if (!document.hidden) {
+            message.warning(t('websocket.systemStatusUnavailable', 'System status monitoring unavailable'));
+          }
+          // WebSocket connection failed, set to not ready
+          setSystemStatus({
+            isReady: false,
+            isConnecting: false,
+            message: 'Connection failed',
+            subMessage: 'Unable to connect to system status',
+            wsStatus: 'error',
+            wsError: error.message || 'Connection failed',
+          });
+        });
+    }
 
     // Add error and close handlers for logging and fallback
     const unsubscribeError = wsManagerRef.current.onError((error) => {
       console.error('WebSocket: Error event:', error);
-      if (isWebSocketAvailable) {
-        setIsWebSocketAvailable(false);
-        startPolling();
-        message.warning(t('websocket.systemStatusFallback', 'System status monitoring unavailable, using polling'));
+      if (isWebSocketAvailable && !isWarningShownRef.current && !document.hidden) {
+        message.warning(t('websocket.systemStatusFallback', 'System status monitoring unavailable, attempting to reconnect'));
+        isWarningShownRef.current = true;
       }
-      console.log('WebSocket: Setting status to not ready and connecting due to error');
-      setSystemStatus({
+      setSystemStatus(prev => ({
+        ...prev,
         isReady: false,
         isConnecting: true,
         message: 'Connection error',
         subMessage: 'Attempting to reconnect...',
-      });
+        wsStatus: 'error',
+        wsError: error.message || 'Connection error',
+      }));
     });
 
     const unsubscribeClose = wsManagerRef.current.onClose((event) => {
-      console.log('WebSocket: Closed with code:', event.code, 'reason:', event.reason);
-      if (isWebSocketAvailable && event.code !== 1000) {
-        setIsWebSocketAvailable(false);
-        startPolling();
-        message.warning(t('websocket.systemStatusFallback', 'System status monitoring unavailable, using polling'));
+      if (isWebSocketAvailable && event.code !== 1000 && !isWarningShownRef.current && !document.hidden) {
+        message.warning(t('websocket.systemStatusFallback', 'System status monitoring unavailable, attempting to reconnect'));
+        isWarningShownRef.current = true;
       }
-      console.log('WebSocket: Setting status to not ready and connecting due to close');
-      setSystemStatus({
+      setSystemStatus(prev => ({
+        ...prev,
         isReady: false,
         isConnecting: true,
         message: 'Connection lost',
         subMessage: 'Reconnecting...',
-      });
+        wsStatus: 'disconnected',
+        wsError: `Connection closed: ${event.reason || 'Unknown reason'}`,
+      }));
+    });
+
+    const unsubscribeReconnectFailed = wsManagerRef.current.onReconnectFailed(() => {
+      if (isWebSocketAvailable) {
+        setIsWebSocketAvailable(false);
+        if (!document.hidden) {
+          message.warning(t('websocket.systemStatusUnavailable', 'System status monitoring unavailable'));
+        }
+        setSystemStatus(prev => ({
+          ...prev,
+          isReady: false,
+          isConnecting: false,
+          message: 'Reconnection failed',
+          subMessage: 'Unable to restore connection',
+          wsStatus: 'error',
+          wsError: 'Reconnection failed',
+        }));
+      }
+    });
+
+    const unsubscribeReconnectSuccess = wsManagerRef.current.onReconnectSuccess(() => {
+      isWarningShownRef.current = false;
+      window.location.reload();
     });
 
     // Subscribe to system status messages
     const unsubscribe = wsManagerRef.current.subscribeToSystemStatus(
       (message: SystemStatusMessage) => {
-        console.log('WebSocket: Received system status message:', message);
         handleSystemStatusMessage(message);
       }
     );
 
+    // Handle visibility change - disconnect when tab is hidden
+    const handleVisibilityChange = () => {
+      const visible = !document.hidden;
+      setIsTabVisible(visible);
+      if (!visible) {
+        wsManagerRef.current?.disconnect();
+      } else {
+        // Reconnect when tab becomes visible
+        wsManagerRef.current?.connect(['system_status']).catch((error) => {
+          console.error('System status WebSocket reconnection failed:', error);
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       unsubscribe();
       unsubscribeError();
       unsubscribeClose();
+      unsubscribeReconnectFailed();
+      unsubscribeReconnectSuccess();
       wsManagerRef.current?.disconnect();
-      stopPolling();
     };
   }, [handleSystemStatusMessage, isWebSocketAvailable]);
 
-  // Polling fallback when WebSocket is unavailable
-  const startPolling = useCallback(() => {
-    if (pollingIntervalRef.current) return; // Already polling
-
-    pollingIntervalRef.current = setInterval(async () => {
-      try {
-        // Poll for system status - this would need to be implemented in the API
-        // For now, we'll simulate system status updates
-        console.log('Polling for system status...');
-        // TODO: Implement actual polling logic when API supports it
-        // Simulate occasional status updates
-        if (Math.random() > 0.7) {
-          setSystemStatus(prev => ({
-            ...prev,
-            isReady: Math.random() > 0.5,
-            message: Math.random() > 0.5 ? 'System ready' : 'System starting',
-            subMessage: Math.random() > 0.5 ? 'All services operational' : 'Please wait',
-            isConnecting: false,
-          }));
-        }
-      } catch (error) {
-        console.error('System status polling error:', error);
-      }
-    }, 10000); // Poll every 10 seconds
-  }, []);
-
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -179,6 +197,5 @@ export const useSystemStatusWebSocket = () => {
   return {
     ...systemStatus,
     isWebSocketAvailable,
-    connectionAttempts,
   };
 };

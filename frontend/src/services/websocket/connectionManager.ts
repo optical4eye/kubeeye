@@ -132,4 +132,14 @@ export class WebSocketConnectionManager {
     this.client.onClose(handler);
     return () => this.client.offClose(handler);
   }
+
+  onReconnectFailed(handler: () => void): () => void {
+    this.client.onReconnectFailed(handler);
+    return () => this.client.offReconnectFailed(handler);
+  }
+
+  onReconnectSuccess(handler: () => void): () => void {
+    this.client.onReconnectSuccess(handler);
+    return () => this.client.offReconnectSuccess(handler);
+  }
 }
