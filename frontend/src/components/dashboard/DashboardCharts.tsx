@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Card, Row, Col, theme } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Card, Row, Col, theme, Typography, Divider, Checkbox, Modal, Segmented, Skeleton } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Area } from '@ant-design/charts';
 import { useUIStore } from '../../stores/uiStore';
@@ -22,7 +22,11 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
   const { theme: uiTheme } = useUIStore();
   const { token } = theme.useToken();
 
-  // Подготовка данных для stacked area chart в long format
+  const { Title } = Typography;
+
+  const selectedCategories = ['critical', 'warning', 'info', 'passed'];
+
+    // Подготовка данных для stacked area chart в long format с фильтрами
   const longData = useMemo(() => {
     if (!dashboardData || !dashboardData.recent_results) return [];
     const sorted = dashboardData.recent_results
@@ -35,13 +39,13 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
       const warning = resultItem.warning || 0;
       const info = resultItem.info || 0;
       const passed = resultItem.passed || 0;
-      result.push({ date, value: critical, category: 'critical' });
-      result.push({ date, value: warning, category: 'warning' });
-      result.push({ date, value: info, category: 'info' });
-      result.push({ date, value: passed, category: 'passed' });
+      if (selectedCategories.includes('critical')) result.push({ date, value: critical, category: 'critical' });
+      if (selectedCategories.includes('warning')) result.push({ date, value: warning, category: 'warning' });
+      if (selectedCategories.includes('info')) result.push({ date, value: info, category: 'info' });
+      if (selectedCategories.includes('passed')) result.push({ date, value: passed, category: 'passed' });
     });
     return result;
-  }, [dashboardData]);
+  }, [dashboardData, selectedCategories]);
 
   const categoryTranslations = {
     critical: t('charts.critical'),
@@ -74,12 +78,20 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
         if (!data || data.length === 0) return null;
         const total = data.reduce((sum, item) => sum + item.value, 0);
         return (
-          <div className="dashboard-charts-tooltip">
+          <div
+            className="dashboard-charts-tooltip"
+            role="tooltip"
+            aria-live="polite"
+          >
             <p>{`${t('charts.date')}: ${title}`}</p>
             {data.map((item, index) => {
               const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
               return (
-                <p key={index} className="dashboard-charts-tooltip-item kube-text-error">
+                <p
+                  key={index}
+                  className="dashboard-charts-tooltip-item kube-text-error"
+                  aria-label={`${categoryTranslations[item.category]}: ${item.value} (${percentage}%)`}
+                >
                   {`${categoryTranslations[item.category]}: ${item.value} (${percentage}%)`}
                 </p>
               );
@@ -90,14 +102,30 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
     },
     legend: true,
     autoFit: true,
+    accessibility: {
+      enabled: true,
+      description: t('charts.errorTrends'),
+    },
   };
 
   if (!longData || longData.length === 0) {
     return (
-      <Row gutter={16} className="dashboard-row">
-        <Col span={24}>
-          <Card title={t('charts.errorTrends')}>
-            <div className="dashboard-charts-no-data">
+      <Row gutter={[16, 16]} className="dashboard-row">
+        <Col xs={24} sm={24} md={24} lg={24} xl={24}>
+          <Card
+            title={
+              <Title level={4} style={{ margin: 0 }}>
+                {t('charts.errorTrends')}
+              </Title>
+            }
+            aria-label={t('charts.errorTrends')}
+            role="region"
+          >
+            <div
+              className="dashboard-charts-no-data"
+              role="status"
+              aria-live="polite"
+            >
               {t('charts.noData')}
             </div>
           </Card>
@@ -108,10 +136,26 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
 
   return (
     <>
-      <Row gutter={16} className="dashboard-row">
-        <Col span={24}>
-          <Card title={t('charts.errorTrends')}>
-            <div className="dashboard-charts-container">
+      <Row gutter={[16, 16]} className="dashboard-row">
+        <Col xs={24} sm={24} md={24} lg={24} xl={24}>
+          <Card
+            title={
+              <Title level={4} style={{ margin: 0 }}>
+                {t('charts.errorTrends')}
+              </Title>
+            }
+            aria-label={t('charts.errorTrends')}
+            role="region"
+            bordered={false}
+            style={{ boxShadow: token.boxShadowTertiary }}
+          >
+            <Divider style={{ margin: '16px 0' }} />
+            <div
+              className="dashboard-charts-container"
+              role="img"
+              aria-label={`${t('charts.errorTrends')} ${t('charts.chart')}`}
+              tabIndex={0}
+            >
               <Area {...config} />
             </div>
           </Card>
@@ -121,4 +165,4 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
   );
 };
 
-export default DashboardCharts;
+export default React.memo(DashboardCharts);
