@@ -61,12 +61,9 @@ export const useSystemStatusWebSocket = () => {
   useEffect(() => {
     // Use relative WebSocket URL - nginx will proxy to backend
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/system-status`;
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-    wsManagerRef.current = new WebSocketConnectionManager(
-      wsUrl.replace('/ws/system-status', ''),
-      '/ws'
-    );
+    wsManagerRef.current = new WebSocketConnectionManager(wsUrl);
 
     if (isTabVisible) {
       wsManagerRef.current
