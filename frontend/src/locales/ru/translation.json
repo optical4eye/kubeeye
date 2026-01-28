@@ -35,6 +35,8 @@
     "nodes": "Узлы",
     "critical": "Критические",
     "warning": "Предупреждения",
+    "info": "Инфо",
+    "passed": "Успешные",
     "lastCheck": "Последняя проверка",
     "notChecked": "Не проверялся",
     "title": "Обзор кластеров",
@@ -49,8 +51,8 @@
     "inspections": "Инспекций",
     "critical": "Критические",
     "warning": "Предупреждения",
-    "other": "Другие",
-    "successful": "Успешные",
+    "info": "Инфо",
+    "passed": "Успешные",
     "last": "Последняя",
     "rules": "Правил"
   },
@@ -60,8 +62,8 @@
     "date": "Дата",
     "critical": "Критические",
     "warning": "Предупреждения",
-    "other": "Другие",
-    "successful": "Успешные"
+    "info": "Инфо",
+    "passed": "Успешные"
   },
   "clusters": {
     "title": "Управление кластерами",
@@ -597,6 +599,16 @@
     "messageLabel": "Сообщение:",
     "stackLabel": "Стек:",
     "componentLabel": "Компонент:"
+  },
+  "status": {
+    "healthy": "Здоров",
+    "ok": "OK",
+    "warning": "Предупреждение",
+    "critical": "Критичный",
+    "error": "Ошибка",
+    "unknown": "Неизвестно",
+    "pending": "В ожидании",
+    "running": "Выполняется"
   },
   "websocket": {
     "connected": "Подключено",

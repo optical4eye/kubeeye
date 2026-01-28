@@ -358,7 +358,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                                 alignItems: 'center',
                               }}
                             >
-                              <span>{t('statistics.other')}</span>
+                              <span>{t('statistics.info')}</span>
                               <span>{reportDetail.info || 0}</span>
                             </div>
                             <Progress
@@ -384,7 +384,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                                 alignItems: 'center',
                               }}
                             >
-                              <span>{t('statistics.successful')}</span>
+                              <span>{t('statistics.passed')}</span>
                               <span>{reportDetail.passed || 0}</span>
                             </div>
                             <Progress
@@ -451,7 +451,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                       label: (
                         <span>
                           {getSeverityIcon('other')}
-                          <span style={{ marginLeft: '8px' }}>{t('statistics.other')}</span>
+                          <span style={{ marginLeft: '8px' }}>{t('statistics.Info')}</span>
                           <span style={{ marginLeft: '8px' }}>{groupedItems.other.length}</span>
                         </span>
                       ),
@@ -462,7 +462,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                       label: (
                         <span>
                           {getSeverityIcon('passed')}
-                          <span style={{ marginLeft: '8px' }}>{t('statistics.successful')}</span>
+                          <span style={{ marginLeft: '8px' }}>{t('statistics.passed')}</span>
                           <span style={{ marginLeft: '8px' }}>{groupedItems.passed.length}</span>
                         </span>
                       ),

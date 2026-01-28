@@ -1,16 +1,8 @@
-import React from 'react';
-import { Card, Row, Col } from 'antd';
+import React, { useMemo } from 'react';
+import { Card, Row, Col, theme } from 'antd';
 import { useTranslation } from 'react-i18next';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+import { Area } from '@ant-design/charts';
+import { useUIStore } from '../../stores/uiStore';
 
 interface DashboardChartsProps {
   dashboardData: {
@@ -19,6 +11,7 @@ interface DashboardChartsProps {
       critical?: number;
       warning?: number;
       info?: number;
+      passed?: number;
     }>;
     total_rules?: number;
   } | null;
@@ -26,64 +19,85 @@ interface DashboardChartsProps {
 
 const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
   const { t } = useTranslation();
-  // Подготовка данных для линейного графика трендов с мемоизацией
-  const trendData = React.useMemo(() => {
+  const { theme: uiTheme } = useUIStore();
+  const { token } = theme.useToken();
+
+  // Подготовка данных для stacked area chart в long format
+  const longData = useMemo(() => {
     if (!dashboardData || !dashboardData.recent_results) return [];
-    return dashboardData.recent_results
-      .sort((a: { timestamp: string }, b: { timestamp: string }) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-      .slice(0, 7)
-      .map((result: { timestamp: string; critical?: number; warning?: number; info?: number }) => ({
-        date: new Date(result.timestamp).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }),
-        critical: result.critical || 0,
-        warning: result.warning || 0,
-        info: result.info || 0,
-        passed:
-          (dashboardData.total_rules || 0) -
-          (result.critical || 0) -
-          (result.warning || 0) -
-          (result.info || 0),
-      }));
+    const sorted = dashboardData.recent_results
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .slice(-7);
+    const result = [];
+    sorted.forEach(resultItem => {
+      const date = new Date(resultItem.timestamp).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(', ', '-');
+      const critical = resultItem.critical || 0;
+      const warning = resultItem.warning || 0;
+      const info = resultItem.info || 0;
+      const passed = resultItem.passed || 0;
+      result.push({ date, value: critical, category: 'critical' });
+      result.push({ date, value: warning, category: 'warning' });
+      result.push({ date, value: info, category: 'info' });
+      result.push({ date, value: passed, category: 'passed' });
+    });
+    return result;
   }, [dashboardData]);
 
-  // Custom Tooltip component with percentages
-  const CustomTooltip = React.useCallback(
-    ({ active, payload, label }: any) => {
-      if (active && payload && payload.length) {
-        const total = payload.reduce((sum: number, entry: any) => sum + entry.value, 0);
+  const categoryTranslations = {
+    critical: t('charts.critical'),
+    warning: t('charts.warning'),
+    info: t('charts.info'),
+    passed: t('charts.passed'),
+  };
+
+  const config = {
+    data: longData,
+    xField: 'date',
+    yField: 'value',
+    colorField: 'category',
+    stack: true,
+    shapeField: 'smooth',
+    theme: uiTheme === 'dark' ? 'dark' : 'light',
+    scale: {
+      color: {
+        domain: ['critical', 'warning', 'info', 'passed'],
+        range: [token.colorError, token.colorWarning, token.colorInfo, token.colorSuccess]
+      }
+    },
+    axis: {
+      x: {
+        labelTransform: 'rotate(0)',
+      },
+    },
+    tooltip: {
+      customContent: (title, data) => {
+        if (!data || data.length === 0) return null;
+        const total = data.reduce((sum, item) => sum + item.value, 0);
         return (
-          <div
-            style={{
-              backgroundColor: 'var(--ant-color-bg-layout)',
-              color: 'var(--ant-color-text)',
-              border: '1px solid var(--ant-color-border)',
-              borderRadius: '4px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-              padding: '10px',
-            }}
-          >
-            <p>{`${t('charts.date')}: ${label}`}</p>
-            {payload.map((entry: any, index: number) => {
-              const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0';
+          <div className="dashboard-charts-tooltip">
+            <p>{`${t('charts.date')}: ${title}`}</p>
+            {data.map((item, index) => {
+              const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
               return (
-                <p key={index} style={{ color: entry.color }}>
-                  {`${entry.name}: ${entry.value} (${percentage}%)`}
+                <p key={index} className="dashboard-charts-tooltip-item kube-text-error">
+                  {`${categoryTranslations[item.category]}: ${item.value} (${percentage}%)`}
                 </p>
               );
             })}
           </div>
         );
-      }
-      return null;
+      },
     },
-    [t]
-  );
+    legend: true,
+    autoFit: true,
+  };
 
-  if (!trendData || trendData.length === 0) {
+  if (!longData || longData.length === 0) {
     return (
       <Row gutter={16} className="dashboard-row">
         <Col span={24}>
           <Card title={t('charts.errorTrends')}>
-            <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
+            <div className="dashboard-charts-no-data">
               {t('charts.noData')}
             </div>
           </Card>
@@ -97,55 +111,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
       <Row gutter={16} className="dashboard-row">
         <Col span={24}>
           <Card title={t('charts.errorTrends')}>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={trendData} aria-label={t('charts.errorTrends')}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip content={CustomTooltip} />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="critical"
-                  stackId="1"
-                  stroke="var(--ant-color-error)"
-                  fill="var(--ant-color-error)"
-                  name={t('charts.critical')}
-                  aria-label={t('charts.critical')}
-                  role="img"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="warning"
-                  stackId="1"
-                  stroke="var(--ant-color-warning)"
-                  fill="var(--ant-color-warning)"
-                  name={t('charts.warning')}
-                  aria-label={t('charts.warning')}
-                  role="img"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="info"
-                  stackId="1"
-                  stroke="var(--ant-color-info)"
-                  fill="var(--ant-color-info)"
-                  name={t('charts.other')}
-                  aria-label={t('charts.other')}
-                  role="img"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="passed"
-                  stackId="1"
-                  stroke="var(--ant-color-success)"
-                  fill="var(--ant-color-success)"
-                  name={t('charts.successful')}
-                  aria-label={t('charts.successful')}
-                  role="img"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="dashboard-charts-container">
+              <Area {...config} />
+            </div>
           </Card>
         </Col>
       </Row>

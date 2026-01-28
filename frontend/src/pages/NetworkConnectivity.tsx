@@ -13,7 +13,7 @@ import {
   Alert,
 } from 'antd';
 import {
-  WifiOutlined,
+  PlayCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ClockCircleOutlined,
@@ -341,7 +341,7 @@ const NetworkConnectivity = () => {
             <Form.Item>
               <Button
                 type="primary"
-                icon={<WifiOutlined />}
+                icon={<PlayCircleOutlined />}
                 onClick={handleCheckConnectivity}
                 loading={checking}
                 disabled={!selectedCluster || selectedNodes.length === 0}

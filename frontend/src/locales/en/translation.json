@@ -35,6 +35,8 @@
     "nodes": "Nodes",
     "critical": "Critical",
     "warning": "Warning",
+    "info": "Info",
+    "passed": "Passed",
     "lastCheck": "Last check",
     "notChecked": "Not checked",
     "title": "Cluster overview",
@@ -49,8 +51,8 @@
     "inspections": "Inspections",
     "critical": "Critical",
     "warning": "Warning",
-    "other": "Other",
-    "successful": "Successful",
+    "info": "Info",
+    "passed": "Passed",
     "last": "Last",
     "rules": "Rules"
   },
@@ -60,8 +62,8 @@
     "date": "Date",
     "critical": "Critical",
     "warning": "Warning",
-    "other": "Other",
-    "successful": "Successful"
+    "info": "Info",
+    "passed": "Passed"
   },
   "clusters": {
     "title": "Cluster management",
@@ -597,6 +599,16 @@
     "messageLabel": "Message:",
     "stackLabel": "Stack:",
     "componentLabel": "Component:"
+  },
+  "status": {
+    "healthy": "Healthy",
+    "ok": "OK",
+    "warning": "Warning",
+    "critical": "Critical",
+    "error": "Error",
+    "unknown": "Unknown",
+    "pending": "Pending",
+    "running": "Running"
   },
   "websocket": {
     "connected": "Connected",

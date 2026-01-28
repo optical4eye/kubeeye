@@ -124,6 +124,30 @@
   margin-bottom: var(--ant-margin-lg);
 }
 
+.dashboard-charts-container {
+  width: 100%;
+  height: 300px;
+}
+
+.dashboard-charts-no-data {
+  text-align: center;
+  padding: var(--ant-padding-lg);
+  color: var(--ant-color-text-secondary);
+}
+
+.dashboard-charts-tooltip {
+  background-color: var(--ant-color-bg-elevated);
+  color: var(--ant-color-text);
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  box-shadow: var(--ant-box-shadow);
+  padding: var(--ant-padding);
+}
+
+.dashboard-charts-tooltip-item {
+  color: inherit;
+}
+
 .help-row-margin {
   margin-bottom: var(--ant-margin-lg);
 }

@@ -17,7 +17,7 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
           antd: ['antd'],
           router: ['react-router-dom'],
-          charts: ['recharts'],
+          charts: ['@ant-design/charts'],
           utils: ['axios', 'date-fns', '@tanstack/react-query'],
         },
       },
