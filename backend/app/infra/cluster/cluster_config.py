@@ -359,8 +359,8 @@ async def get_cluster_quick_status(cluster_name: str, exclude_inspection_types: 
     latest_result = await get_latest_result_by_cluster(cluster_name, exclude_inspection_types=exclude_inspection_types)
 
     if not latest_result:
-        # If no inspection results, consider cluster healthy by default
-        return "healthy"
+        # If no inspection results, consider cluster status as unknown
+        return "unknown"
 
     critical = latest_result.get("critical", 0)
     warning = latest_result.get("warning", 0)

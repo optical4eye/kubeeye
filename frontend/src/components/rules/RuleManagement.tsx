@@ -13,7 +13,7 @@ import {
   Tooltip,
 } from 'antd';
 const { Option } = Select;
-import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SyncOutlined, TagOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import * as api from '../../services/api';
 import { getSeverityTag } from '../ui/statusUtils';
@@ -178,6 +178,7 @@ const RuleManagement = () => {
               <Tag
                 key={tag}
                 size="small"
+                icon={<TagOutlined />}
                 className="inspection-rule-tags"
                 onClick={() => {
                   const currentTags = filters.tags || [];

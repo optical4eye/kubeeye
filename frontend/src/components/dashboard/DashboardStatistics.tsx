@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Statistic, Tag, theme } from 'antd';
+import { Row, Col, Statistic, Tag, theme, Card } from 'antd';
 import {
   ClusterOutlined,
   FileSearchOutlined,
@@ -11,6 +11,7 @@ import {
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { useUIStore } from '../../stores/uiStore';
 
 interface DashboardData {
   recent_results?: Array<{
@@ -49,6 +50,7 @@ const formatScanTime = (scanTime: string | undefined, noDataText: string): strin
 const DashboardStatistics: React.FC<DashboardStatisticsProps> = ({ dashboardData }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { theme: uiTheme } = useUIStore();
 
   const {
     recent_results = [],
@@ -122,18 +124,41 @@ const DashboardStatistics: React.FC<DashboardStatisticsProps> = ({ dashboardData
     <Row gutter={[16, 16]} className="dashboard-row">
       {statisticsConfig.map((stat, index) => (
         <Col xs={24} sm={12} md={8} lg={6} xl={3} key={index}>
-          <Statistic
-            title={
-              <span style={{ color: stat.color }}>
-                {stat.icon} {stat.title}
-              </span>
-            }
-            value={stat.value}
-            valueStyle={{
-              color: stat.highlight ? stat.color : token.colorText,
-              fontWeight: stat.highlight ? 'bold' : 'normal',
+          <Card
+            style={{
+              backgroundColor: stat.highlight
+                ? uiTheme === 'dark'
+                  ? 'rgba(255, 77, 79, 0.1)'
+                  : 'rgba(255, 77, 79, 0.05)'
+                : 'transparent',
+              border: stat.highlight
+                ? `1px solid ${token.colorError}`
+                : undefined,
+              transition: 'all 0.3s ease',
             }}
-          />
+            hoverable
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = token.boxShadow;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <Statistic
+              title={
+                <span style={{ color: stat.color }}>
+                  {stat.icon} {stat.title}
+                </span>
+              }
+              value={stat.value}
+              valueStyle={{
+                color: stat.highlight ? stat.color : token.colorText,
+                fontWeight: stat.highlight ? 'bold' : 'normal',
+              }}
+            />
+          </Card>
         </Col>
       ))}
     </Row>

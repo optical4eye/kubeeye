@@ -2,6 +2,7 @@ import React from 'react';
 import { CloseCircleOutlined } from '@ant-design/icons';
 import { theme } from 'antd';
 import { useTranslation } from 'react-i18next';
+import { useUIStore } from '../../stores/uiStore';
 
 interface LoadingScreenProps {
   message?: string;
@@ -16,6 +17,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { theme: uiTheme } = useUIStore();
   const statusInfo = isConnecting
     ? {
         status: 'processing' as const,
@@ -25,20 +27,20 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
             style={{
               width: '16px',
               height: '16px',
-              border: '2px solid #1890ff',
+              border: `2px solid ${token.colorPrimary}`,
               borderTop: '2px solid transparent',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }}
           />
         ),
-        color: '#1890ff',
+        color: token.colorPrimary,
       }
     : {
         status: 'error' as const,
         text: t('loadingScreen.unavailable'),
         icon: <CloseCircleOutlined />,
-        color: '#ff4d4f',
+        color: token.colorError,
       };
 
   const defaultMessage = t('loadingScreen.systemStarting');
@@ -52,17 +54,19 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         alignItems: 'center',
         gap: '2rem',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #141414, #000000)',
-        color: 'white',
+        background: uiTheme === 'dark'
+          ? 'linear-gradient(135deg, #141414, #000000)'
+          : 'linear-gradient(135deg, #f0f5ff, #e6f7ff)',
+        color: uiTheme === 'dark' ? 'white' : token.colorText,
         fontFamily: 'Arial, sans-serif',
       }}
     >
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '4rem', margin: '0.5rem 0' }}>🚀</div>
-        <h1 style={{ color: 'white', margin: '0.5rem 0', fontSize: '2.5rem' }}>KubeEye</h1>
+        <h1 style={{ color: uiTheme === 'dark' ? 'white' : token.colorText, margin: '0.5rem 0', fontSize: '2.5rem' }}>KubeEye</h1>
         <p
           style={{
-            color: '#a6a6a6',
+            color: uiTheme === 'dark' ? '#a6a6a6' : token.colorTextSecondary,
             fontSize: '1.1rem',
             margin: '0.5rem 0',
           }}
@@ -72,10 +76,10 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <h2 style={{ color: 'white', margin: '0.5rem 0', fontSize: '1.5rem' }}>
+        <h2 style={{ color: uiTheme === 'dark' ? 'white' : token.colorText, margin: '0.5rem 0', fontSize: '1.5rem' }}>
           {message || defaultMessage}
         </h2>
-        <p style={{ color: '#a6a6a6', margin: '0.5rem 0' }}>{subMessage || defaultSubMessage}</p>
+        <p style={{ color: uiTheme === 'dark' ? '#a6a6a6' : token.colorTextSecondary, margin: '0.5rem 0' }}>{subMessage || defaultSubMessage}</p>
       </div>
 
       <div style={{ textAlign: 'center' }}>
@@ -90,11 +94,11 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
           }}
         >
           {statusInfo.icon}
-          <span style={{ color: 'white', fontSize: '1rem' }}>
+          <span style={{ color: uiTheme === 'dark' ? 'white' : token.colorText, fontSize: '1rem' }}>
             {t('loadingScreen.backend')}: {statusInfo.text}
           </span>
         </div>
-        <p style={{ color: '#a6a6a6', fontSize: '0.9rem', margin: '0.5rem 0' }}>
+        <p style={{ color: uiTheme === 'dark' ? '#a6a6a6' : token.colorTextSecondary, fontSize: '0.9rem', margin: '0.5rem 0' }}>
           {t('loadingScreen.preparingSystem')}
         </p>
       </div>

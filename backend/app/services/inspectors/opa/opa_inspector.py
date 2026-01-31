@@ -167,10 +167,11 @@ class OpaInspector(BaseInspector):
                 json.dump(input_data, f, cls=DateTimeEncoder)
                 input_path = f.name
 
-            # Execute OPA command
+            # Execute OPA command (с явным форматом JSON для предсказуемого вывода)
             cmd = [
                 self.opa_path,
                 "eval",
+                "--format", "json",
                 f"--data={rego_path}",
                 f"--input={input_path}",
                 "data.kubernetes.violations",

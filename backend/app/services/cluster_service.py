@@ -142,7 +142,7 @@ class ClusterService:
                         else:
                             status = "healthy"
                     else:
-                        status = "healthy"
+                        status = "unknown"
 
                     # Get node count from cluster data (already loaded)
                     node_count = len(cluster.nodes) if cluster.nodes else 0

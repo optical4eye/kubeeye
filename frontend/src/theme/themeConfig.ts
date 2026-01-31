@@ -4,8 +4,8 @@ export const lightTheme: ThemeConfig = {
   algorithm: antdTheme.defaultAlgorithm,
   cssVar: true,
   token: {
-    colorPrimary: '#4A90E2',
-    colorSuccess: '#7CB342',
+    colorPrimary: '#339af0',
+    colorSuccess: '#52c41a',
     colorWarning: '#faad14',
     colorError: '#ff4d4f',
     colorInfo: '#13c2c2',
@@ -28,7 +28,7 @@ export const lightTheme: ThemeConfig = {
     Table: {
       borderRadius: 6,
       headerBg: '#fafafa',
-      rowHoverBg: '#f5f5f5',
+      rowHoverBg: 'rgba(51, 154, 240, 0.08)',
     },
     Form: {
       itemMarginBottom: 16,
@@ -40,18 +40,25 @@ export const lightTheme: ThemeConfig = {
     Message: {
       borderRadius: 6,
     },
+    Card: {
+      borderRadius: 6,
+      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+    },
     Layout: {
-      siderBg: '#339af0',
+      siderBg: 'var(--ant-color-bg-elevated)',
     },
     Switch: {
       colorPrimary: '#339af0',
       colorPrimaryHover: '#4dabf7',
     },
     Menu: {
-      colorBgContainer: '#339af0',
-      colorItemBg: '#339af0',
-      colorItemBgHover: '#4dabf7',
-      colorItemBgSelected: '#4dabf7',
+      colorBgContainer: 'var(--ant-color-bg-elevated)',
+      colorItemBg: 'transparent',
+      colorItemBgHover: 'rgba(51, 154, 240, 0.08)',
+      colorItemBgSelected: 'rgba(51, 154, 240, 0.15)',
+      colorItemText: 'var(--ant-color-text)',
+      colorItemTextSelected: 'var(--ant-color-primary)',
+      colorItemTextHover: 'var(--ant-color-primary)',
     },
   },
 };
@@ -84,7 +91,7 @@ export const darkTheme: ThemeConfig = {
     Table: {
       borderRadius: 6,
       headerBg: '#1f1f1f',
-      rowHoverBg: '#262626',
+      rowHoverBg: 'rgba(51, 154, 240, 0.12)',
     },
     Form: {
       itemMarginBottom: 16,
@@ -96,18 +103,25 @@ export const darkTheme: ThemeConfig = {
     Message: {
       borderRadius: 6,
     },
+    Card: {
+      borderRadius: 6,
+      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+    },
     Layout: {
-      siderBg: '#339af0',
+      siderBg: 'var(--ant-color-bg-elevated)',
     },
     Switch: {
       colorPrimary: '#339af0',
       colorPrimaryHover: '#4dabf7',
     },
     Menu: {
-      colorBgContainer: '#339af0',
-      colorItemBg: '#339af0',
-      colorItemBgHover: '#4dabf7',
-      colorItemBgSelected: '#4dabf7',
+      colorBgContainer: 'var(--ant-color-bg-elevated)',
+      colorItemBg: 'transparent',
+      colorItemBgHover: 'rgba(51, 154, 240, 0.08)',
+      colorItemBgSelected: 'rgba(51, 154, 240, 0.15)',
+      colorItemText: 'var(--ant-color-text)',
+      colorItemTextSelected: 'var(--ant-color-primary)',
+      colorItemTextHover: 'var(--ant-color-primary)',
     },
   },
 };

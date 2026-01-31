@@ -149,7 +149,6 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
             bordered={false}
             style={{ boxShadow: token.boxShadowTertiary }}
           >
-            <Divider style={{ margin: '16px 0' }} />
             <div
               className="dashboard-charts-container"
               role="img"
