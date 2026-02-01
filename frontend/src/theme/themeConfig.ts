@@ -73,6 +73,21 @@ export const lightTheme: ThemeConfig = {
     },
     Message: {
       borderRadius: 6,
+      colorBgElevated: 'var(--ant-color-bg-elevated)',
+      colorText: 'var(--ant-color-text)',
+    },
+    Notification: {
+      borderRadius: 6,
+      colorBgElevated: 'var(--ant-color-bg-elevated)',
+      colorText: 'var(--ant-color-text)',
+    },
+    Modal: {
+      borderRadius: 6,
+    },
+    Popconfirm: {
+      borderRadius: 6,
+      colorBgElevated: 'var(--ant-color-bg-elevated)',
+      colorText: 'var(--ant-color-text)',
     },
     Card: {
       borderRadius: 6,
@@ -170,6 +185,21 @@ export const darkTheme: ThemeConfig = {
     },
     Message: {
       borderRadius: 6,
+      colorBgElevated: 'var(--ant-color-bg-elevated)',
+      colorText: '#ffffff',
+    },
+    Notification: {
+      borderRadius: 6,
+      colorBgElevated: 'var(--ant-color-bg-elevated)',
+      colorText: '#ffffff',
+    },
+    Modal: {
+      borderRadius: 6,
+    },
+    Popconfirm: {
+      borderRadius: 6,
+      colorBgElevated: 'var(--ant-color-bg-elevated)',
+      colorText: '#ffffff',
     },
     Card: {
       borderRadius: 6,

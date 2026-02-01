@@ -36,7 +36,7 @@ interface ReportDetail {
 }
 
 interface ReportDetailsModalProps {
-  visible: boolean;
+  open: boolean;
   onClose: () => void;
   reportDetail: ReportDetail | null;
   loading?: boolean;
@@ -178,7 +178,7 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
           showTitle: false,
         },
         render: (text: string) => (
-          <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
+          <Tooltip title={text} styles={{ content: { maxWidth: '400px' } }}>
             <span style={{ cursor: 'pointer' }}>{text}</span>
           </Tooltip>
         ),
@@ -191,7 +191,7 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
           showTitle: false,
         },
         render: (text: string) => (
-          <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
+          <Tooltip title={text} styles={{ content: { maxWidth: '400px' } }}>
             <span style={{ cursor: 'pointer' }}>{text}</span>
           </Tooltip>
         ),
@@ -204,7 +204,7 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
           showTitle: false,
         },
         render: (text: string) => (
-          <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
+          <Tooltip title={text} styles={{ content: { maxWidth: '400px' } }}>
             <span style={{ cursor: 'pointer' }}>{text}</span>
           </Tooltip>
         ),
@@ -233,12 +233,12 @@ const InspectionDetails: React.FC<{ items: any[]; severity?: string }> = React.m
 InspectionDetails.displayName = 'InspectionDetails';
 
 const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
-  ({ visible, onClose, reportDetail, loading = false }) => {
+  ({ open, onClose, reportDetail, loading = false }) => {
     const { t } = useTranslation();
     return (
       <Modal
         title={t('reports.reportDetailsModal.title')}
-        open={visible}
+        open={open}
         onCancel={onClose}
         width="90vw"
         footer={[

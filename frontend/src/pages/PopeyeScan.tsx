@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Select, Button, message, Space, Tag, List, Typography, Spin, Radio } from 'antd';
+import { Card, Select, Button, App, Space, Tag, List, Typography, Spin, Radio } from 'antd';
 import { PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { getClusters } from '../services/api';
 import { getTaskStatusIcon } from '../components/ui/statusUtils';
 import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
-
-const { Option } = Select;
 
 interface Task {
   task_id: string;
@@ -27,6 +25,7 @@ interface Cluster {
 
 const PopeyeScan = () => {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   // Popeye reports are only available in HTML format
@@ -44,7 +43,7 @@ const PopeyeScan = () => {
       const response = await getClusters();
       setClusters(response.data.clusters || []);
     } catch {
-      message.error(t('popeye.errors.loadClusters'));
+      messageApi.error(t('popeye.errors.loadClusters'));
     }
   };
 
@@ -55,7 +54,7 @@ const PopeyeScan = () => {
       const response = await getPopeyeNamespaces(clusterName);
       setAvailableNamespaces(response.data.namespaces || []);
     } catch {
-      message.error(t('popeye.errors.loadNamespaces'));
+      messageApi.error(t('popeye.errors.loadNamespaces'));
       setAvailableNamespaces([]);
     } finally {
       setLoadingNamespaces(false);
@@ -78,7 +77,7 @@ const PopeyeScan = () => {
 
   const handleRunPopeyeScan = async () => {
     if (!selectedCluster) {
-      message.error(t('popeye.errors.selectCluster'));
+      messageApi.error(t('popeye.errors.selectCluster'));
       return;
     }
 
@@ -108,12 +107,12 @@ const PopeyeScan = () => {
       setActiveTasks(prev => [newTask, ...prev]);
       startTaskMonitoring(taskId);
 
-      message.success(t('popeye.errors.scanStarted', { taskId }));
+      messageApi.success(t('popeye.errors.scanStarted', { taskId }));
     } catch (error) {
       if (error.response?.data?.detail) {
-        message.error(t('popeye.errors.error', { detail: error.response.data.detail }));
+        messageApi.error(t('popeye.errors.error', { detail: error.response.data.detail }));
       } else {
-        message.error(t('popeye.errors.startError'));
+        messageApi.error(t('popeye.errors.startError'));
       }
     } finally {
       setLoading(false);
@@ -140,13 +139,11 @@ const PopeyeScan = () => {
               placeholder={t('popeye.selectClusterPlaceholder')}
               onChange={setSelectedCluster}
               value={selectedCluster}
-            >
-              {clusters.map(cluster => (
-                <Option key={cluster.name} value={cluster.name}>
-                  {cluster.name} ({cluster.nodes?.length || 0} {t('popeye.nodes')})
-                </Option>
-              ))}
-            </Select>
+              options={clusters.map(cluster => ({
+                value: cluster.name,
+                label: `${cluster.name} (${cluster.nodes?.length || 0} ${t('popeye.nodes')})`,
+              }))}
+            />
           </div>
 
           <div className="margin-top-space-4">
@@ -174,13 +171,8 @@ const PopeyeScan = () => {
                 value={selectedNamespace}
                 loading={loadingNamespaces}
                 disabled={!selectedCluster || loadingNamespaces}
-              >
-                {availableNamespaces.map(ns => (
-                  <Option key={ns} value={ns}>
-                    {ns}
-                  </Option>
-                ))}
-              </Select>
+                options={availableNamespaces.map(ns => ({ value: ns, label: ns }))}
+              />
             )}
           </div>
 

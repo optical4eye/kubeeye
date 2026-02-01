@@ -9,10 +9,9 @@ import {
   Space,
   Tag,
   Alert,
-  message,
+  App,
   Tooltip,
 } from 'antd';
-const { Option } = Select;
 import { ReloadOutlined, SyncOutlined, TagOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import * as api from '../../services/api';
@@ -20,6 +19,7 @@ import { getSeverityTag, getInspectionRuleTag } from '../ui/statusUtils';
 
 const RuleManagement = () => {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const [rules, setRules] = useState({});
   const [useGitops, setUseGitops] = useState(false);
   const [gitopsConfig, setGitopsConfig] = useState(null);
@@ -58,7 +58,7 @@ const RuleManagement = () => {
         0
       );
     } catch {
-      message.error(t('rules.errorLoadingRules'));
+      messageApi.error(t('rules.errorLoadingRules'));
       // Set fallback data
       setRules({});
       setUseGitops(false);
@@ -81,12 +81,12 @@ const RuleManagement = () => {
     try {
       setSyncing(true);
       const response = await api.syncGitopsRepository();
-      message.success(response.data.message);
+      messageApi.success(response.data.message);
       // Reload rules after sync
       await loadRules();
       await loadTags();
     } catch {
-      message.error(t('rules.errorSyncGitops'));
+      messageApi.error(t('rules.errorSyncGitops'));
     } finally {
       setSyncing(false);
     }
@@ -192,7 +192,7 @@ const RuleManagement = () => {
         showTitle: false,
       },
       render: (text: string) => (
-        <Tooltip title={text} overlayStyle={{ maxWidth: '400px' }}>
+        <Tooltip title={text} styles={{ content: { maxWidth: '400px' } }}>
           <span style={{ cursor: 'pointer' }}>{text}</span>
         </Tooltip>
       ),
@@ -347,11 +347,12 @@ const RuleManagement = () => {
             className="width-150"
             onChange={value => setFilters(prev => ({ ...prev, type: value }))}
             value={filters.type}
-          >
-            <Option value="all">{t('rules.filters.allTypes')}</Option>
-            <Option value="node">{t('rules.filters.nodes')}</Option>
-            <Option value="opa">{t('rules.filters.security')}</Option>
-          </Select>
+            options={[
+              { value: 'all', label: t('rules.filters.allTypes') },
+              { value: 'node', label: t('rules.filters.nodes') },
+              { value: 'opa', label: t('rules.filters.security') },
+            ]}
+          />
 
           <Select
             mode="multiple"

@@ -3,12 +3,11 @@ import { Form, Input, Button, Space, Modal, Tag, Tooltip, Table } from 'antd';
 import { KeyOutlined, InfoCircleOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { FormInstance } from 'antd/lib/form';
 import { Secret } from '../../types';
 import { getSecretTypeTag } from '../ui/statusUtils';
 
 interface ClusterFormProps {
-  form: FormInstance;
+  form: any;
   onSubmit: (values: any) => void;
   onTestNodes: () => void;
   onTestKubeconfig: () => void;

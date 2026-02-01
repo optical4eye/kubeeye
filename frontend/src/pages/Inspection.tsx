@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Tabs, message } from 'antd';
+import { Tabs, App } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { getClusters, runInspectionAsync, getRules, getRuleTags } from '../services/api';
 import { ScheduledInspection, ActiveTasksList } from '../components/tasks';
@@ -18,10 +18,9 @@ interface Task {
   result?: any;
 }
 
-const { TabPane } = Tabs;
-
 const Inspection = React.memo(() => {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const [clusters, setClusters] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [rules, setRules] = useState({});
@@ -41,7 +40,7 @@ const Inspection = React.memo(() => {
       const response = await getClusters();
       setClusters(response.data.clusters || []);
     } catch {
-      message.error(t('inspection.errorLoadingClusters'));
+      messageApi.error(t('inspection.errorLoadingClusters'));
     }
   }, []);
 
@@ -50,7 +49,7 @@ const Inspection = React.memo(() => {
       const response = await getRules(tags);
       setRules(response.data.rules || {});
     } catch {
-      message.error(t('inspection.errorLoadingRules'));
+      messageApi.error(t('inspection.errorLoadingRules'));
     }
   }, []);
 
@@ -59,7 +58,7 @@ const Inspection = React.memo(() => {
       const response = await getRuleTags();
       setAvailableTags(response.data.tags || []);
     } catch {
-      message.error(t('inspection.errorLoadingTags'));
+      messageApi.error(t('inspection.errorLoadingTags'));
     }
   }, []);
 
@@ -83,7 +82,7 @@ const Inspection = React.memo(() => {
 
   const handleRunInspection = useCallback(async () => {
     if (!selectedCluster) {
-      message.error(t('inspection.selectCluster'));
+      messageApi.error(t('inspection.selectCluster'));
       return;
     }
 
@@ -92,7 +91,7 @@ const Inspection = React.memo(() => {
       0
     );
     if (totalSelectedRules === 0) {
-      message.error(t('inspection.selectRule'));
+      messageApi.error(t('inspection.selectRule'));
       return;
     }
 
@@ -120,19 +119,19 @@ const Inspection = React.memo(() => {
       setActiveTasks(prev => [newTask, ...prev]);
       startTaskMonitoring(taskId);
 
-      message.success(t('inspection.inspectionStarted', { taskId }));
+      messageApi.success(t('inspection.inspectionStarted', { taskId }));
     } catch (error: any) {
       // Handle different types of errors
       if (error.code === 'ECONNABORTED') {
-        message.error(t('inspection.timeout', { cluster: selectedCluster }));
+        messageApi.error(t('inspection.timeout', { cluster: selectedCluster }));
       } else if (error.message && error.message.includes('timeout')) {
-        message.error(t('inspection.timeoutFailed', { cluster: selectedCluster }));
+        messageApi.error(t('inspection.timeoutFailed', { cluster: selectedCluster }));
       } else if (error.response?.status === 500) {
-        message.error(t('inspection.serverError'));
+        messageApi.error(t('inspection.serverError'));
       } else if (error.response?.data?.detail) {
-        message.error(t('inspection.error', { detail: error.response.data.detail }));
+        messageApi.error(t('inspection.error', { detail: error.response.data.detail }));
       } else {
-        message.error(t('inspection.executionError'));
+        messageApi.error(t('inspection.executionError'));
       }
     } finally {
       setLoading(false);
@@ -156,33 +155,43 @@ const Inspection = React.memo(() => {
       <div className="page-title">{t('inspection.title')}</div>
       <div className="page-subtitle">{t('inspection.subtitle')}</div>
 
-      <Tabs defaultActiveKey="1">
-        <TabPane tab={t('inspection.immediate')} key="1">
-          <InspectionForm
-            clusters={clusters}
-            rules={rules}
-            selectedCluster={selectedCluster}
-            setSelectedCluster={setSelectedCluster}
-            selectedRules={selectedRules}
-            setSelectedRules={setSelectedRules}
-            availableTags={availableTags}
-            selectedTags={selectedTags}
-            setSelectedTags={setSelectedTags}
-            loading={loading}
-            onRunInspection={handleRunInspection}
-            handleRuleSelection={handleRuleSelection}
-          />
-          <ActiveTasksList
-            activeTasks={activeTasks}
-            handleCancelTask={handleCancelTask}
-            formatTaskTime={formatTaskTime}
-          />
-        </TabPane>
-
-        <TabPane tab={t('inspection.scheduled')} key="2">
-          <ScheduledInspection />
-        </TabPane>
-      </Tabs>
+      <Tabs
+        defaultActiveKey="1"
+        items={[
+          {
+            key: '1',
+            label: t('inspection.immediate'),
+            children: (
+              <>
+                <InspectionForm
+                  clusters={clusters}
+                  rules={rules}
+                  selectedCluster={selectedCluster}
+                  setSelectedCluster={setSelectedCluster}
+                  selectedRules={selectedRules}
+                  setSelectedRules={setSelectedRules}
+                  availableTags={availableTags}
+                  selectedTags={selectedTags}
+                  setSelectedTags={setSelectedTags}
+                  loading={loading}
+                  onRunInspection={handleRunInspection}
+                  handleRuleSelection={handleRuleSelection}
+                />
+                <ActiveTasksList
+                  activeTasks={activeTasks}
+                  handleCancelTask={handleCancelTask}
+                  formatTaskTime={formatTaskTime}
+                />
+              </>
+            ),
+          },
+          {
+            key: '2',
+            label: t('inspection.scheduled'),
+            children: <ScheduledInspection />,
+          },
+        ]}
+      />
     </div>
   );
 });

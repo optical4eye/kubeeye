@@ -144,7 +144,7 @@ const Reports: React.FC = React.memo(() => {
       />
 
       <ReportDetailsModal
-        visible={detailModalVisible}
+        open={detailModalVisible}
         onClose={() => setDetailModalVisible(false)}
         reportDetail={reportDetail}
       />

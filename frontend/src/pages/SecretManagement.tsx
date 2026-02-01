@@ -9,7 +9,7 @@ import {
   Space,
   Tag,
   Tooltip,
-  message,
+  App,
   Popconfirm,
   Card,
   Alert,
@@ -33,7 +33,6 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getSecretTypeTag } from '../components/ui/statusUtils';
 const { TextArea } = Input;
-const { Option } = Select;
 
 interface Secret {
   id: number;
@@ -57,6 +56,7 @@ interface SecretFormData {
 
 const SecretManagement: React.FC = () => {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -76,7 +76,7 @@ const SecretManagement: React.FC = () => {
       const response = await axios.get('/api/secrets');
       setSecrets(response.data.secrets);
     } catch {
-      message.error(t('secrets.messages.loadFailed'));
+      messageApi.error(t('secrets.messages.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -108,10 +108,10 @@ const SecretManagement: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(`/api/secrets/${id}`);
-      message.success(t('secrets.messages.deleteSuccess'));
+      messageApi.success(t('secrets.messages.deleteSuccess'));
       fetchSecrets();
     } catch {
-      message.error(t('secrets.messages.deleteFailed'));
+      messageApi.error(t('secrets.messages.deleteFailed'));
     }
   };
 
@@ -125,7 +125,7 @@ const SecretManagement: React.FC = () => {
       });
       setRevealModalVisible(true);
     } catch {
-      message.error(t('secrets.messages.revealFailed'));
+      messageApi.error(t('secrets.messages.revealFailed'));
     } finally {
       setRevealLoading(false);
     }
@@ -137,10 +137,10 @@ const SecretManagement: React.FC = () => {
 
       if (modalMode === 'create') {
         await axios.post('/api/secrets', values);
-        message.success(t('secrets.messages.createSuccess'));
+        messageApi.success(t('secrets.messages.createSuccess'));
       } else {
         await axios.put(`/api/secrets/${selectedSecret!.id}`, values);
-        message.success(t('secrets.messages.updateSuccess'));
+        messageApi.success(t('secrets.messages.updateSuccess'));
       }
 
       setModalVisible(false);
@@ -148,9 +148,9 @@ const SecretManagement: React.FC = () => {
       fetchSecrets();
     } catch (error) {
       if (error instanceof Error) {
-        message.error(error.message);
+        messageApi.error(error.message);
       } else {
-        message.error(t('secrets.messages.saveFailed'));
+        messageApi.error(t('secrets.messages.saveFailed'));
       }
     }
   };
@@ -159,12 +159,12 @@ const SecretManagement: React.FC = () => {
     try {
       const response = await axios.post(`/api/secrets/${id}/test`);
       if (response.data.success) {
-        message.success(response.data.message);
+        messageApi.success(response.data.message);
       } else {
-        message.error(response.data.message);
+        messageApi.error(response.data.message);
       }
     } catch {
-      message.error(t('secrets.messages.testFailed'));
+      messageApi.error(t('secrets.messages.testFailed'));
     }
   };
 
@@ -284,7 +284,8 @@ const SecretManagement: React.FC = () => {
   ];
 
   return (
-    <div className="secret-management">
+    <>
+      <div className="secret-management">
       <div className="page-title">{t('secrets.title')}</div>
       <div className="page-subtitle">{t('secrets.subtitle')}</div>
 
@@ -347,11 +348,14 @@ const SecretManagement: React.FC = () => {
             name="secret_type"
             rules={[{ required: true, message: t('secrets.form.typeRequired') }]}
           >
-            <Select placeholder={t('secrets.form.type')}>
-              <Option value="password">{t('secrets.form.password')}</Option>
-              <Option value="ssh_key">{t('secrets.form.sshKey')}</Option>
-              <Option value="kubeconfig">{t('secrets.form.kubeconfig')}</Option>
-            </Select>
+            <Select
+              placeholder={t('secrets.form.type')}
+              options={[
+                { value: 'password', label: t('secrets.form.password') },
+                { value: 'ssh_key', label: t('secrets.form.sshKey') },
+                { value: 'kubeconfig', label: t('secrets.form.kubeconfig') },
+              ]}
+            />
           </Form.Item>
 
           <Form.Item
@@ -444,6 +448,7 @@ const SecretManagement: React.FC = () => {
         ) : null}
       </Modal>
     </div>
+    </>
   );
 };
 

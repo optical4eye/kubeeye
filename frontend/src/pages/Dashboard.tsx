@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Card, Table, message } from 'antd';
+import { Card, Table, App } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getDashboardData } from '../services/api';
@@ -41,13 +41,14 @@ interface DashboardData {
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
 
   const { data: dashboardData } = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
     staleTime: 2 * 60 * 1000, // 2 minutes for dashboard
     onError: _error => {
-      message.error(t('dashboard.errorLoading'));
+      messageApi.error(t('dashboard.errorLoading'));
     },
   });
 

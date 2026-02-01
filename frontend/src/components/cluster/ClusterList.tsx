@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Button, Space, Tag, Modal } from 'antd';
+import { Table, Button, Space, Tag, App } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { getStatusTag } from '../ui/statusUtils';
@@ -13,6 +13,7 @@ const ClusterList = ({
   onRefresh: _onRefresh,
 }) => {
   const { t } = useTranslation();
+  const { modal } = App.useApp();
   const clusterColumns = [
     {
       title: t('clusters.clusterName'),
@@ -119,21 +120,21 @@ const ClusterList = ({
           >
             {t('clusters.edit')}
           </Button>
-          <Button
-            className="action-button"
-            icon={<DeleteOutlined />}
-            danger
-            onClick={() =>
-              Modal.confirm({
-                title: t('clusters.deleteConfirm'),
-                content: t('clusters.deleteConfirmText', { name: record.name }),
-                onOk: () => onDelete(record.name),
-              })
-            }
-            aria-label={`${t('clusters.delete')} ${record.name}`}
-          >
-            {t('clusters.delete')}
-          </Button>
+            <Button
+              className="action-button"
+              icon={<DeleteOutlined />}
+              danger
+              onClick={() =>
+                modal.confirm({
+                  title: t('clusters.deleteConfirm'),
+                  description: t('clusters.deleteConfirmText', { name: record.name }),
+                  onOk: () => onDelete(record.name),
+                })
+              }
+              aria-label={`${t('clusters.delete')} ${record.name}`}
+            >
+              {t('clusters.delete')}
+            </Button>
         </Space>
       ),
     },

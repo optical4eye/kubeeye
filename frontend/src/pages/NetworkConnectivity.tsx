@@ -8,7 +8,7 @@ import {
   InputNumber,
   Button,
   Table,
-  message,
+  App,
   Space,
   Alert,
 } from 'antd';
@@ -30,6 +30,7 @@ const { Option } = Select;
 
 const NetworkConnectivity = () => {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const [clusters, setClusters] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [selectedNodes, setSelectedNodes] = useState([]);
@@ -52,7 +53,7 @@ const NetworkConnectivity = () => {
       const response = await getClustersForNetworkCheck();
       setClusters(response.data.clusters || []);
     } catch {
-      message.error(t('networkPage.messages.loadClustersError'));
+      messageApi.error(t('networkPage.messages.loadClustersError'));
     } finally {
       setLoading(false);
     }
@@ -79,23 +80,23 @@ const NetworkConnectivity = () => {
 
   const validateForm = () => {
     if (!selectedCluster) {
-      message.error(t('networkPage.messages.selectCluster'));
+      messageApi.error(t('networkPage.messages.selectCluster'));
       return false;
     }
     if (selectedNodes.length === 0) {
-      message.error(t('networkPage.messages.selectNode'));
+      messageApi.error(t('networkPage.messages.selectNode'));
       return false;
     }
     if (!targetIp) {
-      message.error(t('networkPage.messages.enterIp'));
+      messageApi.error(t('networkPage.messages.enterIp'));
       return false;
     }
     if (!targetPort) {
-      message.error(t('networkPage.messages.enterPort'));
+      messageApi.error(t('networkPage.messages.enterPort'));
       return false;
     }
     if (targetPort < 1 || targetPort > 65535) {
-      message.error(t('networkPage.messages.portRange'));
+      messageApi.error(t('networkPage.messages.portRange'));
       return false;
     }
     return true;
@@ -127,16 +128,16 @@ const NetworkConnectivity = () => {
       const failCount = checkResults.filter(r => r.status === 'failed').length;
 
       if (failCount === 0) {
-        message.success(t('networkPage.messages.allSuccessful', { count: successCount }));
+        messageApi.success(t('networkPage.messages.allSuccessful', { count: successCount }));
       } else if (successCount === 0) {
-        message.error(t('networkPage.messages.allFailed', { count: failCount }));
+        messageApi.error(t('networkPage.messages.allFailed', { count: failCount }));
       } else {
-        message.warning(
+        messageApi.warning(
           t('networkPage.messages.mixed', { success: successCount, fail: failCount })
         );
       }
     } catch {
-      message.error(t('networkPage.messages.checkError'));
+      messageApi.error(t('networkPage.messages.checkError'));
     } finally {
       setChecking(false);
     }
@@ -144,7 +145,7 @@ const NetworkConnectivity = () => {
 
   const exportResults = async format => {
     if (!resultId) {
-      message.warning(t('networkPage.messages.noResults'));
+      messageApi.warning(t('networkPage.messages.noResults'));
       return;
     }
 
@@ -165,9 +166,9 @@ const NetworkConnectivity = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      message.success(t('networkPage.messages.exported', { format: format.toUpperCase() }));
+      messageApi.success(t('networkPage.messages.exported', { format: format.toUpperCase() }));
     } catch {
-      message.error(t('networkPage.messages.exportError'));
+      messageApi.error(t('networkPage.messages.exportError'));
     }
   };
 
@@ -240,7 +241,8 @@ const NetworkConnectivity = () => {
   const selectedClusterData = clusters.find(c => c.name === selectedCluster);
 
   return (
-    <div>
+    <>
+      <div>
       <div className="page-title">{t('networkPage.title')}</div>
       <div className="page-subtitle">{t('networkPage.subtitle')}</div>
 
@@ -387,6 +389,7 @@ const NetworkConnectivity = () => {
         )}
       </Space>
     </div>
+    </>
   );
 };
 

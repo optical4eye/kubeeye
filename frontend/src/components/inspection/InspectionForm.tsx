@@ -5,8 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { RuleSelector } from '../rules';
 import { Cluster, Rule } from '../../types';
 
-const { Option } = Select;
-
 interface TagInfo {
   tag: string;
   count: number;
@@ -70,13 +68,11 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
               placeholder={t('inspection.selectClusterPlaceholder')}
               onChange={setSelectedCluster}
               value={selectedCluster}
-            >
-              {clusters.map(cluster => (
-                <Option key={cluster.name} value={cluster.name}>
-                  {cluster.name} ({cluster.nodes?.length || 0} узлов)
-                </Option>
-              ))}
-            </Select>
+              options={clusters.map(cluster => ({
+                value: cluster.name,
+                label: `${cluster.name} (${cluster.nodes?.length || 0} узлов)`,
+              }))}
+            />
           </div>
 
           {/* Tag Filter */}

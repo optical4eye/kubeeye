@@ -5,9 +5,9 @@ import {
   Menu,
   Spin,
   ConfigProvider,
+  App as AntdApp,
   theme as antdTheme,
   Switch,
-  message as antdMessage,
   Select,
 } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +49,18 @@ function App() {
   const { theme, setTheme, language, setLanguage } = useUIStore();
   const { t, i18n } = useTranslation();
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
+
+  // Configure global theme for message, notification, and other global components
+  useEffect(() => {
+    const themeConfig = getThemeConfig(theme === 'dark');
+    ConfigProvider.config({
+      theme: {
+        token: themeConfig.token,
+        components: themeConfig.components,
+        algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+      },
+    });
+  }, [theme]);
 
   useEffect(() => {
     i18n.changeLanguage(language);
@@ -136,8 +148,6 @@ function App() {
     );
   };
 
-  const [, contextHolder] = antdMessage.useMessage();
-
   return (
     <ConfigProvider
       theme={{
@@ -145,8 +155,8 @@ function App() {
         algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
       }}
     >
-      {contextHolder}
-      {(() => {
+      <AntdApp>
+        {(() => {
         // Show loading screen during initial minimum time
         if (!minLoadingTimePassed) {
           return (
@@ -232,6 +242,7 @@ function App() {
           </Router>
         );
       })()}
+      </AntdApp>
     </ConfigProvider>
   );
 }

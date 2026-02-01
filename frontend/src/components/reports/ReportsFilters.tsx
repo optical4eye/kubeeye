@@ -4,9 +4,6 @@ import { DatePicker } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Filters } from '../hooks/useReportsFilters';
 
-const { Option } = Select;
-const { Search } = Input;
-
 interface ReportsFiltersProps {
   clusters: string[];
   filters: Filters;
@@ -25,26 +22,24 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = React.memo(
             className="width-200"
             onChange={value => setFilters(prev => ({ ...prev, cluster: value }))}
             value={filters.cluster}
-          >
-            <Option value="All">{t('reports.filters.allClusters')}</Option>
-            {clusters.map(cluster => (
-              <Option key={cluster} value={cluster}>
-                {cluster}
-              </Option>
-            ))}
-          </Select>
+            options={[
+              { value: 'All', label: t('reports.filters.allClusters') },
+              ...clusters.map(cluster => ({ value: cluster, label: cluster })),
+            ]}
+          />
 
           <Select
             placeholder={t('reports.filters.inspectionTypePlaceholder')}
             className="width-150"
             onChange={value => setFilters(prev => ({ ...prev, inspectionType: value }))}
             value={filters.inspectionType}
-          >
-            <Option value="All">{t('reports.filters.allTypes')}</Option>
-            <Option value="popeye">{t('reports.filters.inspectionTypes.popeye')}</Option>
-            <Option value="network">{t('reports.filters.inspectionTypes.network')}</Option>
-            <Option value="cluster">{t('reports.filters.inspectionTypes.cluster')}</Option>
-          </Select>
+            options={[
+              { value: 'All', label: t('reports.filters.allTypes') },
+              { value: 'popeye', label: t('reports.filters.inspectionTypes.popeye') },
+              { value: 'network', label: t('reports.filters.inspectionTypes.network') },
+              { value: 'cluster', label: t('reports.filters.inspectionTypes.cluster') },
+            ]}
+          />
 
           <DatePicker.RangePicker
             placeholder={[t('reports.filters.startDate'), t('reports.filters.endDate')]}
@@ -54,7 +49,7 @@ const ReportsFilters: React.FC<ReportsFiltersProps> = React.memo(
             format="DD.MM.YYYY"
           />
 
-          <Search
+          <Input
             placeholder={t('reports.filters.searchPlaceholder')}
             className="width-250"
             onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}

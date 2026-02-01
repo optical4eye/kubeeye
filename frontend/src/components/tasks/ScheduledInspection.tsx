@@ -11,7 +11,7 @@ import {
   Input,
   Switch,
   Space,
-  message,
+  App,
   Tabs,
   Alert,
 } from 'antd';
@@ -23,10 +23,9 @@ import { RuleSelector } from '../rules';
 import { getStatusTag } from '../ui/statusUtils';
 import { Task, Cluster, Rule } from '../../types';
 
-const { Option } = Select;
-
 const ScheduledInspection = () => {
   const { t } = useTranslation();
+  const { message: messageApi, modal } = App.useApp();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [rules, setRules] = useState<Record<string, Rule[]>>({});
@@ -59,7 +58,7 @@ const ScheduledInspection = () => {
       setClusters(clustersRes.data.clusters || []);
       setRules(rulesRes.data.rules || {});
     } catch {
-      message.error(t('scheduledInspection.errorLoadingData'));
+      messageApi.error(t('scheduledInspection.errorLoadingData'));
     } finally {
       setLoading(false);
     }
@@ -98,32 +97,32 @@ const ScheduledInspection = () => {
       };
 
       await api.createScheduledTask(taskData);
-      message.success(t('scheduledInspection.taskCreated'));
+      messageApi.success(t('scheduledInspection.taskCreated'));
       form.resetFields();
       setSelectedRules({ node: [], opa: [] });
       loadData();
     } catch {
-      message.error(t('scheduledInspection.errorCreatingTask'));
+      messageApi.error(t('scheduledInspection.errorCreatingTask'));
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     try {
       await api.deleteScheduledTask(taskId);
-      message.success(t('scheduledInspection.taskDeleted'));
+      messageApi.success(t('scheduledInspection.taskDeleted'));
       loadData();
     } catch {
-      message.error(t('scheduledInspection.errorDeletingTask'));
+      messageApi.error(t('scheduledInspection.errorDeletingTask'));
     }
   };
 
   const handleRunTask = async (taskId: string) => {
     try {
       await api.runScheduledTask(taskId);
-      message.success(t('scheduledInspection.taskRun'));
+      messageApi.success(t('scheduledInspection.taskRun'));
       loadData();
     } catch {
-      message.error(t('scheduledInspection.errorRunningTask'));
+      messageApi.error(t('scheduledInspection.errorRunningTask'));
     }
   };
 
@@ -191,14 +190,14 @@ const ScheduledInspection = () => {
       };
 
       await api.updateScheduledTask(editingTask.task_id, taskData);
-      message.success(t('scheduledInspection.taskUpdated'));
+      messageApi.success(t('scheduledInspection.taskUpdated'));
       setEditModalVisible(false);
       setEditingTask(null);
       editForm.resetFields();
       setSelectedRules({ node: [], opa: [] });
       loadData();
     } catch {
-      message.error(t('scheduledInspection.errorUpdatingTask'));
+      messageApi.error(t('scheduledInspection.errorUpdatingTask'));
     }
   };
 
@@ -249,9 +248,9 @@ const ScheduledInspection = () => {
             icon={<DeleteOutlined />}
             danger
             onClick={() =>
-              Modal.confirm({
+              modal.confirm({
                 title: t('scheduledInspection.deleteTask'),
-                content: t('scheduledInspection.deleteConfirm'),
+                description: t('scheduledInspection.deleteConfirm'),
                 onOk: () => handleDeleteTask(record.task_id),
               })
             }
@@ -262,7 +261,8 @@ const ScheduledInspection = () => {
   ];
 
   return (
-    <div>
+    <>
+      <div>
       <Tabs
         defaultActiveKey="1"
         items={[
@@ -308,13 +308,13 @@ const ScheduledInspection = () => {
                     label={t('scheduledInspection.cluster')}
                     rules={[{ required: true, message: t('scheduledInspection.selectCluster') }]}
                   >
-                    <Select placeholder={t('scheduledInspection.selectCluster')}>
-                      {clusters.map(cluster => (
-                        <Option key={cluster.name} value={cluster.name}>
-                          {cluster.name}
-                        </Option>
-                      ))}
-                    </Select>
+                    <Select
+                      placeholder={t('scheduledInspection.selectCluster')}
+                      options={clusters.map(cluster => ({
+                        value: cluster.name,
+                        label: cluster.name,
+                      }))}
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -324,10 +324,13 @@ const ScheduledInspection = () => {
                       { required: true, message: t('scheduledInspection.selectScheduleType') },
                     ]}
                   >
-                    <Select placeholder={t('scheduledInspection.selectScheduleType')}>
-                      <Option value="cron">{t('scheduledInspection.periodicCron')}</Option>
-                      <Option value="once">{t('scheduledInspection.oneTime')}</Option>
-                    </Select>
+                    <Select
+                      placeholder={t('scheduledInspection.selectScheduleType')}
+                      options={[
+                        { value: 'cron', label: t('scheduledInspection.periodicCron') },
+                        { value: 'once', label: t('scheduledInspection.oneTime') },
+                      ]}
+                    />
                   </Form.Item>
 
                   <Form.Item
@@ -489,13 +492,13 @@ const ScheduledInspection = () => {
             label={t('scheduledInspection.cluster')}
             rules={[{ required: true, message: t('scheduledInspection.selectCluster') }]}
           >
-            <Select placeholder={t('scheduledInspection.selectCluster')}>
-              {clusters.map(cluster => (
-                <Option key={cluster.name} value={cluster.name}>
-                  {cluster.name}
-                </Option>
-              ))}
-            </Select>
+            <Select
+              placeholder={t('scheduledInspection.selectCluster')}
+              options={clusters.map(cluster => ({
+                value: cluster.name,
+                label: cluster.name,
+              }))}
+            />
           </Form.Item>
 
           <Form.Item
@@ -503,10 +506,13 @@ const ScheduledInspection = () => {
             label={t('scheduledInspection.scheduleType')}
             rules={[{ required: true, message: t('scheduledInspection.selectScheduleType') }]}
           >
-            <Select placeholder={t('scheduledInspection.selectScheduleType')}>
-              <Option value="cron">{t('scheduledInspection.periodicCron')}</Option>
-              <Option value="once">{t('scheduledInspection.oneTime')}</Option>
-            </Select>
+            <Select
+              placeholder={t('scheduledInspection.selectScheduleType')}
+              options={[
+                { value: 'cron', label: t('scheduledInspection.periodicCron') },
+                { value: 'once', label: t('scheduledInspection.oneTime') },
+              ]}
+            />
           </Form.Item>
 
           <Form.Item
@@ -630,6 +636,7 @@ const ScheduledInspection = () => {
         </Form>
       </Modal>
     </div>
+    </>
   );
 };
 
