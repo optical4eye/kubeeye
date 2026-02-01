@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { FormInstance } from 'antd/lib/form';
 import { Secret } from '../../types';
+import { getSecretTypeTag } from '../ui/statusUtils';
 
 interface ClusterFormProps {
   form: FormInstance;
@@ -53,25 +54,13 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
   const getSecretTypeIcon = (type: string) => {
     switch (type) {
       case 'password':
-        return (
-          <Tag className="secret-type-password" icon={<LockOutlined />}>
-            password
-          </Tag>
-        );
+        return <LockOutlined />;
       case 'ssh_key':
-        return (
-          <Tag className="secret-type-ssh-key" icon={<KeyOutlined />}>
-            ssh_key
-          </Tag>
-        );
+        return <KeyOutlined />;
       case 'kubeconfig':
-        return (
-          <Tag className="secret-type-kubeconfig" icon={<FileTextOutlined />}>
-            kubeconfig
-          </Tag>
-        );
+        return <FileTextOutlined />;
       default:
-        return <Tag>{type}</Tag>;
+        return null;
     }
   };
 
@@ -224,7 +213,7 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
               title: t('clusters.clusterForm.type'),
               dataIndex: 'secret_type',
               key: 'secret_type',
-              render: type => getSecretTypeIcon(type),
+              render: type => getSecretTypeTag(type),
             },
             {
               title: t('clusters.clusterForm.description'),

@@ -20,7 +20,7 @@ const RuleSelector = ({ ruleType, title, availableRules, selectedRules, onRuleSe
   return (
     <Card title={title} size="small">
       {availableRules.length > 0 && (
-        <div style={{ marginBottom: 8 }}>
+        <div className="rule-selector-header">
           <Checkbox
             indeterminate={someSelected}
             checked={allSelected}
@@ -40,15 +40,9 @@ const RuleSelector = ({ ruleType, title, availableRules, selectedRules, onRuleSe
             <Checkbox key={rule.id} value={rule.id}>
               <div>
                 <strong>{rule.name}</strong>
-                <div style={{ fontSize: '12px', color: 'var(--text-primary)' }}>
-                  {rule.description}
-                </div>
+                <div className="rule-selector-description">{rule.description}</div>
                 {rule.tags && rule.tags.length > 0 && (
-                  <div
-                    style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}
-                  >
-                    Теги: {rule.tags.join(', ')}
-                  </div>
+                  <div className="rule-selector-tags">Теги: {rule.tags.join(', ')}</div>
                 )}
               </div>
             </Checkbox>

@@ -16,7 +16,7 @@ const { Option } = Select;
 import { ReloadOutlined, SyncOutlined, TagOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import * as api from '../../services/api';
-import { getSeverityTag } from '../ui/statusUtils';
+import { getSeverityTag, getInspectionRuleTag } from '../ui/statusUtils';
 
 const RuleManagement = () => {
   const { t } = useTranslation();
@@ -174,23 +174,7 @@ const RuleManagement = () => {
       render: tags =>
         tags && tags.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            {tags.map(tag => (
-              <Tag
-                key={tag}
-                size="small"
-                icon={<TagOutlined />}
-                className="inspection-rule-tags"
-                onClick={() => {
-                  const currentTags = filters.tags || [];
-                  const newTags = currentTags.includes(tag)
-                    ? currentTags.filter(t => t !== tag)
-                    : [...currentTags, tag];
-                  setFilters(prev => ({ ...prev, tags: newTags }));
-                }}
-              >
-                {tag}
-              </Tag>
-            ))}
+            {tags.map(tag => getInspectionRuleTag(tag))}
           </div>
         ) : null,
     },

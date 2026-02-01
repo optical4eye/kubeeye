@@ -31,6 +31,7 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getSecretTypeTag } from '../components/ui/statusUtils';
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -202,11 +203,7 @@ const SecretManagement: React.FC = () => {
       title: t('secrets.columns.type'),
       dataIndex: 'secret_type',
       key: 'secret_type',
-      render: (type: string) => (
-        <Tag icon={getSecretTypeIcon(type)} className={`secret-type-${type.replace('_', '-')}`}>
-          {type}
-        </Tag>
-      ),
+      render: (type: string) => getSecretTypeTag(type),
     },
     {
       title: t('secrets.columns.description'),

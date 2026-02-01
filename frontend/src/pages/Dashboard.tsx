@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { Card, Table, message, Tag } from 'antd';
+import { Card, Table, message } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getDashboardData } from '../services/api';
 import { DashboardStatistics, DashboardCharts } from '../components/dashboard';
+import { getStatusTag } from '../components/ui/statusUtils';
 
 interface ClusterStatus {
   name: string;
@@ -78,22 +79,20 @@ const Dashboard = () => {
   const data = (dashboardData?.data as DashboardData) || defaultData;
   const cluster_statuses = data.cluster_statuses || defaultData.cluster_statuses;
 
-  const getStatusTag = (status: string): React.ReactNode => {
-    const statusMap: Record<string, { className: string; text: string }> = {
-      healthy: { className: 'status-ok', text: t('status.healthy') },
-      ok: { className: 'status-ok', text: t('status.ok') },
-      warning: { className: 'status-warning', text: t('status.warning') },
-      critical: { className: 'status-critical', text: t('status.critical') },
-      error: { className: 'status-exception', text: t('status.error') },
-      unknown: { className: 'status-unknown', text: t('status.unknown') },
-      pending: { className: 'status-pending', text: t('status.pending') },
-      running: { className: 'status-running', text: t('status.running') },
+  const getStatusText = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      healthy: t('status.healthy'),
+      ok: t('status.ok'),
+      warning: t('status.warning'),
+      critical: t('status.critical'),
+      error: t('status.error'),
+      unknown: t('status.unknown'),
+      pending: t('status.pending'),
+      running: t('status.running'),
     };
 
     const normalizedStatus = status?.toLowerCase() || 'unknown';
-    const statusConfig = statusMap[normalizedStatus] || statusMap.unknown;
-
-    return <Tag className={`ant-tag ${statusConfig.className}`}>{statusConfig.text}</Tag>;
+    return statusMap[normalizedStatus] || statusMap.unknown;
   };
 
   const clusterColumns = [
@@ -102,7 +101,7 @@ const Dashboard = () => {
       title: t('dashboard.status'),
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => getStatusTag(status),
+      render: (status: string) => getStatusTag(status, getStatusText(status)),
     },
     { title: t('dashboard.nodes'), dataIndex: 'node_count', key: 'node_count' },
     {
@@ -154,13 +153,17 @@ const Dashboard = () => {
       dataIndex: 'last_scan',
       key: 'last_scan',
       render: (text: string) =>
-        text ? new Date(text).toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }).replace(', ', '-') : t('dashboard.notChecked'),
+        text
+          ? new Date(text)
+              .toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              })
+              .replace(', ', '-')
+          : t('dashboard.notChecked'),
     },
   ];
 

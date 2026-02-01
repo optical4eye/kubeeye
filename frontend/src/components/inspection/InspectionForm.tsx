@@ -101,8 +101,8 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-            <div style={{ flex: 1 }}>
+          <div className="inspection-form-rules-container">
+            <div className="inspection-form-rule-column">
               <RuleSelector
                 ruleType="node"
                 title={t('inspection.nodeRulesTitle')}
@@ -111,7 +111,7 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
                 onRuleSelection={handleRuleSelection}
               />
             </div>
-            <div style={{ flex: 1 }}>
+            <div className="inspection-form-rule-column">
               <RuleSelector
                 ruleType="opa"
                 title={t('inspection.kubernetesRulesTitle')}
@@ -132,8 +132,8 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
                     {Object.entries(selectedRules).map(
                       ([type, rules]) =>
                         rules.length > 0 && (
-                          <div key={type} style={{ marginBottom: token.marginXXS }}>
-                            <span style={{ fontWeight: 'bold' }}>
+                          <div key={type} className="inspection-form-rules-summary-item">
+                            <span className="inspection-form-rules-summary-label">
                               {type === 'node'
                                 ? t('inspection.nodeLabel')
                                 : t('inspection.kubernetesLabel')}

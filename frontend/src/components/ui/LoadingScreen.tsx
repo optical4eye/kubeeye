@@ -22,18 +22,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
     ? {
         status: 'processing' as const,
         text: t('loadingScreen.connecting'),
-        icon: (
-          <div
-            style={{
-              width: '16px',
-              height: '16px',
-              border: `2px solid ${token.colorPrimary}`,
-              borderTop: '2px solid transparent',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-        ),
+        icon: <div className="loading-spinner-icon" />,
         color: token.colorPrimary,
       }
     : {
@@ -47,42 +36,32 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
   const defaultSubMessage = t('loadingScreen.pleaseWait');
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: '2rem',
-        minHeight: '100vh',
-        background: uiTheme === 'dark'
-          ? 'linear-gradient(135deg, #141414, #000000)'
-          : 'linear-gradient(135deg, #f0f5ff, #e6f7ff)',
-        color: uiTheme === 'dark' ? 'white' : token.colorText,
-        fontFamily: 'Arial, sans-serif',
-      }}
+      className={`loading-screen ${uiTheme === 'dark' ? 'loading-screen-dark' : 'loading-screen-light'}`}
     >
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '4rem', margin: '0.5rem 0' }}>🚀</div>
-        <h1 style={{ color: uiTheme === 'dark' ? 'white' : token.colorText, margin: '0.5rem 0', fontSize: '2.5rem' }}>KubeEye</h1>
+      <div className="loading-screen-content">
+        <div className="loading-screen-emoji">🚀</div>
+        <h1 className="loading-screen-title">KubeEye</h1>
         <p
-          style={{
-            color: uiTheme === 'dark' ? '#a6a6a6' : token.colorTextSecondary,
-            fontSize: '1.1rem',
-            margin: '0.5rem 0',
-          }}
+          className={`loading-screen-subtitle ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
         >
           {t('header.title')}
         </p>
       </div>
 
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ color: uiTheme === 'dark' ? 'white' : token.colorText, margin: '0.5rem 0', fontSize: '1.5rem' }}>
+      <div className="loading-screen-status">
+        <h2
+          className={`loading-screen-status-title ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
+        >
           {message || defaultMessage}
         </h2>
-        <p style={{ color: uiTheme === 'dark' ? '#a6a6a6' : token.colorTextSecondary, margin: '0.5rem 0' }}>{subMessage || defaultSubMessage}</p>
+        <p
+          className={`loading-screen-subtitle ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
+        >
+          {subMessage || defaultSubMessage}
+        </p>
       </div>
 
-      <div style={{ textAlign: 'center' }}>
+      <div className="loading-screen-status">
         {/* Backend Status Section */}
         <div
           style={{
@@ -94,23 +73,19 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
           }}
         >
           {statusInfo.icon}
-          <span style={{ color: uiTheme === 'dark' ? 'white' : token.colorText, fontSize: '1rem' }}>
+          <span
+            className={`loading-screen-status-text ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
+          >
             {t('loadingScreen.backend')}: {statusInfo.text}
           </span>
         </div>
-        <p style={{ color: uiTheme === 'dark' ? '#a6a6a6' : token.colorTextSecondary, fontSize: '0.9rem', margin: '0.5rem 0' }}>
+        <p
+          className={`loading-screen-subtitle ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
+          style={{ fontSize: '0.9rem', margin: '0.5rem 0' }}
+        >
           {t('loadingScreen.preparingSystem')}
         </p>
       </div>
-
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import { Table, Button, Space, Tag, Modal } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { getStatusTag } from '../ui/statusUtils';
 
 const ClusterList = ({
   clusters,
@@ -36,11 +37,11 @@ const ClusterList = ({
       responsive: ['lg'],
       render: k8s_version =>
         k8s_version ? (
-          <Tag className="status-configured" aria-label={`Kubernetes version: ${k8s_version}`}>
+          <Tag color="success" aria-label={`Kubernetes version: ${k8s_version}`}>
             {k8s_version}
           </Tag>
         ) : (
-          <Tag className="status-not-configured" aria-label={t('clusters.notConfigured')}>
+          <Tag color="error" aria-label={t('clusters.notConfigured')}>
             {t('clusters.notConfigured')}
           </Tag>
         ),
@@ -54,14 +55,14 @@ const ClusterList = ({
       render: days => {
         if (days === null || days === undefined) {
           return (
-            <Tag className="status-unknown" aria-label={t('clusters.unknown')}>
+            <Tag color="default" aria-label={t('clusters.unknown')}>
               {t('clusters.unknown')}
             </Tag>
           );
         }
         if (days < 0) {
           return (
-            <Tag className="status-expired" aria-label={t('clusters.expired')}>
+            <Tag color="error" aria-label={t('clusters.expired')}>
               {t('clusters.expired')}
             </Tag>
           );
@@ -69,7 +70,7 @@ const ClusterList = ({
         if (days <= 7) {
           return (
             <Tag
-              className="status-expired"
+              color="error"
               aria-label={`${t('clusters.certExpiry')} ${days} ${t('clusters.days')}`}
             >
               {days} {t('clusters.days')}
@@ -79,7 +80,7 @@ const ClusterList = ({
         if (days <= 30) {
           return (
             <Tag
-              className="status-expires-soon"
+              color="warning"
               aria-label={`${t('clusters.certExpiry')} ${days} ${t('clusters.days')}`}
             >
               {days} {t('clusters.days')}
@@ -88,7 +89,7 @@ const ClusterList = ({
         }
         return (
           <Tag
-            className="status-valid"
+            color="success"
             aria-label={`${t('clusters.certExpiry')} ${days} ${t('clusters.days')}`}
           >
             {days} {t('clusters.days')}

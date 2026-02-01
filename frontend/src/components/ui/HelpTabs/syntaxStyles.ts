@@ -1,16 +1,17 @@
 // Custom syntax highlighter style matching the app theme
+// Uses Ant Design CSS variables for theme-aware colors
 const customSyntaxStyle = {
   'code[class*="language-"]': {
-    color: '#ff79c6',
-    background: '#21222c',
+    color: 'var(--ant-color-primary)',
+    background: 'var(--ant-color-bg-layout)',
     fontFamily: '"Inconsolata", "Monaco", "Consolas", monospace',
-    fontSize: '14px',
+    fontSize: 'var(--ant-font-size-sm)',
     textAlign: 'left',
     whiteSpace: 'pre',
     wordSpacing: 'normal',
     wordBreak: 'normal',
     wordWrap: 'normal',
-    lineHeight: '1.5',
+    lineHeight: 'var(--ant-line-height)',
     MozTabSize: '4',
     OTabSize: '4',
     tabSize: '4',
@@ -20,16 +21,16 @@ const customSyntaxStyle = {
     hyphens: 'none',
   },
   'pre[class*="language-"]': {
-    color: '#f8f8f2',
-    background: '#21222c',
+    color: 'var(--ant-color-text)',
+    background: 'var(--ant-color-bg-layout)',
     fontFamily: '"Inconsolata", "Monaco", "Consolas", monospace',
-    fontSize: '14px',
+    fontSize: 'var(--ant-font-size-sm)',
     textAlign: 'left',
     whiteSpace: 'pre',
     wordSpacing: 'normal',
     wordBreak: 'normal',
     wordWrap: 'normal',
-    lineHeight: '1.5',
+    lineHeight: 'var(--ant-line-height)',
     MozTabSize: '4',
     OTabSize: '4',
     tabSize: '4',
@@ -37,138 +38,138 @@ const customSyntaxStyle = {
     MozHyphens: 'none',
     msHyphens: 'none',
     hyphens: 'none',
-    padding: '16px',
+    padding: 'var(--ant-padding-lg)',
     margin: '0',
     overflow: 'auto',
-    borderRadius: '4px',
-    border: '1px solid #6272a4',
+    borderRadius: 'var(--ant-border-radius-sm)',
+    border: '1px solid var(--ant-color-border)',
   },
   'pre[class*="language-"]::-moz-selection': {
-    background: '#44475a',
+    background: 'var(--ant-color-bg-spotlight)',
   },
   'pre[class*="language-"] ::-moz-selection': {
-    background: '#44475a',
+    background: 'var(--ant-color-bg-spotlight)',
   },
   'code[class*="language-"]::-moz-selection': {
-    background: '#44475a',
+    background: 'var(--ant-color-bg-spotlight)',
   },
   'code[class*="language-"] ::-moz-selection': {
-    background: '#44475a',
+    background: 'var(--ant-color-bg-spotlight)',
   },
   'pre[class*="language-"]::selection': {
-    background: '#44475a',
+    background: 'var(--ant-color-bg-spotlight)',
   },
   'pre[class*="language-"] ::selection': {
-    background: '#44475a',
+    background: 'var(--ant-color-bg-spotlight)',
   },
   'code[class*="language-"]::selection': {
-    background: '#44475a',
+    background: 'var(--ant-color-bg-spotlight)',
   },
   'code[class*="language-"] ::selection': {
-    background: '#44475a',
+    background: 'var(--ant-color-bg-spotlight)',
   },
   ':not(pre) > code[class*="language-"]': {
-    background: '#21222c',
+    background: 'var(--ant-color-bg-layout)',
     padding: '0.1em',
     borderRadius: '0.3em',
     whiteSpace: 'normal',
   },
   comment: {
-    color: '#cccccc',
+    color: 'var(--ant-color-text-secondary)',
   },
   prolog: {
-    color: '#cccccc',
+    color: 'var(--ant-color-text-secondary)',
   },
   doctype: {
-    color: '#cccccc',
+    color: 'var(--ant-color-text-secondary)',
   },
   cdata: {
-    color: '#cccccc',
+    color: 'var(--ant-color-text-secondary)',
   },
   punctuation: {
-    color: '#8b94b8',
+    color: 'var(--ant-color-text-tertiary)',
   },
   property: {
-    color: '#6366f1',
+    color: 'var(--ant-color-primary)',
   },
   key: {
-    color: '#6366f1',
+    color: 'var(--ant-color-primary)',
   },
   tag: {
-    color: '#6366f1',
+    color: 'var(--ant-color-primary)',
   },
   constant: {
-    color: '#ffb86c',
+    color: 'var(--ant-color-warning)',
   },
   symbol: {
-    color: '#ffb86c',
+    color: 'var(--ant-color-warning)',
   },
   deleted: {
-    color: '#ff5555',
+    color: 'var(--ant-color-error)',
   },
   boolean: {
-    color: '#50fa7b',
+    color: 'var(--ant-color-success)',
   },
   number: {
-    color: '#50fa7b',
+    color: 'var(--ant-color-success)',
   },
   selector: {
-    color: '#ff79c6',
+    color: 'var(--ant-color-primary)',
   },
   'attr-name': {
-    color: '#ff79c6',
+    color: 'var(--ant-color-primary)',
   },
   string: {
-    color: '#f1fa8c',
+    color: 'var(--ant-color-info)',
   },
   char: {
-    color: '#f1fa8c',
+    color: 'var(--ant-color-info)',
   },
   builtin: {
-    color: '#ff79c6',
+    color: 'var(--ant-color-primary)',
   },
   inserted: {
-    color: '#50fa7b',
+    color: 'var(--ant-color-success)',
   },
   operator: {
-    color: '#8b94b8',
+    color: 'var(--ant-color-text-tertiary)',
   },
   entity: {
-    color: '#6366f1',
+    color: 'var(--ant-color-primary)',
     cursor: 'help',
   },
   url: {
-    color: '#6366f1',
+    color: 'var(--ant-color-primary)',
   },
   '.language-css .token.string': {
-    color: '#f1fa8c',
+    color: 'var(--ant-color-info)',
   },
   '.style .token.string': {
-    color: '#f1fa8c',
+    color: 'var(--ant-color-info)',
   },
   variable: {
-    color: '#ffb86c',
+    color: 'var(--ant-color-warning)',
   },
   atrule: {
-    color: '#8be9fd',
+    color: 'var(--ant-color-info)',
   },
   'attr-value': {
-    color: '#f1fa8c',
+    color: 'var(--ant-color-info)',
   },
   function: {
-    color: '#ff79c6',
+    color: 'var(--ant-color-primary)',
   },
   'class-name': {
-    color: '#ff79c6',
+    color: 'var(--ant-color-primary)',
   },
   keyword: {
-    color: '#8be9fd',
+    color: 'var(--ant-color-info)',
   },
   regex: {
-    color: '#50fa7b',
+    color: 'var(--ant-color-success)',
   },
   important: {
-    color: '#ff5555',
+    color: 'var(--ant-color-error)',
     fontWeight: 'bold',
   },
   bold: {
@@ -176,6 +177,9 @@ const customSyntaxStyle = {
   },
   italic: {
     fontStyle: 'italic',
+  },
+  entity: {
+    cursor: 'help',
   },
 };
 

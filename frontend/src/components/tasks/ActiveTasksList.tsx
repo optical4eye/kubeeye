@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, List, Button, Typography, Progress, Spin, Tag } from 'antd';
 import { StopOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { getTaskStatusIcon } from '../ui';
+import { getTaskStatusIcon, getStatusTag } from '../ui';
 
 interface Task {
   task_id: string;
@@ -50,18 +50,19 @@ const ActiveTasksList: React.FC<ActiveTasksListProps> = React.memo(
               <List.Item.Meta
                 avatar={getTaskStatusIcon(task.status)}
                 title={
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="active-tasks-list-title">
+                    <div className="active-tasks-list-title-row">
                       <Typography.Text strong>
                         {t('tasks.task')} {task.task_id.split('_')[1]}
                       </Typography.Text>
-                      <Tag className={`status-${task.status}`}>
-                        {task.status === 'pending' && t('tasks.statusPending')}
-                        {task.status === 'running' && t('tasks.statusRunning')}
-                        {task.status === 'completed' && t('tasks.statusCompleted')}
-                        {task.status === 'failed' && t('tasks.statusFailed')}
-                        {task.status === 'cancelled' && t('tasks.statusCancelled')}
-                      </Tag>
+                      {getStatusTag(
+                        task.status,
+                        (task.status === 'pending' && t('tasks.statusPending')) ||
+                          (task.status === 'running' && t('tasks.statusRunning')) ||
+                          (task.status === 'completed' && t('tasks.statusCompleted')) ||
+                          (task.status === 'failed' && t('tasks.statusFailed')) ||
+                          (task.status === 'cancelled' && t('tasks.statusCancelled'))
+                      )}
                     </div>
                     {task.status === 'running' && <Spin size="small" />}
                     {task.status === 'completed' && (
@@ -91,7 +92,7 @@ const ActiveTasksList: React.FC<ActiveTasksListProps> = React.memo(
                       </div>
                     )}
                     {task.error && (
-                      <div style={{ color: 'var(--error-color)', marginTop: '4px' }}>
+                      <div className="active-tasks-list-error">
                         {t('tasks.error')}: {task.error}
                       </div>
                     )}

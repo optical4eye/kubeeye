@@ -35,13 +35,15 @@ interface DashboardStatisticsProps {
 const formatScanTime = (scanTime: string | undefined, noDataText: string): string => {
   if (!scanTime || scanTime === noDataText) return noDataText;
   try {
-    return new Date(scanTime).toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).replace(', ', '-');
+    return new Date(scanTime)
+      .toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+      .replace(', ', '-');
   } catch {
     return scanTime;
   }
@@ -131,17 +133,15 @@ const DashboardStatistics: React.FC<DashboardStatisticsProps> = ({ dashboardData
                   ? 'rgba(255, 77, 79, 0.1)'
                   : 'rgba(255, 77, 79, 0.05)'
                 : 'transparent',
-              border: stat.highlight
-                ? `1px solid ${token.colorError}`
-                : undefined,
+              border: stat.highlight ? `1px solid ${token.colorError}` : undefined,
               transition: 'all 0.3s ease',
             }}
             hoverable
-            onMouseEnter={(e) => {
+            onMouseEnter={e => {
               e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.style.boxShadow = token.boxShadow;
             }}
-            onMouseLeave={(e) => {
+            onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = 'none';
             }}
