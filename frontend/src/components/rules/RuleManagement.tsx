@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Tabs,
-  Table,
-  Button,
-  Select,
-  Input,
-  Space,
-  Tag,
-  Alert,
-  App,
-  Tooltip,
-} from 'antd';
-import { ReloadOutlined, SyncOutlined, TagOutlined } from '@ant-design/icons';
+import { Card, Tabs, Table, Button, Select, Input, Space, Alert, App, Tooltip } from 'antd';
+import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import * as api from '../../services/api';
 import { getSeverityTag, getInspectionRuleTag } from '../ui/statusUtils';

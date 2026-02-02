@@ -157,91 +157,91 @@ function App() {
     >
       <AntdApp>
         {(() => {
-        // Show loading screen during initial minimum time
-        if (!minLoadingTimePassed) {
-          return (
-            <LoadingScreen
-              message={message || t('loading.connecting')}
-              subMessage={subMessage || t('loading.pleaseWait')}
-              isConnecting={isConnecting}
-            />
-          );
-        }
+          // Show loading screen during initial minimum time
+          if (!minLoadingTimePassed) {
+            return (
+              <LoadingScreen
+                message={message || t('loading.connecting')}
+                subMessage={subMessage || t('loading.pleaseWait')}
+                isConnecting={isConnecting}
+              />
+            );
+          }
 
-        // Show loading screen if backend is not ready
-        if (!isSystemReady) {
-          return (
-            <LoadingScreen
-              message={message || t('loading.connectionProblem')}
-              subMessage={subMessage || t('loading.restoringConnection')}
-              isConnecting={!isReady}
-            />
-          );
-        }
+          // Show loading screen if backend is not ready
+          if (!isSystemReady) {
+            return (
+              <LoadingScreen
+                message={message || t('loading.connectionProblem')}
+                subMessage={subMessage || t('loading.restoringConnection')}
+                isConnecting={!isReady}
+              />
+            );
+          }
 
-        return (
-          <Router>
-            <div className="app-container">
-              <Layout className="main-layout">
-                <Sidebar />
-                <Layout className="main-layout-bg">
-                  <Header className="header-bg">
-                    <div className="header-content">
-                      <div className="header-title">{t('header.title')}</div>
-                      <div
-                        style={{
-                          marginLeft: 'auto',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '16px',
-                        }}
-                      >
-                        <Switch
-                          checked={theme === 'dark'}
-                          onChange={checked => setTheme(checked ? 'dark' : 'light')}
-                          checkedChildren={<SunOutlined />}
-                          unCheckedChildren={<MoonOutlined />}
-                        />
-                        <Select
-                          value={language}
-                          onChange={value => setLanguage(value)}
-                          options={[
-                            { value: 'ru', label: 'RU' },
-                            { value: 'en', label: 'EN' },
-                          ]}
-                          style={{ width: 60 }}
-                          size="small"
-                        />
-                      </div>
-                    </div>
-                  </Header>
-                  <Content className="content-area">
-                    <Suspense
-                      fallback={
-                        <div className="loading-spinner">
-                          <Spin size="large" />
+          return (
+            <Router>
+              <div className="app-container">
+                <Layout className="main-layout">
+                  <Sidebar />
+                  <Layout className="main-layout-bg">
+                    <Header className="header-bg">
+                      <div className="header-content">
+                        <div className="header-title">{t('header.title')}</div>
+                        <div
+                          style={{
+                            marginLeft: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '16px',
+                          }}
+                        >
+                          <Switch
+                            checked={theme === 'dark'}
+                            onChange={checked => setTheme(checked ? 'dark' : 'light')}
+                            checkedChildren={<SunOutlined />}
+                            unCheckedChildren={<MoonOutlined />}
+                          />
+                          <Select
+                            value={language}
+                            onChange={value => setLanguage(value)}
+                            options={[
+                              { value: 'ru', label: 'RU' },
+                              { value: 'en', label: 'EN' },
+                            ]}
+                            style={{ width: 60 }}
+                            size="small"
+                          />
                         </div>
-                      }
-                    >
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/clusters" element={<ClusterManagement />} />
-                        <Route path="/secrets" element={<SecretManagement />} />
-                        <Route path="/network" element={<NetworkConnectivity />} />
-                        <Route path="/inspection" element={<Inspection />} />
-                        <Route path="/rules" element={<Rules />} />
-                        <Route path="/popeye" element={<PopeyeScan />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="/help" element={<Help />} />
-                      </Routes>
-                    </Suspense>
-                  </Content>
+                      </div>
+                    </Header>
+                    <Content className="content-area">
+                      <Suspense
+                        fallback={
+                          <div className="loading-spinner">
+                            <Spin size="large" />
+                          </div>
+                        }
+                      >
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/clusters" element={<ClusterManagement />} />
+                          <Route path="/secrets" element={<SecretManagement />} />
+                          <Route path="/network" element={<NetworkConnectivity />} />
+                          <Route path="/inspection" element={<Inspection />} />
+                          <Route path="/rules" element={<Rules />} />
+                          <Route path="/popeye" element={<PopeyeScan />} />
+                          <Route path="/reports" element={<Reports />} />
+                          <Route path="/help" element={<Help />} />
+                        </Routes>
+                      </Suspense>
+                    </Content>
+                  </Layout>
                 </Layout>
-              </Layout>
-            </div>
-          </Router>
-        );
-      })()}
+              </div>
+            </Router>
+          );
+        })()}
       </AntdApp>
     </ConfigProvider>
   );

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Card, Select, Button, Space, theme } from 'antd';
+import { Card, Select, Button, Space } from 'antd';
 import { PlayCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { RuleSelector } from '../rules';
@@ -44,7 +44,6 @@ const InspectionForm: React.FC<InspectionFormProps> = React.memo(
     handleRuleSelection,
   }) => {
     const { t } = useTranslation();
-    const { token } = theme.useToken();
 
     const getAllTags = useCallback(() => {
       return availableTags;

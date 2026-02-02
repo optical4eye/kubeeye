@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Space, Modal, Tag, Tooltip, Table } from 'antd';
-import { KeyOutlined, InfoCircleOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Space, Modal, Tooltip, Table } from 'antd';
+import { KeyOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { Secret } from '../../types';
@@ -48,19 +48,6 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
     const currentValue = form.getFieldValue(targetField) || '';
     form.setFieldValue(targetField, currentValue + secretVariable);
     setSecretModalVisible(false);
-  };
-
-  const getSecretTypeIcon = (type: string) => {
-    switch (type) {
-      case 'password':
-        return <LockOutlined />;
-      case 'ssh_key':
-        return <KeyOutlined />;
-      case 'kubeconfig':
-        return <FileTextOutlined />;
-      default:
-        return null;
-    }
   };
 
   return (

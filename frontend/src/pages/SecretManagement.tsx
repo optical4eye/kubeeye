@@ -286,168 +286,168 @@ const SecretManagement: React.FC = () => {
   return (
     <>
       <div className="secret-management">
-      <div className="page-title">{t('secrets.title')}</div>
-      <div className="page-subtitle">{t('secrets.subtitle')}</div>
+        <div className="page-title">{t('secrets.title')}</div>
+        <div className="page-subtitle">{t('secrets.subtitle')}</div>
 
-      <Card>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <Alert
-            message={t('secrets.secureStorage')}
-            description={t('secrets.secureDescription')}
-            type="info"
-            showIcon
-          />
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-              {t('secrets.createSecret')}
-            </Button>
-          </div>
-
-          <Table
-            columns={columns}
-            dataSource={secrets}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: total => `${t('secrets.total')} ${total}`,
-            }}
-          />
-        </Space>
-      </Card>
-
-      <Modal
-        title={modalMode === 'create' ? t('secrets.modal.create') : t('secrets.modal.edit')}
-        open={modalVisible}
-        onOk={handleModalOk}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-        }}
-        width={600}
-        okText={t('secrets.modal.save')}
-        cancelText={t('secrets.modal.cancel')}
-      >
-        <Form form={form} layout="vertical" autoComplete="off">
-          <Form.Item
-            label={t('secrets.form.name')}
-            name="name"
-            rules={[
-              { required: true, message: t('secrets.form.nameRequired') },
-              { min: 3, message: t('secrets.form.nameMin') },
-              { max: 100, message: t('secrets.form.nameMax') },
-            ]}
-          >
-            <Input placeholder={t('secrets.form.namePlaceholder')} />
-          </Form.Item>
-
-          <Form.Item
-            label={t('secrets.form.type')}
-            name="secret_type"
-            rules={[{ required: true, message: t('secrets.form.typeRequired') }]}
-          >
-            <Select
-              placeholder={t('secrets.form.type')}
-              options={[
-                { value: 'password', label: t('secrets.form.password') },
-                { value: 'ssh_key', label: t('secrets.form.sshKey') },
-                { value: 'kubeconfig', label: t('secrets.form.kubeconfig') },
-              ]}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label={t('secrets.form.data')}
-            name="data"
-            rules={[
-              { required: true, message: t('secrets.form.dataRequired') },
-              {
-                validator: (_, value) => {
-                  if (!value || !value.trim()) {
-                    return Promise.reject(t('secrets.form.dataEmpty'));
-                  }
-                  return Promise.resolve();
-                },
-              },
-            ]}
-          >
-            <TextArea
-              rows={6}
-              placeholder={t('secrets.form.dataPlaceholder')}
-              type={passwordVisible ? 'text' : 'password'}
-              suffix={
-                <Button
-                  type="text"
-                  icon={passwordVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                  onClick={() => setPasswordVisible(!passwordVisible)}
-                />
-              }
-            />
-          </Form.Item>
-
-          <Form.Item label={t('secrets.form.description')} name="description">
-            <TextArea rows={3} placeholder={t('secrets.form.descriptionPlaceholder')} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={t('secrets.viewModal.title')}
-        open={revealModalVisible}
-        onCancel={() => {
-          setRevealModalVisible(false);
-          setRevealedSecret(null);
-        }}
-        footer={[
-          <Button key="close" onClick={() => setRevealModalVisible(false)}>
-            {t('secrets.viewModal.close')}
-          </Button>,
-        ]}
-        width="90vw"
-      >
-        {revealLoading ? (
-          <Spin size="large" />
-        ) : revealedSecret ? (
-          <div>
-            <Card title={t('secrets.viewModal.stats')} className="margin-bottom-space-4">
-              <Row gutter={16}>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic
-                    title={t('secrets.viewModal.dataLength')}
-                    value={revealedSecret.data.length}
-                  />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Statistic
-                    title={t('secrets.viewModal.lines')}
-                    value={revealedSecret.data.split('\n').length}
-                  />
-                </Col>
-              </Row>
-            </Card>
-
-            <Card title={t('secrets.viewModal.secretData')}>
-              <TextArea
-                value={revealedSecret.data}
-                rows={15}
-                readOnly
-                style={{ fontFamily: 'monospace', width: '100%' }}
-              />
-            </Card>
-
+        <Card>
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Alert
-              message={t('secrets.viewModal.warning')}
-              description={t('secrets.viewModal.warningDescription')}
-              type="warning"
+              message={t('secrets.secureStorage')}
+              description={t('secrets.secureDescription')}
+              type="info"
               showIcon
-              className="margin-top-space-4"
             />
-          </div>
-        ) : null}
-      </Modal>
-    </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+                {t('secrets.createSecret')}
+              </Button>
+            </div>
+
+            <Table
+              columns={columns}
+              dataSource={secrets}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: total => `${t('secrets.total')} ${total}`,
+              }}
+            />
+          </Space>
+        </Card>
+
+        <Modal
+          title={modalMode === 'create' ? t('secrets.modal.create') : t('secrets.modal.edit')}
+          open={modalVisible}
+          onOk={handleModalOk}
+          onCancel={() => {
+            setModalVisible(false);
+            form.resetFields();
+          }}
+          width={600}
+          okText={t('secrets.modal.save')}
+          cancelText={t('secrets.modal.cancel')}
+        >
+          <Form form={form} layout="vertical" autoComplete="off">
+            <Form.Item
+              label={t('secrets.form.name')}
+              name="name"
+              rules={[
+                { required: true, message: t('secrets.form.nameRequired') },
+                { min: 3, message: t('secrets.form.nameMin') },
+                { max: 100, message: t('secrets.form.nameMax') },
+              ]}
+            >
+              <Input placeholder={t('secrets.form.namePlaceholder')} />
+            </Form.Item>
+
+            <Form.Item
+              label={t('secrets.form.type')}
+              name="secret_type"
+              rules={[{ required: true, message: t('secrets.form.typeRequired') }]}
+            >
+              <Select
+                placeholder={t('secrets.form.type')}
+                options={[
+                  { value: 'password', label: t('secrets.form.password') },
+                  { value: 'ssh_key', label: t('secrets.form.sshKey') },
+                  { value: 'kubeconfig', label: t('secrets.form.kubeconfig') },
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label={t('secrets.form.data')}
+              name="data"
+              rules={[
+                { required: true, message: t('secrets.form.dataRequired') },
+                {
+                  validator: (_, value) => {
+                    if (!value || !value.trim()) {
+                      return Promise.reject(t('secrets.form.dataEmpty'));
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
+            >
+              <TextArea
+                rows={6}
+                placeholder={t('secrets.form.dataPlaceholder')}
+                type={passwordVisible ? 'text' : 'password'}
+                suffix={
+                  <Button
+                    type="text"
+                    icon={passwordVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                    onClick={() => setPasswordVisible(!passwordVisible)}
+                  />
+                }
+              />
+            </Form.Item>
+
+            <Form.Item label={t('secrets.form.description')} name="description">
+              <TextArea rows={3} placeholder={t('secrets.form.descriptionPlaceholder')} />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        <Modal
+          title={t('secrets.viewModal.title')}
+          open={revealModalVisible}
+          onCancel={() => {
+            setRevealModalVisible(false);
+            setRevealedSecret(null);
+          }}
+          footer={[
+            <Button key="close" onClick={() => setRevealModalVisible(false)}>
+              {t('secrets.viewModal.close')}
+            </Button>,
+          ]}
+          width="90vw"
+        >
+          {revealLoading ? (
+            <Spin size="large" />
+          ) : revealedSecret ? (
+            <div>
+              <Card title={t('secrets.viewModal.stats')} className="margin-bottom-space-4">
+                <Row gutter={16}>
+                  <Col xs={24} sm={12} md={6}>
+                    <Statistic
+                      title={t('secrets.viewModal.dataLength')}
+                      value={revealedSecret.data.length}
+                    />
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <Statistic
+                      title={t('secrets.viewModal.lines')}
+                      value={revealedSecret.data.split('\n').length}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+
+              <Card title={t('secrets.viewModal.secretData')}>
+                <TextArea
+                  value={revealedSecret.data}
+                  rows={15}
+                  readOnly
+                  style={{ fontFamily: 'monospace', width: '100%' }}
+                />
+              </Card>
+
+              <Alert
+                message={t('secrets.viewModal.warning')}
+                description={t('secrets.viewModal.warningDescription')}
+                type="warning"
+                showIcon
+                className="margin-top-space-4"
+              />
+            </div>
+          ) : null}
+        </Modal>
+      </div>
     </>
   );
 };

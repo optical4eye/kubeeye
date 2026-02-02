@@ -263,379 +263,381 @@ const ScheduledInspection = () => {
   return (
     <>
       <div>
-      <Tabs
-        defaultActiveKey="1"
-        items={[
-          {
-            key: '1',
-            label: t('scheduledInspection.taskList'),
-            children: (
-              <Card>
-                <Table
-                  columns={taskColumns}
-                  dataSource={tasks}
-                  loading={loading}
-                  rowKey="task_id"
-                  pagination={{ pageSize: 10 }}
-                />
-              </Card>
-            ),
-          },
-          {
-            key: '2',
-            label: t('scheduledInspection.createTask'),
-            children: (
-              <Card>
-                <Form form={form} layout="vertical" onFinish={handleCreateTask}>
-                  <Form.Item
-                    name="name"
-                    label={t('scheduledInspection.taskName')}
-                    rules={[{ required: true, message: t('scheduledInspection.enterTaskName') }]}
-                  >
-                    <Input placeholder={t('scheduledInspection.dailyCheck')} />
-                  </Form.Item>
+        <Tabs
+          defaultActiveKey="1"
+          items={[
+            {
+              key: '1',
+              label: t('scheduledInspection.taskList'),
+              children: (
+                <Card>
+                  <Table
+                    columns={taskColumns}
+                    dataSource={tasks}
+                    loading={loading}
+                    rowKey="task_id"
+                    pagination={{ pageSize: 10 }}
+                  />
+                </Card>
+              ),
+            },
+            {
+              key: '2',
+              label: t('scheduledInspection.createTask'),
+              children: (
+                <Card>
+                  <Form form={form} layout="vertical" onFinish={handleCreateTask}>
+                    <Form.Item
+                      name="name"
+                      label={t('scheduledInspection.taskName')}
+                      rules={[{ required: true, message: t('scheduledInspection.enterTaskName') }]}
+                    >
+                      <Input placeholder={t('scheduledInspection.dailyCheck')} />
+                    </Form.Item>
 
-                  <Form.Item
-                    name="description"
-                    label={t('scheduledInspection.description')}
-                    rules={[{ required: true, message: t('scheduledInspection.enterDescription') }]}
-                  >
-                    <Input.TextArea placeholder={t('scheduledInspection.taskDescription')} />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="cluster"
-                    label={t('scheduledInspection.cluster')}
-                    rules={[{ required: true, message: t('scheduledInspection.selectCluster') }]}
-                  >
-                    <Select
-                      placeholder={t('scheduledInspection.selectCluster')}
-                      options={clusters.map(cluster => ({
-                        value: cluster.name,
-                        label: cluster.name,
-                      }))}
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="schedule_type"
-                    label={t('scheduledInspection.scheduleType')}
-                    rules={[
-                      { required: true, message: t('scheduledInspection.selectScheduleType') },
-                    ]}
-                  >
-                    <Select
-                      placeholder={t('scheduledInspection.selectScheduleType')}
-                      options={[
-                        { value: 'cron', label: t('scheduledInspection.periodicCron') },
-                        { value: 'once', label: t('scheduledInspection.oneTime') },
+                    <Form.Item
+                      name="description"
+                      label={t('scheduledInspection.description')}
+                      rules={[
+                        { required: true, message: t('scheduledInspection.enterDescription') },
                       ]}
-                    />
-                  </Form.Item>
+                    >
+                      <Input.TextArea placeholder={t('scheduledInspection.taskDescription')} />
+                    </Form.Item>
 
-                  <Form.Item
-                    noStyle
-                    shouldUpdate={(prevValues, currentValues) =>
-                      prevValues.schedule_type !== currentValues.schedule_type
-                    }
-                  >
-                    {({ getFieldValue }) => {
-                      const scheduleType = getFieldValue('schedule_type');
-                      if (scheduleType === 'cron') {
-                        return (
-                          <div>
-                            <Alert
-                              message={t('scheduledInspection.cronFormat')}
-                              type="info"
-                              showIcon
-                              className="margin-bottom-space-4"
-                            />
-                            <Space wrap>
+                    <Form.Item
+                      name="cluster"
+                      label={t('scheduledInspection.cluster')}
+                      rules={[{ required: true, message: t('scheduledInspection.selectCluster') }]}
+                    >
+                      <Select
+                        placeholder={t('scheduledInspection.selectCluster')}
+                        options={clusters.map(cluster => ({
+                          value: cluster.name,
+                          label: cluster.name,
+                        }))}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="schedule_type"
+                      label={t('scheduledInspection.scheduleType')}
+                      rules={[
+                        { required: true, message: t('scheduledInspection.selectScheduleType') },
+                      ]}
+                    >
+                      <Select
+                        placeholder={t('scheduledInspection.selectScheduleType')}
+                        options={[
+                          { value: 'cron', label: t('scheduledInspection.periodicCron') },
+                          { value: 'once', label: t('scheduledInspection.oneTime') },
+                        ]}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      noStyle
+                      shouldUpdate={(prevValues, currentValues) =>
+                        prevValues.schedule_type !== currentValues.schedule_type
+                      }
+                    >
+                      {({ getFieldValue }) => {
+                        const scheduleType = getFieldValue('schedule_type');
+                        if (scheduleType === 'cron') {
+                          return (
+                            <div>
+                              <Alert
+                                message={t('scheduledInspection.cronFormat')}
+                                type="info"
+                                showIcon
+                                className="margin-bottom-space-4"
+                              />
+                              <Space wrap>
+                                <Form.Item
+                                  name="cron_min"
+                                  label={t('scheduledInspection.minutes')}
+                                  initialValue="0"
+                                >
+                                  <Input placeholder="0" />
+                                </Form.Item>
+                                <Form.Item
+                                  name="cron_hour"
+                                  label={t('scheduledInspection.hours')}
+                                  initialValue="8"
+                                >
+                                  <Input placeholder="8" />
+                                </Form.Item>
+                                <Form.Item
+                                  name="cron_dom"
+                                  label={t('scheduledInspection.dayOfMonth')}
+                                  initialValue="*"
+                                >
+                                  <Input placeholder="*" />
+                                </Form.Item>
+                                <Form.Item
+                                  name="cron_month"
+                                  label={t('scheduledInspection.month')}
+                                  initialValue="*"
+                                >
+                                  <Input placeholder="*" />
+                                </Form.Item>
+                                <Form.Item
+                                  name="cron_dow"
+                                  label={t('scheduledInspection.dayOfWeek')}
+                                  initialValue="*"
+                                >
+                                  <Input placeholder="*" />
+                                </Form.Item>
+                              </Space>
+                            </div>
+                          );
+                        } else if (scheduleType === 'once') {
+                          return (
+                            <Space>
                               <Form.Item
-                                name="cron_min"
-                                label={t('scheduledInspection.minutes')}
-                                initialValue="0"
+                                name="run_date"
+                                label={t('scheduledInspection.runDate')}
+                                rules={[{ required: true }]}
                               >
-                                <Input placeholder="0" />
+                                <DatePicker />
                               </Form.Item>
                               <Form.Item
-                                name="cron_hour"
-                                label={t('scheduledInspection.hours')}
-                                initialValue="8"
+                                name="run_time"
+                                label={t('scheduledInspection.runTime')}
+                                rules={[{ required: true }]}
                               >
-                                <Input placeholder="8" />
-                              </Form.Item>
-                              <Form.Item
-                                name="cron_dom"
-                                label={t('scheduledInspection.dayOfMonth')}
-                                initialValue="*"
-                              >
-                                <Input placeholder="*" />
-                              </Form.Item>
-                              <Form.Item
-                                name="cron_month"
-                                label={t('scheduledInspection.month')}
-                                initialValue="*"
-                              >
-                                <Input placeholder="*" />
-                              </Form.Item>
-                              <Form.Item
-                                name="cron_dow"
-                                label={t('scheduledInspection.dayOfWeek')}
-                                initialValue="*"
-                              >
-                                <Input placeholder="*" />
+                                <TimePicker format="HH:mm" />
                               </Form.Item>
                             </Space>
-                          </div>
-                        );
-                      } else if (scheduleType === 'once') {
-                        return (
-                          <Space>
-                            <Form.Item
-                              name="run_date"
-                              label={t('scheduledInspection.runDate')}
-                              rules={[{ required: true }]}
-                            >
-                              <DatePicker />
-                            </Form.Item>
-                            <Form.Item
-                              name="run_time"
-                              label={t('scheduledInspection.runTime')}
-                              rules={[{ required: true }]}
-                            >
-                              <TimePicker format="HH:mm" />
-                            </Form.Item>
-                          </Space>
-                        );
-                      }
-                      return null;
-                    }}
-                  </Form.Item>
+                          );
+                        }
+                        return null;
+                      }}
+                    </Form.Item>
 
-                  <div className="margin-top-space-6 margin-bottom-space-6">
-                    <h4>{t('scheduledInspection.selectInspectionRules')}</h4>
-                    <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-                      <div style={{ flex: 1 }}>
-                        <RuleSelector
-                          ruleType="node"
-                          title={t('scheduledInspection.nodeRules')}
-                          availableRules={rules.node || []}
-                          selectedRules={selectedRules}
-                          onRuleSelection={handleRuleSelection}
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <RuleSelector
-                          ruleType="opa"
-                          title={t('scheduledInspection.kubernetesRules')}
-                          availableRules={rules.opa || []}
-                          selectedRules={selectedRules}
-                          onRuleSelection={handleRuleSelection}
-                        />
+                    <div className="margin-top-space-6 margin-bottom-space-6">
+                      <h4>{t('scheduledInspection.selectInspectionRules')}</h4>
+                      <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+                        <div style={{ flex: 1 }}>
+                          <RuleSelector
+                            ruleType="node"
+                            title={t('scheduledInspection.nodeRules')}
+                            availableRules={rules.node || []}
+                            selectedRules={selectedRules}
+                            onRuleSelection={handleRuleSelection}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <RuleSelector
+                            ruleType="opa"
+                            title={t('scheduledInspection.kubernetesRules')}
+                            availableRules={rules.opa || []}
+                            selectedRules={selectedRules}
+                            onRuleSelection={handleRuleSelection}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <Form.Item
-                    name="enabled"
-                    label={t('scheduledInspection.enableTask')}
-                    valuePropName="checked"
-                    initialValue={true}
-                  >
-                    <Switch />
-                  </Form.Item>
+                    <Form.Item
+                      name="enabled"
+                      label={t('scheduledInspection.enableTask')}
+                      valuePropName="checked"
+                      initialValue={true}
+                    >
+                      <Switch />
+                    </Form.Item>
 
-                  <Form.Item>
-                    <Button type="primary" htmlType="submit">
-                      {t('scheduledInspection.createTaskButton')}
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </Card>
-            ),
-          },
-        ]}
-      />
+                    <Form.Item>
+                      <Button type="primary" htmlType="submit">
+                        {t('scheduledInspection.createTaskButton')}
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                </Card>
+              ),
+            },
+          ]}
+        />
 
-      <Modal
-        title={t('scheduledInspection.editTask')}
-        open={editModalVisible}
-        onCancel={() => {
-          setEditModalVisible(false);
-          setEditingTask(null);
-          editForm.resetFields();
-          setSelectedRules({ node: [], opa: [] });
-        }}
-        footer={null}
-        width={800}
-      >
-        <Form form={editForm} layout="vertical" onFinish={handleUpdateTask}>
-          <Form.Item
-            name="name"
-            label={t('scheduledInspection.taskName')}
-            rules={[{ required: true, message: t('scheduledInspection.enterTaskName') }]}
-          >
-            <Input placeholder={t('scheduledInspection.dailyCheck')} />
-          </Form.Item>
+        <Modal
+          title={t('scheduledInspection.editTask')}
+          open={editModalVisible}
+          onCancel={() => {
+            setEditModalVisible(false);
+            setEditingTask(null);
+            editForm.resetFields();
+            setSelectedRules({ node: [], opa: [] });
+          }}
+          footer={null}
+          width={800}
+        >
+          <Form form={editForm} layout="vertical" onFinish={handleUpdateTask}>
+            <Form.Item
+              name="name"
+              label={t('scheduledInspection.taskName')}
+              rules={[{ required: true, message: t('scheduledInspection.enterTaskName') }]}
+            >
+              <Input placeholder={t('scheduledInspection.dailyCheck')} />
+            </Form.Item>
 
-          <Form.Item
-            name="description"
-            label={t('scheduledInspection.description')}
-            rules={[{ required: true, message: t('scheduledInspection.enterDescription') }]}
-          >
-            <Input.TextArea placeholder={t('scheduledInspection.taskDescription')} />
-          </Form.Item>
+            <Form.Item
+              name="description"
+              label={t('scheduledInspection.description')}
+              rules={[{ required: true, message: t('scheduledInspection.enterDescription') }]}
+            >
+              <Input.TextArea placeholder={t('scheduledInspection.taskDescription')} />
+            </Form.Item>
 
-          <Form.Item
-            name="cluster"
-            label={t('scheduledInspection.cluster')}
-            rules={[{ required: true, message: t('scheduledInspection.selectCluster') }]}
-          >
-            <Select
-              placeholder={t('scheduledInspection.selectCluster')}
-              options={clusters.map(cluster => ({
-                value: cluster.name,
-                label: cluster.name,
-              }))}
-            />
-          </Form.Item>
+            <Form.Item
+              name="cluster"
+              label={t('scheduledInspection.cluster')}
+              rules={[{ required: true, message: t('scheduledInspection.selectCluster') }]}
+            >
+              <Select
+                placeholder={t('scheduledInspection.selectCluster')}
+                options={clusters.map(cluster => ({
+                  value: cluster.name,
+                  label: cluster.name,
+                }))}
+              />
+            </Form.Item>
 
-          <Form.Item
-            name="schedule_type"
-            label={t('scheduledInspection.scheduleType')}
-            rules={[{ required: true, message: t('scheduledInspection.selectScheduleType') }]}
-          >
-            <Select
-              placeholder={t('scheduledInspection.selectScheduleType')}
-              options={[
-                { value: 'cron', label: t('scheduledInspection.periodicCron') },
-                { value: 'once', label: t('scheduledInspection.oneTime') },
-              ]}
-            />
-          </Form.Item>
+            <Form.Item
+              name="schedule_type"
+              label={t('scheduledInspection.scheduleType')}
+              rules={[{ required: true, message: t('scheduledInspection.selectScheduleType') }]}
+            >
+              <Select
+                placeholder={t('scheduledInspection.selectScheduleType')}
+                options={[
+                  { value: 'cron', label: t('scheduledInspection.periodicCron') },
+                  { value: 'once', label: t('scheduledInspection.oneTime') },
+                ]}
+              />
+            </Form.Item>
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.schedule_type !== currentValues.schedule_type
-            }
-          >
-            {({ getFieldValue }) => {
-              const scheduleType = getFieldValue('schedule_type');
-              if (scheduleType === 'cron') {
-                return (
-                  <div>
-                    <Alert
-                      message={t('scheduledInspection.cronFormat')}
-                      type="info"
-                      showIcon
-                      style={{ marginBottom: 16 }}
-                    />
-                    <Space wrap>
+            <Form.Item
+              noStyle
+              shouldUpdate={(prevValues, currentValues) =>
+                prevValues.schedule_type !== currentValues.schedule_type
+              }
+            >
+              {({ getFieldValue }) => {
+                const scheduleType = getFieldValue('schedule_type');
+                if (scheduleType === 'cron') {
+                  return (
+                    <div>
+                      <Alert
+                        message={t('scheduledInspection.cronFormat')}
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                      />
+                      <Space wrap>
+                        <Form.Item
+                          name="cron_min"
+                          label={t('scheduledInspection.minutes')}
+                          initialValue="0"
+                        >
+                          <Input placeholder="0" />
+                        </Form.Item>
+                        <Form.Item
+                          name="cron_hour"
+                          label={t('scheduledInspection.hours')}
+                          initialValue="8"
+                        >
+                          <Input placeholder="8" />
+                        </Form.Item>
+                        <Form.Item
+                          name="cron_dom"
+                          label={t('scheduledInspection.dayOfMonth')}
+                          initialValue="*"
+                        >
+                          <Input placeholder="*" />
+                        </Form.Item>
+                        <Form.Item
+                          name="cron_month"
+                          label={t('scheduledInspection.month')}
+                          initialValue="*"
+                        >
+                          <Input placeholder="*" />
+                        </Form.Item>
+                        <Form.Item
+                          name="cron_dow"
+                          label={t('scheduledInspection.dayOfWeek')}
+                          initialValue="*"
+                        >
+                          <Input placeholder="*" />
+                        </Form.Item>
+                      </Space>
+                    </div>
+                  );
+                } else if (scheduleType === 'once') {
+                  return (
+                    <Space>
                       <Form.Item
-                        name="cron_min"
-                        label={t('scheduledInspection.minutes')}
-                        initialValue="0"
+                        name="run_date"
+                        label={t('scheduledInspection.runDate')}
+                        rules={[{ required: true }]}
                       >
-                        <Input placeholder="0" />
+                        <DatePicker />
                       </Form.Item>
                       <Form.Item
-                        name="cron_hour"
-                        label={t('scheduledInspection.hours')}
-                        initialValue="8"
+                        name="run_time"
+                        label={t('scheduledInspection.runTime')}
+                        rules={[{ required: true }]}
                       >
-                        <Input placeholder="8" />
-                      </Form.Item>
-                      <Form.Item
-                        name="cron_dom"
-                        label={t('scheduledInspection.dayOfMonth')}
-                        initialValue="*"
-                      >
-                        <Input placeholder="*" />
-                      </Form.Item>
-                      <Form.Item
-                        name="cron_month"
-                        label={t('scheduledInspection.month')}
-                        initialValue="*"
-                      >
-                        <Input placeholder="*" />
-                      </Form.Item>
-                      <Form.Item
-                        name="cron_dow"
-                        label={t('scheduledInspection.dayOfWeek')}
-                        initialValue="*"
-                      >
-                        <Input placeholder="*" />
+                        <TimePicker format="HH:mm" />
                       </Form.Item>
                     </Space>
-                  </div>
-                );
-              } else if (scheduleType === 'once') {
-                return (
-                  <Space>
-                    <Form.Item
-                      name="run_date"
-                      label={t('scheduledInspection.runDate')}
-                      rules={[{ required: true }]}
-                    >
-                      <DatePicker />
-                    </Form.Item>
-                    <Form.Item
-                      name="run_time"
-                      label={t('scheduledInspection.runTime')}
-                      rules={[{ required: true }]}
-                    >
-                      <TimePicker format="HH:mm" />
-                    </Form.Item>
-                  </Space>
-                );
-              }
-              return null;
-            }}
-          </Form.Item>
+                  );
+                }
+                return null;
+              }}
+            </Form.Item>
 
-          <div className="margin-top-space-6 margin-bottom-space-6">
-            <h4>{t('scheduledInspection.selectInspectionRules')}</h4>
-            <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-              <div style={{ flex: 1 }}>
-                <RuleSelector
-                  ruleType="node"
-                  title={t('scheduledInspection.nodeRules')}
-                  availableRules={rules.node || []}
-                  selectedRules={selectedRules}
-                  onRuleSelection={handleRuleSelection}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <RuleSelector
-                  ruleType="opa"
-                  title={t('scheduledInspection.kubernetesRules')}
-                  availableRules={rules.opa || []}
-                  selectedRules={selectedRules}
-                  onRuleSelection={handleRuleSelection}
-                />
+            <div className="margin-top-space-6 margin-bottom-space-6">
+              <h4>{t('scheduledInspection.selectInspectionRules')}</h4>
+              <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+                <div style={{ flex: 1 }}>
+                  <RuleSelector
+                    ruleType="node"
+                    title={t('scheduledInspection.nodeRules')}
+                    availableRules={rules.node || []}
+                    selectedRules={selectedRules}
+                    onRuleSelection={handleRuleSelection}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <RuleSelector
+                    ruleType="opa"
+                    title={t('scheduledInspection.kubernetesRules')}
+                    availableRules={rules.opa || []}
+                    selectedRules={selectedRules}
+                    onRuleSelection={handleRuleSelection}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <Form.Item
-            name="enabled"
-            label={t('scheduledInspection.enableTask')}
-            valuePropName="checked"
-            initialValue={true}
-          >
-            <Switch />
-          </Form.Item>
+            <Form.Item
+              name="enabled"
+              label={t('scheduledInspection.enableTask')}
+              valuePropName="checked"
+              initialValue={true}
+            >
+              <Switch />
+            </Form.Item>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              {t('scheduledInspection.updateTask')}
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+            <Form.Item>
+              <Button type="primary" htmlType="submit">
+                {t('scheduledInspection.updateTask')}
+              </Button>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
     </>
   );
 };

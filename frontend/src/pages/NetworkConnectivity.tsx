@@ -243,152 +243,152 @@ const NetworkConnectivity = () => {
   return (
     <>
       <div>
-      <div className="page-title">{t('networkPage.title')}</div>
-      <div className="page-subtitle">{t('networkPage.subtitle')}</div>
+        <div className="page-title">{t('networkPage.title')}</div>
+        <div className="page-subtitle">{t('networkPage.subtitle')}</div>
 
-      <Space direction="vertical" size="large" className="kube-width-100">
-        <Card
-          title={t('networkPage.settings')}
-          loading={loading}
-          className="kube-width-100"
-          bodyStyle={{ width: '100%' }}
-        >
-          <Form form={form} layout="vertical" style={{ width: '100%' }}>
-            <Form.Item name="cluster" label={t('networkPage.cluster')} required>
-              <Select
-                className="margin-top-space-2"
-                style={{ width: '100%' }}
-                placeholder={t('networkPage.selectClusterPlaceholder')}
-                onChange={setSelectedCluster}
-                value={selectedCluster}
-              >
-                {clusters.map(cluster => (
-                  <Option key={cluster.name} value={cluster.name}>
-                    {cluster.name} ({cluster.nodes.length} {t('networkPage.nodes')})
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            {selectedClusterData && (
-              <Form.Item label={t('networkPage.nodesForCheck')} required>
-                <div className="border-form">
-                  <Checkbox
-                    onChange={e => handleSelectAllNodes(e.target.checked)}
-                    checked={selectedNodes.length === selectedClusterData.nodes.length}
-                    indeterminate={
-                      selectedNodes.length > 0 &&
-                      selectedNodes.length < selectedClusterData.nodes.length
-                    }
-                    style={{ marginBottom: '8px', fontWeight: 'bold' }}
-                  >
-                    {t('networkPage.selectAllNodes')}
-                  </Checkbox>
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {selectedClusterData.nodes.map(node => (
-                      <div key={node.ip} style={{ marginBottom: '4px' }}>
-                        <Checkbox
-                          checked={selectedNodes.includes(node.ip)}
-                          onChange={e => handleNodeSelection(node.ip, e.target.checked)}
-                        >
-                          {node.name} ({node.ip}:{node.port})
-                        </Checkbox>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {selectedNodes.length > 0 && (
-                  <div
-                    style={{ marginTop: '8px', fontSize: '12px', color: 'var(--neutral-color)' }}
-                  >
-                    {t('networkPage.selectedNodesCount', { count: selectedNodes.length })}
-                  </div>
-                )}
-              </Form.Item>
-            )}
-
-            <Space>
-              <Form.Item name="target_ip" label={t('networkPage.targetIp')} required>
-                <Input
-                  placeholder="192.168.1.100"
-                  value={targetIp}
-                  onChange={e => setTargetIp(e.target.value)}
-                  className="width-150"
-                />
-              </Form.Item>
-
-              <Form.Item name="target_port" label={t('networkPage.port')} required>
-                <InputNumber
-                  placeholder="80"
-                  value={targetPort}
-                  onChange={value => setTargetPort(value)}
-                  className="width-100px"
-                  min={1}
-                  max={65535}
-                />
-              </Form.Item>
-
-              <Form.Item name="timeout" label={t('networkPage.timeout')}>
-                <InputNumber
-                  min={1}
-                  max={30}
-                  value={timeout}
-                  onChange={value => setTimeout(value)}
-                  className="width-120px"
-                  placeholder="3"
-                />
-              </Form.Item>
-            </Space>
-
-            <Form.Item>
-              <Button
-                type="primary"
-                icon={<PlayCircleOutlined />}
-                onClick={handleCheckConnectivity}
-                loading={checking}
-                disabled={!selectedCluster || selectedNodes.length === 0}
-              >
-                {checking ? t('networkPage.checking') : t('networkPage.checkConnectivity')}
-              </Button>
-            </Form.Item>
-          </Form>
-        </Card>
-
-        {results.length > 0 && (
+        <Space direction="vertical" size="large" className="kube-width-100">
           <Card
-            title={t('networkPage.resultsTitle', { count: results.length })}
-            extra={
-              resultId && (
-                <Space wrap>
-                  <Button onClick={() => exportResults('json')}>
-                    {t('networkPage.exportJson')}
-                  </Button>
-                </Space>
-              )
-            }
+            title={t('networkPage.settings')}
+            loading={loading}
+            className="kube-width-100"
+            bodyStyle={{ width: '100%' }}
           >
-            <Table
-              columns={resultColumns}
-              dataSource={results}
-              rowKey={record => `${record.node_ip}-${record.target_ip}-${record.target_port}`}
-              pagination={false}
-              size="small"
-            />
+            <Form form={form} layout="vertical" style={{ width: '100%' }}>
+              <Form.Item name="cluster" label={t('networkPage.cluster')} required>
+                <Select
+                  className="margin-top-space-2"
+                  style={{ width: '100%' }}
+                  placeholder={t('networkPage.selectClusterPlaceholder')}
+                  onChange={setSelectedCluster}
+                  value={selectedCluster}
+                >
+                  {clusters.map(cluster => (
+                    <Option key={cluster.name} value={cluster.name}>
+                      {cluster.name} ({cluster.nodes.length} {t('networkPage.nodes')})
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
 
-            <div className="margin-top-space-4">
-              <Alert
-                message={t('networkPage.statisticsMessage', {
-                  success: results.filter(r => r.status === 'success').length,
-                  fail: results.filter(r => r.status === 'failed').length,
-                })}
-                type={results.some(r => r.status === 'failed') ? 'warning' : 'success'}
-                showIcon
-              />
-            </div>
+              {selectedClusterData && (
+                <Form.Item label={t('networkPage.nodesForCheck')} required>
+                  <div className="border-form">
+                    <Checkbox
+                      onChange={e => handleSelectAllNodes(e.target.checked)}
+                      checked={selectedNodes.length === selectedClusterData.nodes.length}
+                      indeterminate={
+                        selectedNodes.length > 0 &&
+                        selectedNodes.length < selectedClusterData.nodes.length
+                      }
+                      style={{ marginBottom: '8px', fontWeight: 'bold' }}
+                    >
+                      {t('networkPage.selectAllNodes')}
+                    </Checkbox>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {selectedClusterData.nodes.map(node => (
+                        <div key={node.ip} style={{ marginBottom: '4px' }}>
+                          <Checkbox
+                            checked={selectedNodes.includes(node.ip)}
+                            onChange={e => handleNodeSelection(node.ip, e.target.checked)}
+                          >
+                            {node.name} ({node.ip}:{node.port})
+                          </Checkbox>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {selectedNodes.length > 0 && (
+                    <div
+                      style={{ marginTop: '8px', fontSize: '12px', color: 'var(--neutral-color)' }}
+                    >
+                      {t('networkPage.selectedNodesCount', { count: selectedNodes.length })}
+                    </div>
+                  )}
+                </Form.Item>
+              )}
+
+              <Space>
+                <Form.Item name="target_ip" label={t('networkPage.targetIp')} required>
+                  <Input
+                    placeholder="192.168.1.100"
+                    value={targetIp}
+                    onChange={e => setTargetIp(e.target.value)}
+                    className="width-150"
+                  />
+                </Form.Item>
+
+                <Form.Item name="target_port" label={t('networkPage.port')} required>
+                  <InputNumber
+                    placeholder="80"
+                    value={targetPort}
+                    onChange={value => setTargetPort(value)}
+                    className="width-100px"
+                    min={1}
+                    max={65535}
+                  />
+                </Form.Item>
+
+                <Form.Item name="timeout" label={t('networkPage.timeout')}>
+                  <InputNumber
+                    min={1}
+                    max={30}
+                    value={timeout}
+                    onChange={value => setTimeout(value)}
+                    className="width-120px"
+                    placeholder="3"
+                  />
+                </Form.Item>
+              </Space>
+
+              <Form.Item>
+                <Button
+                  type="primary"
+                  icon={<PlayCircleOutlined />}
+                  onClick={handleCheckConnectivity}
+                  loading={checking}
+                  disabled={!selectedCluster || selectedNodes.length === 0}
+                >
+                  {checking ? t('networkPage.checking') : t('networkPage.checkConnectivity')}
+                </Button>
+              </Form.Item>
+            </Form>
           </Card>
-        )}
-      </Space>
-    </div>
+
+          {results.length > 0 && (
+            <Card
+              title={t('networkPage.resultsTitle', { count: results.length })}
+              extra={
+                resultId && (
+                  <Space wrap>
+                    <Button onClick={() => exportResults('json')}>
+                      {t('networkPage.exportJson')}
+                    </Button>
+                  </Space>
+                )
+              }
+            >
+              <Table
+                columns={resultColumns}
+                dataSource={results}
+                rowKey={record => `${record.node_ip}-${record.target_ip}-${record.target_port}`}
+                pagination={false}
+                size="small"
+              />
+
+              <div className="margin-top-space-4">
+                <Alert
+                  message={t('networkPage.statisticsMessage', {
+                    success: results.filter(r => r.status === 'success').length,
+                    fail: results.filter(r => r.status === 'failed').length,
+                  })}
+                  type={results.some(r => r.status === 'failed') ? 'warning' : 'success'}
+                  showIcon
+                />
+              </div>
+            </Card>
+          )}
+        </Space>
+      </div>
     </>
   );
 };

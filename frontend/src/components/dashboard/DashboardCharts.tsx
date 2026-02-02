@@ -1,16 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import {
-  Card,
-  Row,
-  Col,
-  theme,
-  Typography,
-  Divider,
-  Checkbox,
-  Modal,
-  Segmented,
-  Skeleton,
-} from 'antd';
+import React, { useMemo } from 'react';
+import { Card, Row, Col, theme, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Area } from '@ant-design/charts';
 import { useUIStore } from '../../stores/uiStore';
@@ -167,7 +156,6 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
               className="dashboard-charts-container"
               role="img"
               aria-label={`${t('charts.errorTrends')} ${t('charts.chart')}`}
-              tabIndex={0}
             >
               <Area {...config} />
             </div>

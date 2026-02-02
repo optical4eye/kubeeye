@@ -2,7 +2,6 @@ import React from 'react';
 import { Table, Button, Space, Tag, App } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { getStatusTag } from '../ui/statusUtils';
 
 const ClusterList = ({
   clusters,
@@ -120,21 +119,21 @@ const ClusterList = ({
           >
             {t('clusters.edit')}
           </Button>
-            <Button
-              className="action-button"
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() =>
-                modal.confirm({
-                  title: t('clusters.deleteConfirm'),
-                  description: t('clusters.deleteConfirmText', { name: record.name }),
-                  onOk: () => onDelete(record.name),
-                })
-              }
-              aria-label={`${t('clusters.delete')} ${record.name}`}
-            >
-              {t('clusters.delete')}
-            </Button>
+          <Button
+            className="action-button"
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() =>
+              modal.confirm({
+                title: t('clusters.deleteConfirm'),
+                description: t('clusters.deleteConfirmText', { name: record.name }),
+                onOk: () => onDelete(record.name),
+              })
+            }
+            aria-label={`${t('clusters.delete')} ${record.name}`}
+          >
+            {t('clusters.delete')}
+          </Button>
         </Space>
       ),
     },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Statistic, Tag, theme, Card } from 'antd';
+import { Row, Col, Statistic, theme, Card } from 'antd';
 import {
   ClusterOutlined,
   FileSearchOutlined,

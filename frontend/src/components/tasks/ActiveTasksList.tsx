@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, List, Button, Typography, Progress, Spin, Tag } from 'antd';
+import { Card, List, Button, Typography, Progress, Spin } from 'antd';
 import { StopOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { getTaskStatusIcon, getStatusTag } from '../ui';

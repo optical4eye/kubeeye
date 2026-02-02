@@ -178,9 +178,6 @@ const customSyntaxStyle = {
   italic: {
     fontStyle: 'italic',
   },
-  entity: {
-    cursor: 'help',
-  },
 };
 
 export default customSyntaxStyle;
