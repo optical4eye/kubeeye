@@ -12,7 +12,7 @@ simpleeval>=1.0.3
 reportlab>=4.4.9
 jinja2>=3.1.6
 # FastAPI backend
-fastapi>=0.128.0
+fastapi>=0.128.2
 uvicorn>=0.40.0
 websockets>=16.0
 pydantic>=2.12.5  # Pydantic V2 for simplified validation
