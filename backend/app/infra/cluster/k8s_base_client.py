@@ -11,6 +11,7 @@ Reducing code duplication between k8s_client.py and k8s_dynamic_client.py
 import tempfile
 import os
 import datetime
+import asyncio
 from typing import Tuple, Dict, List, Any, Optional, Union
 from abc import ABC
 
@@ -144,7 +145,7 @@ class K8sBaseClient(ABC):
 
     async def get_cluster_info(self) -> Dict[str, Any]:
         """
-        Get basic cluster information
+        Get basic cluster information with timeout
 
         Returns:
             Dict containing cluster info like version, nodes count, etc.
@@ -153,24 +154,35 @@ class K8sBaseClient(ABC):
             if not self.initialized:
                 return {"error": "Client not initialized"}
 
-            version_api = client.VersionApi()
-            version_info = version_api.get_code()
+            # Use asyncio.to_thread with timeout for blocking calls
+            try:
+                version_api = client.VersionApi()
+                version_info = await asyncio.wait_for(
+                    asyncio.to_thread(version_api.get_code),
+                    timeout=5.0
+                )
 
-            core_v1 = client.CoreV1Api()
-            nodes = core_v1.list_node()
+                core_v1 = client.CoreV1Api()
+                nodes = await asyncio.wait_for(
+                    asyncio.to_thread(core_v1.list_node),
+                    timeout=5.0
+                )
 
-            return {
-                "version": version_info.git_version,
-                "major": version_info.major,
-                "minor": version_info.minor,
-                "platform": version_info.platform,
-                "nodes_count": len(nodes.items),
-                "build_date": version_info.build_date,
-                "compiler": version_info.compiler,
-                "git_commit": version_info.git_commit,
-                "git_tree_state": version_info.git_tree_state,
-                "go_version": version_info.go_version,
-            }
+                return {
+                    "version": version_info.git_version,
+                    "major": version_info.major,
+                    "minor": version_info.minor,
+                    "platform": version_info.platform,
+                    "nodes_count": len(nodes.items),
+                    "build_date": version_info.build_date,
+                    "compiler": version_info.compiler,
+                    "git_commit": version_info.git_commit,
+                    "git_tree_state": version_info.git_tree_state,
+                    "go_version": version_info.go_version,
+                }
+            except asyncio.TimeoutError:
+                logger.warning("Timeout getting cluster info")
+                return {"error": "Timeout connecting to cluster"}
         except Exception as e:
             logger.error(f"Failed to get cluster info: {e}")
             return {"error": str(e)}

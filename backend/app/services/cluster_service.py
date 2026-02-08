@@ -231,42 +231,67 @@ class ClusterService:
         clusters = await list_clusters()
         cluster_data = []
         for cluster_name in clusters:
-            cluster_config = await get_cluster(cluster_name)
-            if cluster_config:
-                kubeconfig = await cluster_config.get_kubeconfig()
-                cert_status = None
-                cert_expiry_days = None
-                if kubeconfig:
-                    # Parse secret variables in kubeconfig for cert check
-                    async with with_db_session() as db:
-                        parser = SecretVariableParser(db)
-                        processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
-                        if parse_errors:
-                            logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
-                        kubeconfig = processed_kubeconfig
+            try:
+                cluster_config = await get_cluster(cluster_name)
+                if cluster_config:
+                    kubeconfig = await cluster_config.get_kubeconfig()
+                    cert_status = None
+                    cert_expiry_days = None
+                    if kubeconfig:
+                        # Parse secret variables in kubeconfig for cert check
+                        async with with_db_session() as db:
+                            parser = SecretVariableParser(db)
+                            processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
+                            if parse_errors:
+                                logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
+                            kubeconfig = processed_kubeconfig
 
-                    cert_status = await asyncio.to_thread(get_cluster_cert_status, cluster_name, kubeconfig)
-                    if cert_status:
-                        cert_expiry_days = cert_status.get("days_remaining")
+                        try:
+                            cert_status = await asyncio.wait_for(
+                                asyncio.to_thread(get_cluster_cert_status, cluster_name, kubeconfig),
+                                timeout=3.0
+                            )
+                            if cert_status:
+                                cert_expiry_days = cert_status.get("days_remaining")
+                        except asyncio.TimeoutError:
+                            logger.warning(f"Timeout getting cert status for cluster {cluster_name}")
+                        except Exception as e:
+                            logger.warning(f"Failed to get cert status for cluster {cluster_name}: {e}")
 
-                nodes = await cluster_config.get_nodes()
+                    nodes = await cluster_config.get_nodes()
 
-                # Get Kubernetes version for configured clusters
-                k8s_version = None
-                if kubeconfig:
-                    try:
-                        k8s_client = K8sClient(kubeconfig)
-                        cluster_info = await k8s_client.get_cluster_info()
-                        k8s_version = cluster_info.get("version")
-                    except Exception as e:
-                        logger.warning(f"Failed to get k8s version for cluster {cluster_name}: {e}")
+                    # Get Kubernetes version for configured clusters
+                    k8s_version = None
+                    if kubeconfig:
+                        try:
+                            k8s_client = K8sClient(kubeconfig)
+                            cluster_info = await asyncio.wait_for(
+                                k8s_client.get_cluster_info(),
+                                timeout=3.0
+                            )
+                            k8s_version = cluster_info.get("version")
+                        except asyncio.TimeoutError:
+                            logger.warning(f"Timeout getting k8s version for cluster {cluster_name}")
+                        except Exception as e:
+                            logger.warning(f"Failed to get k8s version for cluster {cluster_name}: {e}")
 
+                    cluster_data.append(
+                        {
+                            "name": cluster_name,
+                            "nodes": nodes,
+                            "k8s_version": k8s_version,
+                            "cert_expiry_days": cert_expiry_days,
+                        }
+                    )
+            except Exception as e:
+                logger.error(f"Error processing cluster {cluster_name}: {e}")
+                # Add cluster with minimal info even if there's an error
                 cluster_data.append(
                     {
                         "name": cluster_name,
-                        "nodes": nodes,
-                        "k8s_version": k8s_version,
-                        "cert_expiry_days": cert_expiry_days,
+                        "nodes": [],
+                        "k8s_version": None,
+                        "cert_expiry_days": None,
                     }
                 )
 

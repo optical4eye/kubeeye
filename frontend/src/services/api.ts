@@ -14,10 +14,18 @@ const createApiWithTimeout = (timeout: number) => axios.create({ ...baseConfig, 
 const apiPath = path => `/api${path}`;
 
 // Dashboard
-export const getDashboardData = () => api.get(apiPath('/dashboard'));
+export const getDashboardData = () => {
+  // Use shorter timeout for dashboard to avoid long waits on unavailable clusters
+  const dashboardApi = createApiWithTimeout(10000);
+  return dashboardApi.get(apiPath('/dashboard'));
+};
 
 // Clusters
-export const getClusters = () => api.get(apiPath('/clusters'));
+export const getClusters = () => {
+  // Use shorter timeout for cluster list to avoid long waits on unavailable clusters
+  const clustersApi = createApiWithTimeout(10000);
+  return clustersApi.get(apiPath('/clusters'));
+};
 export const createCluster = clusterData => api.post(apiPath('/clusters'), clusterData);
 export const updateCluster = (clusterName, clusterData) =>
   api.put(apiPath(`/clusters/${clusterName}`), clusterData);

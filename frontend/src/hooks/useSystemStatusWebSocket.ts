@@ -27,8 +27,17 @@ export const useSystemStatusWebSocket = () => {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden);
   const wsManagerRef = useRef<WebSocketConnectionManager | null>(null);
   const isWarningShownRef = useRef(false);
+  const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasReceivedStatusRef = useRef(false);
 
   const handleSystemStatusMessage = useCallback((message: SystemStatusMessage) => {
+    // Clear timeout if we received a status message
+    if (statusTimeoutRef.current) {
+      clearTimeout(statusTimeoutRef.current);
+      statusTimeoutRef.current = null;
+    }
+    hasReceivedStatusRef.current = true;
+
     const { status, queue } = message.payload;
     const isReady = status === 'healthy';
     const isConnecting = !isReady && queue.running;
@@ -78,6 +87,21 @@ export const useSystemStatusWebSocket = () => {
             wsStatus: 'connected',
             wsError: undefined,
           }));
+
+          // Set timeout for first system status message (10 seconds)
+          statusTimeoutRef.current = setTimeout(() => {
+            if (!hasReceivedStatusRef.current) {
+              console.warn('WebSocket: Timeout waiting for first system status message');
+              // Allow user to proceed even if we haven't received status yet
+              setSystemStatus(prev => ({
+                ...prev,
+                isReady: true, // Allow user to proceed
+                message: 'System status unavailable',
+                subMessage: 'Continuing with limited functionality',
+                isConnecting: false,
+              }));
+            }
+          }, 10000); // 10 seconds timeout
         })
         .catch(error => {
           console.error('WebSocket: Connection failed:', error);
@@ -186,7 +210,14 @@ export const useSystemStatusWebSocket = () => {
       setIsTabVisible(visible);
       if (!visible) {
         wsManagerRef.current?.disconnect();
+        // Clear status timeout when disconnecting
+        if (statusTimeoutRef.current) {
+          clearTimeout(statusTimeoutRef.current);
+          statusTimeoutRef.current = null;
+        }
       } else {
+        // Reset received status flag on reconnect
+        hasReceivedStatusRef.current = false;
         // Reconnect when tab becomes visible
         wsManagerRef.current?.connect(['system_status']).catch(error => {
           console.error('System status WebSocket reconnection failed:', error);
@@ -204,6 +235,11 @@ export const useSystemStatusWebSocket = () => {
       unsubscribeReconnectFailed();
       unsubscribeReconnectSuccess();
       wsManagerRef.current?.disconnect();
+      // Clear status timeout
+      if (statusTimeoutRef.current) {
+        clearTimeout(statusTimeoutRef.current);
+        statusTimeoutRef.current = null;
+      }
     };
   }, [handleSystemStatusMessage, isWebSocketAvailable]);
 
@@ -211,6 +247,11 @@ export const useSystemStatusWebSocket = () => {
   useEffect(() => {
     return () => {
       wsManagerRef.current?.disconnect();
+      // Clear status timeout
+      if (statusTimeoutRef.current) {
+        clearTimeout(statusTimeoutRef.current);
+        statusTimeoutRef.current = null;
+      }
     };
   }, []);
 

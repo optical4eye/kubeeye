@@ -131,25 +131,31 @@ async def send_system_status_update(websocket: WebSocket):
         from infra.dependency_injection.container import get_service
         from infra.websocket.message_models import create_system_status_message
 
-        # Get task queue status
+        # Get task queue status with timeout
         try:
             logger.debug("Getting task_queue service")
-            task_queue = await get_service("task_queue")
+            task_queue = await asyncio.wait_for(get_service("task_queue"), timeout=5.0)
             logger.debug("Got task_queue service, getting status")
-            queue_status = await task_queue.get_status()
+            queue_status = await asyncio.wait_for(task_queue.get_status(), timeout=5.0)
             logger.debug(f"Got queue status: {queue_status}")
+        except asyncio.TimeoutError:
+            logger.warning("Timeout getting task queue status, using default values")
+            queue_status = {"running": False, "active_workers": 0, "pending_tasks": 0}
         except Exception as e:
             logger.error(f"Failed to get task queue status: {e}")
             queue_status = {"running": False, "active_workers": 0, "pending_tasks": 0}
 
-        # Get database health
+        # Get database health with timeout
         try:
             logger.debug("Getting database health")
             from db.database import health_check
 
-            db_health = await health_check()
+            db_health = await asyncio.wait_for(health_check(), timeout=5.0)
             logger.debug(f"Got database health: {db_health}")
             status = "healthy" if db_health.get("status") == "healthy" else "unhealthy"
+        except asyncio.TimeoutError:
+            logger.warning("Timeout getting database health, marking as unhealthy")
+            status = "unhealthy"
         except Exception as e:
             logger.error(f"Failed to get database health: {e}")
             status = "unhealthy"
