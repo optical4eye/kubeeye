@@ -4,13 +4,16 @@
 Inspection routes with async queue processing
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from typing import Annotated
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from services.components.inspection_engine import execute_inspection_unified
 from infra.tasks.task_queue import submit_inspection_task, get_task_queue
 from core.common.unified_validation import validate_task_id
 from .models import InspectionRequest
+from api.dependencies import get_current_user, require_operator
+from db.models.user import User
 
 
 # Response models for better OpenAPI documentation
@@ -61,10 +64,10 @@ class AsyncInspectionRequest(BaseModel):
     "/inspection",
     summary="Run immediate cluster inspection",
     description="""
-    Execute a synchronous security inspection on the specified Kubernetes cluster.
+    Execute a synchronous security inspection on specified Kubernetes cluster.
 
     This endpoint runs inspections immediately and returns results directly.
-    For large clusters or complex inspections, consider using the async endpoint.
+    For large clusters or complex inspections, consider using async endpoint.
 
     **Supported inspection types:**
     - Node-level security checks (SSH-based)
@@ -79,7 +82,10 @@ class AsyncInspectionRequest(BaseModel):
     response_model=InspectionResponse,
     response_description="Inspection results with security findings and compliance status",
 )
-async def run_immediate_inspection(request: InspectionRequest, background_tasks: BackgroundTasks):
+async def run_immediate_inspection(
+    request: InspectionRequest,
+    current_user: Annotated[User, Depends(require_operator)]
+):
     """Run synchronous cluster inspection with comprehensive security analysis."""
     try:
         logger.info(f"Starting synchronous inspection for cluster: {request.cluster_name}")
@@ -125,19 +131,18 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
         logger.error(f"Unexpected error during inspection: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Inspection error: {str(e)}")
 
-
 @router.post(
     "/inspection/async",
     summary="Run asynchronous cluster inspection",
     description="""
-    Submit a cluster inspection task to the background queue for asynchronous processing.
+    Submit a cluster inspection task to background queue for asynchronous processing.
 
     This endpoint is recommended for:
     - Large clusters with many nodes
     - Complex inspections with multiple rule types
     - Scheduled or automated workflows
 
-    The task will be processed in the background and results can be retrieved using the task status endpoint.
+    The task will be processed in background and results can be retrieved using task status endpoint.
 
     **Returns:**
     - Task ID for status tracking
@@ -147,7 +152,10 @@ async def run_immediate_inspection(request: InspectionRequest, background_tasks:
     response_description="Task submission confirmation with task ID",
     status_code=202,
 )
-async def run_async_inspection(request: AsyncInspectionRequest):
+async def run_async_inspection(
+    request: AsyncInspectionRequest,
+    current_user: Annotated[User, Depends(require_operator)]
+):
     """Submit cluster inspection to background queue for asynchronous processing."""
     try:
         logger.info(f"Submitting async inspection task for cluster: {request.cluster_name}")
@@ -176,12 +184,11 @@ async def run_async_inspection(request: AsyncInspectionRequest):
         logger.error(f"Failed to submit async inspection task: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to submit task: {str(e)}")
 
-
 @router.get(
     "/inspection/task/{task_id}",
     summary="Get inspection task status",
     description="""
-    Retrieve the current status and progress of an asynchronous inspection task.
+    Retrieve current status and progress of an asynchronous inspection task.
 
     **Status values:**
     - `pending`: Task is queued and waiting to start
@@ -198,7 +205,10 @@ async def run_async_inspection(request: AsyncInspectionRequest):
     response_model=TaskStatusResponse,
     response_description="Current task status with progress and results if available",
 )
-async def get_inspection_task_status(task_id: str):
+async def get_inspection_task_status(
+    task_id: str,
+    current_user: Annotated[User, Depends(get_current_user)]
+):
     """Get current status and progress of asynchronous inspection task."""
     try:
         # Validate task_id using centralized validation
@@ -219,7 +229,6 @@ async def get_inspection_task_status(task_id: str):
         logger.error(f"Failed to get task status: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
 
-
 @router.delete(
     "/inspection/task/{task_id}",
     summary="Cancel inspection task",
@@ -238,7 +247,10 @@ async def get_inspection_task_status(task_id: str):
         404: {"description": "Task not found"},
     },
 )
-async def cancel_inspection_task(task_id: str):
+async def cancel_inspection_task(
+    task_id: str,
+    current_user: Annotated[User, Depends(require_operator)]
+):
     """Cancel a running or pending asynchronous inspection task."""
     try:
         # Validate task_id using centralized validation

@@ -9,6 +9,8 @@ from typing import Optional, Dict, Any
 
 from api.models import ClusterCreate, NodesTestRequest, KubeconfigTestRequest, GetNodesFromKubeconfigRequest
 from api.unified_middleware import api_error_handler, validate_cluster_name_decorator
+from api.dependencies import get_current_user, require_operator
+from db.models.user import User
 from services.cluster_service import ClusterService
 from core.common.unified_validation import validate_cluster_name
 
@@ -29,7 +31,7 @@ def get_cluster_service() -> ClusterService:
     "/dashboard",
     summary="Get dashboard data",
     description="""
-    Retrieve aggregated data for the dashboard including:
+    Retrieve aggregated data for dashboard including:
     - Total number of clusters
     - Cluster health status
     - Recent inspection results
@@ -38,7 +40,10 @@ def get_cluster_service() -> ClusterService:
     response_description="Dashboard data with cluster statistics and recent activity",
 )
 @api_error_handler
-async def get_dashboard(service: ClusterService = Depends(get_cluster_service)) -> Dict[str, Any]:
+async def get_dashboard(
+    current_user: User = Depends(get_current_user),
+    service: ClusterService = Depends(get_cluster_service)
+) -> Dict[str, Any]:
     """
     Get dashboard data with cluster statistics and recent activity.
 
@@ -55,7 +60,10 @@ async def get_dashboard(service: ClusterService = Depends(get_cluster_service)) 
     response_description="List of clusters with metadata",
 )
 @api_error_handler
-async def get_clusters(service: ClusterService = Depends(get_cluster_service)) -> Dict[str, Any]:
+async def get_clusters(
+    current_user: User = Depends(get_current_user),
+    service: ClusterService = Depends(get_cluster_service)
+) -> Dict[str, Any]:
     """
     Get list of all configured clusters.
 
@@ -83,6 +91,7 @@ async def get_clusters(service: ClusterService = Depends(get_cluster_service)) -
 @api_error_handler
 async def create_cluster(
     cluster: ClusterCreate,
+    current_user: User = Depends(require_operator),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -108,13 +117,14 @@ async def create_cluster(
 async def update_cluster(
     cluster_name: str,
     cluster: ClusterCreate,
+    current_user: User = Depends(require_operator),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
     Update cluster configuration.
 
     Args:
-        cluster_name: Name of the cluster to update
+        cluster_name: Name of cluster to update
         cluster: Updated cluster data
 
     Returns:
@@ -133,13 +143,14 @@ async def update_cluster(
 @validate_cluster_name_decorator
 async def remove_cluster(
     cluster_name: str,
+    current_user: User = Depends(require_operator),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
     Delete a cluster configuration.
 
     Args:
-        cluster_name: Name of the cluster to delete
+        cluster_name: Name of cluster to delete
 
     Returns:
         Dict with success message
@@ -157,6 +168,7 @@ async def remove_cluster(
 @validate_cluster_name_decorator
 async def get_cluster_details(
     cluster_name: str,
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -181,6 +193,7 @@ async def get_cluster_details(
 @validate_cluster_name_decorator
 async def get_cluster_nodes(
     cluster_name: str,
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -205,6 +218,7 @@ async def get_cluster_nodes(
 @validate_cluster_name_decorator
 async def get_cluster_namespaces(
     cluster_name: str,
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -230,6 +244,7 @@ async def get_cluster_namespaces(
 async def test_cluster_nodes(
     cluster_name: str,
     request: Optional[NodesTestRequest] = None,
+    current_user: User = Depends(require_operator),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -250,7 +265,7 @@ async def test_cluster_nodes(
 @router.post(
     "/clusters/{cluster_name}/test-kubeconfig",
     summary="Test kubeconfig validity",
-    description="Validate the kubeconfig for the cluster and test connectivity to the Kubernetes API.",
+    description="Validate kubeconfig for the cluster and test connectivity to the Kubernetes API.",
     response_description="Kubeconfig validation results",
 )
 @api_error_handler
@@ -258,6 +273,7 @@ async def test_cluster_nodes(
 async def test_cluster_kubeconfig(
     cluster_name: str,
     request: Optional[KubeconfigTestRequest] = None,
+    current_user: User = Depends(require_operator),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -284,6 +300,7 @@ async def test_cluster_kubeconfig(
 @api_error_handler
 async def get_nodes_from_kubeconfig(
     request: GetNodesFromKubeconfigRequest,
+    current_user: User = Depends(require_operator),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """

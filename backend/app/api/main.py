@@ -37,7 +37,7 @@ from .shutdown import (
     _close_database_connections,
 )
 from .unified_middleware import RequestLoggingMiddleware, ValidationMiddleware
-from .auth_middleware import AuthMiddleware
+from .auth_middleware import AuthMiddleware, AuditMiddleware
 
 # Import route modules
 from . import (
@@ -122,13 +122,46 @@ app = FastAPI(
 
     ## Authentication
 
-    Currently uses basic authentication. For production deployments, consider implementing proper authentication mechanisms.
+    KubeEye implements JWT-based authentication and Role-Based Access Control (RBAC) for securing the API.
+
+    ### Authentication Flow
+
+    1. Login with username and password to get JWT access token
+    2. Include access token in Authorization header: `Bearer <token>`
+    3. Access token expires after 24 hours
+    4. Re-login after token expiration
+
+    ### Roles
+
+    - **admin**: Full access to all features
+    - **operator**: Read and execute inspections, limited management
+
+    ### Protected Endpoints
+
+    Most endpoints require authentication. Some endpoints require specific roles:
+
+    - **Admin only**: `/api/auth/users`, `/api/secrets`, `/api/gitops`, `/api/cleanup`
+    - **Operator or Admin**: `/api/clusters`, `/api/inspection`, `/api/reports`, `/api/scheduled-tasks`
 
     ## API Endpoints
 
     ### Core Endpoints
     - `GET /` - API information and available endpoints
     - `GET /api/info` - Detailed API information
+
+    ### Authentication
+    - `POST /api/auth/login` - Login with username and password
+    - `POST /api/auth/logout` - Logout user
+    - `GET /api/auth/me` - Get current user information
+    - `POST /api/auth/change-password` - Change current user password
+    - `GET /api/auth/users` - List all users (admin only)
+    - `POST /api/auth/users` - Create new user (admin only)
+    - `PUT /api/auth/users/{user_id}` - Update user (admin only)
+    - `DELETE /api/auth/users/{user_id}` - Delete user (admin only)
+    - `GET /api/auth/audit/logs` - Get audit logs (admin only)
+    - `GET /api/auth/audit/logs/{log_id}` - Get audit log by ID (admin only)
+    - `GET /api/auth/audit/stats` - Get audit statistics (admin only)
+    - `POST /api/auth/audit/cleanup` - Clean up old audit logs (admin only)
 
     ### Cluster Management
     - `GET /api/dashboard` - Dashboard data
@@ -230,6 +263,9 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Authentication middleware
 app.add_middleware(AuthMiddleware)
+
+# Audit middleware
+app.add_middleware(AuditMiddleware)
 
 # CORS for React frontend
 app.add_middleware(

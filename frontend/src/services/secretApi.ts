@@ -2,7 +2,7 @@
  * API service for secret management
  */
 
-import axios from 'axios';
+import api from './api';
 import {
   Secret,
   SecretCreate,
@@ -39,7 +39,7 @@ export const secretApi = {
       params.append('offset', String(filters.offset));
     }
 
-    const response = await axios.get<SecretListResponse>(
+    const response = await api.get<SecretListResponse>(
       `${API_BASE_URL}/secrets?${params.toString()}`
     );
     return response.data;
@@ -49,7 +49,7 @@ export const secretApi = {
    * Get a single secret by ID
    */
   getSecret: async (id: number): Promise<Secret> => {
-    const response = await axios.get<Secret>(`${API_BASE_URL}/secrets/${id}`);
+    const response = await api.get<Secret>(`${API_BASE_URL}/secrets/${id}`);
     return response.data;
   },
 
@@ -57,7 +57,7 @@ export const secretApi = {
    * Create a new secret
    */
   createSecret: async (secret: SecretCreate): Promise<Secret> => {
-    const response = await axios.post<Secret>(`${API_BASE_URL}/secrets`, secret);
+    const response = await api.post<Secret>(`${API_BASE_URL}/secrets`, secret);
     return response.data;
   },
 
@@ -65,7 +65,7 @@ export const secretApi = {
    * Update an existing secret
    */
   updateSecret: async (id: number, secret: SecretUpdate): Promise<Secret> => {
-    const response = await axios.put<Secret>(`${API_BASE_URL}/secrets/${id}`, secret);
+    const response = await api.put<Secret>(`${API_BASE_URL}/secrets/${id}`, secret);
     return response.data;
   },
 
@@ -73,7 +73,7 @@ export const secretApi = {
    * Delete a secret
    */
   deleteSecret: async (id: number, hardDelete: boolean = false): Promise<void> => {
-    await axios.delete(`${API_BASE_URL}/secrets/${id}`, {
+    await api.delete(`${API_BASE_URL}/secrets/${id}`, {
       params: { hard_delete: hardDelete },
     });
   },
@@ -82,7 +82,7 @@ export const secretApi = {
    * Reveal (decrypt) secret data
    */
   revealSecret: async (id: number): Promise<SecretReveal> => {
-    const response = await axios.post<SecretReveal>(`${API_BASE_URL}/secrets/${id}/reveal`);
+    const response = await api.post<SecretReveal>(`${API_BASE_URL}/secrets/${id}/reveal`);
     return response.data;
   },
 
@@ -90,7 +90,7 @@ export const secretApi = {
    * Test if a secret is valid
    */
   testSecret: async (id: number): Promise<SecretTestResult> => {
-    const response = await axios.post<SecretTestResult>(`${API_BASE_URL}/secrets/${id}/test`);
+    const response = await api.post<SecretTestResult>(`${API_BASE_URL}/secrets/${id}/test`);
     return response.data;
   },
 

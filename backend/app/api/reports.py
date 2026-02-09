@@ -5,19 +5,21 @@ Reports management routes
 """
 
 import asyncio
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from infra.results.inspection_result import (
     list_results,
     load_result,
     clear_metadata_cache,
-)
+    )
 from core.common.streaming_response import StreamingExportResponse
 from core.common.unified_validation import validate_task_id
 import json
 from services.inspectors.controller import InspectionController
 from infra.dependency_injection.container import get_service
 from db.database_context import with_db_session
+from api.dependencies import get_current_user, require_operator
+from db.models.user import User
 
 from core.logging import get_logger
 
@@ -27,7 +29,11 @@ router = APIRouter()
 
 
 @router.get("/reports")
-async def get_reports(limit: int = 100, offset: int = 0):
+async def get_reports(
+    limit: int = 100,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user)
+):
     """
     Get list of reports with pagination
 
@@ -70,7 +76,10 @@ async def get_reports(limit: int = 100, offset: int = 0):
 
 
 @router.get("/reports/{report_id}")
-async def get_report(report_id: str):
+async def get_report(
+    report_id: str,
+    current_user: User = Depends(get_current_user)
+):
     """Get report by ID"""
     try:
         logger.info(f"Getting report with ID: {report_id}")
@@ -87,9 +96,9 @@ async def get_report(report_id: str):
             f"Report type: {type(report)}, keys: {list(report.keys()) if isinstance(report, dict) else 'not dict'}"
         )
 
-        # Sort items by severity level within the report
+        # Sort items by severity level within report
         def sort_report_items_by_severity(report_data):
-            """Sort all items in the report by severity level"""
+            """Sort all items in report by severity level"""
             logger.info(f"Sorting report items, report_data type: {type(report_data)}")
             if not isinstance(report_data, dict):
                 logger.error(f"report_data is not dict: {type(report_data)}")
@@ -127,7 +136,7 @@ async def get_report(report_id: str):
 
             return report_data
 
-        # Sort the report items by severity
+        # Sort report items by severity
         sorted_report = sort_report_items_by_severity(report)
         logger.info("Report sorted successfully")
 
@@ -161,7 +170,10 @@ async def get_report(report_id: str):
 
 
 @router.delete("/reports/{report_id}")
-async def delete_report(report_id: str):
+async def delete_report(
+    report_id: str,
+    current_user: User = Depends(require_operator)
+):
     """Delete report from database"""
     try:
         # Validate report_id parameter using centralized validation
@@ -181,7 +193,11 @@ async def delete_report(report_id: str):
 
 
 @router.get("/reports/{report_id}/export/{format}")
-async def export_report_endpoint(report_id: str, format: str):
+async def export_report_endpoint(
+    report_id: str,
+    format: str,
+    current_user: User = Depends(get_current_user)
+):
     """Export report using streaming (no temporary files)"""
     try:
         # Validate report_id parameter using centralized validation
@@ -227,7 +243,7 @@ async def export_report_endpoint(report_id: str, format: str):
             if inspection_type != "popeye":
                 raise HTTPException(status_code=400, detail="HTML export is only supported for Popeye reports")
 
-            # Find Popeye result in the report data
+            # Find Popeye result in report data
             popeye_html = None
             if "items" in result_data:
                 for item in result_data["items"]:
@@ -269,8 +285,8 @@ async def export_report_endpoint(report_id: str, format: str):
                 from reportlab.pdfbase import pdfmetrics
                 from reportlab.pdfbase.ttfonts import TTFont
                 from reportlab.lib.units import cm
-                import io
                 import re
+                import io
 
                 # Register DejaVu font for Cyrillic support
                 try:
@@ -363,13 +379,6 @@ async def export_report_endpoint(report_id: str, format: str):
                                 "\U0001f1e0-\U0001f1ff"  # flags (iOS)
                                 "\U00002700-\U000027bf"  # dingbats
                                 "\U0001f926-\U0001f937"  # gestures
-                                "\U00010000-\U0010ffff"  # other unicode
-                                "\u2640-\u2642"  # gender symbols
-                                "\u2600-\u2b55"  # misc symbols
-                                "\u200d"  # zero width joiner
-                                "\u23cf"  # eject symbol
-                                "\u23e9"  # fast forward
-                                "\u231a"  # watch
                                 "\ufe0f"  # variation selector
                                 "\u3030"  # wavy dash
                                 "]+",
@@ -579,10 +588,9 @@ async def export_report_endpoint(report_id: str, format: str):
                                     # Content alignment
                                     ("ALIGN", (0, 1), (-1, -1), "LEFT"),
                                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                                    ("TOPPADDING", (0, 0), (-1, -1), 6),
-                                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                                    ("LEFTPADDING", (0, 0), (-1, 0), 6),
+                                    ("RIGHTPADDING", (0, 0), (-1, 0), 6),
+                                    ("TOPPADDING", (0, 0), (-1, 0), 6),
                                     # Word wrap for better text display
                                     ("WORDWRAP", (0, 0), (-1, -1), 1),
                                     # Special handling for solution column (column index 5) - more padding for better readability
@@ -660,7 +668,6 @@ async def export_report_endpoint(report_id: str, format: str):
             except Exception as e:
                 logger.error(f"Error in PDF export: {e}")
                 raise HTTPException(status_code=500, detail=f"PDF export error: {str(e)}")
-
     except HTTPException:
         raise
     except Exception as e:
@@ -668,7 +675,9 @@ async def export_report_endpoint(report_id: str, format: str):
 
 
 @router.post("/reports/immediate")
-async def create_immediate_report():
+async def create_immediate_report(
+    current_user: User = Depends(require_operator)
+):
     """Create immediate inspection report"""
     try:
         # Get available clusters
@@ -704,7 +713,6 @@ async def create_immediate_report():
 
         # Run immediate inspection
         all_results = await controller.run_inspection(cluster_name)
-
         if not all_results:
             raise HTTPException(status_code=500, detail="Failed to create inspection report")
 
@@ -728,7 +736,6 @@ async def create_immediate_report():
             "timestamp": datetime.now().isoformat(),
             "total_items": total_items,
         }
-
     except HTTPException:
         raise
     except Exception as e:

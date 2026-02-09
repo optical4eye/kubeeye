@@ -4,7 +4,7 @@
 Popeye API routes - handles Popeye cluster scanning
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 from infra.tasks.task_queue import submit_popeye_task, get_task_queue
@@ -12,6 +12,8 @@ from infra.cluster.cluster_config import get_cluster
 from infra.cluster.k8s_client import K8sClient
 from core.logging import get_logger
 from core.common.unified_validation import validate_task_id, validate_cluster_name
+from api.dependencies import get_current_user, require_operator
+from db.models.user import User
 
 from core.logging import get_logger
 
@@ -30,7 +32,10 @@ class PopeyeScanRequest(BaseModel):
 
 
 @router.post("/popeye/scan")
-async def start_popeye_scan(request: PopeyeScanRequest):
+async def start_popeye_scan(
+    request: PopeyeScanRequest,
+    current_user: User = Depends(require_operator)
+):
     """Start Popeye scan for specified cluster"""
     try:
         logger.info(f"Starting Popeye scan for cluster: {request.cluster_name}")
@@ -64,7 +69,10 @@ async def start_popeye_scan(request: PopeyeScanRequest):
 
 
 @router.get("/popeye/task/{task_id}")
-async def get_popeye_task_status(task_id: str):
+async def get_popeye_task_status(
+    task_id: str,
+    current_user: User = Depends(get_current_user)
+):
     """Get status of Popeye scan task"""
     try:
         # Validate task_id using centralized validation
@@ -88,7 +96,10 @@ async def get_popeye_task_status(task_id: str):
 
 
 @router.delete("/popeye/task/{task_id}")
-async def cancel_popeye_task(task_id: str):
+async def cancel_popeye_task(
+    task_id: str,
+    current_user: User = Depends(require_operator)
+):
     """Cancel Popeye scan task"""
     try:
         # Validate task_id using centralized validation

@@ -30,7 +30,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../services/api';
 import { getSecretTypeTag } from '../components/ui/statusUtils';
 const { TextArea } = Input;
 
@@ -73,7 +73,7 @@ const SecretManagement: React.FC = () => {
   const fetchSecrets = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/secrets');
+      const response = await api.get('/api/secrets');
       setSecrets(response.data.secrets);
     } catch {
       messageApi.error(t('secrets.messages.loadFailed'));
@@ -107,7 +107,7 @@ const SecretManagement: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await axios.delete(`/api/secrets/${id}`);
+      await api.delete(`/api/secrets/${id}`);
       messageApi.success(t('secrets.messages.deleteSuccess'));
       fetchSecrets();
     } catch {
@@ -118,7 +118,7 @@ const SecretManagement: React.FC = () => {
   const handleReveal = async (id: number) => {
     setRevealLoading(true);
     try {
-      const response = await axios.post(`/api/secrets/${id}/reveal`);
+      const response = await api.post(`/api/secrets/${id}/reveal`);
       setRevealedSecret({
         data: response.data.data,
         secret: response.data,
@@ -136,10 +136,10 @@ const SecretManagement: React.FC = () => {
       const values = await form.validateFields();
 
       if (modalMode === 'create') {
-        await axios.post('/api/secrets', values);
+        await api.post('/api/secrets', values);
         messageApi.success(t('secrets.messages.createSuccess'));
       } else {
-        await axios.put(`/api/secrets/${selectedSecret!.id}`, values);
+        await api.put(`/api/secrets/${selectedSecret!.id}`, values);
         messageApi.success(t('secrets.messages.updateSuccess'));
       }
 
@@ -157,7 +157,7 @@ const SecretManagement: React.FC = () => {
 
   const handleTest = async (id: number) => {
     try {
-      const response = await axios.post(`/api/secrets/${id}/test`);
+      const response = await api.post(`/api/secrets/${id}/test`);
       if (response.data.success) {
         messageApi.success(response.data.message);
       } else {

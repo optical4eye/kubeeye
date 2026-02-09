@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, Button, Space, Modal, Tooltip, Table } from 'antd';
 import { KeyOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import api from '../../services/api';
 import { Secret } from '../../types';
 import { getSecretTypeTag } from '../ui/statusUtils';
 
@@ -30,7 +30,7 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
 
   const loadSecrets = async () => {
     try {
-      const response = await axios.get('/api/secrets');
+      const response = await api.get('/api/secrets');
       setSecrets(response.data.secrets || []);
     } catch {
       // Failed to load secrets

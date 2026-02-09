@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { tokenStorage } from '../utils/tokenStorage';
 
 const baseConfig = {
   baseURL: '',
@@ -7,8 +8,64 @@ const baseConfig = {
 
 const api = axios.create(baseConfig);
 
+// Request interceptor - add auth token
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = tokenStorage.getAccessToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor - handle 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    // If error is 401, clear token
+    if (error.response?.status === 401) {
+      tokenStorage.clearTokens();
+      // Redirect to login page will be handled by ProtectedRoute
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Factory function to create axios instances with different timeouts
-const createApiWithTimeout = (timeout: number) => axios.create({ ...baseConfig, timeout });
+const createApiWithTimeout = (timeout: number) => {
+  const instance = axios.create({ ...baseConfig, timeout });
+
+  // Add request interceptor to include auth token
+  instance.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+      const token = tokenStorage.getAccessToken();
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
+  // Add response interceptor to handle 401 errors
+  instance.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+      if (error.response?.status === 401) {
+        tokenStorage.clearTokens();
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  return instance;
+};
 
 // Helper function to build API paths
 const apiPath = path => `/api${path}`;

@@ -29,6 +29,10 @@ import LoadingScreen from './components/ui/LoadingScreen';
 import { useUIStore } from './stores/uiStore';
 import { getThemeConfig } from './theme/themeConfig';
 import { useSystemStatusWebSocket } from './hooks/useSystemStatusWebSocket';
+import Login from './pages/Login';
+import ChangePassword from './pages/ChangePassword';
+import ProtectedRoute from './components/ProtectedRoute';
+import UserMenu from './components/UserMenu';
 
 // Removed DB health check
 
@@ -182,62 +186,82 @@ function App() {
           return (
             <Router>
               <div className="app-container">
-                <Layout className="main-layout">
-                  <Sidebar />
-                  <Layout className="main-layout-bg">
-                    <Header className="header-bg">
-                      <div className="header-content">
-                        <div className="header-title">{t('header.title')}</div>
-                        <div
-                          style={{
-                            marginLeft: 'auto',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '16px',
-                          }}
-                        >
-                          <Switch
-                            checked={theme === 'dark'}
-                            onChange={checked => setTheme(checked ? 'dark' : 'light')}
-                            checkedChildren={<SunOutlined />}
-                            unCheckedChildren={<MoonOutlined />}
-                          />
-                          <Select
-                            value={language}
-                            onChange={value => setLanguage(value)}
-                            options={[
-                              { value: 'ru', label: 'RU' },
-                              { value: 'en', label: 'EN' },
-                            ]}
-                            style={{ width: 60 }}
-                            size="small"
-                          />
-                        </div>
-                      </div>
-                    </Header>
-                    <Content className="content-area">
-                      <Suspense
-                        fallback={
-                          <div className="loading-spinner">
-                            <Spin size="large" />
-                          </div>
-                        }
-                      >
-                        <Routes>
-                          <Route path="/" element={<Dashboard />} />
-                          <Route path="/clusters" element={<ClusterManagement />} />
-                          <Route path="/secrets" element={<SecretManagement />} />
-                          <Route path="/network" element={<NetworkConnectivity />} />
-                          <Route path="/inspection" element={<Inspection />} />
-                          <Route path="/rules" element={<Rules />} />
-                          <Route path="/popeye" element={<PopeyeScan />} />
-                          <Route path="/reports" element={<Reports />} />
-                          <Route path="/help" element={<Help />} />
-                        </Routes>
-                      </Suspense>
-                    </Content>
-                  </Layout>
-                </Layout>
+                <Routes>
+                  {/* Public routes - no layout */}
+                  <Route path="/login" element={<Login />} />
+
+                  {/* Protected routes - with layout */}
+                  <Route path="/*" element={
+                    <ProtectedRoute>
+                      <Layout className="main-layout">
+                        <Sidebar />
+                        <Layout className="main-layout-bg">
+                          <Header className="header-bg">
+                            <div className="header-content">
+                              <div className="header-title">{t('header.title')}</div>
+                              <div
+                                style={{
+                                  marginLeft: 'auto',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '16px',
+                                }}
+                              >
+                                <UserMenu />
+                                <Switch
+                                  checked={theme === 'dark'}
+                                  onChange={checked => setTheme(checked ? 'dark' : 'light')}
+                                  checkedChildren={<SunOutlined />}
+                                  unCheckedChildren={<MoonOutlined />}
+                                />
+                                <Select
+                                  value={language}
+                                  onChange={value => setLanguage(value)}
+                                  options={[
+                                    { value: 'ru', label: 'RU' },
+                                    { value: 'en', label: 'EN' },
+                                  ]}
+                                  style={{ width: 60 }}
+                                  size="small"
+                                />
+                              </div>
+                            </div>
+                          </Header>
+                          <Content className="content-area">
+                            <Suspense
+                              fallback={
+                                <div className="loading-spinner">
+                                  <Spin size="large" />
+                                </div>
+                              }
+                            >
+                              <Routes>
+                                <Route path="/" element={<Dashboard />} />
+                                <Route path="/clusters" element={<ClusterManagement />} />
+                                <Route path="/secrets" element={
+                                  <ProtectedRoute requiredRole="admin">
+                                    <SecretManagement />
+                                  </ProtectedRoute>
+                                } />
+                                <Route path="/network" element={<NetworkConnectivity />} />
+                                <Route path="/inspection" element={<Inspection />} />
+                                <Route path="/rules" element={
+                                  <ProtectedRoute requiredRole="admin">
+                                    <Rules />
+                                  </ProtectedRoute>
+                                } />
+                                <Route path="/popeye" element={<PopeyeScan />} />
+                                <Route path="/reports" element={<Reports />} />
+                                <Route path="/help" element={<Help />} />
+                                <Route path="/change-password" element={<ChangePassword />} />
+                              </Routes>
+                            </Suspense>
+                          </Content>
+                        </Layout>
+                      </Layout>
+                    </ProtectedRoute>
+                  } />
+                </Routes>
               </div>
             </Router>
           );

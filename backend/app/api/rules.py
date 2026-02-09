@@ -5,9 +5,11 @@ Rules management routes
 """
 
 from typing import Dict, List, Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from infra.rules.rule_manager import RuleManager
 from infra.rules.rule_loader import load_rules
+from api.dependencies import get_current_user
+from db.models.user import User
 
 from core.logging import get_logger
 
@@ -53,7 +55,10 @@ def _log_rules_statistics(rules: Dict[str, List], use_gitops: bool) -> int:
 
 
 @router.get("/rules")
-async def get_rules(tags: Optional[str] = None):
+async def get_rules(
+    tags: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
     """Get rules"""
     try:
         use_gitops = RuleManager.should_use_gitops()
@@ -89,7 +94,9 @@ async def get_rules(tags: Optional[str] = None):
 
 
 @router.get("/rules/tags")
-async def get_rule_tags():
+async def get_rule_tags(
+    current_user: User = Depends(get_current_user)
+):
     """Get all unique tags from rules"""
     try:
         use_gitops = RuleManager.should_use_gitops()

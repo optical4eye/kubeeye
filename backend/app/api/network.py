@@ -4,11 +4,13 @@
 Network connectivity check routes
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
 from core.common.streaming_response import StreamingExportResponse
 from db.database_context import with_db_session
+from api.dependencies import get_current_user, require_operator
+from db.models.user import User
 
 from infra.cluster.cluster_config import get_cluster, list_clusters
 from infra.network.network_check import (
@@ -17,7 +19,7 @@ from infra.network.network_check import (
     load_network_check_result,
     list_network_check_results,
     export_network_stream,
-)
+    )
 from core.common.unified_validation import validate_port, validate_cluster_name, validate_task_id
 from core.logging import log_api_request
 
@@ -77,7 +79,10 @@ class NetworkCheckResponse(BaseModel):
 
 @router.post("/network-check", response_model=NetworkCheckResponse)
 @log_api_request
-async def check_network_connectivity(request: NetworkCheckRequest):
+async def check_network_connectivity(
+    request: NetworkCheckRequest,
+    current_user: User = Depends(require_operator)
+):
     """
     Check network connectivity from selected cluster nodes to a target IP and port
 
@@ -205,7 +210,11 @@ async def get_clusters_for_network_check():
 
 @router.get("/network-check/results")
 @log_api_request
-async def get_network_check_results(cluster_name: Optional[str] = None, limit: int = 50):
+async def get_network_check_results(
+    cluster_name: Optional[str] = None,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user)
+):
     """
     Get list of saved network connectivity check results
 
@@ -234,7 +243,10 @@ async def get_network_check_results(cluster_name: Optional[str] = None, limit: i
 
 @router.get("/network-check/results/{result_id}")
 @log_api_request
-async def get_network_check_result(result_id: str):
+async def get_network_check_result(
+    result_id: str,
+    current_user: User = Depends(get_current_user)
+):
     """
     Get specific network connectivity check result by ID
     """
@@ -256,7 +268,10 @@ async def get_network_check_result(result_id: str):
 
 @router.delete("/network-check/results/{result_id}")
 @log_api_request
-async def delete_network_check_result(result_id: str):
+async def delete_network_check_result(
+    result_id: str,
+    current_user: User = Depends(require_operator)
+):
     """
     Delete network connectivity check result
     """
@@ -289,7 +304,11 @@ async def delete_network_check_result(result_id: str):
 
 @router.get("/network-check/results/{result_id}/export/{format}")
 @log_api_request
-async def export_network_check_result(result_id: str, format: str):
+async def export_network_check_result(
+    result_id: str,
+    format: str,
+    current_user: User = Depends(get_current_user)
+):
     """Export network connectivity check result"""
     try:
         # Validate result_id parameter using centralized validation

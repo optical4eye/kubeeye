@@ -13,6 +13,8 @@ from pydantic import BaseModel, Field, field_validator, StringConstraints, Confi
 from db.database import get_db
 from infra.security.secret_service import SecretService
 from .unified_middleware import api_error_handler
+from api.dependencies import require_admin
+from db.models.user import User
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -129,6 +131,7 @@ async def list_secrets(
     limit: int = 100,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ):
     """
     List secrets with optional filters
@@ -151,7 +154,11 @@ async def list_secrets(
 
 @router.get("/secrets/{secret_id}", response_model=SecretResponse)
 @api_error_handler
-async def get_secret(secret_id: int, db: AsyncSession = Depends(get_db)):
+async def get_secret(
+    secret_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
     """
     Get secret details (without decrypted data)
 
@@ -168,7 +175,11 @@ async def get_secret(secret_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/secrets", response_model=SecretResponse, status_code=status.HTTP_201_CREATED)
 @api_error_handler
-async def create_secret(secret_data: SecretCreate, db: AsyncSession = Depends(get_db)):
+async def create_secret(
+    secret_data: SecretCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
     """
     Create a new secret
 
@@ -195,7 +206,12 @@ async def create_secret(secret_data: SecretCreate, db: AsyncSession = Depends(ge
 
 @router.put("/secrets/{secret_id}", response_model=SecretResponse)
 @api_error_handler
-async def update_secret(secret_id: int, secret_data: SecretUpdate, db: AsyncSession = Depends(get_db)):
+async def update_secret(
+    secret_id: int,
+    secret_data: SecretUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
     """
     Update an existing secret
 
@@ -224,7 +240,11 @@ async def update_secret(secret_id: int, secret_data: SecretUpdate, db: AsyncSess
 
 @router.delete("/secrets/{secret_id}")
 @api_error_handler
-async def delete_secret(secret_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_secret(
+    secret_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
     """
     Delete a secret (hard delete - permanently remove from database)
 
@@ -242,7 +262,11 @@ async def delete_secret(secret_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/secrets/{secret_id}/reveal", response_model=SecretRevealResponse)
 @api_error_handler
-async def reveal_secret(secret_id: int, db: AsyncSession = Depends(get_db)):
+async def reveal_secret(
+    secret_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
     """
     Reveal (decrypt) secret data
 
@@ -269,7 +293,11 @@ async def reveal_secret(secret_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/secrets/{secret_id}/test", response_model=SecretTestResponse)
 @api_error_handler
-async def test_secret(secret_id: int, db: AsyncSession = Depends(get_db)):
+async def test_secret(
+    secret_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
     """
     Test if secret is valid and can be decrypted
 
