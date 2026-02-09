@@ -27,6 +27,7 @@ from .startup import (
     _start_database_monitoring,
     _init_encryption_key,
     _init_websocket_subscriptions,
+    _init_admin_user,
 )
 from .shutdown import (
     _shutdown_task_queue,
@@ -36,6 +37,7 @@ from .shutdown import (
     _close_database_connections,
 )
 from .unified_middleware import RequestLoggingMiddleware, ValidationMiddleware
+from .auth_middleware import AuthMiddleware
 
 # Import route modules
 from . import (
@@ -50,6 +52,7 @@ from . import (
     report_cleanup,
     secrets,
     websocket,
+    auth,
 )
 
 # Import new route modules
@@ -83,6 +86,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await _start_task_queue()
     await _start_cleanup_worker()
     await _start_task_manager()
+    await _init_admin_user()
 
     yield
 
@@ -218,11 +222,14 @@ app = FastAPI(
 )
 
 
-# Add validation middleware (exclude /api/secrets and /api/clusters from body validation as they contain secret variables)
-app.add_middleware(ValidationMiddleware, max_query_length=1000, exclude_paths=["/api/secrets", "/api/clusters"])
+# Add validation middleware (only validates query parameters, not body to avoid consuming request body)
+app.add_middleware(ValidationMiddleware, max_query_length=1000)
 
 # Request logging middleware
 app.add_middleware(RequestLoggingMiddleware)
+
+# Authentication middleware
+app.add_middleware(AuthMiddleware)
 
 # CORS for React frontend
 app.add_middleware(
@@ -251,6 +258,7 @@ app.include_router(gitops.router, prefix="/api", tags=["gitops"])
 app.include_router(network.router, prefix="/api", tags=["network"])
 app.include_router(report_cleanup.router, prefix="/api", tags=["report-cleanup"])
 app.include_router(secrets.router, prefix="/api", tags=["secrets"])
+app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 
 
 if __name__ == "__main__":

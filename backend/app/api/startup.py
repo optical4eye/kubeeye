@@ -13,6 +13,8 @@ from db.models import (  # pylint: disable=unused-import
     InspectionResult,
     ScheduledTask,
     EncryptionKey,
+    User,
+    AuditLog,
 )
 
 
@@ -184,3 +186,14 @@ async def _init_websocket_subscriptions():
         logger.info("WebSocket event subscriptions initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize WebSocket subscriptions on startup: {e}", exc_info=True)
+
+
+async def _init_admin_user():
+    """Initialize admin user"""
+    try:
+        from scripts.init_admin import init_admin_user
+        await init_admin_user()
+        logger.info("Admin user initialization completed")
+    except Exception as e:
+        logger.error(f"Failed to initialize admin user: {e}", exc_info=True)
+        raise

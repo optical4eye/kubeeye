@@ -82,6 +82,31 @@ class Settings(BaseSettings):
     )
     git_ssl_no_verify: Optional[str] = Field(default=None, description="Disable SSL verification for Git operations")
 
+    # JWT Configuration
+    kubeeye_jwt_secret_key: str = Field(
+        default="your-secret-key-change-in-production",
+        description="JWT secret key for token signing"
+    )
+    kubeeye_jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
+    kubeeye_jwt_access_token_expire_hours: int = Field(
+        default=24, description="JWT access token expiration time in hours"
+    )
+
+    # Admin user initialization
+    kubeeye_admin_username: str = Field(default="admin", description="Admin username")
+    kubeeye_admin_email: str = Field(default="admin@kubeeye.local", description="Admin email")
+    kubeeye_admin_password: str = Field(
+        default="admin123", description="Admin password (change in production)"
+    )
+
+    # Security settings
+    kubeeye_max_failed_login_attempts: int = Field(default=5, description="Max failed login attempts before lock")
+    kubeeye_account_lock_duration_minutes: int = Field(default=30, description="Account lock duration in minutes")
+
+    # Audit configuration
+    kubeeye_audit_enabled: bool = Field(default=True, description="Enable/disable audit logging")
+    kubeeye_audit_retention_days: int = Field(default=14, description="Number of days to retain audit logs")
+
 
 # Global settings instance
 settings = Settings()

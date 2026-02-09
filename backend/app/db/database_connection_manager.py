@@ -7,12 +7,14 @@ Database connection manager - handles async database connections with adaptive p
 import asyncio
 import os
 
-from sqlalchemy.orm import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import text
 
 from core.config.settings import settings
 from core.logging import get_logger
+
+# Import Base from db.models.base to use the same Base instance
+from db.models.base import Base
 
 logger = get_logger(__name__)
 
@@ -24,8 +26,6 @@ DATABASE_URL = (
 
 # Формируем асинхронный URL подключения к базе данных из переменных окружения
 ASYNC_DATABASE_URL = f"postgresql+asyncpg://{settings.db_user}:{settings.db_pass}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
-
-Base = declarative_base()
 
 
 def get_database_url() -> str:

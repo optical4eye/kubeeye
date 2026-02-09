@@ -33,6 +33,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # GitOps configuration
       - KUBEEYE_GITOPS_REPO_NAME=kubeeye_rules
       - KUBEEYE_GITOPS_REPO_URL=https://github.com/optical4eye/kubeeye-rules.git
       - KUBEEYE_GITOPS_REPO_BRANCH=main
@@ -41,11 +42,31 @@ services:
       - KUBEEYE_GITOPS_REPO_DESCRIPTION=kubeeye repo rules
       - KUBEEYE_REPORT_RETENTION_DAYS=1
       - GIT_SSL_NO_VERIFY=1
+
+      # Database configuration
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=kubeeye
       - DB_PASS=kubeeye
       - DB_NAME=kubeeye-db
+
+      # JWT configuration
+      - KUBEEYE_JWT_SECRET_KEY=Uk5E9obf53tnXAcunvlBUKqF9d2JF12fqz2dzipHHQl
+      - KUBEEYE_JWT_ALGORITHM=HS256
+      - KUBEEYE_JWT_ACCESS_TOKEN_EXPIRE_HOURS=24
+
+      # Admin user configuration
+      - KUBEEYE_ADMIN_USERNAME=admin
+      - KUBEEYE_ADMIN_EMAIL=admin@kubeeye.local
+      - KUBEEYE_ADMIN_PASSWORD=admin123
+
+      # Security settings
+      - KUBEEYE_MAX_FAILED_LOGIN_ATTEMPTS=5
+      - KUBEEYE_ACCOUNT_LOCK_DURATION_MINUTES=30
+
+      # Audit configuration
+      - KUBEEYE_AUDIT_ENABLED=true
+      - KUBEEYE_AUDIT_RETENTION_DAYS=14
     restart: unless-stopped
     volumes:
       - ./data:/app/data

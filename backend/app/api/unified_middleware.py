@@ -148,15 +148,9 @@ class ValidationMiddleware(BaseHTTPMiddleware):
             # Validate and sanitize query parameters
             await self._validate_query_params(request)
 
-            # For POST/PUT requests, validate and sanitize body (except for excluded paths)
-            if request.method in ["POST", "PUT", "PATCH"]:
-                # Skip body validation for excluded paths (e.g., /api/secrets)
-                if not any(request.url.path.startswith(path) for path in self.exclude_paths):
-                    await self._validate_body(request)
-
-                    # Validate against Pydantic model if provided
-                    if self.pydantic_model:
-                        await self._validate_pydantic_body(request)
+            # Note: Body validation is handled by FastAPI's Pydantic models automatically
+            # We don't validate body here to avoid consuming the request body
+            # which would prevent FastAPI from processing it
 
             response = await call_next(request)
             metrics.increment_counter("middleware_success")

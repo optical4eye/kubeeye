@@ -28,3 +28,7 @@ asyncpg>=0.31.0  # Async PostgreSQL driver
 psycopg2-binary>=2.9.11  # Synchronous PostgreSQL driver (legacy)
 sqlalchemy[asyncio]>=2.1.0b1  # Async ORM with eager loading support
 cachetools>=7.0.0  # Thread-safe caching with TTL
+# Authentication dependencies
+python-jose[cryptography]>=3.5.0  # JWT token handling
+pwdlib[argon2,bcrypt]>=0.3.0  # Password hashing
+python-multipart>=0.0.22  # Form data parsing for login
