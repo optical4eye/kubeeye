@@ -323,56 +323,56 @@ class ClusterService:
             async with with_db_session() as db:
                 cluster_config = await get_cluster(cluster_name)
 
-            # Validate secret variables in nodes
-            parser = SecretVariableParser(db)
-            processed_nodes = []
+                # Validate secret variables in nodes
+                parser = SecretVariableParser(db)
+                processed_nodes = []
 
-            for node in nodes:
-                processed_node = node.copy()
+                for node in nodes:
+                    processed_node = node.copy()
 
-                # Validate password if present
-                if "password" in processed_node and processed_node["password"]:
-                    password_text = processed_node["password"]
+                    # Validate password if present
+                    if "password" in processed_node and processed_node["password"]:
+                        password_text = processed_node["password"]
+                        # Validate secret variables
+                        is_valid, errors = await parser.validate_variables(password_text)
+                        if not is_valid:
+                            raise HTTPException(
+                                status_code=400, detail=f"Invalid secret variables in password: {', '.join(errors)}"
+                            )
+                        processed_node["password"] = password_text
+
+                    # Validate ssh_key if present
+                    if "ssh_key" in processed_node and processed_node["ssh_key"]:
+                        ssh_key_text = processed_node["ssh_key"]
+                        # Validate secret variables
+                        is_valid, errors = await parser.validate_variables(ssh_key_text)
+                        if not is_valid:
+                            raise HTTPException(
+                                status_code=400, detail=f"Invalid secret variables in SSH key: {', '.join(errors)}"
+                            )
+                        processed_node["ssh_key"] = ssh_key_text
+
+                    processed_nodes.append(processed_node)
+
+                # Validate secret variables in kubeconfig
+                processed_kubeconfig = kubeconfig
+                if kubeconfig:
                     # Validate secret variables
-                    is_valid, errors = await parser.validate_variables(password_text)
+                    is_valid, errors = await parser.validate_variables(kubeconfig)
                     if not is_valid:
                         raise HTTPException(
-                            status_code=400, detail=f"Invalid secret variables in password: {', '.join(errors)}"
+                            status_code=400, detail=f"Invalid secret variables in kubeconfig: {', '.join(errors)}"
                         )
-                    processed_node["password"] = password_text
-
-                # Validate ssh_key if present
-                if "ssh_key" in processed_node and processed_node["ssh_key"]:
-                    ssh_key_text = processed_node["ssh_key"]
-                    # Validate secret variables
-                    is_valid, errors = await parser.validate_variables(ssh_key_text)
-                    if not is_valid:
-                        raise HTTPException(
-                            status_code=400, detail=f"Invalid secret variables in SSH key: {', '.join(errors)}"
-                        )
-                    processed_node["ssh_key"] = ssh_key_text
-
-                processed_nodes.append(processed_node)
+                    processed_kubeconfig = kubeconfig
+                    await cluster_config.update_kubeconfig(processed_kubeconfig or "")
 
             # Add processed nodes
             for node in processed_nodes:
                 await cluster_config.update_node(node)
 
-            # Validate secret variables in kubeconfig
-            processed_kubeconfig = kubeconfig
-            if kubeconfig:
-                # Validate secret variables
-                is_valid, errors = await parser.validate_variables(kubeconfig)
-                if not is_valid:
-                    raise HTTPException(
-                        status_code=400, detail=f"Invalid secret variables in kubeconfig: {', '.join(errors)}"
-                    )
-                processed_kubeconfig = kubeconfig
-                await cluster_config.update_kubeconfig(processed_kubeconfig or "")
-
-                # Invalidate cache
-                self._invalidate_cache()
-                return {"message": f"Cluster {cluster_name} created successfully"}
+            # Invalidate cache
+            self._invalidate_cache()
+            return {"message": f"Cluster {cluster_name} created successfully"}
         except HTTPException:
             raise
         except Exception as e:

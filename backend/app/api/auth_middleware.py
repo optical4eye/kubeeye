@@ -9,6 +9,10 @@ from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
+from sqlalchemy.ext.asyncio import AsyncSession
+from db.database import get_db
+from services.audit_service import AuditService
+from core.security.jwt_utils import JWTUtils
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -151,9 +155,30 @@ class AuditMiddleware(BaseHTTPMiddleware):
         if self._is_excluded_path(path):
             return await call_next(request)
 
-        # Get user info from request state (set by auth dependencies)
-        user_id = getattr(request.state, "user_id", None)
-        username = getattr(request.state, "username", None)
+        # Get user info from JWT token
+        user_id = None
+        username = None
+
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            try:
+                token = auth_header.split(" ")[1]
+                payload = JWTUtils.verify_access_token(token)
+                if payload:
+                    user_id = payload.get("sub")
+                    # Convert user_id to integer for database compatibility
+                    if user_id and isinstance(user_id, str):
+                        try:
+                            user_id = int(user_id)
+                        except (ValueError, TypeError):
+                            user_id = None
+                    username = payload.get("username", "unknown")
+
+                    # Set user info in request state for use by other middleware
+                    request.state.user_id = user_id
+                    request.state.username = username
+            except Exception as e:
+                logger.warning(f"Failed to extract user info from token: {e}")
 
         # Get client info
         ip_address = request.client.host if request.client else None
@@ -168,36 +193,39 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 # Extract action and resource info from path
                 action, resource_type, resource_id = self._extract_action_info(method, path)
 
-                # Get audit service from request state
-                audit_service = getattr(request.state, "audit_service", None)
+                # Only log if action is in the allowed list
+                if action:
+                    # Create audit service instance
+                    async for db in get_db():
+                        audit_service = AuditService(db)
 
-                if audit_service:
-                    # Determine status based on response status code
-                    status = "success" if response.status_code < 400 else "failure"
-                    error_message = None
+                        # Determine status based on response status code
+                        status = "success" if response.status_code < 400 else "failure"
+                        error_message = None
 
-                    if status == "failure":
-                        # Try to get error message from response
-                        try:
-                            if hasattr(response, "body"):
-                                import json
-                                body = json.loads(response.body)
-                                error_message = body.get("detail", "Unknown error")
-                        except:
-                            error_message = f"HTTP {response.status_code}"
+                        if status == "failure":
+                            # Try to get error message from response
+                            try:
+                                if hasattr(response, "body"):
+                                    import json
+                                    body = json.loads(response.body)
+                                    error_message = body.get("detail", "Unknown error")
+                            except:
+                                error_message = f"HTTP {response.status_code}"
 
-                    # Log action
-                    await audit_service.log_action(
-                        user_id=user_id,
-                        username=username,
-                        action=action,
-                        resource_type=resource_type,
-                        resource_id=resource_id,
-                        ip_address=ip_address,
-                        user_agent=user_agent,
-                        status=status,
-                        error_message=error_message
-                    )
+                        # Log action
+                        await audit_service.log_action(
+                            user_id=user_id,
+                            username=username,
+                            action=action,
+                            resource_type=resource_type,
+                            resource_id=resource_id,
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                            status=status,
+                            error_message=error_message
+                        )
+                        break  # Exit after using one database session
             except Exception as e:
                 # Don't break the request if audit logging fails
                 logger.error(f"Failed to log audit action: {e}")
@@ -225,7 +253,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
         return False
 
-    def _extract_action_info(self, method: str, path: str) -> tuple[str, str, str]:
+    def _extract_action_info(self, method: str, path: str) -> tuple[str | None, str | None, str | None]:
         """
         Extract action, resource type and resource ID from request
 
@@ -244,15 +272,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
         resource_type = None
         resource_id = None
 
-        # Map HTTP methods to actions
-        method_to_action = {
-            "GET": "view",
-            "POST": "create",
-            "PUT": "update",
-            "PATCH": "update",
-            "DELETE": "delete"
-        }
-
         # Extract resource type and ID
         if len(parts) >= 2:
             # Remove 'api' prefix if present
@@ -267,51 +286,61 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     resource_id = parts[1]
 
         # Determine action based on method and resource
-        if method in method_to_action:
-            base_action = method_to_action[method]
+        # Only log specific actions
+        if resource_type == "auth":
+            if "login" in path:
+                action = "login"
+            elif "logout" in path:
+                action = "logout"
+            elif "change-password" in path:
+                action = "password_change"
+        elif resource_type == "inspection":
+            if "async" in path and method == "POST":
+                action = "inspection_run"
+            elif method == "POST":
+                action = "inspection_create"
+            elif method == "DELETE":
+                action = "inspection_delete"
+        elif resource_type == "report":
+            if method == "POST":
+                action = "report_create"
+            elif method == "DELETE":
+                action = "report_delete"
+        elif resource_type == "secret":
+            if method == "POST":
+                action = "secret_create"
+            elif method in ("PUT", "PATCH"):
+                action = "secret_update"
+            elif method == "DELETE":
+                action = "secret_delete"
+        elif resource_type == "user":
+            if method == "POST":
+                action = "user_create"
+            elif method in ("PUT", "PATCH"):
+                action = "user_update"
+            elif method == "DELETE":
+                action = "user_delete"
+        elif resource_type == "cluster":
+            if method == "POST":
+                action = "cluster_create"
+            elif method in ("PUT", "PATCH"):
+                action = "cluster_update"
+            elif method == "DELETE":
+                action = "cluster_delete"
+        elif resource_type == "task":
+            if "run" in path and method == "POST":
+                action = "task_run"
+            elif method == "POST":
+                action = "task_create"
+            elif method == "DELETE":
+                action = "task_delete"
+        elif resource_type == "network-check" and method == "POST":
+            action = "network_check"
+        elif resource_type == "popeye" and method == "POST":
+            action = "popeye_scan"
 
-            # Special cases
-            if resource_type == "auth":
-                if "login" in path:
-                    action = "login"
-                elif "logout" in path:
-                    action = "logout"
-                elif "change-password" in path:
-                    action = "password_change"
-                else:
-                    action = base_action
-            elif resource_type == "inspection":
-                if "async" in path:
-                    action = "inspection_run"
-                else:
-                    action = f"inspection_{base_action}"
-            elif resource_type == "report":
-                if "export" in path:
-                    action = "report_export"
-                else:
-                    action = f"report_{base_action}"
-            elif resource_type == "secret":
-                action = f"secret_{base_action}"
-            elif resource_type == "cluster":
-                action = f"cluster_{base_action}"
-            elif resource_type == "user":
-                action = f"user_{base_action}"
-            elif resource_type == "task":
-                if "run" in path:
-                    action = "task_run"
-                else:
-                    action = f"task_{base_action}"
-            elif resource_type == "gitop":
-                action = "gitops_sync"
-            elif resource_type == "network-check":
-                action = "network_check"
-            elif resource_type == "popeye":
-                action = "popeye_scan"
-            elif resource_type == "cleanup":
-                action = "cleanup_run"
-            elif resource_type == "queue":
-                action = "queue_clear"
-            else:
-                action = f"{resource_type}_{base_action}" if resource_type else base_action
+        # Return None for action if it's not in the allowed list
+        if action == "unknown":
+            action = None
 
         return action, resource_type, resource_id

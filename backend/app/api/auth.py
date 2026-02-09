@@ -146,7 +146,6 @@ async def get_current_user_info(
     """
     return UserResponse.model_validate(current_user)
 
-
 # Admin-only endpoints
 @router.get("/users", response_model=list[UserResponse], status_code=status.HTTP_200_OK)
 async def list_users(
@@ -433,6 +432,34 @@ async def get_audit_stats(
         )
 
 
+@router.get("/audit/config", response_model=dict, status_code=status.HTTP_200_OK)
+async def get_audit_cleanup_config(
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get audit logs cleanup configuration
+
+    Requires admin role
+    """
+    try:
+        from core.config.settings import settings
+
+        retention_days = settings.kubeeye_audit_retention_days
+        logger.info(f"Returning audit cleanup config: retention_days={retention_days}")
+
+        return {
+            "retention_days": retention_days,
+            "source": "settings"
+        }
+    except Exception as e:
+        logger.error(f"Failed to get audit cleanup config: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
 @router.post("/audit/cleanup", status_code=status.HTTP_200_OK)
 async def cleanup_audit_logs(
     current_user: User = Depends(require_admin),
@@ -456,5 +483,5 @@ async def cleanup_audit_logs(
         logger.error(f"Cleanup audit logs error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            detail=str(e)
         )

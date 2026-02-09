@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any
 
 from api.models import ClusterCreate, NodesTestRequest, KubeconfigTestRequest, GetNodesFromKubeconfigRequest
 from api.unified_middleware import api_error_handler, validate_cluster_name_decorator
-from api.dependencies import get_current_user, require_operator
+from api.dependencies import get_current_user, require_operator, require_admin
 from db.models.user import User
 from services.cluster_service import ClusterService
 from core.common.unified_validation import validate_cluster_name
@@ -91,7 +91,7 @@ async def get_clusters(
 @api_error_handler
 async def create_cluster(
     cluster: ClusterCreate,
-    current_user: User = Depends(require_operator),
+    current_user: User = Depends(require_admin),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -117,7 +117,7 @@ async def create_cluster(
 async def update_cluster(
     cluster_name: str,
     cluster: ClusterCreate,
-    current_user: User = Depends(require_operator),
+    current_user: User = Depends(require_admin),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -143,7 +143,7 @@ async def update_cluster(
 @validate_cluster_name_decorator
 async def remove_cluster(
     cluster_name: str,
-    current_user: User = Depends(require_operator),
+    current_user: User = Depends(require_admin),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """

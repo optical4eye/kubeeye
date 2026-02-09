@@ -24,7 +24,7 @@ class AuditService:
 
     async def log_action(
         self,
-        user_id: str,
+        user_id: int,
         username: str,
         action: str,
         resource_type: Optional[str] = None,
@@ -186,7 +186,7 @@ class AuditService:
 
     async def log_login(
         self,
-        user_id: str,
+        user_id: int,
         username: str,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
@@ -219,7 +219,7 @@ class AuditService:
 
     async def log_logout(
         self,
-        user_id: str,
+        user_id: int,
         username: str,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
@@ -246,7 +246,7 @@ class AuditService:
 
     async def log_password_change(
         self,
-        user_id: str,
+        user_id: int,
         username: str,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
@@ -273,7 +273,7 @@ class AuditService:
 
     async def log_cluster_action(
         self,
-        user_id: str,
+        user_id: int,
         username: str,
         action: str,
         cluster_name: str,
@@ -309,7 +309,7 @@ class AuditService:
 
     async def log_inspection_action(
         self,
-        user_id: str,
+        user_id: int,
         username: str,
         action: str,
         inspection_id: Optional[str] = None,

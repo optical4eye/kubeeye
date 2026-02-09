@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, field_validator, StringConstraints, Confi
 from db.database import get_db
 from infra.security.secret_service import SecretService
 from .unified_middleware import api_error_handler
-from api.dependencies import require_admin
+from api.dependencies import require_admin, require_operator
 from db.models.user import User
 from core.logging import get_logger
 
@@ -131,7 +131,7 @@ async def list_secrets(
     limit: int = 100,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_operator),
 ):
     """
     List secrets with optional filters
@@ -157,7 +157,7 @@ async def list_secrets(
 async def get_secret(
     secret_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(require_operator)
 ):
     """
     Get secret details (without decrypted data)

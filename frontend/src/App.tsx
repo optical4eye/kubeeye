@@ -23,6 +23,8 @@ import {
   SunOutlined,
   MoonOutlined,
   AntDesignOutlined,
+  UserOutlined,
+  AuditOutlined,
 } from '@ant-design/icons';
 import VersionDisplay from './components/ui/VersionDisplay';
 import LoadingScreen from './components/ui/LoadingScreen';
@@ -47,6 +49,8 @@ const Reports = lazy(() => import('./pages/Reports'));
 const Help = lazy(() => import('./pages/Help'));
 const NetworkConnectivity = lazy(() => import('./pages/NetworkConnectivity'));
 const SecretManagement = lazy(() => import('./pages/SecretManagement'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const AuditLogs = lazy(() => import('./pages/AuditLogs'));
 const { Header, Sider, Content } = Layout;
 
 function App() {
@@ -125,6 +129,16 @@ function App() {
       key: '/rules',
       icon: <AntDesignOutlined />,
       label: t('menu.rules'),
+    },
+    {
+      key: '/users',
+      icon: <UserOutlined />,
+      label: t('menu.users'),
+    },
+    {
+      key: '/audit-logs',
+      icon: <AuditOutlined />,
+      label: t('menu.auditLogs'),
     },
     {
       key: '/help',
@@ -246,7 +260,7 @@ function App() {
                                 <Route path="/network" element={<NetworkConnectivity />} />
                                 <Route path="/inspection" element={<Inspection />} />
                                 <Route path="/rules" element={
-                                  <ProtectedRoute requiredRole="admin">
+                                  <ProtectedRoute requiredRole="operator">
                                     <Rules />
                                   </ProtectedRoute>
                                 } />
@@ -254,6 +268,16 @@ function App() {
                                 <Route path="/reports" element={<Reports />} />
                                 <Route path="/help" element={<Help />} />
                                 <Route path="/change-password" element={<ChangePassword />} />
+                                <Route path="/users" element={
+                                  <ProtectedRoute requiredRole="admin">
+                                    <UserManagement />
+                                  </ProtectedRoute>
+                                } />
+                                <Route path="/audit-logs" element={
+                                  <ProtectedRoute requiredRole="admin">
+                                    <AuditLogs />
+                                  </ProtectedRoute>
+                                } />
                               </Routes>
                             </Suspense>
                           </Content>

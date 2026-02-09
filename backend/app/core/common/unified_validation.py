@@ -432,6 +432,23 @@ def validate_node_data(node_data: dict, strict: bool = True) -> dict:
 
     # Strict validation: validate authentication fields
     if strict:
+        # Support both flat structure and nested auth object
+        # Flat structure: {username, auth_type, password/ssh_key}
+        # Nested structure: {auth: {type, username, password/key_path}}
+
+        # Extract auth data from nested structure if present
+        if "auth" in node_data and isinstance(node_data["auth"], dict):
+            auth = node_data["auth"]
+            # Map nested auth fields to flat structure
+            if "username" in auth:
+                node_data["username"] = auth["username"]
+            if "type" in auth:
+                node_data["auth_type"] = auth["type"]
+            if "password" in auth:
+                node_data["password"] = auth["password"]
+            if "key_path" in auth:
+                node_data["ssh_key"] = auth["key_path"]
+
         # Validate username
         if "username" not in node_data:
             raise ValueError("Node username is required")
@@ -459,6 +476,12 @@ def validate_node_data(node_data: dict, strict: bool = True) -> dict:
                     "Direct password input is not allowed. Please use secrets instead. "
                     "Create a secret first via POST /api/secrets and reference it as ${secret:secret-name}"
                 )
+            # Проверяем, что это секретная ссылка правильного формата
+            if password.startswith("${secret:"):
+                if not re.match(r'^\$\{secret:[a-zA-Z0-9_-]+\}$', password):
+                    raise ValueError(
+                        "Invalid secret reference format. Use ${secret:secret-name} format."
+                    )
 
             node_data["password"] = sanitize_string(str(password), 1000)
 
