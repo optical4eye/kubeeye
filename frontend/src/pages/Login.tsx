@@ -26,7 +26,7 @@ const Login: React.FC = () => {
     try {
       await login(values.username, values.password);
       message.success('Login successful');
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: any) {
       message.error(error.response?.data?.detail || 'Login failed');
     } finally {
@@ -38,7 +38,10 @@ const Login: React.FC = () => {
     <div className="login-container">
       <Card className="login-card">
         <div className="login-logo-container">
-          <KubeEyeLogo size={80} className={`login-logo ${uiTheme === 'dark' ? 'login-logo-dark' : 'login-logo-light'}`} />
+          <KubeEyeLogo
+            size={80}
+            className={`login-logo ${uiTheme === 'dark' ? 'login-logo-dark' : 'login-logo-light'}`}
+          />
         </div>
         <Title level={2} className="login-title">
           KubeEye
@@ -59,11 +62,7 @@ const Login: React.FC = () => {
               </Tooltip>
             }
           >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="Username"
-              autoComplete="username"
-            />
+            <Input prefix={<UserOutlined />} placeholder="Username" autoComplete="username" />
           </Form.Item>
 
           <Form.Item

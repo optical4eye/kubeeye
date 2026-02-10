@@ -63,21 +63,22 @@ backend:
       value: "main"
     - name: KUBEEYE_GITOPS_REPO_USERNAME
       value: "optical4eye"
-    - name: KUBEEYE_GITOPS_REPO_TOKEN
-      value: ""
     - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
       value: "kubeeye repo rules"
-    - name: KUBEEYE_REPORT_RETENTION_DAYS
-      value: '1'
-    - name: GIT_SSL_NO_VERIFY
-      value: '0'
-    # - name: DB_HOST.  #in Deployment template
     - name: DB_USER
       value: "kubeeye"
     - name: DB_NAME
       value: "kubeeye"
     - name: DB_PASS
       value: "password"
+    - name: KUBEEYE_ADMIN_USERNAME
+      value: "admin"
+    - name: KUBEEYE_ADMIN_EMAIL
+      value: "admin@kubeeye.local"
+    - name: KUBEEYE_ADMIN_PASSWORD
+      value: "admin123"
+    - name: KUBEEYE_JWT_SECRET_KEY
+      value: "Uk5E9obf53tnXAcunvlBUKqF9d2JF12fqz2dzipHHQl"
   resources:
     limits:
       memory: "2Gi"

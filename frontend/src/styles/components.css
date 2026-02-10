@@ -5,6 +5,22 @@
   background-color: var(--ant-color-bg-layout); /* Uses Ant Design layout background token */
 }
 
+/* Logo styles - must come before .sidebar-sider .logo */
+.logo {
+  height: clamp(var(--ant-margin-xl), 8vw, var(--ant-margin-xxl));
+  margin: var(--ant-margin-sm) var(--ant-margin);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(var(--ant-font-size-lg), 6vw, var(--ant-font-size-xxxl));
+  font-weight: var(--ant-font-weight-strong);
+  background: transparent;
+}
+
+.logo span {
+  color: var(--ant-color-text);
+}
+
 /* Sidebar improvements */
 .sidebar-sider {
   transition: all 0.2s ease;
@@ -116,17 +132,6 @@
   opacity: 0.85;
 }
 
-.logo {
-  height: clamp(var(--ant-margin-xl), 8vw, var(--ant-margin-xxl));
-  margin: var(--ant-margin-sm) var(--ant-margin);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(var(--ant-font-size-lg), 6vw, var(--ant-font-size-xxxl));
-  font-weight: var(--ant-font-weight-strong);
-  background: transparent;
-}
-
 .logo-container {
   padding: var(--ant-padding-sm) var(--ant-padding);
   font-size: var(--ant-font-size-lg);
@@ -157,6 +162,24 @@
 .ant-menu-item {
   margin: 0 !important;
   padding-left: calc(var(--ant-padding-lg) * 2) !important;
+  width: 100% !important;
+}
+
+.ant-menu-item-selected {
+  background-color: var(--ant-color-primary-bg) !important;
+  color: var(--ant-color-primary) !important;
+}
+
+.ant-menu-item-selected::after {
+  border-right: 3px solid var(--ant-color-primary);
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.ant-menu-item:hover {
+  background-color: var(--ant-color-bg-spotlight) !important;
 }
 
 .ant-menu-submenu-arrow {
@@ -266,10 +289,6 @@
   margin-right: var(--ant-margin-sm);
 }
 
-.logo span {
-  color: var(--ant-color-text);
-}
-
 /* ===== LOADING SCREEN STYLES ===== */
 .loading-screen {
   display: flex;
@@ -302,7 +321,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -630,6 +650,11 @@
   font-size: var(--ant-font-size-sm);
 }
 
+.undo-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .undo-button:hover:not(:disabled) {
   background-color: var(--ant-color-bg-spotlight);
   border-color: var(--ant-color-primary);
@@ -640,11 +665,6 @@
 
 .undo-button:active:not(:disabled) {
   transform: translateY(0);
-}
-
-.undo-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .undo-button .anticon {

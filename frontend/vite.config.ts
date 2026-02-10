@@ -8,7 +8,8 @@ export default defineConfig({
   plugins: [
     react(),
     visualizer({ filename: 'dist/stats.html', open: false, gzipSize: true, brotliSize: true }),
-    compression({ algorithm: 'brotliCompress' }),
+    // Gzip сжатие (удаляем оригинальные файлы, так как Nginx будет отдавать .gz)
+    compression({ algorithm: 'gzip', threshold: 10240, deleteOriginFile: true }),
   ],
   build: {
     rollupOptions: {

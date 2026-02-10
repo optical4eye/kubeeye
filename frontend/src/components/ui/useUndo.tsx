@@ -19,24 +19,27 @@ export const useUndo = () => {
   /**
    * Добавляет действие в стек undo и показывает уведомление с возможностью отмены
    */
-  const showUndoMessage = useCallback((action: UndoAction) => {
-    setUndoStack(prev => [...prev, action]);
+  const showUndoMessage = useCallback(
+    (action: UndoAction) => {
+      setUndoStack(prev => [...prev, action]);
 
-    message.success({
-      content: action.message,
-      duration: 5,
-      icon: <UndoOutlined />,
-      onClick: async () => {
-        try {
-          await action.onUndo();
-          setUndoStack(prev => prev.filter(item => item.id !== action.id));
-          message.success('Action undone successfully');
-        } catch (error) {
-          message.error('Failed to undo action');
-        }
-      },
-    });
-  }, [message]);
+      message.success({
+        content: action.message,
+        duration: 5,
+        icon: <UndoOutlined />,
+        onClick: async () => {
+          try {
+            await action.onUndo();
+            setUndoStack(prev => prev.filter(item => item.id !== action.id));
+            message.success('Action undone successfully');
+          } catch {
+            message.error('Failed to undo action');
+          }
+        },
+      });
+    },
+    [message]
+  );
 
   /**
    * Очищает стек undo
@@ -73,7 +76,7 @@ export const UndoButton: React.FC<{
     try {
       await onUndo();
       message.success('Action undone successfully');
-    } catch (error) {
+    } catch {
       message.error('Failed to undo action');
     }
   };

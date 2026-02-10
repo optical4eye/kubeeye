@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from db.models.base import Base
 from core.common.retry_utils import retry_on_failure
 from core.common.exceptions import RepositoryError, NotFoundError
-from core.common.cache_utils import cached, invalidate_cache
+from core.common.cache_utils import invalidate_cache, _cache_manager
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -28,6 +28,7 @@ class BaseRepository(Generic[T]):
     def __init__(self, session: AsyncSession, model_class: Type[T]):
         self.session = session
         self.model_class = model_class
+        # Use unique namespace based on model class name to avoid cache conflicts
         self.namespace = f"{self.model_class.__name__.lower()}_repository"
 
     @asynccontextmanager
@@ -41,11 +42,41 @@ class BaseRepository(Generic[T]):
             logger.error(f"Async database transaction failed: {e}")
             raise
 
-    @cached("base_repository", ttl=300)
+    async def _get_cached(self, cache_key: str, fetch_func):
+        """
+        Helper method to get cached value or fetch and cache it
+
+        Args:
+            cache_key: Unique key for the cache entry
+            fetch_func: Async function to fetch the value if not cached
+
+        Returns:
+            Cached or fetched value
+        """
+        # Get cache for this repository's namespace
+        cache = _cache_manager.get_or_create_cache(self.namespace, maxsize=128, ttl=300)
+
+        # Check cache
+        if cache_key in cache:
+            return cache[cache_key]
+
+        # Execute query
+        result = await fetch_func()
+
+        # Store in cache
+        cache[cache_key] = result
+
+        return result
+
     @retry_on_failure(max_attempts=3, exceptions=(Exception,))
     async def get_by_id(self, id: int) -> Optional[T]:
-        """Get entity by ID"""
-        return await self._get_by_id_internal(id)
+        """
+        Get entity by ID
+
+        Note: Uses model-specific namespace for cache isolation.
+        """
+        cache_key = f"get_by_id:{id}"
+        return await self._get_cached(cache_key, lambda: self._get_by_id_internal(id))
 
     async def _get_by_id_internal(self, id: int) -> Optional[T]:
         """Internal method to get entity by ID without retry decorator"""
@@ -187,22 +218,27 @@ class BaseRepository(Generic[T]):
             logger.error(f"Failed to delete entity with ID {id}: {e}")
             raise RepositoryError(f"Failed to delete entity with ID {id}: {e}")
 
-    @cached("base_repository", ttl=300)
     async def count(self, **filters) -> int:
         """Count total entities with optional filters"""
-        try:
-            stmt = select(func.count(self.model_class.id))
 
-            # Apply filters
-            for key, value in filters.items():
-                if hasattr(self.model_class, key):
-                    stmt = stmt.where(getattr(self.model_class, key) == value)
+        async def _count_internal():
+            try:
+                stmt = select(func.count(self.model_class.id))
 
-            result = await self.session.execute(stmt)
-            return result.scalar()
-        except Exception as e:
-            logger.error(f"Failed to count entities: {e}")
-            raise
+                # Apply filters
+                for key, value in filters.items():
+                    if hasattr(self.model_class, key):
+                        stmt = stmt.where(getattr(self.model_class, key) == value)
+
+                result = await self.session.execute(stmt)
+                return result.scalar()
+            except Exception as e:
+                logger.error(f"Failed to count entities: {e}")
+                raise
+
+        # Create cache key based on filters
+        cache_key = f"count:{hash(tuple(sorted(filters.items())))}"
+        return await self._get_cached(cache_key, _count_internal)
 
     async def exists(self, id: int) -> bool:
         """Check if entity exists"""

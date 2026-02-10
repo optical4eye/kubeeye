@@ -64,10 +64,12 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         </p>
       </div>
 
+      {/* Spinner in the middle */}
+      <div className="kube-display-flex kube-justify-center kube-margin-8">{statusInfo.icon}</div>
+
       <div className="loading-screen-status">
         {/* Backend Status Section */}
         <div className="kube-display-flex kube-align-center kube-justify-center kube-margin-8">
-          {statusInfo.icon}
           <span
             className={`loading-screen-status-text ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
           >

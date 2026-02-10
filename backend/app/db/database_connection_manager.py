@@ -33,37 +33,6 @@ def get_database_url() -> str:
     return ASYNC_DATABASE_URL
 
 
-class AsyncDatabaseContextManager:
-    """Асинхронный контекстный менеджер для управления сессиями БД"""
-
-    def __init__(self, manager: "DatabaseConnectionManager"):
-        self.manager = manager
-        self.session = None
-
-    async def __aenter__(self):
-        """Получить сессию БД"""
-        await self.manager._ensure_async_connection()
-        self.session = self.manager._async_session_factory()
-        return self.session
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Закрыть сессию с автоматическим rollback при исключениях"""
-        if self.session:
-            try:
-                if exc_type is not None:
-                    # Если было исключение, откатываем транзакцию
-                    await self.session.rollback()
-                    logger.debug("Database session rolled back due to exception")
-                else:
-                    # Если всё хорошо, коммитим
-                    await self.session.commit()
-                    logger.debug("Database session committed")
-            except Exception as e:
-                logger.error(f"Error during session cleanup: {e}")
-            finally:
-                await self.session.close()
-
-
 class DatabaseConnectionManager:
     """Manager for async database connections with adaptive pooling"""
 

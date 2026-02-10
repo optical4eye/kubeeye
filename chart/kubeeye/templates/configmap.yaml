@@ -25,11 +25,9 @@ data:
         include       /etc/nginx/mime.types;
         default_type  application/octet-stream;
 
-        # Gzip compression
-        gzip on;
+        # Gzip compression - только pre-compressed файлы
+        gzip_static on;  # Отдача pre-compressed .gz файлов
         gzip_vary on;
-        gzip_min_length 1024;
-        gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
 
         server {
             listen 3000;

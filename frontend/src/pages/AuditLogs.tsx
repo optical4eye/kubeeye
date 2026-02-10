@@ -7,7 +7,6 @@ import {
   Input,
   Space,
   Modal,
-  Descriptions,
   Tag,
   Card,
   Statistic,
@@ -17,7 +16,7 @@ import {
 } from 'antd';
 import { SearchOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useAuditLogs, AuditLog, AuditLogsParams, AuditStats } from '../hooks/useAuditLogs';
+import { useAuditLogs, AuditLogsParams, AuditStats } from '../hooks/useAuditLogs';
 import { getAuditCleanupConfig } from '../services/api';
 import type { Dayjs } from 'dayjs';
 
@@ -26,12 +25,9 @@ const { Option } = Select;
 
 const AuditLogsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { logs, loading, total, fetchAuditLogs, fetchAuditLog, fetchAuditStats, cleanupLogs } =
-    useAuditLogs();
+  const { logs, loading, total, fetchAuditLogs, fetchAuditStats, cleanupLogs } = useAuditLogs();
 
   const [filters, setFilters] = useState<AuditLogsParams>({ limit: 20, offset: 0 });
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isStatsModalVisible, setIsStatsModalVisible] = useState(false);
   const [stats, setStats] = useState<AuditStats | null>(null);
   const [cleanupConfig, setCleanupConfig] = useState<any>(null);
@@ -76,16 +72,6 @@ const AuditLogsPage: React.FC = () => {
 
   const handleResetFilters = () => {
     setFilters({ limit: 20, offset: 0 });
-  };
-
-  const handleViewDetails = async (log: AuditLog) => {
-    try {
-      const logDetails = await fetchAuditLog(log.id);
-      setSelectedLog(logDetails);
-      setIsDetailModalVisible(true);
-    } catch {
-      // Error already handled in hook
-    }
   };
 
   const handleShowStats = async () => {
@@ -317,61 +303,6 @@ const AuditLogsPage: React.FC = () => {
           },
         }}
       />
-
-      <Modal
-        title={t('auditLogs.details')}
-        open={isDetailModalVisible}
-        onCancel={() => setIsDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
-            {t('auditLogs.close')}
-          </Button>,
-        ]}
-        width={800}
-      >
-        {selectedLog && (
-          <Descriptions bordered column={2}>
-            <Descriptions.Item label={t('auditLogs.id')}>{selectedLog.id}</Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.user')}>
-              {selectedLog.username}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.action')}>
-              {selectedLog.action}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.resourceType')}>
-              {selectedLog.resource_type || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.resourceId')}>
-              {selectedLog.resource_id || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.status')}>
-              <Tag color={selectedLog.status === 'success' ? 'green' : 'red'}>
-                {selectedLog.status === 'success'
-                  ? t('auditLogs.statusSuccess')
-                  : t('auditLogs.statusFailure')}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.ipAddress')}>
-              {selectedLog.ip_address || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.date')}>
-              {new Date(selectedLog.created_at).toLocaleString('ru-RU')}
-            </Descriptions.Item>
-            {selectedLog.error_message && (
-              <Descriptions.Item label={t('auditLogs.error')} span={2}>
-                <span style={{ color: 'red' }}>{selectedLog.error_message}</span>
-              </Descriptions.Item>
-            )}
-            {selectedLog.details && (
-              <Descriptions.Item label={t('auditLogs.detailsLabel')} span={2}>
-                <pre style={{ maxHeight: '200px', overflow: 'auto' }}>
-                  {JSON.stringify(selectedLog.details, null, 2)}
-                </pre>
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-        )}
-      </Modal>
 
       <Modal
         title={t('auditLogs.stats.title')}

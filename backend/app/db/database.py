@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database_connection_manager import DatabaseConnectionManager, Base, get_database_url
 from .database_monitor import DatabaseMonitor
-from .database_transaction_manager import DatabaseTransactionManager
 
 from core.logging import get_logger
 
@@ -196,7 +195,6 @@ __all__ = [
     "close_database",
     "DatabaseConnectionManager",
     "DatabaseMonitor",
-    "DatabaseTransactionManager",
     "AsyncConnectionMonitor",
     "get_async_monitor",
     "start_connection_monitoring",

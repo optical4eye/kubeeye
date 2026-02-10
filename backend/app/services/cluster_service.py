@@ -48,6 +48,66 @@ class ClusterService:
         """Инвалидация кэша кластеров"""
         self.cache_manager.invalidate_namespace("clusters")
 
+    async def _process_node_secrets(self, parser: "SecretVariableParser", node: Dict, validate: bool = True) -> Dict:
+        """
+        Обработка секретных переменных в узле (валидация или парсинг)
+
+        Args:
+            parser: Парсер секретных переменных
+            node: Словарь с данными узла
+            validate: Если True - валидация, если False - парсинг (замена на расшифрованные значения)
+
+        Returns:
+            Обработанный узел
+
+        Raises:
+            HTTPException: если валидация не прошла
+        """
+        processed_node = node.copy()
+
+        # Process both password and ssh_key fields
+        for field_name in ["password", "ssh_key"]:
+            if field_name in processed_node and processed_node[field_name]:
+                field_value = processed_node[field_name]
+
+                if validate:
+                    # Validate secret variables
+                    is_valid, errors = await parser.validate_variables(field_value)
+                    if not is_valid:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Invalid secret variables in {field_name}: {', '.join(errors)}",
+                        )
+                    # Keep original value when validating
+                else:
+                    # Replace secret variables with decrypted values
+                    processed_value, parse_errors = await parser.replace_variables(field_value)
+                    if parse_errors:
+                        logger.warning(f"Secret parsing errors in {field_name}: {parse_errors}")
+                    processed_node[field_name] = processed_value
+
+        return processed_node
+
+    async def _parse_kubeconfig_secrets(self, kubeconfig: str) -> str:
+        """
+        Парсинг секретных переменных в kubeconfig (замена на расшифрованные значения)
+
+        Args:
+            kubeconfig: Kubeconfig с секретными переменными
+
+        Returns:
+            Обработанный kubeconfig с расшифрованными секретами
+        """
+        if not kubeconfig:
+            return kubeconfig
+
+        async with with_db_session() as db:
+            parser = SecretVariableParser(db)
+            processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
+            if parse_errors:
+                logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
+            return processed_kubeconfig
+
     async def get_dashboard_data(self) -> Dict:
         """
         Получить данные для дашборда
@@ -154,12 +214,7 @@ class ClusterService:
                         kubeconfig_content = cluster.kubeconfig
                         if kubeconfig_content:
                             # Parse secret variables in kubeconfig for cert check
-                            async with with_db_session() as db:
-                                parser = SecretVariableParser(db)
-                                processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig_content)
-                                if parse_errors:
-                                    logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
-                                kubeconfig_content = processed_kubeconfig
+                            kubeconfig_content = await self._parse_kubeconfig_secrets(kubeconfig_content)
 
                             cert_info = await asyncio.to_thread(
                                 get_cluster_cert_status, cluster_name, kubeconfig_content
@@ -239,12 +294,7 @@ class ClusterService:
                     cert_expiry_days = None
                     if kubeconfig:
                         # Parse secret variables in kubeconfig for cert check
-                        async with with_db_session() as db:
-                            parser = SecretVariableParser(db)
-                            processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
-                            if parse_errors:
-                                logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
-                            kubeconfig = processed_kubeconfig
+                        kubeconfig = await self._parse_kubeconfig_secrets(kubeconfig)
 
                         try:
                             cert_status = await asyncio.wait_for(
@@ -324,30 +374,7 @@ class ClusterService:
                 processed_nodes = []
 
                 for node in nodes:
-                    processed_node = node.copy()
-
-                    # Validate password if present
-                    if "password" in processed_node and processed_node["password"]:
-                        password_text = processed_node["password"]
-                        # Validate secret variables
-                        is_valid, errors = await parser.validate_variables(password_text)
-                        if not is_valid:
-                            raise HTTPException(
-                                status_code=400, detail=f"Invalid secret variables in password: {', '.join(errors)}"
-                            )
-                        processed_node["password"] = password_text
-
-                    # Validate ssh_key if present
-                    if "ssh_key" in processed_node and processed_node["ssh_key"]:
-                        ssh_key_text = processed_node["ssh_key"]
-                        # Validate secret variables
-                        is_valid, errors = await parser.validate_variables(ssh_key_text)
-                        if not is_valid:
-                            raise HTTPException(
-                                status_code=400, detail=f"Invalid secret variables in SSH key: {', '.join(errors)}"
-                            )
-                        processed_node["ssh_key"] = ssh_key_text
-
+                    processed_node = await self._process_node_secrets(parser, node, validate=True)
                     processed_nodes.append(processed_node)
 
                 # Validate secret variables in kubeconfig
@@ -406,30 +433,7 @@ class ClusterService:
             processed_nodes = []
 
             for node in nodes:
-                processed_node = node.copy()
-
-                # Validate password if present
-                if "password" in processed_node and processed_node["password"]:
-                    password_text = processed_node["password"]
-                    # Validate secret variables
-                    is_valid, errors = await parser.validate_variables(password_text)
-                    if not is_valid:
-                        raise HTTPException(
-                            status_code=400, detail=f"Invalid secret variables in password: {', '.join(errors)}"
-                        )
-                    processed_node["password"] = password_text
-
-                # Validate ssh_key if present
-                if "ssh_key" in processed_node and processed_node["ssh_key"]:
-                    ssh_key_text = processed_node["ssh_key"]
-                    # Validate secret variables
-                    is_valid, errors = await parser.validate_variables(ssh_key_text)
-                    if not is_valid:
-                        raise HTTPException(
-                            status_code=400, detail=f"Invalid secret variables in SSH key: {', '.join(errors)}"
-                        )
-                    processed_node["ssh_key"] = ssh_key_text
-
+                processed_node = await self._process_node_secrets(parser, node, validate=True)
                 processed_nodes.append(processed_node)
 
             # Add processed nodes
@@ -521,12 +525,7 @@ class ClusterService:
             raise HTTPException(status_code=400, detail="Kubeconfig not configured for this cluster")
 
         # Parse secret variables in kubeconfig for K8sClient
-        async with with_db_session() as db:
-            parser = SecretVariableParser(db)
-            processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
-            if parse_errors:
-                logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
-            kubeconfig = processed_kubeconfig
+        kubeconfig = await self._parse_kubeconfig_secrets(kubeconfig)
 
         k8s_client = K8sClient(kubeconfig)
         nodes_result = await asyncio.to_thread(k8s_client.get_nodes)
@@ -558,12 +557,7 @@ class ClusterService:
             raise HTTPException(status_code=400, detail="Kubeconfig not configured for this cluster")
 
         # Parse secret variables in kubeconfig for K8sClient
-        async with with_db_session() as db:
-            parser = SecretVariableParser(db)
-            processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
-            if parse_errors:
-                logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
-            kubeconfig = processed_kubeconfig
+        kubeconfig = await self._parse_kubeconfig_secrets(kubeconfig)
 
         k8s_client = K8sClient(kubeconfig)
         namespaces_result = await k8s_client.get_namespaces()
@@ -621,26 +615,7 @@ class ClusterService:
             processed_nodes = []
 
             for node in nodes:
-                processed_node = node.copy()
-
-                # Parse password if present
-                if "password" in processed_node and processed_node["password"]:
-                    password_text = processed_node["password"]
-                    # Replace secret variables with decrypted values
-                    processed_password, parse_errors = await parser.replace_variables(password_text)
-                    if parse_errors:
-                        logger.warning(f"Secret parsing errors: {parse_errors}")
-                    processed_node["password"] = processed_password
-
-                # Parse ssh_key if present
-                if "ssh_key" in processed_node and processed_node["ssh_key"]:
-                    ssh_key_text = processed_node["ssh_key"]
-                    # Replace secret variables with decrypted values
-                    processed_ssh_key, parse_errors = await parser.replace_variables(ssh_key_text)
-                    if parse_errors:
-                        logger.warning(f"Secret parsing errors: {parse_errors}")
-                    processed_node["ssh_key"] = processed_ssh_key
-
+                processed_node = await self._process_node_secrets(parser, node, validate=False)
                 processed_nodes.append(processed_node)
 
             return processed_nodes
@@ -807,12 +782,7 @@ class ClusterService:
             return {"success": False, "message": "Kubeconfig not configured"}
 
         # Parse secret variables in kubeconfig
-        async with with_db_session() as db:
-            parser = SecretVariableParser(db)
-            processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
-            if parse_errors:
-                logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
-            kubeconfig = processed_kubeconfig
+        kubeconfig = await self._parse_kubeconfig_secrets(kubeconfig)
 
         k8s_client = K8sClient(kubeconfig)
         success, message = await k8s_client.test_connection()
@@ -836,12 +806,7 @@ class ClusterService:
             raise HTTPException(status_code=400, detail="Kubeconfig is required")
 
         # Parse secret variables in kubeconfig
-        async with with_db_session() as db:
-            parser = SecretVariableParser(db)
-            processed_kubeconfig, parse_errors = await parser.replace_variables(kubeconfig)
-            if parse_errors:
-                logger.warning(f"Secret parsing errors in kubeconfig: {parse_errors}")
-            kubeconfig = processed_kubeconfig
+        kubeconfig = await self._parse_kubeconfig_secrets(kubeconfig)
 
         k8s_client = K8sClient(kubeconfig)
         nodes_result = await asyncio.to_thread(k8s_client.get_nodes)

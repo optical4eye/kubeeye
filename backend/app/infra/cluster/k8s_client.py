@@ -97,21 +97,15 @@ class K8sClient(K8sBaseClient):
         Returns:
             Node information dictionary
         """
-        logger.info("Starting get_nodes()")
         if not self.initialized:
             logger.error("Client not initialized")
             return {"status": "error", "error": "Client not initialized"}
 
         try:
-            logger.info("Calling core_v1.list_node()")
-            logger.debug("Executing Kubernetes API call: list_node")
             nodes = self.core_v1.list_node()
-            logger.info(f"Retrieved {len(nodes.items)} nodes")
-            logger.debug(f"Node items sample: {nodes.items[0].metadata.name if nodes.items else 'None'}")
             result = []
 
             for node in nodes.items:
-                logger.debug(f"Processing node: {node.metadata.name}")
                 # Calculate AGE
                 creation_time = node.metadata.creation_timestamp
                 if creation_time:
@@ -152,7 +146,7 @@ class K8sClient(K8sBaseClient):
                 }
                 result.append(node_info)
 
-            logger.info(f"Successfully processed {len(result)} nodes")
+            logger.info(f"Successfully retrieved {len(result)} nodes")
             return {"status": "success", "nodes": result}
         except ApiException as e:
             logger.error(f"API error in get_nodes: {e.reason}")
@@ -408,15 +402,12 @@ class K8sClient(K8sBaseClient):
         Returns:
             Dictionary with namespace information
         """
-        logger.info("Starting get_namespaces()")
         if not self.initialized:
             logger.error("Client not initialized")
             return {"status": "error", "error": "Client not initialized"}
 
         try:
-            logger.info("Calling core_v1.list_namespace() asynchronously")
             namespaces = await asyncio.to_thread(self.core_v1.list_namespace)
-            logger.info(f"Retrieved {len(namespaces.items)} namespaces")
 
             result = []
             for ns in namespaces.items:
@@ -428,7 +419,7 @@ class K8sClient(K8sBaseClient):
                 }
                 result.append(ns_info)
 
-            logger.info(f"Successfully processed {len(result)} namespaces")
+            logger.info(f"Successfully retrieved {len(result)} namespaces")
             return {"status": "success", "namespaces": result}
         except ApiException as e:
             logger.error(f"API error in get_namespaces: {e.reason}")
