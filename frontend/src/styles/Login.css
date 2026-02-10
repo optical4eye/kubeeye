@@ -10,32 +10,38 @@
   position: fixed;
   top: 0;
   left: 0;
-  background: linear-gradient(135deg, var(--ant-color-primary) 0%, var(--ant-color-info) 100%);
+  background: #ffffff;
   z-index: 1000;
 }
 
 .login-card {
-  width: var(--modal-width-medium);
-  box-shadow: var(--ant-box-shadow);
-  border-radius: var(--ant-border-radius-lg);
+  width: 360px;
 }
 
 .login-title {
   text-align: center;
-  margin-bottom: var(--ant-margin-lg);
-  color: var(--ant-color-primary);
-  font-size: var(--ant-font-size-heading3);
-  font-weight: var(--ant-font-weight-strong);
+  margin-bottom: 32px;
+  color: #1890ff;
+  font-size: 24px;
+  font-weight: 600;
 }
 
 /* Dark theme support */
 @media (prefers-color-scheme: dark) {
   .login-container {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: #141414;
+  }
+
+  .login-title {
+    color: #177ddc;
   }
 }
 
 /* Support for Ant Design dark theme via data attribute */
 [data-theme='dark'] .login-container {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #141414;
+}
+
+[data-theme='dark'] .login-title {
+  color: #177ddc;
 }

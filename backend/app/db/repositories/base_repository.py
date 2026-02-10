@@ -45,6 +45,10 @@ class BaseRepository(Generic[T]):
     @retry_on_failure(max_attempts=3, exceptions=(Exception,))
     async def get_by_id(self, id: int) -> Optional[T]:
         """Get entity by ID"""
+        return await self._get_by_id_internal(id)
+
+    async def _get_by_id_internal(self, id: int) -> Optional[T]:
+        """Internal method to get entity by ID without retry decorator"""
         try:
             stmt = select(self.model_class).where(self.model_class.id == id)
             result = await self.session.execute(stmt)
@@ -155,7 +159,7 @@ class BaseRepository(Generic[T]):
                 obj_data = self.model_class.validate_data(obj_data)
 
             async with self.transaction():
-                entity = await self.get_by_id(id)
+                entity = await self._get_by_id_internal(id)
                 if entity:
                     for key, value in obj_data.items():
                         if hasattr(entity, key):
@@ -173,7 +177,7 @@ class BaseRepository(Generic[T]):
         """Delete entity by ID"""
         try:
             async with self.transaction():
-                entity = await self.get_by_id(id)
+                entity = await self._get_by_id_internal(id)
                 if entity:
                     await self.session.delete(entity)
                     invalidate_cache(self.namespace)

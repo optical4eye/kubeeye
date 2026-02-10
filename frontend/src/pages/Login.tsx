@@ -35,7 +35,7 @@ const Login: React.FC = () => {
     <div className="login-container">
       <Card className="login-card">
         <Title level={2} className="login-title">
-          KubeEye Login
+          KubeEye
         </Title>
         <Form name="login" onFinish={onFinish} autoComplete="off" size="large">
           <Form.Item

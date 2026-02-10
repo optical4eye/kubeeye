@@ -206,12 +206,12 @@
 }
 
 .loading-screen-light {
-  background: linear-gradient(135deg, #f0f5ff, #e6f7ff);
+  background: #ffffff;
   color: var(--ant-color-text);
 }
 
 .loading-screen-dark {
-  background: linear-gradient(135deg, #141414, #000000);
+  background: #141414;
   color: white;
 }
 
