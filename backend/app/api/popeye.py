@@ -12,8 +12,9 @@ from infra.cluster.cluster_config import get_cluster
 from infra.cluster.k8s_client import K8sClient
 from core.logging import get_logger
 from core.common.unified_validation import validate_task_id, validate_cluster_name
-from api.dependencies import get_current_user, require_operator
+from api.dependencies import get_current_user
 from db.models.user import User
+from core.rbac import Permission, require_permission
 
 from core.logging import get_logger
 
@@ -32,10 +33,8 @@ class PopeyeScanRequest(BaseModel):
 
 
 @router.post("/popeye/scan")
-async def start_popeye_scan(
-    request: PopeyeScanRequest,
-    current_user: User = Depends(require_operator)
-):
+@require_permission(Permission.POPEYE_SCAN)
+async def start_popeye_scan(request: PopeyeScanRequest, current_user: User = Depends(get_current_user)):
     """Start Popeye scan for specified cluster"""
     try:
         logger.info(f"Starting Popeye scan for cluster: {request.cluster_name}")
@@ -69,10 +68,7 @@ async def start_popeye_scan(
 
 
 @router.get("/popeye/task/{task_id}")
-async def get_popeye_task_status(
-    task_id: str,
-    current_user: User = Depends(get_current_user)
-):
+async def get_popeye_task_status(task_id: str, current_user: User = Depends(get_current_user)):
     """Get status of Popeye scan task"""
     try:
         # Validate task_id using centralized validation
@@ -96,10 +92,8 @@ async def get_popeye_task_status(
 
 
 @router.delete("/popeye/task/{task_id}")
-async def cancel_popeye_task(
-    task_id: str,
-    current_user: User = Depends(require_operator)
-):
+@require_permission(Permission.TASK_DELETE)
+async def cancel_popeye_task(task_id: str, current_user: User = Depends(get_current_user)):
     """Cancel Popeye scan task"""
     try:
         # Validate task_id using centralized validation

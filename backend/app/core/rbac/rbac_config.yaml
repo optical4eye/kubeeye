@@ -1,0 +1,192 @@
+# RBAC Configuration for KubeEye
+# This file defines all roles and their permissions in the system
+
+# Available permissions by resource
+permissions:
+  # User permissions
+  user:
+    - read
+    - create
+    - update
+    - delete
+    - change_password
+
+  # Cluster permissions
+  cluster:
+    - read
+    - create
+    - update
+    - delete
+
+  # Inspection permissions
+  inspection:
+    - read
+    - run
+    - create
+    - delete
+
+  # Report permissions
+  report:
+    - read
+    - create
+    - delete
+    - export
+
+  # Secret permissions
+  secret:
+    - read
+    - create
+    - update
+    - delete
+
+  # Task permissions
+  task:
+    - read
+    - run
+    - create
+    - delete
+
+  # Schedule permissions
+  schedule:
+    - read
+    - create
+    - update
+    - delete
+
+  # Rule permissions
+  rule:
+    - read
+    - create
+    - update
+    - delete
+
+  # GitOps permissions
+  gitops:
+    - read
+    - sync
+    - configure
+
+  # Network permissions
+  network:
+    - check
+
+  # Popeye permissions
+  popeye:
+    - scan
+
+  # Audit permissions
+  audit:
+    - read
+    - delete
+    - stats
+
+  # System permissions
+  system:
+    - health
+    - config
+
+# Role definitions with their permissions
+roles:
+  admin:
+    name: "Administrator"
+    description: "Full access to all resources and operations"
+    permissions:
+      # User permissions
+      - user:read
+      - user:create
+      - user:update
+      - user:delete
+      - user:change_password
+      # Cluster permissions
+      - cluster:read
+      - cluster:create
+      - cluster:update
+      - cluster:delete
+      # Inspection permissions
+      - inspection:read
+      - inspection:run
+      - inspection:create
+      - inspection:delete
+      # Report permissions
+      - report:read
+      - report:create
+      - report:delete
+      - report:export
+      # Secret permissions
+      - secret:read
+      - secret:create
+      - secret:update
+      - secret:delete
+      # Task permissions
+      - task:read
+      - task:run
+      - task:create
+      - task:delete
+      # Schedule permissions
+      - schedule:read
+      - schedule:create
+      - schedule:update
+      - schedule:delete
+      # Rule permissions
+      - rule:read
+      - rule:create
+      - rule:update
+      - rule:delete
+      # GitOps permissions
+      - gitops:read
+      - gitops:sync
+      - gitops:configure
+      # Network permissions
+      - network:check
+      # Popeye permissions
+      - popeye:scan
+      # Audit permissions
+      - audit:read
+      - audit:delete
+      - audit:stats
+      # System permissions
+      - system:health
+      - system:config
+
+  operator:
+    name: "Operator"
+    description: "Can manage clusters, run inspections, and perform most operations"
+    permissions:
+      # User permissions (read only)
+      - user:read
+      # Cluster permissions
+      - cluster:read
+      - cluster:update
+      # Inspection permissions
+      - inspection:read
+      - inspection:run
+      - inspection:create
+      # Report permissions
+      - report:read
+      - report:create
+      - report:export
+      # Secret permissions
+      - secret:read
+      - secret:update
+      # Task permissions
+      - task:read
+      - task:run
+      - task:create
+      # Schedule permissions
+      - schedule:read
+      - schedule:create
+      - schedule:update
+      # Rule permissions (read only)
+      - rule:read
+      # GitOps permissions
+      - gitops:read
+      - gitops:sync
+      # Network permissions
+      - network:check
+      # Popeye permissions
+      - popeye:scan
+      # Audit permissions (read only)
+      - audit:read
+      - audit:stats
+      # System permissions
+      - system:health

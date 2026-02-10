@@ -28,6 +28,7 @@ from .startup import (
     _init_encryption_key,
     _init_websocket_subscriptions,
     _init_admin_user,
+    _init_rbac,
 )
 from .shutdown import (
     _shutdown_task_queue,
@@ -83,6 +84,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await _start_database_monitoring()
     await _init_encryption_key()
     await _init_websocket_subscriptions()
+    await _init_rbac()
     await _start_task_queue()
     await _start_cleanup_worker()
     await _start_task_manager()

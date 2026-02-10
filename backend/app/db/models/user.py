@@ -4,13 +4,13 @@
 User model for authentication and authorization
 """
 
-from sqlalchemy import Column, String, Boolean, DateTime, Index, Integer
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Boolean, DateTime, Integer
 from db.models.base import BaseModel
 
 
 class UserRole:
     """User roles enum"""
+
     ADMIN = "admin"
     OPERATOR = "operator"
 
@@ -54,6 +54,7 @@ class User(BaseModel):
         if self.locked_until is None:
             return False
         from datetime import datetime, timezone
+
         return self.locked_until > datetime.now(timezone.utc)
 
     def can_login(self) -> bool:
@@ -71,6 +72,7 @@ class User(BaseModel):
     def lock_account(self, lock_duration_minutes: int = 30):
         """Lock account for specified duration"""
         from datetime import datetime, timezone, timedelta
+
         self.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lock_duration_minutes)
 
     def unlock_account(self):

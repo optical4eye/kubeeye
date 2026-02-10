@@ -11,15 +11,16 @@ from infra.results.inspection_result import (
     list_results,
     load_result,
     clear_metadata_cache,
-    )
+)
 from core.common.streaming_response import StreamingExportResponse
 from core.common.unified_validation import validate_task_id
 import json
 from services.inspectors.controller import InspectionController
 from infra.dependency_injection.container import get_service
 from db.database_context import with_db_session
-from api.dependencies import get_current_user, require_operator
+from api.dependencies import get_current_user
 from db.models.user import User
+from core.rbac import Permission, require_permission
 
 from core.logging import get_logger
 
@@ -29,11 +30,8 @@ router = APIRouter()
 
 
 @router.get("/reports")
-async def get_reports(
-    limit: int = 100,
-    offset: int = 0,
-    current_user: User = Depends(get_current_user)
-):
+@require_permission(Permission.REPORT_READ)
+async def get_reports(limit: int = 100, offset: int = 0, current_user: User = Depends(get_current_user)):
     """
     Get list of reports with pagination
 
@@ -76,10 +74,8 @@ async def get_reports(
 
 
 @router.get("/reports/{report_id}")
-async def get_report(
-    report_id: str,
-    current_user: User = Depends(get_current_user)
-):
+@require_permission(Permission.REPORT_READ)
+async def get_report(report_id: str, current_user: User = Depends(get_current_user)):
     """Get report by ID"""
     try:
         logger.info(f"Getting report with ID: {report_id}")
@@ -170,10 +166,8 @@ async def get_report(
 
 
 @router.delete("/reports/{report_id}")
-async def delete_report(
-    report_id: str,
-    current_user: User = Depends(require_operator)
-):
+@require_permission(Permission.REPORT_DELETE)
+async def delete_report(report_id: str, current_user: User = Depends(get_current_user)):
     """Delete report from database"""
     try:
         # Validate report_id parameter using centralized validation
@@ -193,11 +187,8 @@ async def delete_report(
 
 
 @router.get("/reports/{report_id}/export/{format}")
-async def export_report_endpoint(
-    report_id: str,
-    format: str,
-    current_user: User = Depends(get_current_user)
-):
+@require_permission(Permission.REPORT_EXPORT)
+async def export_report_endpoint(report_id: str, format: str, current_user: User = Depends(get_current_user)):
     """Export report using streaming (no temporary files)"""
     try:
         # Validate report_id parameter using centralized validation
@@ -675,9 +666,8 @@ async def export_report_endpoint(
 
 
 @router.post("/reports/immediate")
-async def create_immediate_report(
-    current_user: User = Depends(require_operator)
-):
+@require_permission(Permission.REPORT_CREATE)
+async def create_immediate_report(current_user: User = Depends(get_current_user)):
     """Create immediate inspection report"""
     try:
         # Get available clusters

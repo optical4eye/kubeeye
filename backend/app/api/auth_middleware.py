@@ -9,7 +9,6 @@ from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from services.audit_service import AuditService
 from core.security.jwt_utils import JWTUtils
@@ -25,12 +24,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
     This middleware checks for valid JWT tokens on protected routes
     """
 
-    def __init__(
-        self,
-        app: ASGIApp,
-        excluded_paths: list = None,
-        excluded_prefixes: list = None
-    ):
+    def __init__(self, app: ASGIApp, excluded_paths: list = None, excluded_prefixes: list = None):
         """
         Initialize auth middleware
 
@@ -47,7 +41,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/openapi.json",
             "/health",
             "/api/auth",
-            "/api/auth/refresh"
+            "/api/auth/refresh",
         ]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
@@ -73,8 +67,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if not auth_header or not auth_header.startswith("Bearer "):
             logger.warning(f"Missing or invalid Authorization header for path: {path}")
             return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Missing or invalid Authorization header"}
+                status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Missing or invalid Authorization header"}
             )
 
         # Token validation will be done by route dependencies
@@ -110,12 +103,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
     This middleware logs all user actions to the audit log
     """
 
-    def __init__(
-        self,
-        app: ASGIApp,
-        excluded_paths: list = None,
-        excluded_prefixes: list = None
-    ):
+    def __init__(self, app: ASGIApp, excluded_paths: list = None, excluded_prefixes: list = None):
         """
         Initialize audit middleware
 
@@ -134,7 +122,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             "/api/auth/login",
             "/api/auth/me",
             "/api/audit/logs",
-            "/api/audit/stats"
+            "/api/audit/stats",
         ]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
@@ -208,9 +196,10 @@ class AuditMiddleware(BaseHTTPMiddleware):
                             try:
                                 if hasattr(response, "body"):
                                     import json
+
                                     body = json.loads(response.body)
                                     error_message = body.get("detail", "Unknown error")
-                            except:
+                            except (json.JSONDecodeError, AttributeError, TypeError):
                                 error_message = f"HTTP {response.status_code}"
 
                         # Log action
@@ -223,7 +212,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                             ip_address=ip_address,
                             user_agent=user_agent,
                             status=status,
-                            error_message=error_message
+                            error_message=error_message,
                         )
                         break  # Exit after using one database session
             except Exception as e:

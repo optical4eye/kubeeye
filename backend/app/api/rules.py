@@ -55,10 +55,7 @@ def _log_rules_statistics(rules: Dict[str, List], use_gitops: bool) -> int:
 
 
 @router.get("/rules")
-async def get_rules(
-    tags: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
+async def get_rules(tags: Optional[str] = None, current_user: User = Depends(get_current_user)):
     """Get rules"""
     try:
         use_gitops = RuleManager.should_use_gitops()
@@ -94,9 +91,7 @@ async def get_rules(
 
 
 @router.get("/rules/tags")
-async def get_rule_tags(
-    current_user: User = Depends(get_current_user)
-):
+async def get_rule_tags(current_user: User = Depends(get_current_user)):
     """Get all unique tags from rules"""
     try:
         use_gitops = RuleManager.should_use_gitops()

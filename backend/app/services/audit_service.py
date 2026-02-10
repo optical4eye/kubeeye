@@ -33,7 +33,7 @@ class AuditService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         status: str = AuditStatus.SUCCESS,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ) -> Optional[AuditLog]:
         """
         Log user action
@@ -59,18 +59,20 @@ class AuditService:
                 logger.debug("Audit logging is disabled")
                 return None
 
-            audit_log = await self.audit_log_repo.create({
-                "user_id": user_id,
-                "username": username,
-                "action": action,
-                "resource_type": resource_type,
-                "resource_id": resource_id,
-                "details": details,
-                "ip_address": ip_address,
-                "user_agent": user_agent,
-                "status": status,
-                "error_message": error_message
-            })
+            audit_log = await self.audit_log_repo.create(
+                {
+                    "user_id": user_id,
+                    "username": username,
+                    "action": action,
+                    "resource_type": resource_type,
+                    "resource_id": resource_id,
+                    "details": details,
+                    "ip_address": ip_address,
+                    "user_agent": user_agent,
+                    "status": status,
+                    "error_message": error_message,
+                }
+            )
 
             logger.debug(
                 f"Audit log created: user={username}, action={action}, "
@@ -93,7 +95,7 @@ class AuditService:
         resource_type: Optional[str] = None,
         status: Optional[str] = None,
         date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None
+        date_to: Optional[datetime] = None,
     ) -> Tuple[List[Dict[str, Any]], int]:
         """
         Get audit logs with filtering and pagination
@@ -122,7 +124,7 @@ class AuditService:
                 resource_type=resource_type,
                 status=status,
                 date_from=date_from,
-                date_to=date_to
+                date_to=date_to,
             )
 
             return [log.to_dict() for log in audit_logs], total
@@ -148,9 +150,7 @@ class AuditService:
             raise
 
     async def get_audit_stats(
-        self,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None
+        self, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """
         Get audit statistics
@@ -191,7 +191,7 @@ class AuditService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         success: bool = True,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ) -> Optional[AuditLog]:
         """
         Log login action
@@ -214,15 +214,11 @@ class AuditService:
             ip_address=ip_address,
             user_agent=user_agent,
             status=AuditStatus.SUCCESS if success else AuditStatus.FAILURE,
-            error_message=error_message
+            error_message=error_message,
         )
 
     async def log_logout(
-        self,
-        user_id: int,
-        username: str,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        self, user_id: int, username: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None
     ) -> Optional[AuditLog]:
         """
         Log logout action
@@ -237,19 +233,11 @@ class AuditService:
             Created audit log
         """
         return await self.log_action(
-            user_id=user_id,
-            username=username,
-            action=AuditAction.LOGOUT,
-            ip_address=ip_address,
-            user_agent=user_agent
+            user_id=user_id, username=username, action=AuditAction.LOGOUT, ip_address=ip_address, user_agent=user_agent
         )
 
     async def log_password_change(
-        self,
-        user_id: int,
-        username: str,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        self, user_id: int, username: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None
     ) -> Optional[AuditLog]:
         """
         Log password change action
@@ -268,7 +256,7 @@ class AuditService:
             username=username,
             action=AuditAction.PASSWORD_CHANGE,
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
 
     async def log_cluster_action(
@@ -279,7 +267,7 @@ class AuditService:
         cluster_name: str,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ) -> Optional[AuditLog]:
         """
         Log cluster action
@@ -304,7 +292,7 @@ class AuditService:
             resource_id=cluster_name,
             details=details,
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
 
     async def log_inspection_action(
@@ -315,7 +303,7 @@ class AuditService:
         inspection_id: Optional[str] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ) -> Optional[AuditLog]:
         """
         Log inspection action
@@ -340,5 +328,5 @@ class AuditService:
             resource_id=inspection_id,
             details=details,
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
         )

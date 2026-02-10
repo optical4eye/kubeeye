@@ -71,6 +71,34 @@
   border-right: 2px solid var(--ant-color-border);
 }
 
+/* Sidebar menu improvements */
+.ant-menu-submenu-title {
+  font-weight: var(--ant-font-weight-strong) !important;
+  margin-top: var(--ant-margin-xs) !important;
+  margin-bottom: var(--ant-margin-xs) !important;
+}
+
+.ant-menu-item {
+  margin: 0 !important;
+  padding-left: calc(var(--ant-padding-lg) * 2) !important;
+}
+
+.ant-menu-submenu-arrow {
+  color: var(--ant-color-text-secondary);
+}
+
+.ant-menu-submenu-open > .ant-menu-submenu-title > .ant-menu-submenu-arrow {
+  transform: rotate(180deg);
+}
+
+/* Menu group separator */
+.ant-menu-item-group-title {
+  padding: var(--ant-padding-sm) var(--ant-padding-lg);
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-text-secondary);
+  font-weight: var(--ant-font-weight-strong);
+}
+
 .header-content {
   display: flex;
   justify-content: space-between;

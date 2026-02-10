@@ -171,7 +171,8 @@ class OpaInspector(BaseInspector):
             cmd = [
                 self.opa_path,
                 "eval",
-                "--format", "json",
+                "--format",
+                "json",
                 f"--data={rego_path}",
                 f"--input={input_path}",
                 "data.kubernetes.violations",

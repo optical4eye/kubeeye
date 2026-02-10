@@ -25,6 +25,9 @@ import {
   AntDesignOutlined,
   UserOutlined,
   AuditOutlined,
+  AppstoreOutlined,
+  SettingOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import VersionDisplay from './components/ui/VersionDisplay';
 import LoadingScreen from './components/ui/LoadingScreen';
@@ -91,65 +94,119 @@ function App() {
 
   const menuItems = [
     {
-      key: '/',
+      key: 'overview',
       icon: <DashboardOutlined />,
-      label: t('menu.dashboard'),
+      label: t('menu.groups.overview'),
+      children: [
+        {
+          key: '/',
+          label: t('menu.dashboard'),
+        },
+      ],
     },
     {
-      key: '/clusters',
-      icon: <ClusterOutlined />,
-      label: t('menu.clusters'),
+      key: 'infrastructure',
+      icon: <AppstoreOutlined />,
+      label: t('menu.groups.infrastructure'),
+      children: [
+        {
+          key: '/clusters',
+          label: t('menu.clusters'),
+        },
+        {
+          key: '/network',
+          label: t('menu.network'),
+        },
+      ],
     },
     {
-      key: '/secrets',
-      icon: <LockOutlined />,
-      label: t('menu.secrets'),
-    },
-    {
-      key: '/network',
-      icon: <WifiOutlined />,
-      label: t('menu.network'),
-    },
-    {
-      key: '/popeye',
-      icon: <ScanOutlined />,
-      label: t('menu.popeye'),
-    },
-    {
-      key: '/inspection',
+      key: 'inspections',
       icon: <SearchOutlined />,
-      label: t('menu.inspection'),
+      label: t('menu.groups.inspections'),
+      children: [
+        {
+          key: '/inspection',
+          label: t('menu.inspection'),
+        },
+        {
+          key: '/popeye',
+          label: t('menu.popeye'),
+        },
+      ],
     },
     {
-      key: '/reports',
+      key: 'reports',
       icon: <FileTextOutlined />,
-      label: t('menu.reports'),
+      label: t('menu.groups.reports'),
+      children: [
+        {
+          key: '/reports',
+          label: t('menu.reports'),
+        },
+      ],
     },
     {
-      key: '/rules',
-      icon: <AntDesignOutlined />,
-      label: t('menu.rules'),
+      key: 'settings',
+      icon: <SettingOutlined />,
+      label: t('menu.groups.settings'),
+      children: [
+        {
+          key: '/rules',
+          label: t('menu.rules'),
+        },
+        {
+          key: '/secrets',
+          label: t('menu.secrets'),
+        },
+      ],
     },
     {
-      key: '/users',
-      icon: <UserOutlined />,
-      label: t('menu.users'),
+      key: 'management',
+      icon: <TeamOutlined />,
+      label: t('menu.groups.management'),
+      children: [
+        {
+          key: '/users',
+          label: t('menu.users'),
+        },
+        {
+          key: '/audit-logs',
+          label: t('menu.auditLogs'),
+        },
+      ],
     },
     {
-      key: '/audit-logs',
-      icon: <AuditOutlined />,
-      label: t('menu.auditLogs'),
-    },
-    {
-      key: '/help',
+      key: 'help',
       icon: <QuestionCircleOutlined />,
-      label: t('menu.help'),
+      label: t('menu.groups.help'),
+      children: [
+        {
+          key: '/help',
+          label: t('menu.help'),
+        },
+      ],
     },
   ];
 
   const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Find the parent group key for the current path
+    const getOpenKeys = () => {
+      for (const item of menuItems) {
+        if (item.children) {
+          const child = item.children.find((child: any) => child.key === location.pathname);
+          if (child) {
+            return [item.key];
+          }
+        }
+      }
+      return [];
+    };
+
+    const openKeys = getOpenKeys();
+
     return (
       <Sider>
         <div className="logo logo-container">
@@ -159,8 +216,17 @@ function App() {
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
+          defaultOpenKeys={openKeys}
           items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => {
+            // Only navigate if it's a leaf node (not a group)
+            const isLeaf = menuItems.some((item: any) =>
+              item.children?.some((child: any) => child.key === key)
+            );
+            if (isLeaf) {
+              navigate(key);
+            }
+          }}
         />
       </Sider>
     );

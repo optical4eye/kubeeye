@@ -4,7 +4,7 @@
 Audit log model for tracking user actions
 """
 
-from sqlalchemy import Column, String, DateTime, Text, Index, ForeignKey, JSON, Integer
+from sqlalchemy import Column, String, Text, ForeignKey, JSON, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from db.models.base import BaseModel
 import uuid
@@ -12,6 +12,7 @@ import uuid
 
 class AuditAction:
     """Audit action types"""
+
     LOGIN = "login"
     LOGOUT = "logout"
     PASSWORD_CHANGE = "password_change"
@@ -43,21 +44,39 @@ class AuditAction:
     @classmethod
     def all(cls):
         return [
-            cls.LOGIN, cls.LOGOUT, cls.PASSWORD_CHANGE,
-            cls.USER_CREATE, cls.USER_UPDATE, cls.USER_DELETE,
-            cls.CLUSTER_CREATE, cls.CLUSTER_UPDATE, cls.CLUSTER_DELETE,
-            cls.INSPECTION_RUN, cls.INSPECTION_DELETE,
-            cls.REPORT_VIEW, cls.REPORT_EXPORT, cls.REPORT_DELETE,
-            cls.SECRET_CREATE, cls.SECRET_UPDATE, cls.SECRET_DELETE,
-            cls.RULE_UPDATE, cls.GITOPS_SYNC,
-            cls.TASK_CREATE, cls.TASK_UPDATE, cls.TASK_DELETE, cls.TASK_RUN,
-            cls.NETWORK_CHECK, cls.POPEYE_SCAN,
-            cls.CLEANUP_RUN, cls.QUEUE_CLEAR
+            cls.LOGIN,
+            cls.LOGOUT,
+            cls.PASSWORD_CHANGE,
+            cls.USER_CREATE,
+            cls.USER_UPDATE,
+            cls.USER_DELETE,
+            cls.CLUSTER_CREATE,
+            cls.CLUSTER_UPDATE,
+            cls.CLUSTER_DELETE,
+            cls.INSPECTION_RUN,
+            cls.INSPECTION_DELETE,
+            cls.REPORT_VIEW,
+            cls.REPORT_EXPORT,
+            cls.REPORT_DELETE,
+            cls.SECRET_CREATE,
+            cls.SECRET_UPDATE,
+            cls.SECRET_DELETE,
+            cls.RULE_UPDATE,
+            cls.GITOPS_SYNC,
+            cls.TASK_CREATE,
+            cls.TASK_UPDATE,
+            cls.TASK_DELETE,
+            cls.TASK_RUN,
+            cls.NETWORK_CHECK,
+            cls.POPEYE_SCAN,
+            cls.CLEANUP_RUN,
+            cls.QUEUE_CLEAR,
         ]
 
 
 class AuditStatus:
     """Audit status types"""
+
     SUCCESS = "success"
     FAILURE = "failure"
 
@@ -100,5 +119,5 @@ class AuditLog(BaseModel):
             "user_agent": self.user_agent,
             "status": self.status,
             "error_message": self.error_message,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

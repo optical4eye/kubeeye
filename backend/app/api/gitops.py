@@ -5,10 +5,11 @@ GitOps management routes
 """
 
 from fastapi import APIRouter, HTTPException, Depends
-from api.dependencies import require_admin
+from api.dependencies import get_current_user
 from db.models.user import User
 
 from core.logging import get_logger
+from core.rbac import Permission, require_permission
 
 logger = get_logger(__name__)
 
@@ -16,9 +17,8 @@ router = APIRouter()
 
 
 @router.get("/gitops")
-async def get_gitops_status(
-    current_user: User = Depends(require_admin)
-):
+@require_permission(Permission.GITOPS_READ)
+async def get_gitops_status(current_user: User = Depends(get_current_user)):
     """Get GitOps status"""
     try:
         from infra.gitops.gitops_manager import GitOpsManager
@@ -38,9 +38,8 @@ async def get_gitops_status(
 
 
 @router.get("/gitops/config")
-async def get_gitops_config(
-    current_user: User = Depends(require_admin)
-):
+@require_permission(Permission.GITOPS_READ)
+async def get_gitops_config(current_user: User = Depends(get_current_user)):
     """Get GitOps config (without sensitive information)"""
     try:
         from infra.gitops.gitops_manager import GitOpsManager
@@ -61,9 +60,8 @@ async def get_gitops_config(
 
 
 @router.post("/gitops/sync")
-async def sync_gitops_repository(
-    current_user: User = Depends(require_admin)
-):
+@require_permission(Permission.GITOPS_SYNC)
+async def sync_gitops_repository(current_user: User = Depends(get_current_user)):
     """Force sync GitOps repository"""
     try:
         from infra.gitops.gitops_manager import GitOpsManager

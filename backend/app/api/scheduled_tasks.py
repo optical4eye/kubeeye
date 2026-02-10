@@ -10,8 +10,9 @@ from infra.dependency_injection.container import get_service
 from core.common.schedule_utils import calculate_next_run
 from core.common.metrics import count_requests, time_operation
 from core.common.unified_validation import validate_task_id
-from api.dependencies import get_current_user, require_operator
+from api.dependencies import get_current_user
 from db.models.user import User
+from core.rbac import Permission, require_permission
 
 router = APIRouter()
 
@@ -19,9 +20,8 @@ router = APIRouter()
 @router.get("/scheduled-tasks")
 @count_requests("scheduled_tasks_list")
 @time_operation("api_get_scheduled_tasks")
-async def get_scheduled_tasks(
-    current_user: User = Depends(get_current_user)
-):
+@require_permission(Permission.SCHEDULE_READ)
+async def get_scheduled_tasks(current_user: User = Depends(get_current_user)):
     """Get scheduled tasks"""
     try:
         task_manager = await get_service("task_manager")
@@ -41,10 +41,8 @@ async def get_scheduled_tasks(
 @router.get("/scheduled-tasks/{task_id}")
 @count_requests("scheduled_tasks_get")
 @time_operation("api_get_scheduled_task")
-async def get_scheduled_task(
-    task_id: str,
-    current_user: User = Depends(get_current_user)
-):
+@require_permission(Permission.SCHEDULE_READ)
+async def get_scheduled_task(task_id: str, current_user: User = Depends(get_current_user)):
     """Get specific scheduled task"""
     try:
         # Validate task_id parameter using centralized validation
@@ -70,10 +68,8 @@ async def get_scheduled_task(
 @router.post("/scheduled-tasks")
 @count_requests("scheduled_tasks_create")
 @time_operation("api_create_scheduled_task")
-async def create_scheduled_task(
-    task: ScheduledTaskCreate,
-    current_user: User = Depends(require_operator)
-):
+@require_permission(Permission.SCHEDULE_CREATE)
+async def create_scheduled_task(task: ScheduledTaskCreate, current_user: User = Depends(get_current_user)):
     """Create scheduled task"""
     try:
         import time
@@ -107,10 +103,8 @@ async def create_scheduled_task(
 @router.delete("/scheduled-tasks/{task_id}")
 @count_requests("scheduled_tasks_delete")
 @time_operation("api_delete_scheduled_task")
-async def remove_scheduled_task(
-    task_id: str,
-    current_user: User = Depends(require_operator)
-):
+@require_permission(Permission.SCHEDULE_DELETE)
+async def remove_scheduled_task(task_id: str, current_user: User = Depends(get_current_user)):
     """Delete scheduled task"""
     try:
         # Validate task_id parameter using centralized validation
@@ -130,10 +124,8 @@ async def remove_scheduled_task(
 @router.post("/scheduled-tasks/{task_id}/run")
 @count_requests("scheduled_tasks_run")
 @time_operation("api_run_scheduled_task")
-async def run_scheduled_task(
-    task_id: str,
-    current_user: User = Depends(require_operator)
-):
+@require_permission(Permission.TASK_RUN)
+async def run_scheduled_task(task_id: str, current_user: User = Depends(get_current_user)):
     """Run scheduled task"""
     try:
         # Validate task_id parameter using centralized validation
@@ -155,10 +147,9 @@ async def run_scheduled_task(
 @router.put("/scheduled-tasks/{task_id}")
 @count_requests("scheduled_tasks_update")
 @time_operation("api_update_scheduled_task")
+@require_permission(Permission.SCHEDULE_UPDATE)
 async def update_scheduled_task(
-    task_id: str,
-    task: ScheduledTaskCreate,
-    current_user: User = Depends(require_operator)
+    task_id: str, task: ScheduledTaskCreate, current_user: User = Depends(get_current_user)
 ):
     """Update scheduled task"""
     try:

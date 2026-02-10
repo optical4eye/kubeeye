@@ -24,11 +24,7 @@ class AuthService:
         self.user_repo = UserRepository(session)
 
     async def authenticate_user(
-        self,
-        username: str,
-        password: str,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        self, username: str, password: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None
     ) -> Optional[User]:
         """
         Authenticate user with username and password
@@ -68,10 +64,7 @@ class AuthService:
             raise
 
     async def create_tokens(
-        self,
-        user: User,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        self, user: User, ip_address: Optional[str] = None, user_agent: Optional[str] = None
     ) -> Dict[str, str]:
         """
         Create access token for user
@@ -87,29 +80,17 @@ class AuthService:
         try:
             # Create access token
             access_token = JWTUtils.create_access_token(
-                data={
-                    "sub": str(user.id),
-                    "username": user.username,
-                    "role": user.role
-                }
+                data={"sub": str(user.id), "username": user.username, "role": user.role}
             )
 
             logger.info(f"Access token created for user '{user.username}'")
 
-            return {
-                "access_token": access_token,
-                "token_type": "bearer"
-            }
+            return {"access_token": access_token, "token_type": "bearer"}
         except Exception as e:
             logger.error(f"Failed to create access token for user '{user.username}': {e}")
             raise
 
-    async def change_password(
-        self,
-        user_id: int,
-        old_password: str,
-        new_password: str
-    ) -> bool:
+    async def change_password(self, user_id: int, old_password: str, new_password: str) -> bool:
         """
         Change user password
 

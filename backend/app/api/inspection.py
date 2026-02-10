@@ -4,7 +4,7 @@
 Inspection routes with async queue processing
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Annotated
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
@@ -12,8 +12,9 @@ from services.components.inspection_engine import execute_inspection_unified
 from infra.tasks.task_queue import submit_inspection_task, get_task_queue
 from core.common.unified_validation import validate_task_id
 from .models import InspectionRequest
-from api.dependencies import get_current_user, require_operator
+from api.dependencies import get_current_user
 from db.models.user import User
+from core.rbac import Permission, require_permission
 
 
 # Response models for better OpenAPI documentation
@@ -82,9 +83,9 @@ class AsyncInspectionRequest(BaseModel):
     response_model=InspectionResponse,
     response_description="Inspection results with security findings and compliance status",
 )
+@require_permission(Permission.INSPECTION_RUN)
 async def run_immediate_inspection(
-    request: InspectionRequest,
-    current_user: Annotated[User, Depends(require_operator)]
+    request: InspectionRequest, current_user: Annotated[User, Depends(get_current_user)]
 ):
     """Run synchronous cluster inspection with comprehensive security analysis."""
     try:
@@ -131,6 +132,7 @@ async def run_immediate_inspection(
         logger.error(f"Unexpected error during inspection: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Inspection error: {str(e)}")
 
+
 @router.post(
     "/inspection/async",
     summary="Run asynchronous cluster inspection",
@@ -152,9 +154,9 @@ async def run_immediate_inspection(
     response_description="Task submission confirmation with task ID",
     status_code=202,
 )
+@require_permission(Permission.INSPECTION_CREATE)
 async def run_async_inspection(
-    request: AsyncInspectionRequest,
-    current_user: Annotated[User, Depends(require_operator)]
+    request: AsyncInspectionRequest, current_user: Annotated[User, Depends(get_current_user)]
 ):
     """Submit cluster inspection to background queue for asynchronous processing."""
     try:
@@ -184,6 +186,7 @@ async def run_async_inspection(
         logger.error(f"Failed to submit async inspection task: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to submit task: {str(e)}")
 
+
 @router.get(
     "/inspection/task/{task_id}",
     summary="Get inspection task status",
@@ -205,10 +208,7 @@ async def run_async_inspection(
     response_model=TaskStatusResponse,
     response_description="Current task status with progress and results if available",
 )
-async def get_inspection_task_status(
-    task_id: str,
-    current_user: Annotated[User, Depends(get_current_user)]
-):
+async def get_inspection_task_status(task_id: str, current_user: Annotated[User, Depends(get_current_user)]):
     """Get current status and progress of asynchronous inspection task."""
     try:
         # Validate task_id using centralized validation
@@ -229,6 +229,7 @@ async def get_inspection_task_status(
         logger.error(f"Failed to get task status: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
 
+
 @router.delete(
     "/inspection/task/{task_id}",
     summary="Cancel inspection task",
@@ -247,10 +248,8 @@ async def get_inspection_task_status(
         404: {"description": "Task not found"},
     },
 )
-async def cancel_inspection_task(
-    task_id: str,
-    current_user: Annotated[User, Depends(require_operator)]
-):
+@require_permission(Permission.INSPECTION_DELETE)
+async def cancel_inspection_task(task_id: str, current_user: Annotated[User, Depends(get_current_user)]):
     """Cancel a running or pending asynchronous inspection task."""
     try:
         # Validate task_id using centralized validation

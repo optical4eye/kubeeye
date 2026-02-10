@@ -478,10 +478,8 @@ def validate_node_data(node_data: dict, strict: bool = True) -> dict:
                 )
             # Проверяем, что это секретная ссылка правильного формата
             if password.startswith("${secret:"):
-                if not re.match(r'^\$\{secret:[a-zA-Z0-9_-]+\}$', password):
-                    raise ValueError(
-                        "Invalid secret reference format. Use ${secret:secret-name} format."
-                    )
+                if not re.match(r"^\$\{secret:[a-zA-Z0-9_-]+\}$", password):
+                    raise ValueError("Invalid secret reference format. Use ${secret:secret-name} format.")
 
             node_data["password"] = sanitize_string(str(password), 1000)
 

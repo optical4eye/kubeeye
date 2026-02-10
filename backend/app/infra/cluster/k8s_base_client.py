@@ -157,16 +157,10 @@ class K8sBaseClient(ABC):
             # Use asyncio.to_thread with timeout for blocking calls
             try:
                 version_api = client.VersionApi()
-                version_info = await asyncio.wait_for(
-                    asyncio.to_thread(version_api.get_code),
-                    timeout=5.0
-                )
+                version_info = await asyncio.wait_for(asyncio.to_thread(version_api.get_code), timeout=5.0)
 
                 core_v1 = client.CoreV1Api()
-                nodes = await asyncio.wait_for(
-                    asyncio.to_thread(core_v1.list_node),
-                    timeout=5.0
-                )
+                nodes = await asyncio.wait_for(asyncio.to_thread(core_v1.list_node), timeout=5.0)
 
                 return {
                     "version": version_info.git_version,

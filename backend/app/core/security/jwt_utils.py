@@ -34,16 +34,12 @@ class JWTUtils:
             if expires_delta:
                 expire = datetime.now(timezone.utc) + expires_delta
             else:
-                expire = datetime.now(timezone.utc) + timedelta(
-                    hours=settings.kubeeye_jwt_access_token_expire_hours
-                )
+                expire = datetime.now(timezone.utc) + timedelta(hours=settings.kubeeye_jwt_access_token_expire_hours)
 
             to_encode.update({"exp": expire, "type": "access"})
 
             encoded_jwt = jwt.encode(
-                to_encode,
-                settings.kubeeye_jwt_secret_key,
-                algorithm=settings.kubeeye_jwt_algorithm
+                to_encode, settings.kubeeye_jwt_secret_key, algorithm=settings.kubeeye_jwt_algorithm
             )
 
             logger.debug(f"Created access token for user: {data.get('sub')}")
@@ -64,11 +60,7 @@ class JWTUtils:
             Decoded token payload or None if invalid
         """
         try:
-            payload = jwt.decode(
-                token,
-                settings.kubeeye_jwt_secret_key,
-                algorithms=[settings.kubeeye_jwt_algorithm]
-            )
+            payload = jwt.decode(token, settings.kubeeye_jwt_secret_key, algorithms=[settings.kubeeye_jwt_algorithm])
             return payload
         except JWTError as e:
             logger.warning(f"Failed to decode token: {e}")

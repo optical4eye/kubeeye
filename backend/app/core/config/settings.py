@@ -84,8 +84,7 @@ class Settings(BaseSettings):
 
     # JWT Configuration
     kubeeye_jwt_secret_key: str = Field(
-        default="your-secret-key-change-in-production",
-        description="JWT secret key for token signing"
+        default="your-secret-key-change-in-production", description="JWT secret key for token signing"
     )
     kubeeye_jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     kubeeye_jwt_access_token_expire_hours: int = Field(
@@ -95,9 +94,7 @@ class Settings(BaseSettings):
     # Admin user initialization
     kubeeye_admin_username: str = Field(default="admin", description="Admin username")
     kubeeye_admin_email: str = Field(default="admin@kubeeye.local", description="Admin email")
-    kubeeye_admin_password: str = Field(
-        default="admin123", description="Admin password (change in production)"
-    )
+    kubeeye_admin_password: str = Field(default="admin123", description="Admin password (change in production)")
 
     # Security settings
     kubeeye_max_failed_login_attempts: int = Field(default=5, description="Max failed login attempts before lock")

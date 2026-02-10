@@ -6,10 +6,10 @@ Audit log repository for audit log management
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.repositories.base_repository import BaseRepository
-from db.models.audit_log import AuditLog, AuditAction, AuditStatus
+from db.models.audit_log import AuditLog
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -31,7 +31,7 @@ class AuditLogRepository(BaseRepository[AuditLog]):
         resource_type: Optional[str] = None,
         status: Optional[str] = None,
         date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None
+        date_to: Optional[datetime] = None,
     ) -> tuple[List[AuditLog], int]:
         """
         Get audit logs with filtering and pagination
@@ -109,12 +109,7 @@ class AuditLogRepository(BaseRepository[AuditLog]):
             logger.error(f"Failed to get audit log by ID {log_id}: {e}")
             raise
 
-    async def get_user_audit_logs(
-        self,
-        user_id: str,
-        limit: int = 100,
-        offset: int = 0
-    ) -> List[AuditLog]:
+    async def get_user_audit_logs(self, user_id: str, limit: int = 100, offset: int = 0) -> List[AuditLog]:
         """
         Get audit logs for specific user
 
@@ -127,11 +122,13 @@ class AuditLogRepository(BaseRepository[AuditLog]):
             List of audit logs
         """
         try:
-            stmt = select(AuditLog).where(
-                AuditLog.user_id == user_id
-            ).order_by(
-                AuditLog.created_at.desc()
-            ).offset(offset).limit(limit)
+            stmt = (
+                select(AuditLog)
+                .where(AuditLog.user_id == user_id)
+                .order_by(AuditLog.created_at.desc())
+                .offset(offset)
+                .limit(limit)
+            )
 
             result = await self.session.execute(stmt)
             return result.scalars().all()
@@ -140,11 +137,7 @@ class AuditLogRepository(BaseRepository[AuditLog]):
             raise
 
     async def get_resource_audit_logs(
-        self,
-        resource_type: str,
-        resource_id: str,
-        limit: int = 100,
-        offset: int = 0
+        self, resource_type: str, resource_id: str, limit: int = 100, offset: int = 0
     ) -> List[AuditLog]:
         """
         Get audit logs for specific resource
@@ -159,14 +152,13 @@ class AuditLogRepository(BaseRepository[AuditLog]):
             List of audit logs
         """
         try:
-            stmt = select(AuditLog).where(
-                and_(
-                    AuditLog.resource_type == resource_type,
-                    AuditLog.resource_id == resource_id
-                )
-            ).order_by(
-                AuditLog.created_at.desc()
-            ).offset(offset).limit(limit)
+            stmt = (
+                select(AuditLog)
+                .where(and_(AuditLog.resource_type == resource_type, AuditLog.resource_id == resource_id))
+                .order_by(AuditLog.created_at.desc())
+                .offset(offset)
+                .limit(limit)
+            )
 
             result = await self.session.execute(stmt)
             return result.scalars().all()
@@ -188,9 +180,7 @@ class AuditLogRepository(BaseRepository[AuditLog]):
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             async with self.transaction():
-                stmt = select(AuditLog).where(
-                    AuditLog.created_at < cutoff_date
-                )
+                stmt = select(AuditLog).where(AuditLog.created_at < cutoff_date)
                 result = await self.session.execute(stmt)
                 old_logs = result.scalars().all()
 
@@ -206,9 +196,7 @@ class AuditLogRepository(BaseRepository[AuditLog]):
             raise
 
     async def get_audit_stats(
-        self,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None
+        self, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """
         Get audit statistics
@@ -237,34 +225,40 @@ class AuditLogRepository(BaseRepository[AuditLog]):
             total = total_result.scalar()
 
             # Logs by action
-            action_stmt = select(
-                AuditLog.action,
-                func.count().label('count')
-            ).select_from(stmt.subquery()).group_by(AuditLog.action)
+            action_stmt = (
+                select(AuditLog.action, func.count().label("count"))
+                .select_from(stmt.subquery())
+                .group_by(AuditLog.action)
+            )
             action_result = await self.session.execute(action_stmt)
             by_action = {row.action: row.count for row in action_result}
 
             # Logs by user
-            user_stmt = select(
-                AuditLog.username,
-                func.count().label('count')
-            ).select_from(stmt.subquery()).group_by(AuditLog.username).order_by(func.count().desc()).limit(10)
+            user_stmt = (
+                select(AuditLog.username, func.count().label("count"))
+                .select_from(stmt.subquery())
+                .group_by(AuditLog.username)
+                .order_by(func.count().desc())
+                .limit(10)
+            )
             user_result = await self.session.execute(user_stmt)
             by_user = {row.username: row.count for row in user_result}
 
             # Logs by status
-            status_stmt = select(
-                AuditLog.status,
-                func.count().label('count')
-            ).select_from(stmt.subquery()).group_by(AuditLog.status)
+            status_stmt = (
+                select(AuditLog.status, func.count().label("count"))
+                .select_from(stmt.subquery())
+                .group_by(AuditLog.status)
+            )
             status_result = await self.session.execute(status_stmt)
             by_status = {row.status: row.count for row in status_result}
 
             # Logs by resource type
-            resource_stmt = select(
-                AuditLog.resource_type,
-                func.count().label('count')
-            ).select_from(stmt.subquery()).group_by(AuditLog.resource_type)
+            resource_stmt = (
+                select(AuditLog.resource_type, func.count().label("count"))
+                .select_from(stmt.subquery())
+                .group_by(AuditLog.resource_type)
+            )
             resource_result = await self.session.execute(resource_stmt)
             by_resource = {row.resource_type: row.count for row in resource_result if row.resource_type}
 
@@ -273,7 +267,7 @@ class AuditLogRepository(BaseRepository[AuditLog]):
                 "by_action": by_action,
                 "by_user": by_user,
                 "by_status": by_status,
-                "by_resource": by_resource
+                "by_resource": by_resource,
             }
         except Exception as e:
             logger.error(f"Failed to get audit stats: {e}")

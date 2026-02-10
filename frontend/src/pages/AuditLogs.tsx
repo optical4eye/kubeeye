@@ -305,6 +305,7 @@ const AuditLogsPage: React.FC = () => {
         rowKey="id"
         loading={loading}
         pagination={{
+          total: total,
           pageSize: filters.limit || 20,
           showSizeChanger: true,
           showTotal: (total) => t('auditLogs.totalRecords', { count: total }),

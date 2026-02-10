@@ -248,8 +248,7 @@ class ClusterService:
 
                         try:
                             cert_status = await asyncio.wait_for(
-                                asyncio.to_thread(get_cluster_cert_status, cluster_name, kubeconfig),
-                                timeout=3.0
+                                asyncio.to_thread(get_cluster_cert_status, cluster_name, kubeconfig), timeout=3.0
                             )
                             if cert_status:
                                 cert_expiry_days = cert_status.get("days_remaining")
@@ -265,10 +264,7 @@ class ClusterService:
                     if kubeconfig:
                         try:
                             k8s_client = K8sClient(kubeconfig)
-                            cluster_info = await asyncio.wait_for(
-                                k8s_client.get_cluster_info(),
-                                timeout=3.0
-                            )
+                            cluster_info = await asyncio.wait_for(k8s_client.get_cluster_info(), timeout=3.0)
                             k8s_version = cluster_info.get("version")
                         except asyncio.TimeoutError:
                             logger.warning(f"Timeout getting k8s version for cluster {cluster_name}")

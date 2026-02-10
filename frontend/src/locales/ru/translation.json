@@ -10,7 +10,16 @@
     "rules": "Правила",
     "users": "Пользователи",
     "auditLogs": "Audit логи",
-    "help": "Помощь"
+    "help": "Помощь",
+    "groups": {
+      "overview": "Обзор",
+      "infrastructure": "Инфраструктура",
+      "inspections": "Инспекции",
+      "reports": "Отчеты",
+      "settings": "Настройки",
+      "management": "Управление",
+      "help": "Справка"
+    }
   },
   "loading": {
     "connecting": "Подключение...",

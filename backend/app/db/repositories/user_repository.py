@@ -5,10 +5,10 @@ User repository for user management
 """
 
 from typing import List, Optional
-from sqlalchemy import select, and_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.repositories.base_repository import BaseRepository
-from db.models.user import User, UserRole
+from db.models.user import User
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -43,7 +43,7 @@ class UserRepository(BaseRepository[User]):
     async def get_active_users(self, limit: Optional[int] = None, offset: int = 0) -> List[User]:
         """Get all active users"""
         try:
-            stmt = select(User).where(User.is_active == True).offset(offset)
+            stmt = select(User).where(User.is_active).offset(offset)
             if limit:
                 stmt = stmt.limit(limit)
             result = await self.session.execute(stmt)
@@ -88,6 +88,7 @@ class UserRepository(BaseRepository[User]):
         """Update last login timestamp"""
         try:
             from datetime import datetime, timezone
+
             async with self.transaction():
                 user = await self.get_by_id(user_id)
                 if user:

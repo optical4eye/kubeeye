@@ -13,9 +13,10 @@ from pydantic import BaseModel, Field, field_validator, StringConstraints, Confi
 from db.database import get_db
 from infra.security.secret_service import SecretService
 from .unified_middleware import api_error_handler
-from api.dependencies import require_admin, require_operator
+from api.dependencies import get_current_user
 from db.models.user import User
 from core.logging import get_logger
+from core.rbac import Permission, require_permission
 
 logger = get_logger(__name__)
 
@@ -124,6 +125,7 @@ class SecretListResponse(BaseModel):
 
 @router.get("/secrets", response_model=SecretListResponse)
 @api_error_handler
+@require_permission(Permission.SECRET_READ)
 async def list_secrets(
     secret_type: Optional[str] = None,
     is_active: Optional[bool] = None,
@@ -131,7 +133,7 @@ async def list_secrets(
     limit: int = 100,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_operator),
+    current_user: User = Depends(get_current_user),
 ):
     """
     List secrets with optional filters
@@ -154,10 +156,9 @@ async def list_secrets(
 
 @router.get("/secrets/{secret_id}", response_model=SecretResponse)
 @api_error_handler
+@require_permission(Permission.SECRET_READ)
 async def get_secret(
-    secret_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_operator)
+    secret_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     Get secret details (without decrypted data)
@@ -175,10 +176,9 @@ async def get_secret(
 
 @router.post("/secrets", response_model=SecretResponse, status_code=status.HTTP_201_CREATED)
 @api_error_handler
+@require_permission(Permission.SECRET_CREATE)
 async def create_secret(
-    secret_data: SecretCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    secret_data: SecretCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     Create a new secret
@@ -206,11 +206,12 @@ async def create_secret(
 
 @router.put("/secrets/{secret_id}", response_model=SecretResponse)
 @api_error_handler
+@require_permission(Permission.SECRET_UPDATE)
 async def update_secret(
     secret_id: int,
     secret_data: SecretUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Update an existing secret
@@ -240,10 +241,9 @@ async def update_secret(
 
 @router.delete("/secrets/{secret_id}")
 @api_error_handler
+@require_permission(Permission.SECRET_DELETE)
 async def delete_secret(
-    secret_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    secret_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     Delete a secret (hard delete - permanently remove from database)
@@ -262,10 +262,9 @@ async def delete_secret(
 
 @router.post("/secrets/{secret_id}/reveal", response_model=SecretRevealResponse)
 @api_error_handler
+@require_permission(Permission.SECRET_READ)
 async def reveal_secret(
-    secret_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    secret_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     Reveal (decrypt) secret data
@@ -293,10 +292,9 @@ async def reveal_secret(
 
 @router.post("/secrets/{secret_id}/test", response_model=SecretTestResponse)
 @api_error_handler
+@require_permission(Permission.SECRET_READ)
 async def test_secret(
-    secret_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    secret_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     Test if secret is valid and can be decrypted

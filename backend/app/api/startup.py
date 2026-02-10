@@ -192,8 +192,22 @@ async def _init_admin_user():
     """Initialize admin user"""
     try:
         from scripts.init_admin import init_admin_user
+
         await init_admin_user()
         logger.info("Admin user initialization completed")
     except Exception as e:
         logger.error(f"Failed to initialize admin user: {e}", exc_info=True)
+        raise
+
+
+async def _init_rbac():
+    """Initialize RBAC system - loads configuration from YAML file"""
+    try:
+        from core.rbac import Role
+
+        # Load RBAC configuration from YAML file by accessing Role.all()
+        roles = Role.all()
+        logger.info(f"RBAC system configuration loaded from YAML file with {len(roles)} roles: {roles}")
+    except Exception as e:
+        logger.error(f"Failed to load RBAC configuration: {e}", exc_info=True)
         raise

@@ -275,12 +275,14 @@ class TaskIdRequest(BaseModel):
 # Authentication models
 class LoginRequest(BaseModel):
     """Login request model"""
+
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=6)
 
 
 class TokenResponse(BaseModel):
     """Token response model"""
+
     access_token: str
     token_type: str = "bearer"
     user: "UserResponse"
@@ -288,12 +290,14 @@ class TokenResponse(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     """Change password request model"""
+
     old_password: str
     new_password: str = Field(..., min_length=6)
 
 
 class UserResponse(BaseModel):
     """User response model"""
+
     id: int
     username: str
     email: str
@@ -308,16 +312,18 @@ class UserResponse(BaseModel):
 
 class UserCreateRequest(BaseModel):
     """User create request model (admin only)"""
+
     username: str = Field(..., min_length=3, max_length=50)
     email: str = Field(..., min_length=5, max_length=255)
     password: str = Field(..., min_length=6)
     role: str = Field(default="operator")
     is_active: bool = True
 
-    @field_validator('role')
+    @field_validator("role")
     @classmethod
     def validate_role(cls, v):
         from db.models.user import UserRole
+
         if not UserRole.is_valid(v):
             raise ValueError(f"Invalid role. Must be one of: {UserRole.all()}")
         return v
@@ -325,15 +331,17 @@ class UserCreateRequest(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     """User update request model (admin only)"""
+
     email: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
 
-    @field_validator('role')
+    @field_validator("role")
     @classmethod
     def validate_role(cls, v):
         if v is not None:
             from db.models.user import UserRole
+
             if not UserRole.is_valid(v):
                 raise ValueError(f"Invalid role. Must be one of: {UserRole.all()}")
         return v

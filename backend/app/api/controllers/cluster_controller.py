@@ -9,10 +9,11 @@ from typing import Optional, Dict, Any
 
 from api.models import ClusterCreate, NodesTestRequest, KubeconfigTestRequest, GetNodesFromKubeconfigRequest
 from api.unified_middleware import api_error_handler, validate_cluster_name_decorator
-from api.dependencies import get_current_user, require_operator, require_admin
+from api.dependencies import get_current_user
 from db.models.user import User
 from services.cluster_service import ClusterService
 from core.common.unified_validation import validate_cluster_name
+from core.rbac import Permission, require_permission
 
 router = APIRouter()
 
@@ -40,9 +41,9 @@ def get_cluster_service() -> ClusterService:
     response_description="Dashboard data with cluster statistics and recent activity",
 )
 @api_error_handler
+@require_permission(Permission.CLUSTER_READ)
 async def get_dashboard(
-    current_user: User = Depends(get_current_user),
-    service: ClusterService = Depends(get_cluster_service)
+    current_user: User = Depends(get_current_user), service: ClusterService = Depends(get_cluster_service)
 ) -> Dict[str, Any]:
     """
     Get dashboard data with cluster statistics and recent activity.
@@ -60,9 +61,9 @@ async def get_dashboard(
     response_description="List of clusters with metadata",
 )
 @api_error_handler
+@require_permission(Permission.CLUSTER_READ)
 async def get_clusters(
-    current_user: User = Depends(get_current_user),
-    service: ClusterService = Depends(get_cluster_service)
+    current_user: User = Depends(get_current_user), service: ClusterService = Depends(get_cluster_service)
 ) -> Dict[str, Any]:
     """
     Get list of all configured clusters.
@@ -89,9 +90,10 @@ async def get_clusters(
     status_code=201,
 )
 @api_error_handler
+@require_permission(Permission.CLUSTER_CREATE)
 async def create_cluster(
     cluster: ClusterCreate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -114,10 +116,11 @@ async def create_cluster(
 )
 @api_error_handler
 @validate_cluster_name_decorator
+@require_permission(Permission.CLUSTER_UPDATE)
 async def update_cluster(
     cluster_name: str,
     cluster: ClusterCreate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -141,9 +144,10 @@ async def update_cluster(
 )
 @api_error_handler
 @validate_cluster_name_decorator
+@require_permission(Permission.CLUSTER_DELETE)
 async def remove_cluster(
     cluster_name: str,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -166,6 +170,7 @@ async def remove_cluster(
 )
 @api_error_handler
 @validate_cluster_name_decorator
+@require_permission(Permission.CLUSTER_READ)
 async def get_cluster_details(
     cluster_name: str,
     current_user: User = Depends(get_current_user),
@@ -191,6 +196,7 @@ async def get_cluster_details(
 )
 @api_error_handler
 @validate_cluster_name_decorator
+@require_permission(Permission.CLUSTER_READ)
 async def get_cluster_nodes(
     cluster_name: str,
     current_user: User = Depends(get_current_user),
@@ -216,6 +222,7 @@ async def get_cluster_nodes(
 )
 @api_error_handler
 @validate_cluster_name_decorator
+@require_permission(Permission.CLUSTER_READ)
 async def get_cluster_namespaces(
     cluster_name: str,
     current_user: User = Depends(get_current_user),
@@ -241,10 +248,11 @@ async def get_cluster_namespaces(
 )
 @api_error_handler
 @validate_cluster_name_decorator
+@require_permission(Permission.CLUSTER_UPDATE)
 async def test_cluster_nodes(
     cluster_name: str,
     request: Optional[NodesTestRequest] = None,
-    current_user: User = Depends(require_operator),
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -270,10 +278,11 @@ async def test_cluster_nodes(
 )
 @api_error_handler
 @validate_cluster_name_decorator
+@require_permission(Permission.CLUSTER_UPDATE)
 async def test_cluster_kubeconfig(
     cluster_name: str,
     request: Optional[KubeconfigTestRequest] = None,
-    current_user: User = Depends(require_operator),
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """
@@ -298,9 +307,10 @@ async def test_cluster_kubeconfig(
     response_description="List of nodes extracted from kubeconfig",
 )
 @api_error_handler
+@require_permission(Permission.CLUSTER_CREATE)
 async def get_nodes_from_kubeconfig(
     request: GetNodesFromKubeconfigRequest,
-    current_user: User = Depends(require_operator),
+    current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
 ) -> Dict[str, Any]:
     """

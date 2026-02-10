@@ -10,7 +10,16 @@
     "rules": "Rules",
     "users": "Users",
     "auditLogs": "Audit Logs",
-    "help": "Help"
+    "help": "Help",
+    "groups": {
+      "overview": "Overview",
+      "infrastructure": "Infrastructure",
+      "inspections": "Inspections",
+      "reports": "Reports",
+      "settings": "Settings",
+      "management": "Management",
+      "help": "Help"
+    }
   },
   "loading": {
     "connecting": "Connecting...",
