@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Card, Table, App } from 'antd';
+import { Card, Table, App, Skeleton } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getDashboardData } from '../services/api';
@@ -43,7 +43,7 @@ const Dashboard = () => {
   const { t } = useTranslation();
   const { message: messageApi } = App.useApp();
 
-  const { data: dashboardData } = useQuery({
+  const { data: dashboardData, isLoading: loading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
     staleTime: 2 * 60 * 1000, // 2 minutes for dashboard
@@ -178,15 +178,19 @@ const Dashboard = () => {
       <DashboardCharts dashboardData={data} />
 
       <Card title={t('dashboard.clusterDetails')}>
-        <Table
-          columns={clusterColumns}
-          dataSource={cluster_statuses}
-          rowKey="name"
-          pagination={{ pageSize: 10 }}
-          scroll={{ y: 400 }}
-          virtual={true}
-          aria-label={t('dashboard.clusterTableAria')}
-        />
+        {loading ? (
+          <Skeleton active paragraph={{ rows: 8 }} />
+        ) : (
+          <Table
+            columns={clusterColumns}
+            dataSource={cluster_statuses}
+            rowKey="name"
+            pagination={{ pageSize: 10 }}
+            scroll={{ y: 400 }}
+            virtual={true}
+            aria-label={t('dashboard.clusterTableAria')}
+          />
+        )}
       </Card>
     </div>
   );

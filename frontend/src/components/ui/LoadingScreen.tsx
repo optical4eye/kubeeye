@@ -1,8 +1,9 @@
 import React from 'react';
 import { CloseCircleOutlined } from '@ant-design/icons';
-import { theme } from 'antd';
+import { theme, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../../stores/uiStore';
+import KubeEyeLogo from './KubeEyeLogo';
 
 interface LoadingScreenProps {
   message?: string;
@@ -22,13 +23,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
     ? {
         status: 'processing' as const,
         text: t('loadingScreen.connecting'),
-        icon: <div className="loading-spinner-icon" />,
+        icon: <Spin size="small" />,
         color: token.colorPrimary,
       }
     : {
         status: 'error' as const,
         text: t('loadingScreen.unavailable'),
-        icon: <CloseCircleOutlined />,
+        icon: <CloseCircleOutlined style={{ fontSize: '16px' }} />,
         color: token.colorError,
       };
 
@@ -39,7 +40,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
       className={`loading-screen ${uiTheme === 'dark' ? 'loading-screen-dark' : 'loading-screen-light'}`}
     >
       <div className="loading-screen-content">
-        <div className="loading-screen-emoji">🚀</div>
+        <div className="loading-screen-logo">
+          <KubeEyeLogo size={100} />
+        </div>
         <h1 className="loading-screen-title">KubeEye</h1>
         <p
           className={`loading-screen-subtitle ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}

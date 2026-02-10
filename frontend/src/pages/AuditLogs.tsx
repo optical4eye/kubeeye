@@ -15,7 +15,7 @@ import {
   Col,
   Collapse,
 } from 'antd';
-import { SearchOutlined, ReloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { SearchOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuditLogs, AuditLog, AuditLogsParams, AuditStats } from '../hooks/useAuditLogs';
 import { getAuditCleanupConfig } from '../services/api';
@@ -183,18 +183,6 @@ const AuditLogsPage: React.FC = () => {
       key: 'created_at',
       width: 180,
       render: (date: string) => new Date(date).toLocaleString('ru-RU'),
-    },
-    {
-      title: t('auditLogs.actions'),
-      key: 'actions',
-      width: 100,
-      render: (_: any, record: AuditLog) => (
-        <Space>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => handleViewDetails(record)}>
-            {t('auditLogs.view')}
-          </Button>
-        </Space>
-      ),
     },
   ];
 

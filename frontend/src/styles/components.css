@@ -5,6 +5,82 @@
   background-color: var(--ant-color-bg-layout); /* Uses Ant Design layout background token */
 }
 
+/* Sidebar improvements */
+.sidebar-sider {
+  transition: all 0.2s ease;
+}
+
+.sidebar-sider .logo {
+  transition: all 0.2s ease;
+}
+
+/* Mobile menu button - visible only on small screens */
+.mobile-menu-button {
+  display: none;
+}
+
+/* Desktop collapse button - hidden on small screens */
+.desktop-collapse-button {
+  display: block;
+}
+
+/* Responsive styles for mobile */
+@media (max-width: 768px) {
+  .mobile-menu-button {
+    display: block;
+  }
+
+  .desktop-collapse-button {
+    display: none;
+  }
+
+  .sidebar-sider {
+    display: none;
+  }
+
+  .header-content {
+    padding: 0 var(--ant-padding-sm) !important;
+  }
+
+  .header-title {
+    font-size: var(--ant-font-size) !important;
+  }
+
+  /* Hide breadcrumbs on mobile */
+  .kube-margin-left-8.kube-margin-right-8 {
+    display: none;
+  }
+}
+
+/* Breadcrumb improvements */
+.ant-breadcrumb {
+  font-size: var(--ant-font-size-sm);
+}
+
+.ant-breadcrumb-link {
+  color: var(--ant-color-text-secondary);
+  transition: color var(--duration-fast);
+}
+
+.ant-breadcrumb-link:hover {
+  color: var(--ant-color-primary);
+}
+
+.ant-breadcrumb-separator {
+  color: var(--ant-color-text-tertiary);
+}
+
+/* WebSocket status badge */
+.ant-badge-status-text {
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-text-secondary);
+}
+
+.ant-badge-status-dot {
+  width: 8px;
+  height: 8px;
+}
+
 .main-layout {
   min-height: 100vh;
 }
@@ -219,14 +295,29 @@
   text-align: center;
 }
 
-.loading-screen-emoji {
-  font-size: 4rem;
-  margin: 0.5rem 0;
+.loading-screen-logo {
+  margin: 1rem 0;
+  animation: float 3s ease-in-out infinite;
+  color: var(--ant-color-primary);
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .loading-screen-title {
   font-size: 2.5rem;
   margin: 0.5rem 0;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--ant-color-primary) 0%, var(--ant-color-info) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .loading-screen-subtitle {
@@ -249,6 +340,7 @@
 .loading-screen-status-title {
   font-size: 1.5rem;
   margin: 0.5rem 0;
+  font-weight: 600;
 }
 
 .loading-screen-status-text {
@@ -521,4 +613,40 @@
 
 .ant-table-tbody > tr:hover > td {
   background-color: var(--ant-color-bg-spotlight);
+}
+
+/* ===== UNDO BUTTON STYLES ===== */
+.undo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  background-color: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+  color: var(--ant-color-text);
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  font-size: var(--ant-font-size-sm);
+}
+
+.undo-button:hover:not(:disabled) {
+  background-color: var(--ant-color-bg-spotlight);
+  border-color: var(--ant-color-primary);
+  color: var(--ant-color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--ant-box-shadow);
+}
+
+.undo-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.undo-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.undo-button .anticon {
+  font-size: var(--ant-font-size);
 }

@@ -18,6 +18,25 @@
   width: 360px;
 }
 
+.login-logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.login-logo {
+  color: #1890ff;
+}
+
+.login-logo-dark {
+  color: #177ddc;
+}
+
+.login-logo-light {
+  color: #1890ff;
+}
+
 .login-title {
   text-align: center;
   margin-bottom: 32px;
