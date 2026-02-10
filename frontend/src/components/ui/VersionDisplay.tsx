@@ -1,23 +1,12 @@
 import React from 'react';
-import { theme } from 'antd';
 
 interface VersionDisplayProps {
   version: string;
 }
 
 const VersionDisplay: React.FC<VersionDisplayProps> = ({ version }) => {
-  const { token } = theme.useToken();
-
   return (
-    <div
-      style={{
-        textAlign: 'center',
-        marginTop: '0px',
-        fontSize: '12px',
-        color: token.colorTextSecondary,
-        opacity: 0.7,
-      }}
-    >
+    <div className="kube-text-center kube-margin-top-0 kube-font-size-12 kube-text-secondary kube-opacity-70">
       ver. {version}
     </div>
   );

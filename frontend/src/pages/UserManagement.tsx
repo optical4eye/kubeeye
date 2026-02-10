@@ -10,7 +10,7 @@ import {
   Space,
   Tag,
   Popconfirm,
-  message,
+  App,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,7 @@ const UserManagement: React.FC = () => {
   const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useUsers();
   const { user: currentUser } = useAuthStore();
   const availableRoles = getAllRoles();
+  const { message } = App.useApp();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -117,11 +118,7 @@ const UserManagement: React.FC = () => {
       title: t('userManagement.role'),
       dataIndex: 'role',
       key: 'role',
-      render: (role: string) => (
-        <Tag color={getRoleColor(role)}>
-          {getRoleLabel(role)}
-        </Tag>
-      ),
+      render: (role: string) => <Tag color={getRoleColor(role)}>{getRoleLabel(role)}</Tag>,
     },
     {
       title: t('userManagement.isActive'),
@@ -182,15 +179,8 @@ const UserManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div
-        style={{
-          marginBottom: '16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
+    <div className="kube-padding-24">
+      <div className="kube-margin-bottom-16 kube-display-flex kube-justify-between kube-align-center">
         <h2>{t('userManagement.title')}</h2>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           {t('userManagement.createUser')}

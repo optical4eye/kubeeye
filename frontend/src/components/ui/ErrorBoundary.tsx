@@ -69,7 +69,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
 
       return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+        <div className="kube-padding-20 kube-max-width-800 kube-margin-0-auto">
           <Result
             status="error"
             title={t('errorBoundary.title')}
@@ -80,7 +80,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                   type="primary"
                   icon={<ReloadOutlined />}
                   onClick={this.resetError}
-                  style={{ marginRight: 8 }}
+                  className="kube-margin-right-8"
                 >
                   {t('errorBoundary.retryButton')}
                 </Button>
@@ -101,12 +101,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                   </Paragraph>
                   <Paragraph>
                     <Text strong>{t('errorBoundary.stackLabel')}</Text>
-                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>{error.stack}</pre>
+                    <pre className="kube-white-space-pre-wrap kube-font-size-12">{error.stack}</pre>
                   </Paragraph>
                   {errorInfo && (
                     <Paragraph>
                       <Text strong>{t('errorBoundary.componentLabel')}</Text>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
+                      <pre className="kube-white-space-pre-wrap kube-font-size-12">
                         {errorInfo.componentStack}
                       </pre>
                     </Paragraph>
@@ -114,7 +114,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 </div>
               }
               type="error"
-              style={{ marginTop: 16 }}
+              className="kube-margin-top-16"
             />
           )}
         </div>

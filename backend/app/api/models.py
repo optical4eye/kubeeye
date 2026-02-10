@@ -316,7 +316,7 @@ class UserCreateRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: str = Field(..., min_length=5, max_length=255)
     password: str = Field(..., min_length=6)
-    role: str = Field(default="operator")
+    role: str = Field(default="operator")  # Default role for new users
     is_active: bool = True
 
     @field_validator("role")

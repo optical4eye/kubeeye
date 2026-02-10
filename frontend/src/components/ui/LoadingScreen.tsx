@@ -63,15 +63,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
 
       <div className="loading-screen-status">
         {/* Backend Status Section */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: token.marginSM,
-            margin: '0.5rem 0',
-          }}
-        >
+        <div className="kube-display-flex kube-align-center kube-justify-center kube-margin-8">
           {statusInfo.icon}
           <span
             className={`loading-screen-status-text ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
@@ -80,8 +72,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
           </span>
         </div>
         <p
-          className={`loading-screen-subtitle ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
-          style={{ fontSize: '0.9rem', margin: '0.5rem 0' }}
+          className={`loading-screen-subtitle ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'} kube-font-size-14px kube-margin-8`}
         >
           {t('loadingScreen.preparingSystem')}
         </p>

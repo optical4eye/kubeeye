@@ -39,11 +39,18 @@ const MIN_LOADING_TIME = 200; // Minimum 200ms loading time
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ClusterManagement = lazy(() => import('./pages/ClusterManagement'));
+const AddCluster = lazy(() => import('./pages/AddCluster'));
 const Inspection = lazy(() => import('./pages/Inspection'));
+const ScheduledInspection = lazy(() => import('./pages/ScheduledInspection'));
 const Rules = lazy(() => import('./pages/Rules'));
 const PopeyeScan = lazy(() => import('./pages/PopeyeScan'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Help = lazy(() => import('./pages/Help'));
+const HelpIntroduction = lazy(() => import('./pages/HelpIntroduction'));
+const HelpExamples = lazy(() => import('./pages/HelpExamples'));
+const HelpSecurity = lazy(() => import('./pages/HelpSecurity'));
+const HelpKubeconfig = lazy(() => import('./pages/HelpKubeconfig'));
+const HelpApi = lazy(() => import('./pages/HelpApi'));
 const NetworkConnectivity = lazy(() => import('./pages/NetworkConnectivity'));
 const SecretManagement = lazy(() => import('./pages/SecretManagement'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
@@ -110,6 +117,10 @@ function App() {
           label: t('menu.clusters'),
         },
         {
+          key: '/add-cluster',
+          label: t('menu.addCluster'),
+        },
+        {
           key: '/network',
           label: t('menu.network'),
         },
@@ -123,6 +134,10 @@ function App() {
         {
           key: '/inspection',
           label: t('menu.inspection'),
+        },
+        {
+          key: '/scheduled-inspection',
+          label: t('menu.scheduledInspection'),
         },
         {
           key: '/popeye',
@@ -177,8 +192,24 @@ function App() {
       label: t('menu.groups.help'),
       children: [
         {
-          key: '/help',
-          label: t('menu.help'),
+          key: '/help/introduction',
+          label: t('menu.helpIntroduction'),
+        },
+        {
+          key: '/help/examples',
+          label: t('menu.helpExamples'),
+        },
+        {
+          key: '/help/security',
+          label: t('menu.helpSecurity'),
+        },
+        {
+          key: '/help/kubeconfig',
+          label: t('menu.helpKubeconfig'),
+        },
+        {
+          key: '/help/api',
+          label: t('menu.helpApi'),
         },
       ],
     },
@@ -285,14 +316,7 @@ function App() {
                             <Header className="header-bg">
                               <div className="header-content">
                                 <div className="header-title">{t('header.title')}</div>
-                                <div
-                                  style={{
-                                    marginLeft: 'auto',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '16px',
-                                  }}
-                                >
+                                <div className="kube-margin-left-auto kube-display-flex kube-align-center kube-gap-16">
                                   <UserMenu />
                                   <Switch
                                     checked={theme === 'dark'}
@@ -307,7 +331,7 @@ function App() {
                                       { value: 'ru', label: 'RU' },
                                       { value: 'en', label: 'EN' },
                                     ]}
-                                    style={{ width: 60 }}
+                                    className="kube-width-60px"
                                     size="small"
                                   />
                                 </div>
@@ -324,6 +348,7 @@ function App() {
                                 <Routes>
                                   <Route path="/" element={<Dashboard />} />
                                   <Route path="/clusters" element={<ClusterManagement />} />
+                                  <Route path="/add-cluster" element={<AddCluster />} />
                                   <Route
                                     path="/secrets"
                                     element={
@@ -335,6 +360,10 @@ function App() {
                                   <Route path="/network" element={<NetworkConnectivity />} />
                                   <Route path="/inspection" element={<Inspection />} />
                                   <Route
+                                    path="/scheduled-inspection"
+                                    element={<ScheduledInspection />}
+                                  />
+                                  <Route
                                     path="/rules"
                                     element={
                                       <ProtectedRoute>
@@ -345,6 +374,11 @@ function App() {
                                   <Route path="/popeye" element={<PopeyeScan />} />
                                   <Route path="/reports" element={<Reports />} />
                                   <Route path="/help" element={<Help />} />
+                                  <Route path="/help/introduction" element={<HelpIntroduction />} />
+                                  <Route path="/help/examples" element={<HelpExamples />} />
+                                  <Route path="/help/security" element={<HelpSecurity />} />
+                                  <Route path="/help/kubeconfig" element={<HelpKubeconfig />} />
+                                  <Route path="/help/api" element={<HelpApi />} />
                                   <Route path="/change-password" element={<ChangePassword />} />
                                   <Route
                                     path="/users"

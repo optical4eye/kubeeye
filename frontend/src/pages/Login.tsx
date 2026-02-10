@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, message, Typography } from 'antd';
+import { Form, Input, Button, Card, App, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import './Login.css';
+import '../styles/Login.css';
 
 const { Title } = Typography;
 
@@ -16,6 +16,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const { message } = App.useApp();
 
   const onFinish = async (values: LoginFormData) => {
     setLoading(true);

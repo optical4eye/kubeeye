@@ -1,16 +1,11 @@
 import React, { useEffect } from 'react';
-import { Tabs } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useClusters } from '../hooks/useClusters';
 import { useClusterForm } from '../hooks/useClusterForm';
 import { useClusterModals } from '../hooks/useClusterModals';
-import {
-  ClusterListContainer,
-  ClusterFormContainer,
-  ClusterModalManager,
-} from '../components/cluster';
+import { ClusterListContainer, ClusterModalManager } from '../components/cluster';
 import { Form } from 'antd';
-import { Cluster, ClusterFormValues } from '../types/cluster';
+import { Cluster } from '../types/cluster';
 
 const ClusterManagement = () => {
   const { t } = useTranslation();
@@ -26,7 +21,6 @@ const ClusterManagement = () => {
     setClusterNodes,
     setNodeFilter,
     loadClusters,
-    handleCreateCluster,
     handleDeleteCluster,
     loadClusterDetails,
     handleEditCluster,
@@ -48,7 +42,6 @@ const ClusterManagement = () => {
   } = useClusterModals();
 
   const [editForm] = Form.useForm();
-  const [createForm] = Form.useForm();
 
   useEffect(() => {
     if (editModalVisible && selectedCluster) {
@@ -82,12 +75,7 @@ const ClusterManagement = () => {
     setNodeFilter('all');
   };
 
-  const onCreateSubmit = (values: ClusterFormValues) => {
-    handleCreateCluster(values);
-    createForm.resetFields();
-  };
-
-  const onEditSubmit = (values: ClusterFormValues) => {
+  const onEditSubmit = (values: any) => {
     handleEditCluster(values);
     closeEditModal();
     setSelectedCluster(null);
@@ -103,38 +91,13 @@ const ClusterManagement = () => {
         {t('clusters.subtitle')}
       </p>
 
-      <Tabs
-        defaultActiveKey="1"
-        items={[
-          {
-            key: '1',
-            label: t('clusters.list'),
-            children: (
-              <ClusterListContainer
-                clusters={clusters}
-                loading={loading}
-                onViewDetails={onViewDetails}
-                onEdit={onEdit}
-                onDelete={handleDeleteCluster}
-                onRefresh={loadClusters}
-              />
-            ),
-          },
-          {
-            key: '2',
-            label: t('clusters.add'),
-            children: (
-              <ClusterFormContainer
-                form={createForm}
-                onSubmit={onCreateSubmit}
-                onTestNodes={() => handleTestNodes(null, createForm)}
-                onTestKubeconfig={() => handleTestKubeconfig(null, createForm)}
-                onGetNodesFromKubeconfig={() => handleGetNodesFromKubeconfig(null, createForm)}
-                isEditMode={false}
-              />
-            ),
-          },
-        ]}
+      <ClusterListContainer
+        clusters={clusters}
+        loading={loading}
+        onViewDetails={onViewDetails}
+        onEdit={onEdit}
+        onDelete={handleDeleteCluster}
+        onRefresh={loadClusters}
       />
 
       <ClusterModalManager

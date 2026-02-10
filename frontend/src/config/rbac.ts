@@ -68,8 +68,10 @@ export const ROLES: Record<Role, RoleConfig> = {
 export const ROUTE_PERMISSIONS: RoutePermission[] = [
   { path: '/', allowedRoles: ['admin', 'operator'] },
   { path: '/clusters', allowedRoles: ['admin', 'operator'] },
+  { path: '/add-cluster', allowedRoles: ['admin'] },
   { path: '/network', allowedRoles: ['admin', 'operator'] },
   { path: '/inspection', allowedRoles: ['admin', 'operator'] },
+  { path: '/scheduled-inspection', allowedRoles: ['admin', 'operator'] },
   { path: '/popeye', allowedRoles: ['admin', 'operator'] },
   { path: '/reports', allowedRoles: ['admin', 'operator'] },
   { path: '/rules', allowedRoles: ['admin', 'operator'] },
@@ -77,6 +79,11 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
   { path: '/users', allowedRoles: ['admin'] },
   { path: '/audit-logs', allowedRoles: ['admin'] },
   { path: '/help', allowedRoles: ['admin', 'operator'] },
+  { path: '/help/introduction', allowedRoles: ['admin', 'operator'] },
+  { path: '/help/examples', allowedRoles: ['admin', 'operator'] },
+  { path: '/help/security', allowedRoles: ['admin', 'operator'] },
+  { path: '/help/kubeconfig', allowedRoles: ['admin', 'operator'] },
+  { path: '/help/api', allowedRoles: ['admin', 'operator'] },
   { path: '/change-password', allowedRoles: ['admin', 'operator'] },
 ];
 

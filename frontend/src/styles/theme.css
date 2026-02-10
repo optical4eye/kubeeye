@@ -14,6 +14,8 @@
   --space-2: clamp(6px, 2vw, 8px);
   --space-3: clamp(12px, 4vw, 16px);
   --space-4: clamp(18px, 6vw, 24px);
+  --space-5: clamp(24px, 8vw, 32px);
+  --space-10: clamp(48px, 16vw, 64px);
   --grid-min-width: 300px;
   --modal-width-medium: 800px;
   --modal-width-large: 1800px;
@@ -66,6 +68,11 @@
   --ant-border-radius: 6px;
   --ant-border-radius-lg: 8px;
 
+  /* Border radius aliases for backward compatibility */
+  --radius-sm: var(--ant-border-radius-sm);
+  --radius-md: var(--ant-border-radius);
+  --radius-lg: var(--ant-border-radius-lg);
+
   /* Box shadow tokens */
   --ant-box-shadow: 0 4px 6px rgb(0 0 0 / 10%);
   --ant-box-shadow-secondary: 0 1px 2px rgb(0 0 0 / 5%);
@@ -113,6 +120,17 @@
   --ant-color-link: #40a9ff;
   --ant-color-link-hover: #69c0ff;
   --ant-color-link-active: #0958d9;
+
+  /* Color aliases for backward compatibility */
+  --error-color: var(--ant-color-error);
+  --info-color: var(--ant-color-info);
+  --warning-color: var(--ant-color-warning);
+  --success-color: var(--ant-color-success);
+  --neutral-color: var(--ant-color-text-secondary);
+  --status-completed: var(--ant-color-success);
+  --status-pending: var(--ant-color-warning);
+  --status-running: var(--ant-color-info);
+  --status-failed: var(--ant-color-error);
 }
 
 /* ===== BASE STYLES ===== */

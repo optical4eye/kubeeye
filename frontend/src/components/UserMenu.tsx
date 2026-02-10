@@ -26,7 +26,7 @@ const UserMenu: React.FC = () => {
       label: (
         <Space direction="vertical" size={0}>
           <Text strong>{user?.username}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type="secondary" className="kube-font-size-12">
             {user?.role}
           </Text>
         </Space>

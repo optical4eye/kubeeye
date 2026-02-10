@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Tabs, App } from 'antd';
+import { App } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { getClusters, runInspectionAsync, getRules, getRuleTags } from '../services/api';
-import { ScheduledInspection, ActiveTasksList } from '../components/tasks';
+import { ActiveTasksList } from '../components/tasks';
 import { InspectionForm } from '../components/inspection';
 import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
 
@@ -155,42 +155,24 @@ const Inspection = React.memo(() => {
       <div className="page-title">{t('inspection.title')}</div>
       <div className="page-subtitle">{t('inspection.subtitle')}</div>
 
-      <Tabs
-        defaultActiveKey="1"
-        items={[
-          {
-            key: '1',
-            label: t('inspection.immediate'),
-            children: (
-              <>
-                <InspectionForm
-                  clusters={clusters}
-                  rules={rules}
-                  selectedCluster={selectedCluster}
-                  setSelectedCluster={setSelectedCluster}
-                  selectedRules={selectedRules}
-                  setSelectedRules={setSelectedRules}
-                  availableTags={availableTags}
-                  selectedTags={selectedTags}
-                  setSelectedTags={setSelectedTags}
-                  loading={loading}
-                  onRunInspection={handleRunInspection}
-                  handleRuleSelection={handleRuleSelection}
-                />
-                <ActiveTasksList
-                  activeTasks={activeTasks}
-                  handleCancelTask={handleCancelTask}
-                  formatTaskTime={formatTaskTime}
-                />
-              </>
-            ),
-          },
-          {
-            key: '2',
-            label: t('inspection.scheduled'),
-            children: <ScheduledInspection />,
-          },
-        ]}
+      <InspectionForm
+        clusters={clusters}
+        rules={rules}
+        selectedCluster={selectedCluster}
+        setSelectedCluster={setSelectedCluster}
+        selectedRules={selectedRules}
+        setSelectedRules={setSelectedRules}
+        availableTags={availableTags}
+        selectedTags={selectedTags}
+        setSelectedTags={setSelectedTags}
+        loading={loading}
+        onRunInspection={handleRunInspection}
+        handleRuleSelection={handleRuleSelection}
+      />
+      <ActiveTasksList
+        activeTasks={activeTasks}
+        handleCancelTask={handleCancelTask}
+        formatTaskTime={formatTaskTime}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, message, Typography } from 'antd';
+import { Form, Input, Button, Card, App, Typography } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -16,6 +16,7 @@ const ChangePassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const { message } = App.useApp();
 
   const onFinish = async (values: ChangePasswordFormData) => {
     if (values.new_password !== values.confirm_password) {
@@ -39,7 +40,7 @@ const ChangePassword: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '50px auto' }}>
+    <div className="kube-max-width-400 kube-margin-50-auto">
       <Card>
         <Title level={3}>Change Password</Title>
         <Form form={form} onFinish={onFinish} autoComplete="off" layout="vertical">

@@ -19,7 +19,7 @@ const ApiTab = () => {
             description={
               <div>
                 Полная интерактивная документация доступна по адресам:
-                <ul style={{ marginTop: '8px', marginBottom: '0' }}>
+                <ul className="kube-margin-top-8 kube-margin-bottom-0">
                   <li>
                     <a href="/docs" target="_blank" rel="noopener noreferrer">
                       Swagger UI (/docs)
@@ -40,7 +40,7 @@ const ApiTab = () => {
             }
             type="info"
             showIcon
-            style={{ marginBottom: '16px' }}
+            className="kube-margin-bottom-16"
           />
         </Card>
       </Col>

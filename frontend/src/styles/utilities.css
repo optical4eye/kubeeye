@@ -11,13 +11,13 @@
   margin-bottom: var(--ant-margin);
 }
 .kube-margin-bottom-space-4 {
-  margin-bottom: var(--ant-margin);
+  margin-bottom: var(--ant-margin-lg);
 }
 .kube-margin-bottom-space-5 {
-  margin-bottom: var(--ant-margin-lg);
+  margin-bottom: var(--ant-margin-xl);
 }
 .kube-margin-bottom-space-6 {
-  margin-bottom: var(--ant-margin-lg);
+  margin-bottom: var(--ant-margin-xxl);
 }
 .kube-margin-bottom-space-7 {
   margin-bottom: var(--ant-margin-xl);
@@ -36,13 +36,13 @@
   margin-top: var(--ant-margin);
 }
 .kube-margin-top-space-4 {
-  margin-top: var(--ant-margin);
+  margin-top: var(--ant-margin-lg);
 }
 .kube-margin-top-space-5 {
-  margin-top: var(--ant-margin-lg);
+  margin-top: var(--ant-margin-xl);
 }
 .kube-margin-top-space-6 {
-  margin-top: var(--ant-margin-lg);
+  margin-top: var(--ant-margin-xxl);
 }
 .kube-margin-top-space-7 {
   margin-top: var(--ant-margin-xl);
@@ -61,13 +61,13 @@
   padding: var(--ant-padding);
 }
 .kube-padding-space-4 {
-  padding: var(--ant-padding);
+  padding: var(--ant-padding-lg);
 }
 .kube-padding-space-5 {
-  padding: var(--ant-padding-lg);
+  padding: var(--ant-padding-xl);
 }
 .kube-padding-space-6 {
-  padding: var(--ant-padding-lg);
+  padding: var(--ant-padding-xxl);
 }
 .kube-padding-space-7 {
   padding: var(--ant-padding-xl);
@@ -98,6 +98,9 @@
 }
 .kube-width-100px {
   width: var(--width-100);
+}
+.kube-width-60px {
+  width: 60px;
 }
 .kube-width-120px {
   width: var(--width-120);
@@ -511,4 +514,124 @@
 }
 .kube-text-none {
   text-transform: none;
+}
+
+/* ===== ADDITIONAL UTILITY CLASSES ===== */
+
+/* Padding utilities */
+.kube-padding-20 {
+  padding: 20px;
+}
+.kube-padding-24 {
+  padding: 24px;
+}
+
+/* Margin utilities */
+.kube-margin-8 {
+  margin: 8px;
+}
+.kube-margin-16 {
+  margin: 16px;
+}
+.kube-margin-24 {
+  margin: 24px;
+}
+.kube-margin-50-auto {
+  margin: 50px auto;
+}
+.kube-margin-bottom-8 {
+  margin-bottom: 8px;
+}
+.kube-margin-bottom-16 {
+  margin-bottom: 16px;
+}
+.kube-margin-bottom-0 {
+  margin-bottom: 0;
+}
+.kube-margin-bottom-24 {
+  margin-bottom: 24px;
+}
+.kube-margin-left-8 {
+  margin-left: 8px;
+}
+.kube-margin-left-auto {
+  margin-left: auto;
+}
+.kube-margin-right-8 {
+  margin-right: 8px;
+}
+.kube-margin-top-0 {
+  margin-top: 0;
+}
+.kube-margin-top-4 {
+  margin-top: 4px;
+}
+.kube-margin-top-8 {
+  margin-top: 8px;
+}
+.kube-margin-top-16 {
+  margin-top: 16px;
+}
+
+/* Gap utilities */
+.kube-gap-4 {
+  gap: 4px;
+}
+.kube-gap-8 {
+  gap: 8px;
+}
+.kube-gap-16 {
+  gap: 16px;
+}
+
+/* Width utilities */
+.kube-min-width-150 {
+  min-width: 150px;
+}
+.kube-min-width-200 {
+  min-width: 200px;
+}
+.kube-min-width-300 {
+  min-width: 300px;
+}
+
+/* Max width utilities */
+.kube-max-width-400 {
+  max-width: 400px;
+}
+
+/* Height utilities */
+.kube-max-height-200 {
+  max-height: 200px;
+}
+
+/* Font size utilities */
+.kube-font-size-12 {
+  font-size: 12px;
+}
+.kube-font-size-14px {
+  font-size: 0.9rem;
+}
+.kube-font-size-20 {
+  font-size: 20px;
+}
+
+/* Font family utilities */
+.kube-font-mono {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* White space utilities */
+.kube-white-space-pre-wrap {
+  white-space: pre-wrap;
+}
+
+/* Box shadow utilities */
+.kube-box-shadow-tertiary {
+  box-shadow: var(--ant-box-shadow-tertiary, 0 1px 2px rgba(0, 0, 0, 0.03));
+}
+
+/* Opacity utilities */
+.kube-opacity-70 {
+  opacity: 0.7;
 }
