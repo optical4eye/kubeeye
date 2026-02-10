@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { Secret } from '../../types';
 import { getSecretTypeTag } from '../ui/statusUtils';
-import { useAuthStore } from '../../stores/authStore';
+import { useRBAC } from '../../hooks/useRBAC';
 
 interface ClusterFormProps {
   form: any;
@@ -25,13 +25,13 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
   isEditMode = false,
 }) => {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const { hasPermission } = useRBAC();
   const [secretModalVisible, setSecretModalVisible] = useState<boolean>(false);
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [targetField, setTargetField] = useState<string | null>(null);
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'admin';
+  // Check if user can manage secrets
+  const canManageSecrets = hasPermission('manage:secrets');
 
   const loadSecrets = async () => {
     try {
@@ -101,7 +101,7 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
               icon={<KeyOutlined />}
               onClick={() => openSecretModal('nodes_text')}
               aria-label={t('clusters.clusterForm.insertSecretNodes')}
-              style={{ display: isAdmin ? 'inline-block' : 'none' }}
+              style={{ display: canManageSecrets ? 'inline-block' : 'none' }}
             >
               {t('clusters.clusterForm.insertSecretNodes')}
             </Button>
@@ -152,7 +152,7 @@ const ClusterForm: React.FC<ClusterFormProps> = ({
               icon={<KeyOutlined />}
               onClick={() => openSecretModal('kubeconfig')}
               aria-label={t('clusters.clusterForm.insertSecretKubeconfig')}
-              style={{ display: isAdmin ? 'inline-block' : 'none' }}
+              style={{ display: canManageSecrets ? 'inline-block' : 'none' }}
             >
               {t('clusters.clusterForm.insertSecretKubeconfig')}
             </Button>

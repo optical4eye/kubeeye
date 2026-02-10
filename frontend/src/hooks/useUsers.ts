@@ -47,49 +47,58 @@ export const useUsers = () => {
     }
   }, []);
 
-  const createUserMutation = useCallback(async (userData: UserCreateData) => {
-    setLoading(true);
-    try {
-      const response = await createUser(userData);
-      message.success(t('userManagement.messages.createSuccess'));
-      await fetchUsers();
-      return response.data;
-    } catch (error: any) {
-      message.error(error.response?.data?.detail || t('userManagement.messages.createError'));
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchUsers]);
+  const createUserMutation = useCallback(
+    async (userData: UserCreateData) => {
+      setLoading(true);
+      try {
+        const response = await createUser(userData);
+        message.success(t('userManagement.messages.createSuccess'));
+        await fetchUsers();
+        return response.data;
+      } catch (error: any) {
+        message.error(error.response?.data?.detail || t('userManagement.messages.createError'));
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchUsers]
+  );
 
-  const updateUserMutation = useCallback(async (userId: number, userData: UserUpdateData) => {
-    setLoading(true);
-    try {
-      const response = await updateUser(userId, userData);
-      message.success(t('userManagement.messages.updateSuccess'));
-      await fetchUsers();
-      return response.data;
-    } catch (error: any) {
-      message.error(error.response?.data?.detail || t('userManagement.messages.updateError'));
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchUsers]);
+  const updateUserMutation = useCallback(
+    async (userId: number, userData: UserUpdateData) => {
+      setLoading(true);
+      try {
+        const response = await updateUser(userId, userData);
+        message.success(t('userManagement.messages.updateSuccess'));
+        await fetchUsers();
+        return response.data;
+      } catch (error: any) {
+        message.error(error.response?.data?.detail || t('userManagement.messages.updateError'));
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchUsers]
+  );
 
-  const deleteUserMutation = useCallback(async (userId: number) => {
-    setLoading(true);
-    try {
-      await deleteUser(userId);
-      message.success(t('userManagement.messages.deleteSuccess'));
-      await fetchUsers();
-    } catch (error: any) {
-      message.error(error.response?.data?.detail || t('userManagement.messages.deleteError'));
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchUsers]);
+  const deleteUserMutation = useCallback(
+    async (userId: number) => {
+      setLoading(true);
+      try {
+        await deleteUser(userId);
+        message.success(t('userManagement.messages.deleteSuccess'));
+        await fetchUsers();
+      } catch (error: any) {
+        message.error(error.response?.data?.detail || t('userManagement.messages.deleteError'));
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchUsers]
+  );
 
   return {
     users,

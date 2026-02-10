@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Switch, Space, Tag, Popconfirm, message } from 'antd';
+import {
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Switch,
+  Space,
+  Tag,
+  Popconfirm,
+  message,
+} from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useUsers, User, UserCreateData, UserUpdateData } from '../hooks/useUsers';
 import { useAuthStore } from '../stores/authStore';
+import { getAllRoles, getRoleLabel, getRoleColor } from '../config/rbac';
 
 const { Option } = Select;
 
@@ -11,6 +24,7 @@ const UserManagement: React.FC = () => {
   const { t } = useTranslation();
   const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useUsers();
   const { user: currentUser } = useAuthStore();
+  const availableRoles = getAllRoles();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -41,7 +55,7 @@ const UserManagement: React.FC = () => {
     try {
       await deleteUser(userId);
       message.success(t('userManagement.userDeleted', { username }));
-    } catch (error) {
+    } catch {
       // Error already handled in hook
     }
   };
@@ -72,7 +86,7 @@ const UserManagement: React.FC = () => {
 
       setIsModalVisible(false);
       form.resetFields();
-    } catch (error) {
+    } catch {
       // Error already handled in hook
     }
   };
@@ -104,8 +118,8 @@ const UserManagement: React.FC = () => {
       dataIndex: 'role',
       key: 'role',
       render: (role: string) => (
-        <Tag color={role === 'admin' ? 'red' : 'blue'}>
-          {role === 'admin' ? t('userManagement.roleAdmin') : t('userManagement.roleOperator')}
+        <Tag color={getRoleColor(role)}>
+          {getRoleLabel(role)}
         </Tag>
       ),
     },
@@ -169,13 +183,16 @@ const UserManagement: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          marginBottom: '16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <h2>{t('userManagement.title')}</h2>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           {t('userManagement.createUser')}
         </Button>
       </div>
@@ -188,7 +205,7 @@ const UserManagement: React.FC = () => {
         pagination={{
           pageSize: 10,
           showSizeChanger: true,
-          showTotal: (total) => t('userManagement.totalUsers', { count: total }),
+          showTotal: total => t('userManagement.totalUsers', { count: total }),
         }}
       />
 
@@ -205,7 +222,7 @@ const UserManagement: React.FC = () => {
           form={form}
           layout="vertical"
           initialValues={{
-            role: 'operator',
+            role: availableRoles[0],
             is_active: true,
           }}
         >
@@ -251,16 +268,15 @@ const UserManagement: React.FC = () => {
             rules={[{ required: true, message: t('userManagement.roleRequired') }]}
           >
             <Select placeholder={t('userManagement.rolePlaceholder')}>
-              <Option value="operator">{t('userManagement.roleOperator')}</Option>
-              <Option value="admin">{t('userManagement.roleAdmin')}</Option>
+              {availableRoles.map(role => (
+                <Option key={role} value={role}>
+                  {getRoleLabel(role)}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
 
-          <Form.Item
-            label={t('userManagement.isActive')}
-            name="is_active"
-            valuePropName="checked"
-          >
+          <Form.Item label={t('userManagement.isActive')} name="is_active" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Form>

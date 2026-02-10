@@ -1,17 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, DatePicker, Select, Input, Space, Modal, Descriptions, Tag, message, Card, Statistic, Row, Col, Collapse } from 'antd';
+import {
+  Table,
+  Button,
+  DatePicker,
+  Select,
+  Input,
+  Space,
+  Modal,
+  Descriptions,
+  Tag,
+  Card,
+  Statistic,
+  Row,
+  Col,
+  Collapse,
+} from 'antd';
 import { SearchOutlined, ReloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuditLogs, AuditLog, AuditLogsParams, AuditStats } from '../hooks/useAuditLogs';
 import { getAuditCleanupConfig } from '../services/api';
-import dayjs, { Dayjs } from 'dayjs';
+import type { Dayjs } from 'dayjs';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const AuditLogsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { logs, loading, total, fetchAuditLogs, fetchAuditLog, fetchAuditStats, cleanupLogs } = useAuditLogs();
+  const { logs, loading, total, fetchAuditLogs, fetchAuditLog, fetchAuditStats, cleanupLogs } =
+    useAuditLogs();
 
   const [filters, setFilters] = useState<AuditLogsParams>({ limit: 20, offset: 0 });
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
@@ -22,17 +38,19 @@ const AuditLogsPage: React.FC = () => {
 
   useEffect(() => {
     fetchAuditLogs(filters);
-    loadCleanupConfig();
   }, [fetchAuditLogs, filters]);
 
-  const loadCleanupConfig = async () => {
-    try {
-      const response = await getAuditCleanupConfig();
-      setCleanupConfig(response.data);
-    } catch {
-      // Error loading cleanup config
-    }
-  };
+  useEffect(() => {
+    const loadCleanupConfig = async () => {
+      try {
+        const response = await getAuditCleanupConfig();
+        setCleanupConfig(response.data);
+      } catch {
+        // Error loading cleanup config
+      }
+    };
+    loadCleanupConfig();
+  }, []);
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value, offset: 0 }));
@@ -65,7 +83,7 @@ const AuditLogsPage: React.FC = () => {
       const logDetails = await fetchAuditLog(log.id);
       setSelectedLog(logDetails);
       setIsDetailModalVisible(true);
-    } catch (error) {
+    } catch {
       // Error already handled in hook
     }
   };
@@ -75,7 +93,7 @@ const AuditLogsPage: React.FC = () => {
       const statsData = await fetchAuditStats(filters.date_from, filters.date_to);
       setStats(statsData);
       setIsStatsModalVisible(true);
-    } catch (error) {
+    } catch {
       // Error already handled in hook
     }
   };
@@ -83,7 +101,7 @@ const AuditLogsPage: React.FC = () => {
   const handleCleanup = async () => {
     try {
       await cleanupLogs();
-    } catch (error) {
+    } catch {
       // Error already handled in hook
     }
   };
@@ -172,11 +190,7 @@ const AuditLogsPage: React.FC = () => {
       width: 100,
       render: (_: any, record: AuditLog) => (
         <Space>
-          <Button
-            type="link"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewDetails(record)}
-          >
+          <Button type="link" icon={<EyeOutlined />} onClick={() => handleViewDetails(record)}>
             {t('auditLogs.view')}
           </Button>
         </Space>
@@ -186,26 +200,23 @@ const AuditLogsPage: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          marginBottom: '16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <h2>{t('auditLogs.title')}</h2>
         <Space>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => fetchAuditLogs(filters)}
-          >
+          <Button icon={<ReloadOutlined />} onClick={() => fetchAuditLogs(filters)}>
             {t('auditLogs.refresh')}
           </Button>
-          <Button
-            icon={<DeleteOutlined />}
-            onClick={handleCleanup}
-          >
+          <Button icon={<DeleteOutlined />} onClick={handleCleanup}>
             {t('auditLogs.cleanup')}
           </Button>
-          <Button
-            type="primary"
-            icon={<SearchOutlined />}
-            onClick={handleShowStats}
-          >
+          <Button type="primary" icon={<SearchOutlined />} onClick={handleShowStats}>
             {t('auditLogs.statistics')}
           </Button>
         </Space>
@@ -223,8 +234,8 @@ const AuditLogsPage: React.FC = () => {
                   <p>{t('auditLogs.autoDelete')}</p>
                   <ul className="margin-top-space-2">
                     <li>
-                      <strong>{t('auditLogs.retentionPeriod')}</strong> {cleanupConfig.retention_days}{' '}
-                      {t('clusters.days')}
+                      <strong>{t('auditLogs.retentionPeriod')}</strong>{' '}
+                      {cleanupConfig.retention_days} {t('clusters.days')}
                     </li>
                   </ul>
                   <p className="margin-top-space-2">
@@ -243,14 +254,14 @@ const AuditLogsPage: React.FC = () => {
             placeholder={t('auditLogs.filters.searchUser')}
             prefix={<SearchOutlined />}
             style={{ width: 200 }}
-            onChange={(e) => handleFilterChange('username', e.target.value)}
+            onChange={e => handleFilterChange('username', e.target.value)}
             allowClear
           />
 
           <Select
             placeholder={t('auditLogs.filters.action')}
             style={{ width: 180 }}
-            onChange={(value) => handleFilterChange('action', value)}
+            onChange={value => handleFilterChange('action', value)}
             allowClear
           >
             <Option value="login">{t('auditLogs.actionTypes.login')}</Option>
@@ -280,7 +291,7 @@ const AuditLogsPage: React.FC = () => {
           <Select
             placeholder={t('auditLogs.filters.status')}
             style={{ width: 120 }}
-            onChange={(value) => handleFilterChange('status', value)}
+            onChange={value => handleFilterChange('status', value)}
             allowClear
           >
             <Option value="success">{t('auditLogs.statusSuccess')}</Option>
@@ -293,9 +304,7 @@ const AuditLogsPage: React.FC = () => {
             style={{ width: 300 }}
           />
 
-          <Button onClick={handleResetFilters}>
-            {t('auditLogs.filters.resetFilters')}
-          </Button>
+          <Button onClick={handleResetFilters}>{t('auditLogs.filters.resetFilters')}</Button>
         </Space>
       </Card>
 
@@ -308,8 +317,9 @@ const AuditLogsPage: React.FC = () => {
           total: total,
           pageSize: filters.limit || 20,
           showSizeChanger: true,
-          showTotal: (total) => t('auditLogs.totalRecords', { count: total }),
-          current: filters.offset && filters.limit ? Math.floor(filters.offset / filters.limit) + 1 : 1,
+          showTotal: total => t('auditLogs.totalRecords', { count: total }),
+          current:
+            filters.offset && filters.limit ? Math.floor(filters.offset / filters.limit) + 1 : 1,
           onChange: (page, pageSize) => {
             setFilters(prev => ({
               ...prev,
@@ -334,17 +344,31 @@ const AuditLogsPage: React.FC = () => {
         {selectedLog && (
           <Descriptions bordered column={2}>
             <Descriptions.Item label={t('auditLogs.id')}>{selectedLog.id}</Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.user')}>{selectedLog.username}</Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.action')}>{selectedLog.action}</Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.resourceType')}>{selectedLog.resource_type || '-'}</Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.resourceId')}>{selectedLog.resource_id || '-'}</Descriptions.Item>
+            <Descriptions.Item label={t('auditLogs.user')}>
+              {selectedLog.username}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('auditLogs.action')}>
+              {selectedLog.action}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('auditLogs.resourceType')}>
+              {selectedLog.resource_type || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('auditLogs.resourceId')}>
+              {selectedLog.resource_id || '-'}
+            </Descriptions.Item>
             <Descriptions.Item label={t('auditLogs.status')}>
               <Tag color={selectedLog.status === 'success' ? 'green' : 'red'}>
-                {selectedLog.status === 'success' ? t('auditLogs.statusSuccess') : t('auditLogs.statusFailure')}
+                {selectedLog.status === 'success'
+                  ? t('auditLogs.statusSuccess')
+                  : t('auditLogs.statusFailure')}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.ipAddress')}>{selectedLog.ip_address || '-'}</Descriptions.Item>
-            <Descriptions.Item label={t('auditLogs.date')}>{new Date(selectedLog.created_at).toLocaleString('ru-RU')}</Descriptions.Item>
+            <Descriptions.Item label={t('auditLogs.ipAddress')}>
+              {selectedLog.ip_address || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label={t('auditLogs.date')}>
+              {new Date(selectedLog.created_at).toLocaleString('ru-RU')}
+            </Descriptions.Item>
             {selectedLog.error_message && (
               <Descriptions.Item label={t('auditLogs.error')} span={2}>
                 <span style={{ color: 'red' }}>{selectedLog.error_message}</span>
@@ -425,7 +449,10 @@ const AuditLogsPage: React.FC = () => {
             <Card title={t('auditLogs.stats.byResource')}>
               <Space direction="vertical" style={{ width: '100%' }}>
                 {Object.entries(stats.by_resource || {}).map(([resourceType, count]) => (
-                  <div key={resourceType} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div
+                    key={resourceType}
+                    style={{ display: 'flex', justifyContent: 'space-between' }}
+                  >
                     <span>{resourceType}</span>
                     <Tag>{count}</Tag>
                   </div>

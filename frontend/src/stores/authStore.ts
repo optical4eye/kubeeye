@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await api.post('/api/auth/login', {
             username,
-            password
+            password,
           });
 
           const { access_token, user } = response.data;
@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             user,
             isAuthenticated: true,
-            isLoading: false
+            isLoading: false,
           });
         } catch (error) {
           set({ isLoading: false });
@@ -65,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
           tokenStorage.clearTokens();
           set({
             user: null,
-            isAuthenticated: false
+            isAuthenticated: false,
           });
         }
       },
@@ -75,13 +75,13 @@ export const useAuthStore = create<AuthState>()(
           const response = await api.get('/api/auth/me');
           set({
             user: response.data,
-            isAuthenticated: true
+            isAuthenticated: true,
           });
         } catch (error) {
           tokenStorage.clearTokens();
           set({
             user: null,
-            isAuthenticated: false
+            isAuthenticated: false,
           });
           throw error;
         }
@@ -89,14 +89,14 @@ export const useAuthStore = create<AuthState>()(
 
       checkAuth: () => {
         return tokenStorage.hasToken() && get().isAuthenticated;
-      }
+      },
     }),
     {
       name: 'auth-store',
-      partialize: (state) => ({
+      partialize: state => ({
         user: state.user,
-        isAuthenticated: state.isAuthenticated
-      })
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );

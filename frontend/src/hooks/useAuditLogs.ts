@@ -90,7 +90,9 @@ export const useAuditLogs = () => {
     setLoading(true);
     try {
       const response = await cleanupAuditLogs();
-      message.success(t('auditLogs.messages.cleanupSuccess', { count: response.data.deleted_count }));
+      message.success(
+        t('auditLogs.messages.cleanupSuccess', { count: response.data.deleted_count })
+      );
       await fetchAuditLogs();
       return response.data;
     } catch (error) {

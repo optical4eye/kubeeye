@@ -13,19 +13,12 @@ import {
 import { useTranslation } from 'react-i18next';
 import {
   DashboardOutlined,
-  ClusterOutlined,
   SearchOutlined,
   FileTextOutlined,
   QuestionCircleOutlined,
-  WifiOutlined,
-  ScanOutlined,
-  LockOutlined,
   SunOutlined,
   MoonOutlined,
-  AntDesignOutlined,
-  UserOutlined,
-  AuditOutlined,
-  AppstoreOutlined,
+  ApartmentOutlined,
   SettingOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
@@ -34,6 +27,7 @@ import LoadingScreen from './components/ui/LoadingScreen';
 import { useUIStore } from './stores/uiStore';
 import { getThemeConfig } from './theme/themeConfig';
 import { useSystemStatusWebSocket } from './hooks/useSystemStatusWebSocket';
+import { useRBAC } from './hooks/useRBAC';
 import Login from './pages/Login';
 import ChangePassword from './pages/ChangePassword';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -60,6 +54,7 @@ function App() {
   const { theme, setTheme, language, setLanguage } = useUIStore();
   const { t, i18n } = useTranslation();
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
+  const { canAccessRoute } = useRBAC();
 
   // Configure global theme for message, notification, and other global components
   useEffect(() => {
@@ -92,7 +87,8 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const menuItems = [
+  // Define all menu items
+  const allMenuItems = [
     {
       key: 'overview',
       icon: <DashboardOutlined />,
@@ -106,7 +102,7 @@ function App() {
     },
     {
       key: 'infrastructure',
-      icon: <AppstoreOutlined />,
+      icon: <ApartmentOutlined />,
       label: t('menu.groups.infrastructure'),
       children: [
         {
@@ -187,6 +183,14 @@ function App() {
       ],
     },
   ];
+
+  // Filter menu items based on user's role
+  const menuItems = allMenuItems
+    .map(group => ({
+      ...group,
+      children: group.children?.filter(child => canAccessRoute(child.key)) ?? [],
+    }))
+    .filter(group => (group.children?.length ?? 0) > 0);
 
   const Sidebar = () => {
     const location = useLocation();
@@ -271,86 +275,101 @@ function App() {
                   <Route path="/login" element={<Login />} />
 
                   {/* Protected routes - with layout */}
-                  <Route path="/*" element={
-                    <ProtectedRoute>
-                      <Layout className="main-layout">
-                        <Sidebar />
-                        <Layout className="main-layout-bg">
-                          <Header className="header-bg">
-                            <div className="header-content">
-                              <div className="header-title">{t('header.title')}</div>
-                              <div
-                                style={{
-                                  marginLeft: 'auto',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '16px',
-                                }}
-                              >
-                                <UserMenu />
-                                <Switch
-                                  checked={theme === 'dark'}
-                                  onChange={checked => setTheme(checked ? 'dark' : 'light')}
-                                  checkedChildren={<SunOutlined />}
-                                  unCheckedChildren={<MoonOutlined />}
-                                />
-                                <Select
-                                  value={language}
-                                  onChange={value => setLanguage(value)}
-                                  options={[
-                                    { value: 'ru', label: 'RU' },
-                                    { value: 'en', label: 'EN' },
-                                  ]}
-                                  style={{ width: 60 }}
-                                  size="small"
-                                />
-                              </div>
-                            </div>
-                          </Header>
-                          <Content className="content-area">
-                            <Suspense
-                              fallback={
-                                <div className="loading-spinner">
-                                  <Spin size="large" />
+                  <Route
+                    path="/*"
+                    element={
+                      <ProtectedRoute>
+                        <Layout className="main-layout">
+                          <Sidebar />
+                          <Layout className="main-layout-bg">
+                            <Header className="header-bg">
+                              <div className="header-content">
+                                <div className="header-title">{t('header.title')}</div>
+                                <div
+                                  style={{
+                                    marginLeft: 'auto',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '16px',
+                                  }}
+                                >
+                                  <UserMenu />
+                                  <Switch
+                                    checked={theme === 'dark'}
+                                    onChange={checked => setTheme(checked ? 'dark' : 'light')}
+                                    checkedChildren={<SunOutlined />}
+                                    unCheckedChildren={<MoonOutlined />}
+                                  />
+                                  <Select
+                                    value={language}
+                                    onChange={value => setLanguage(value)}
+                                    options={[
+                                      { value: 'ru', label: 'RU' },
+                                      { value: 'en', label: 'EN' },
+                                    ]}
+                                    style={{ width: 60 }}
+                                    size="small"
+                                  />
                                 </div>
-                              }
-                            >
-                              <Routes>
-                                <Route path="/" element={<Dashboard />} />
-                                <Route path="/clusters" element={<ClusterManagement />} />
-                                <Route path="/secrets" element={
-                                  <ProtectedRoute requiredRole="admin">
-                                    <SecretManagement />
-                                  </ProtectedRoute>
-                                } />
-                                <Route path="/network" element={<NetworkConnectivity />} />
-                                <Route path="/inspection" element={<Inspection />} />
-                                <Route path="/rules" element={
-                                  <ProtectedRoute requiredRole="operator">
-                                    <Rules />
-                                  </ProtectedRoute>
-                                } />
-                                <Route path="/popeye" element={<PopeyeScan />} />
-                                <Route path="/reports" element={<Reports />} />
-                                <Route path="/help" element={<Help />} />
-                                <Route path="/change-password" element={<ChangePassword />} />
-                                <Route path="/users" element={
-                                  <ProtectedRoute requiredRole="admin">
-                                    <UserManagement />
-                                  </ProtectedRoute>
-                                } />
-                                <Route path="/audit-logs" element={
-                                  <ProtectedRoute requiredRole="admin">
-                                    <AuditLogs />
-                                  </ProtectedRoute>
-                                } />
-                              </Routes>
-                            </Suspense>
-                          </Content>
+                              </div>
+                            </Header>
+                            <Content className="content-area">
+                              <Suspense
+                                fallback={
+                                  <div className="loading-spinner">
+                                    <Spin size="large" />
+                                  </div>
+                                }
+                              >
+                                <Routes>
+                                  <Route path="/" element={<Dashboard />} />
+                                  <Route path="/clusters" element={<ClusterManagement />} />
+                                  <Route
+                                    path="/secrets"
+                                    element={
+                                      <ProtectedRoute>
+                                        <SecretManagement />
+                                      </ProtectedRoute>
+                                    }
+                                  />
+                                  <Route path="/network" element={<NetworkConnectivity />} />
+                                  <Route path="/inspection" element={<Inspection />} />
+                                  <Route
+                                    path="/rules"
+                                    element={
+                                      <ProtectedRoute>
+                                        <Rules />
+                                      </ProtectedRoute>
+                                    }
+                                  />
+                                  <Route path="/popeye" element={<PopeyeScan />} />
+                                  <Route path="/reports" element={<Reports />} />
+                                  <Route path="/help" element={<Help />} />
+                                  <Route path="/change-password" element={<ChangePassword />} />
+                                  <Route
+                                    path="/users"
+                                    element={
+                                      <ProtectedRoute>
+                                        <UserManagement />
+                                      </ProtectedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/audit-logs"
+                                    element={
+                                      <ProtectedRoute>
+                                        <AuditLogs />
+                                      </ProtectedRoute>
+                                    }
+                                  />
+                                </Routes>
+                              </Suspense>
+                            </Content>
+                          </Layout>
                         </Layout>
-                      </Layout>
-                    </ProtectedRoute>
-                  } />
+                      </ProtectedRoute>
+                    }
+                  />
                 </Routes>
               </div>
             </Router>

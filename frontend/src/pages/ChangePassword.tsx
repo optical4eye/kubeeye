@@ -27,7 +27,7 @@ const ChangePassword: React.FC = () => {
     try {
       await api.post('/api/auth/change-password', {
         old_password: values.old_password,
-        new_password: values.new_password
+        new_password: values.new_password,
       });
       message.success('Password changed successfully');
       navigate('/dashboard');
@@ -42,12 +42,7 @@ const ChangePassword: React.FC = () => {
     <div style={{ maxWidth: 400, margin: '50px auto' }}>
       <Card>
         <Title level={3}>Change Password</Title>
-        <Form
-          form={form}
-          onFinish={onFinish}
-          autoComplete="off"
-          layout="vertical"
-        >
+        <Form form={form} onFinish={onFinish} autoComplete="off" layout="vertical">
           <Form.Item
             name="old_password"
             label="Old Password"
@@ -61,7 +56,7 @@ const ChangePassword: React.FC = () => {
             label="New Password"
             rules={[
               { required: true, message: 'Please input your new password!' },
-              { min: 6, message: 'Password must be at least 6 characters!' }
+              { min: 6, message: 'Password must be at least 6 characters!' },
             ]}
           >
             <Input.Password prefix={<LockOutlined />} />
@@ -79,8 +74,8 @@ const ChangePassword: React.FC = () => {
                     return Promise.resolve();
                   }
                   return Promise.reject(new Error('Passwords do not match!'));
-                }
-              })
+                },
+              }),
             ]}
           >
             <Input.Password prefix={<LockOutlined />} />

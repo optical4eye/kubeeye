@@ -17,14 +17,14 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
 
 // Response interceptor - handle 401 errors
 api.interceptors.response.use(
-  (response) => response,
+  response => response,
   async (error: AxiosError) => {
     // If error is 401, clear token
     if (error.response?.status === 401) {
@@ -48,14 +48,14 @@ const createApiWithTimeout = (timeout: number) => {
       }
       return config;
     },
-    (error) => {
+    error => {
       return Promise.reject(error);
     }
   );
 
   // Add response interceptor to handle 401 errors
   instance.interceptors.response.use(
-    (response) => response,
+    response => response,
     async (error: AxiosError) => {
       if (error.response?.status === 401) {
         tokenStorage.clearTokens();
@@ -204,14 +204,11 @@ export const cancelPopeyeTask = taskId => api.delete(apiPath(`/popeye/task/${tas
 export const getUsers = (skip = 0, limit = 100) =>
   api.get(apiPath(`/auth/users?skip=${skip}&limit=${limit}`));
 
-export const createUser = userData =>
-  api.post(apiPath('/auth/users'), userData);
+export const createUser = userData => api.post(apiPath('/auth/users'), userData);
 
-export const updateUser = (userId, userData) =>
-  api.put(apiPath(`/auth/users/${userId}`), userData);
+export const updateUser = (userId, userData) => api.put(apiPath(`/auth/users/${userId}`), userData);
 
-export const deleteUser = userId =>
-  api.delete(apiPath(`/auth/users/${userId}`));
+export const deleteUser = userId => api.delete(apiPath(`/auth/users/${userId}`));
 
 // Audit logs (admin only)
 export const getAuditLogs = (params = {}) => {
@@ -224,8 +221,7 @@ export const getAuditLogs = (params = {}) => {
   return api.get(apiPath(`/auth/audit/logs?${queryParams.toString()}`));
 };
 
-export const getAuditLog = logId =>
-  api.get(apiPath(`/auth/audit/logs/${logId}`));
+export const getAuditLog = logId => api.get(apiPath(`/auth/audit/logs/${logId}`));
 
 export const getAuditStats = (dateFrom, dateTo) => {
   const params = new URLSearchParams();
@@ -234,10 +230,8 @@ export const getAuditStats = (dateFrom, dateTo) => {
   return api.get(apiPath(`/auth/audit/stats?${params.toString()}`));
 };
 
-export const getAuditCleanupConfig = () =>
-  api.get(apiPath('/auth/audit/config'));
+export const getAuditCleanupConfig = () => api.get(apiPath('/auth/audit/config'));
 
-export const cleanupAuditLogs = () =>
-  api.post(apiPath('/auth/audit/cleanup'));
+export const cleanupAuditLogs = () => api.post(apiPath('/auth/audit/cleanup'));
 
 export default api;

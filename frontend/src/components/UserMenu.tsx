@@ -1,11 +1,6 @@
 import React from 'react';
 import { Dropdown, Avatar, Space, Typography, Button } from 'antd';
-import {
-  UserOutlined,
-  LogoutOutlined,
-  LockOutlined,
-  SettingOutlined
-} from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
@@ -36,24 +31,24 @@ const UserMenu: React.FC = () => {
           </Text>
         </Space>
       ),
-      disabled: true
+      disabled: true,
     },
     {
-      type: 'divider'
+      type: 'divider',
     },
     {
       key: 'change-password',
       icon: <LockOutlined />,
       label: 'Change Password',
-      onClick: handleChangePassword
+      onClick: handleChangePassword,
     },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
       label: 'Logout',
       onClick: handleLogout,
-      danger: true
-    }
+      danger: true,
+    },
   ];
 
   return (

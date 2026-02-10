@@ -19,5 +19,5 @@ export const tokenStorage = {
 
   hasToken(): boolean {
     return !!this.getAccessToken();
-  }
+  },
 };

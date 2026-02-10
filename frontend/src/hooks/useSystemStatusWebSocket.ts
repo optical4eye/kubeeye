@@ -27,7 +27,7 @@ export const useSystemStatusWebSocket = () => {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden);
   const wsManagerRef = useRef<WebSocketConnectionManager | null>(null);
   const isWarningShownRef = useRef(false);
-  const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const statusTimeoutRef = useRef<number | null>(null);
   const hasReceivedStatusRef = useRef(false);
 
   const handleSystemStatusMessage = useCallback((message: SystemStatusMessage) => {
