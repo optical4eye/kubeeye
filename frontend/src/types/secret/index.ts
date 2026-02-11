@@ -25,12 +25,3 @@ export interface SecretUpdateRequest {
   data?: string;
   is_active?: boolean;
 }
-
-export interface EncryptionKey {
-  id: number;
-  key_name: string;
-  encryption_key: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}

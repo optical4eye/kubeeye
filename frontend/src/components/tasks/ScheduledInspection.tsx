@@ -209,13 +209,13 @@ const ScheduledInspection = () => {
       dataIndex: 'cron_expr',
       key: 'cron_expr',
       render: (cron, record) =>
-        record.task_type === 'once' ? t('scheduledInspection.oneTime') : cron,
+        record.task_type === 'once' ? t('scheduledInspection.oneTime') : record.cron_expr,
     },
     {
       title: t('scheduledInspection.status'),
       dataIndex: 'last_status',
       key: 'last_status',
-      render: getStatusTag,
+      render: (status) => getStatusTag(status),
     },
     {
       title: t('scheduledInspection.enabled'),
@@ -470,7 +470,8 @@ const ScheduledInspection = () => {
             setSelectedRules({ node: [], opa: [] });
           }}
           footer={null}
-          width={800}
+          width={{ xs: '98%', sm: '95%', md: '90%', lg: 1000, xl: 1100, xxl: 1200 }}
+          style={{ maxWidth: '100vw' }}
         >
           <Form form={editForm} layout="vertical" onFinish={handleUpdateTask}>
             <Form.Item

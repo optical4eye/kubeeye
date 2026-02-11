@@ -15,12 +15,6 @@ export interface Report {
   critical_count?: number;
   warning_count?: number;
   info_count?: number;
-  // Legacy fields for table display
-  critical?: number;
-  warning?: number;
-  info?: number;
-  passed?: number;
-  status?: string;
   result_data: any; // Полные данные отчета - могут быть сложными
   execution_duration?: number;
   triggered_by: 'user' | 'scheduler';
@@ -57,8 +51,7 @@ export interface Task {
   task_id: string;
   name: string;
   description?: string;
-  cluster: string; // Legacy field name used in frontend
-  cluster_name?: string;
+  cluster: string;
   task_type: 'cron' | 'once' | 'hourly' | 'daily' | 'weekly' | 'monthly';
   cron_expr?: string;
   run_datetime?: string;

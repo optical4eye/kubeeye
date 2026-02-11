@@ -37,8 +37,8 @@ const RuleSelector = ({ ruleType, title, availableRules, selectedRules, onRuleSe
       >
         <Space direction="vertical" style={{ width: '100%' }}>
           {availableRules.map(rule => (
-            <Checkbox key={rule.id} value={rule.id}>
-              <div>
+            <Checkbox key={rule.id} value={rule.id} style={{ width: '100%', alignItems: 'flex-start' }}>
+              <div style={{ marginLeft: '8px', flex: 1 }}>
                 <strong>{rule.name}</strong>
                 <div className="rule-selector-description">{rule.description}</div>
                 {rule.tags && rule.tags.length > 0 && (

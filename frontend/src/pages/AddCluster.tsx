@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClusterForm } from '../hooks/useClusterForm';
-import { ClusterFormContainer } from '../components/cluster';
-import { Form } from 'antd';
+import { ClusterForm } from '../components/cluster';
+import { Form, Card } from 'antd';
 import { ClusterFormValues } from '../types/cluster';
 
 const AddCluster = () => {
@@ -21,14 +21,16 @@ const AddCluster = () => {
     <div>
       <div className="page-title">{t('clusters.add')}</div>
       <div className="page-subtitle">{t('clusters.addSubtitle')}</div>
-      <ClusterFormContainer
-        form={createForm}
-        onSubmit={onCreateSubmit}
-        onTestNodes={() => handleTestNodes(null, createForm)}
-        onTestKubeconfig={() => handleTestKubeconfig(null, createForm)}
-        onGetNodesFromKubeconfig={() => handleGetNodesFromKubeconfig(null, createForm)}
-        isEditMode={false}
-      />
+      <Card>
+        <ClusterForm
+          form={createForm}
+          onSubmit={onCreateSubmit}
+          onTestNodes={() => handleTestNodes(null, createForm)}
+          onTestKubeconfig={() => handleTestKubeconfig(null, createForm)}
+          onGetNodesFromKubeconfig={() => handleGetNodesFromKubeconfig(null, createForm)}
+          isEditMode={false}
+        />
+      </Card>
     </div>
   );
 };

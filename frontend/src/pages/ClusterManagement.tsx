@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClusters } from '../hooks/useClusters';
 import { useClusterForm } from '../hooks/useClusterForm';
-import { ClusterListContainer, ClusterModalManager } from '../components/cluster';
-import { Form } from 'antd';
+import { ClusterList, ClusterModalManager } from '../components/cluster';
+import { Form, Card } from 'antd';
 import { Cluster } from '../types/cluster';
 
 const ClusterManagement = () => {
@@ -85,14 +85,16 @@ const ClusterManagement = () => {
         {t('clusters.subtitle')}
       </p>
 
-      <ClusterListContainer
-        clusters={clusters}
-        loading={loading}
-        onViewDetails={onViewDetails}
-        onEdit={onEdit}
-        onDelete={handleDeleteCluster}
-        onRefresh={loadClusters}
-      />
+      <Card>
+        <ClusterList
+          clusters={clusters}
+          loading={loading}
+          onViewDetails={onViewDetails}
+          onEdit={onEdit}
+          onDelete={handleDeleteCluster}
+          onRefresh={loadClusters}
+        />
+      </Card>
 
       <ClusterModalManager
         editModalVisible={editModalVisible}
