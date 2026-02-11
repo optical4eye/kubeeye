@@ -62,9 +62,7 @@ export const useMenuNavigation = (
    */
   const isLeafNode = useCallback(
     (key: string): boolean => {
-      return menuItems.some(item =>
-        item.children?.some(child => child.key === key)
-      );
+      return menuItems.some(item => item.children?.some(child => child.key === key));
     },
     [menuItems]
   );

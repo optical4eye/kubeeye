@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClusters } from '../hooks/useClusters';
 import { useClusterForm } from '../hooks/useClusterForm';
-import { useClusterModals } from '../hooks/useClusterModals';
 import { ClusterListContainer, ClusterModalManager } from '../components/cluster';
 import { Form } from 'antd';
 import { Cluster } from '../types/cluster';
@@ -32,14 +31,9 @@ const ClusterManagement = () => {
   const { handleTestNodes, handleTestKubeconfig, handleGetNodesFromKubeconfig } =
     useClusterForm(selectedCluster);
 
-  const {
-    editModalVisible,
-    detailsModalVisible,
-    openEditModal,
-    closeEditModal,
-    openDetailsModal,
-    closeDetailsModal,
-  } = useClusterModals();
+  // Modal state management
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
 
   const [editForm] = Form.useForm();
 
@@ -53,22 +47,22 @@ const ClusterManagement = () => {
 
   const onViewDetails = (cluster: Cluster) => {
     handleShowClusterDetails(cluster);
-    openDetailsModal();
+    setDetailsModalVisible(true);
   };
 
   const onEdit = (cluster: Cluster) => {
     setSelectedCluster(cluster);
-    openEditModal();
+    setEditModalVisible(true);
   };
 
   const onCloseEditModal = () => {
-    closeEditModal();
+    setEditModalVisible(false);
     setSelectedCluster(null);
     editForm.resetFields();
   };
 
   const onCloseDetailsModal = () => {
-    closeDetailsModal();
+    setDetailsModalVisible(false);
     setSelectedCluster(null);
     setClusterDetails(null);
     setClusterNodes([]);
@@ -77,7 +71,7 @@ const ClusterManagement = () => {
 
   const onEditSubmit = (values: any) => {
     handleEditCluster(values);
-    closeEditModal();
+    setEditModalVisible(false);
     setSelectedCluster(null);
     editForm.resetFields();
   };

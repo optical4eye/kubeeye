@@ -1,16 +1,17 @@
 // WebSocket client for connecting to backend WebSocket endpoint
 
 import { WebSocketMessage, MessageType, PongMessage } from './messageTypes';
+import { WEBSOCKET_CONFIG } from '../../config/constants';
 
 export class WebSocketClient {
   private ws: WebSocket | null = null;
   private url: string;
   private clientId?: string;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 50; // Increased for more persistent reconnection
-  private baseDelay = 1000; // Base delay for exponential backoff in ms
-  private maxDelay = 30000; // Maximum delay for exponential backoff in ms
-  private jitterMax = 1000; // Maximum jitter to prevent thundering herd in ms
+  private maxReconnectAttempts = WEBSOCKET_CONFIG.MAX_RECONNECT_ATTEMPTS;
+  private baseDelay = WEBSOCKET_CONFIG.BASE_DELAY;
+  private maxDelay = WEBSOCKET_CONFIG.MAX_DELAY;
+  private jitterMax = WEBSOCKET_CONFIG.JITTER_MAX;
   private isConnecting = false;
   private messageHandlers: ((message: MessageType) => void)[] = [];
   private errorHandlers: ((error: Event) => void)[] = [];

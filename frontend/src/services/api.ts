@@ -1,9 +1,10 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { tokenStorage } from '../utils/tokenStorage';
+import { API_TIMEOUTS } from '../config/constants';
 
 const baseConfig = {
   baseURL: '',
-  timeout: 15000, // Reasonable timeout for async operations (15 seconds)
+  timeout: API_TIMEOUTS.DEFAULT,
 };
 
 const api = axios.create(baseConfig);
@@ -73,14 +74,14 @@ const apiPath = path => `/api${path}`;
 // Dashboard
 export const getDashboardData = () => {
   // Use shorter timeout for dashboard to avoid long waits on unavailable clusters
-  const dashboardApi = createApiWithTimeout(10000);
+  const dashboardApi = createApiWithTimeout(API_TIMEOUTS.SHORT);
   return dashboardApi.get(apiPath('/dashboard'));
 };
 
 // Clusters
 export const getClusters = () => {
   // Use shorter timeout for cluster list to avoid long waits on unavailable clusters
-  const clustersApi = createApiWithTimeout(10000);
+  const clustersApi = createApiWithTimeout(API_TIMEOUTS.SHORT);
   return clustersApi.get(apiPath('/clusters'));
 };
 export const createCluster = clusterData => api.post(apiPath('/clusters'), clusterData);
@@ -91,7 +92,7 @@ export const getClusterDetails = clusterName => api.get(apiPath(`/clusters/${clu
 export const getClusterNodes = clusterName => api.get(apiPath(`/clusters/${clusterName}/nodes`));
 export const testClusterNodes = (clusterName, nodes = null) => {
   // Use extended timeout for node testing
-  const testApi = createApiWithTimeout(30000);
+  const testApi = createApiWithTimeout(API_TIMEOUTS.LONG);
 
   if (nodes === null) {
     return testApi.post(apiPath(`/clusters/${clusterName}/test-nodes`));
@@ -117,7 +118,7 @@ export const runInspection = inspectionData => api.post(apiPath('/inspection'), 
 // Async inspections
 export const runInspectionAsync = inspectionData => {
   // Use extended timeout for async inspections
-  const inspectionApi = createApiWithTimeout(30000);
+  const inspectionApi = createApiWithTimeout(API_TIMEOUTS.LONG);
 
   return inspectionApi.post(apiPath('/inspection/async'), inspectionData);
 };
@@ -131,7 +132,7 @@ export const getQueueTasks = (limit = 50) => api.get(apiPath(`/queue/tasks?limit
 // Health check
 export const getHealthStatus = () => {
   // Use shorter timeout for health checks
-  const healthApi = createApiWithTimeout(5000);
+  const healthApi = createApiWithTimeout(API_TIMEOUTS.SHORT);
   return healthApi.get(apiPath('/health'));
 };
 
@@ -191,7 +192,7 @@ export const exportNetworkCheckResult = (resultId, format) =>
 // Popeye scanning
 export const startPopeyeScan = scanData => {
   // Use extended timeout for Popeye scans
-  const popeyeApi = createApiWithTimeout(30000);
+  const popeyeApi = createApiWithTimeout(API_TIMEOUTS.LONG);
 
   return popeyeApi.post(apiPath('/popeye/scan'), scanData);
 };

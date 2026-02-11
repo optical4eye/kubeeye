@@ -203,6 +203,16 @@ externalSecret:
 | `KUBEEYE_POPEYE_PATH` | Путь к исполняемому файлу Popeye | `/usr/local/bin/popeye` |
 | `KUBEEYE_POPEYE_TIMEOUT` | Таймаут выполнения сканирования Popeye (секунды) | `300` |
 | `KUBEEYE_POPEYE_DEFAULT_FORMAT` | Формат вывода для Popeye | `html` |
+| `KUBEEYE_JWT_SECRET_KEY` | Секретный ключ для подписи JWT токенов (обязательно изменить в production) | `your-secret-key-change-in-production` |
+| `KUBEEYE_JWT_ALGORITHM` | Алгоритм шифрования JWT токенов | `HS256` |
+| `KUBEEYE_JWT_ACCESS_TOKEN_EXPIRE_HOURS` | Срок действия access токена в часах | `24` |
+| `KUBEEYE_ADMIN_USERNAME` | Имя пользователя администратора | `admin` |
+| `KUBEEYE_ADMIN_EMAIL` | Email администратора | `admin@kubeeye.local` |
+| `KUBEEYE_ADMIN_PASSWORD` | Пароль администратора (обязательно изменить в production) | `admin123` |
+| `KUBEEYE_MAX_FAILED_LOGIN_ATTEMPTS` | Максимальное количество неудачных попыток входа перед блокировкой | `5` |
+| `KUBEEYE_ACCOUNT_LOCK_DURATION_MINUTES` | Длительность блокировки аккаунта в минутах | `30` |
+| `KUBEEYE_AUDIT_ENABLED` | Включить/отключить логирование аудита | `True` |
+| `KUBEEYE_AUDIT_RETENTION_DAYS` | Количество дней хранения логов аудита | `14` |
 
 ## Правила безопасности
 

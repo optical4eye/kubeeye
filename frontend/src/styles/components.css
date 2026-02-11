@@ -30,44 +30,6 @@
   transition: all 0.2s ease;
 }
 
-/* Mobile menu button - visible only on small screens */
-.mobile-menu-button {
-  display: none;
-}
-
-/* Desktop collapse button - hidden on small screens */
-.desktop-collapse-button {
-  display: block;
-}
-
-/* Responsive styles for mobile */
-@media (max-width: 768px) {
-  .mobile-menu-button {
-    display: block;
-  }
-
-  .desktop-collapse-button {
-    display: none;
-  }
-
-  .sidebar-sider {
-    display: none;
-  }
-
-  .header-content {
-    padding: 0 var(--ant-padding-sm) !important;
-  }
-
-  .header-title {
-    font-size: var(--ant-font-size) !important;
-  }
-
-  /* Hide breadcrumbs on mobile */
-  .kube-margin-left-8.kube-margin-right-8 {
-    display: none;
-  }
-}
-
 /* Breadcrumb improvements */
 .ant-breadcrumb {
   font-size: var(--ant-font-size-sm);
@@ -186,8 +148,81 @@
   color: var(--ant-color-text-secondary);
 }
 
+/* Collapsed sidebar styles - hide selected items and show only icons */
+.ant-layout-sider-collapsed .ant-menu-submenu-arrow {
+  display: none !important;
+}
+
 .ant-menu-submenu-open > .ant-menu-submenu-title > .ant-menu-submenu-arrow {
   transform: rotate(180deg);
+}
+
+/* Collapsed sidebar styles - hide selected items and show only icons */
+.ant-layout-sider-collapsed .ant-menu-item-selected {
+  background-color: transparent !important;
+}
+
+.ant-layout-sider-collapsed .ant-menu-item-selected::after {
+  display: none;
+}
+
+.ant-layout-sider-collapsed .ant-menu-item-icon,
+.ant-layout-sider-collapsed .ant-menu-submenu-title .ant-menu-item-icon {
+  margin: 0 !important;
+  font-size: var(--ant-font-size-lg);
+}
+
+/* Hide submenu content when collapsed */
+.ant-layout-sider-collapsed .ant-menu-submenu > .ant-menu {
+  display: none !important;
+}
+
+/* Hide all menu items (children) when collapsed */
+.ant-layout-sider-collapsed .ant-menu-item {
+  display: none !important;
+}
+
+/* Show only parent menu items (groups) when collapsed */
+.ant-layout-sider-collapsed .ant-menu-submenu {
+  display: block !important;
+}
+
+.ant-layout-sider-collapsed .ant-menu-submenu-title {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 48px !important;
+}
+
+.ant-layout-sider-collapsed .ant-menu-submenu-title .ant-menu-title-content {
+  display: none !important;
+}
+
+/* Hide all menu items inside submenus when collapsed */
+.ant-layout-sider-collapsed .ant-menu-submenu .ant-menu-item {
+  display: none !important;
+}
+
+/* Hide all submenu content when collapsed */
+.ant-layout-sider-collapsed .ant-menu-submenu .ant-menu-submenu {
+  display: none !important;
+}
+
+/* Hide all menu items that are not submenu titles when collapsed */
+.ant-layout-sider-collapsed .ant-menu-root > .ant-menu-item {
+  display: none !important;
+}
+
+/* Hide all menu items that are not submenu titles when collapsed */
+.ant-layout-sider-collapsed .ant-menu-inline > .ant-menu-item {
+  display: none !important;
+}
+
+/* Hide all menu items inside submenus when collapsed */
+.ant-layout-sider-collapsed .ant-menu-inline .ant-menu-submenu .ant-menu-item {
+  display: none !important;
 }
 
 /* Menu group separator */
@@ -469,79 +504,10 @@
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
-/* Mobile-first responsive design following Ant Design breakpoint system */
+/* Desktop-only responsive design following Ant Design breakpoint system */
 /* Breakpoints match Ant Design: xs (<576px), sm (≥576px), md (≥768px), lg (≥992px), xl (≥1200px), xxl (≥1600px) */
 
-/* xs: <576px - base mobile styles */
-@media (max-width: 575.98px) {
-  .content-area {
-    padding: var(--ant-padding-sm);
-  }
-
-  .logo {
-    height: var(--ant-margin-xl);
-    font-size: var(--ant-font-size-lg);
-  }
-
-  .header-status {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--ant-margin-xs);
-  }
-
-  .modal-medium,
-  .modal-large {
-    width: 95vw;
-    max-width: none;
-  }
-
-  .grid-auto-fit {
-    grid-template-columns: 1fr;
-  }
-
-  .flex-space-between {
-    flex-direction: column;
-    gap: var(--ant-margin-sm);
-  }
-}
-
-/* sm: ≥576px */
-@media (min-width: 576px) {
-  /* Add sm-specific styles if needed */
-}
-
-/* md: ≥768px */
-@media (min-width: 768px) {
-  .content-area {
-    padding: var(--ant-padding);
-  }
-
-  .page-title {
-    font-size: var(--ant-font-size-xl);
-    margin-bottom: var(--ant-margin-sm);
-  }
-
-  .page-subtitle {
-    font-size: var(--ant-font-size-sm);
-    margin-bottom: var(--ant-margin);
-  }
-
-  .header-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--ant-margin-sm);
-  }
-
-  .header-title {
-    font-size: var(--ant-font-size);
-  }
-
-  .dashboard-row .ant-col {
-    margin-bottom: var(--ant-margin);
-  }
-}
-
-/* lg: ≥992px */
+/* lg: ≥992px - default desktop styles */
 @media (min-width: 992px) {
   .content-area {
     padding: var(--ant-padding-lg) clamp(var(--ant-padding), 5vw, var(--ant-padding-xxxl));
