@@ -7,4 +7,4 @@ Centralized version definition to avoid duplication
 
 __all__ = ["VERSION"]
 
-VERSION = "3.3.0"
+VERSION = "3.4.33"

@@ -18,7 +18,7 @@ const VersionDisplay: React.FC<VersionDisplayProps> = ({ version }) => {
         opacity: 0.7,
       }}
     >
-      ver. {version}
+      v{version}
     </div>
   );
 };

@@ -13,10 +13,6 @@ import {
   Popconfirm,
   Card,
   Alert,
-  Statistic,
-  Row,
-  Col,
-  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -62,11 +58,6 @@ const SecretManagement: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null);
-  const [revealModalVisible, setRevealModalVisible] = useState(false);
-  const [revealedSecret, setRevealedSecret] = useState<{ data: string; secret: Secret } | null>(
-    null
-  );
-  const [revealLoading, setRevealLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [form] = Form.useForm<SecretFormData>();
 
@@ -112,22 +103,6 @@ const SecretManagement: React.FC = () => {
       fetchSecrets();
     } catch {
       messageApi.error(t('secrets.messages.deleteFailed'));
-    }
-  };
-
-  const handleReveal = async (id: number) => {
-    setRevealLoading(true);
-    try {
-      const response = await axios.post(`/api/secrets/${id}/reveal`);
-      setRevealedSecret({
-        data: response.data.data,
-        secret: response.data,
-      });
-      setRevealModalVisible(true);
-    } catch {
-      messageApi.error(t('secrets.messages.revealFailed'));
-    } finally {
-      setRevealLoading(false);
     }
   };
 
@@ -244,14 +219,6 @@ const SecretManagement: React.FC = () => {
       key: 'actions',
       render: (_: unknown, record: Secret) => (
         <Space size="small" wrap>
-          <Tooltip title={t('secrets.actions.view')}>
-            <Button
-              type="text"
-              className="action-button"
-              icon={<EyeOutlined />}
-              onClick={() => handleReveal(record.id)}
-            />
-          </Tooltip>
           <Tooltip title={t('secrets.actions.test')}>
             <Button
               type="text"
@@ -391,61 +358,6 @@ const SecretManagement: React.FC = () => {
               <TextArea rows={3} placeholder={t('secrets.form.descriptionPlaceholder')} />
             </Form.Item>
           </Form>
-        </Modal>
-
-        <Modal
-          title={t('secrets.viewModal.title')}
-          open={revealModalVisible}
-          onCancel={() => {
-            setRevealModalVisible(false);
-            setRevealedSecret(null);
-          }}
-          footer={[
-            <Button key="close" onClick={() => setRevealModalVisible(false)}>
-              {t('secrets.viewModal.close')}
-            </Button>,
-          ]}
-          width="90vw"
-        >
-          {revealLoading ? (
-            <Spin size="large" />
-          ) : revealedSecret ? (
-            <div>
-              <Card title={t('secrets.viewModal.stats')} className="margin-bottom-space-4">
-                <Row gutter={16}>
-                  <Col xs={24} sm={12} md={6}>
-                    <Statistic
-                      title={t('secrets.viewModal.dataLength')}
-                      value={revealedSecret.data.length}
-                    />
-                  </Col>
-                  <Col xs={24} sm={12} md={6}>
-                    <Statistic
-                      title={t('secrets.viewModal.lines')}
-                      value={revealedSecret.data.split('\n').length}
-                    />
-                  </Col>
-                </Row>
-              </Card>
-
-              <Card title={t('secrets.viewModal.secretData')}>
-                <TextArea
-                  value={revealedSecret.data}
-                  rows={15}
-                  readOnly
-                  style={{ fontFamily: 'monospace', width: '100%' }}
-                />
-              </Card>
-
-              <Alert
-                message={t('secrets.viewModal.warning')}
-                description={t('secrets.viewModal.warningDescription')}
-                type="warning"
-                showIcon
-                className="margin-top-space-4"
-              />
-            </div>
-          ) : null}
         </Modal>
       </div>
     </>
