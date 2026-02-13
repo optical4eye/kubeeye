@@ -93,11 +93,6 @@ function App() {
       label: t('menu.clusters'),
     },
     {
-      key: '/secrets',
-      icon: <LockOutlined />,
-      label: t('menu.secrets'),
-    },
-    {
       key: '/network',
       icon: <WifiOutlined />,
       label: t('menu.network'),

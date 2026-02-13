@@ -41,10 +41,11 @@ const secretTypeColorMap: Record<string, string> = {
 };
 
 // Utility functions for status tags
-export const getStatusTag = (status: string, text?: string) => {
+export const getStatusTag = (status: string | null | undefined, text?: string) => {
   const normalizedStatus = status?.toLowerCase() || 'unknown';
   const color = statusColorMap[normalizedStatus] || 'default';
-  const displayText = text || status || 'Unknown';
+  // Only use text if it's a string, otherwise use status or 'Unknown'
+  const displayText = typeof text === 'string' ? text : (status || 'Unknown');
   return <Tag color={color}>{displayText}</Tag>;
 };
 
