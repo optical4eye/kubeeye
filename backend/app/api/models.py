@@ -296,13 +296,6 @@ class TokenResponse(BaseModel):
     user: "UserResponse"
 
 
-class ChangePasswordRequest(BaseModel):
-    """Change password request model"""
-
-    old_password: str
-    new_password: str = Field(..., min_length=6)
-
-
 class UserResponse(BaseModel):
     """User response model"""
 

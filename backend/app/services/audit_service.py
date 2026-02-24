@@ -29,6 +29,7 @@ class AuditService:
         action: str,
         resource_type: Optional[str] = None,
         resource_id: Optional[str] = None,
+        resource_name: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
@@ -44,6 +45,7 @@ class AuditService:
             action: Action type
             resource_type: Type of resource affected
             resource_id: ID of resource affected
+            resource_name: Human-readable name of resource affected
             details: Additional details
             ip_address: Client IP address
             user_agent: Client user agent
@@ -66,6 +68,7 @@ class AuditService:
                     "action": action,
                     "resource_type": resource_type,
                     "resource_id": resource_id,
+                    "resource_name": resource_name,
                     "details": details,
                     "ip_address": ip_address,
                     "user_agent": user_agent,
@@ -76,7 +79,7 @@ class AuditService:
 
             logger.debug(
                 f"Audit log created: user={username}, action={action}, "
-                f"resource={resource_type}:{resource_id}, status={status}"
+                f"resource={resource_type}:{resource_id}:{resource_name}, status={status}"
             )
 
             return audit_log
@@ -211,6 +214,7 @@ class AuditService:
             user_id=user_id,
             username=username,
             action=AuditAction.LOGIN,
+            resource_type="auth",
             ip_address=ip_address,
             user_agent=user_agent,
             status=AuditStatus.SUCCESS if success else AuditStatus.FAILURE,
@@ -233,28 +237,10 @@ class AuditService:
             Created audit log
         """
         return await self.log_action(
-            user_id=user_id, username=username, action=AuditAction.LOGOUT, ip_address=ip_address, user_agent=user_agent
-        )
-
-    async def log_password_change(
-        self, user_id: int, username: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None
-    ) -> Optional[AuditLog]:
-        """
-        Log password change action
-
-        Args:
-            user_id: User ID
-            username: Username
-            ip_address: Client IP address
-            user_agent: Client user agent
-
-        Returns:
-            Created audit log
-        """
-        return await self.log_action(
             user_id=user_id,
             username=username,
-            action=AuditAction.PASSWORD_CHANGE,
+            action=AuditAction.LOGOUT,
+            resource_type="auth",
             ip_address=ip_address,
             user_agent=user_agent,
         )
@@ -290,6 +276,7 @@ class AuditService:
             action=action,
             resource_type="cluster",
             resource_id=cluster_name,
+            resource_name=cluster_name,
             details=details,
             ip_address=ip_address,
             user_agent=user_agent,
@@ -301,6 +288,7 @@ class AuditService:
         username: str,
         action: str,
         inspection_id: Optional[str] = None,
+        inspection_name: Optional[str] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
@@ -313,6 +301,7 @@ class AuditService:
             username: Username
             action: Action type (run, delete)
             inspection_id: Inspection ID
+            inspection_name: Inspection name
             ip_address: Client IP address
             user_agent: Client user agent
             details: Additional details
@@ -326,6 +315,7 @@ class AuditService:
             action=action,
             resource_type="inspection",
             resource_id=inspection_id,
+            resource_name=inspection_name,
             details=details,
             ip_address=ip_address,
             user_agent=user_agent,

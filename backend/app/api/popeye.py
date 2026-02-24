@@ -102,6 +102,11 @@ async def cancel_popeye_task(task_id: str, current_user: User = Depends(get_curr
         logger.info(f"Cancelling Popeye task: {validated_task_id}")
 
         task_queue = await get_task_queue()
+
+        # Get task info before cancellation for audit log
+        task_status = await task_queue.get_task_status(validated_task_id)
+        task_name = task_status.get("cluster_name", validated_task_id) if task_status else validated_task_id
+
         cancelled = await task_queue.cancel_task(validated_task_id)
 
         if not cancelled:
@@ -111,6 +116,22 @@ async def cancel_popeye_task(task_id: str, current_user: User = Depends(get_curr
             )
 
         logger.info(f"Popeye task cancelled successfully: {validated_task_id}")
+
+        # Log audit with resource name (cluster name)
+        from db.database_context import with_db_session
+        from services.audit_service import AuditService
+
+        async with with_db_session() as db:
+            audit_service = AuditService(db)
+            await audit_service.log_action(
+                user_id=current_user.id,
+                username=current_user.username,
+                action="delete",
+                resource_type="popeye_task",
+                resource_id=validated_task_id,
+                resource_name=task_name,
+            )
+
         return {"message": "Popeye task cancelled successfully"}
 
     except HTTPException:

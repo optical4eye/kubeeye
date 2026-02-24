@@ -120,6 +120,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             "/openapi.json",
             "/health",
             "/api/auth/login",
+            "/api/auth/logout",
             "/api/auth/me",
             "/api/audit/logs",
             "/api/audit/stats",
@@ -179,7 +180,11 @@ class AuditMiddleware(BaseHTTPMiddleware):
         if user_id and username:
             try:
                 # Extract action and resource info from path
-                action, resource_type, resource_id = self._extract_action_info(method, path)
+                action, resource_type, resource_id, resource_name = self._extract_action_info(method, path)
+
+                # Check if endpoint set resource_name in request.state
+                if hasattr(request.state, "audit_resource_name"):
+                    resource_name = request.state.audit_resource_name
 
                 # Only log if action is in the allowed list
                 if action:
@@ -209,6 +214,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                             action=action,
                             resource_type=resource_type,
                             resource_id=resource_id,
+                            resource_name=resource_name,
                             ip_address=ip_address,
                             user_agent=user_agent,
                             status=status,
@@ -242,16 +248,16 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
         return False
 
-    def _extract_action_info(self, method: str, path: str) -> tuple[str | None, str | None, str | None]:
+    def _extract_action_info(self, method: str, path: str) -> tuple[str | None, str | None, str | None, str | None]:
         """
-        Extract action, resource type and resource ID from request
+        Extract action, resource type, resource ID and resource name from request
 
         Args:
             method: HTTP method
             path: Request path
 
         Returns:
-            Tuple of (action, resource_type, resource_id)
+            Tuple of (action, resource_type, resource_id, resource_name)
         """
         # Parse path
         parts = path.strip("/").split("/")
@@ -260,6 +266,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
         action = "unknown"
         resource_type = None
         resource_id = None
+        resource_name = None  # Human-readable name (same as ID for most resources)
 
         # Extract resource type and ID
         if len(parts) >= 2:
@@ -273,63 +280,36 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 # Extract resource ID if present
                 if len(parts) >= 2:
                     resource_id = parts[1]
+                    # For most resources, the ID is also the name
+                    resource_name = resource_id
 
         # Determine action based on method and resource
-        # Only log specific actions
+        # Only log actions that are NOT explicitly logged in endpoints with resource_name
+        # Secrets, clusters, users, tasks, reports are logged explicitly in endpoints
         if resource_type == "auth":
             if "login" in path:
                 action = "login"
             elif "logout" in path:
                 action = "logout"
-            elif "change-password" in path:
-                action = "password_change"
         elif resource_type == "inspection":
             if "async" in path and method == "POST":
-                action = "inspection_run"
+                action = "run"
             elif method == "POST":
-                action = "inspection_create"
+                action = "create"
             elif method == "DELETE":
-                action = "inspection_delete"
+                action = "delete"
         elif resource_type == "report":
+            # Only report create is logged here, report delete is logged in endpoint
             if method == "POST":
-                action = "report_create"
-            elif method == "DELETE":
-                action = "report_delete"
-        elif resource_type == "secret":
-            if method == "POST":
-                action = "secret_create"
-            elif method in ("PUT", "PATCH"):
-                action = "secret_update"
-            elif method == "DELETE":
-                action = "secret_delete"
-        elif resource_type == "user":
-            if method == "POST":
-                action = "user_create"
-            elif method in ("PUT", "PATCH"):
-                action = "user_update"
-            elif method == "DELETE":
-                action = "user_delete"
-        elif resource_type == "cluster":
-            if method == "POST":
-                action = "cluster_create"
-            elif method in ("PUT", "PATCH"):
-                action = "cluster_update"
-            elif method == "DELETE":
-                action = "cluster_delete"
-        elif resource_type == "task":
-            if "run" in path and method == "POST":
-                action = "task_run"
-            elif method == "POST":
-                action = "task_create"
-            elif method == "DELETE":
-                action = "task_delete"
+                action = "create"
         elif resource_type == "network-check" and method == "POST":
-            action = "network_check"
+            action = "check"
         elif resource_type == "popeye" and method == "POST":
-            action = "popeye_scan"
+            action = "scan"
+        # Note: secrets, clusters, users, tasks are logged explicitly in endpoints with resource_name
 
         # Return None for action if it's not in the allowed list
         if action == "unknown":
             action = None
 
-        return action, resource_type, resource_id
+        return action, resource_type, resource_id, resource_name

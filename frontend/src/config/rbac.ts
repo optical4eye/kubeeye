@@ -84,7 +84,6 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
   { path: '/help/security', allowedRoles: ['admin', 'operator'] },
   { path: '/help/kubeconfig', allowedRoles: ['admin', 'operator'] },
   { path: '/help/api', allowedRoles: ['admin', 'operator'] },
-  { path: '/change-password', allowedRoles: ['admin', 'operator'] },
 ];
 
 /**

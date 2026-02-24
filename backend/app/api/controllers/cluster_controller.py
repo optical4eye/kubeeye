@@ -8,12 +8,19 @@ from fastapi import APIRouter, Depends
 from typing import Optional, Dict, Any
 
 from api.models import ClusterCreate, NodesTestRequest, KubeconfigTestRequest, GetNodesFromKubeconfigRequest
-from api.unified_middleware import api_error_handler, validate_cluster_name_decorator
+from api.unified_middleware import (
+    api_error_handler,
+    validate_cluster_name_decorator,
+    set_resource_context,
+    audit_resource,
+)
 from api.dependencies import get_current_user
 from db.models.user import User
+from db.database import get_db
 from services.cluster_service import ClusterService
 from core.common.unified_validation import validate_cluster_name
 from core.rbac import Permission, require_permission
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -91,10 +98,16 @@ async def get_clusters(
 )
 @api_error_handler
 @require_permission(Permission.CLUSTER_CREATE)
+@audit_resource(
+    res_type="cluster",
+    resource_name_param="cluster_name",
+    resource_id_param="cluster_name",
+)
 async def create_cluster(
     cluster: ClusterCreate,
     current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
+    db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Create a new cluster configuration.
@@ -105,7 +118,12 @@ async def create_cluster(
     Returns:
         Dict with success message and cluster details
     """
-    return await service.create_cluster(cluster.model_dump())
+    # Set resource context for middleware logging
+    set_resource_context(name=cluster.name, type="cluster", id=cluster.name)
+
+    result = await service.create_cluster(cluster.model_dump())
+
+    return result
 
 
 @router.put(
@@ -117,11 +135,17 @@ async def create_cluster(
 @api_error_handler
 @validate_cluster_name_decorator
 @require_permission(Permission.CLUSTER_UPDATE)
+@audit_resource(
+    res_type="cluster",
+    resource_id_param="cluster_name",
+    resource_name_param="cluster_name",
+)
 async def update_cluster(
     cluster_name: str,
     cluster: ClusterCreate,
     current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
+    db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Update cluster configuration.
@@ -133,7 +157,9 @@ async def update_cluster(
     Returns:
         Dict with success message
     """
-    return await service.update_cluster(cluster_name, cluster.model_dump())
+    result = await service.update_cluster(cluster_name, cluster.model_dump())
+
+    return result
 
 
 @router.delete(
@@ -145,10 +171,16 @@ async def update_cluster(
 @api_error_handler
 @validate_cluster_name_decorator
 @require_permission(Permission.CLUSTER_DELETE)
+@audit_resource(
+    res_type="cluster",
+    resource_id_param="cluster_name",
+    resource_name_param="cluster_name",
+)
 async def remove_cluster(
     cluster_name: str,
     current_user: User = Depends(get_current_user),
     service: ClusterService = Depends(get_cluster_service),
+    db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Delete a cluster configuration.
@@ -159,7 +191,9 @@ async def remove_cluster(
     Returns:
         Dict with success message
     """
-    return await service.delete_cluster(cluster_name)
+    result = await service.delete_cluster(cluster_name)
+
+    return result
 
 
 @router.get(

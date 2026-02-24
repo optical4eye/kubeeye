@@ -57,7 +57,12 @@ class AuditLogRepository(BaseRepository[AuditLog]):
             # Apply filters
             conditions = []
             if user_id:
-                conditions.append(AuditLog.user_id == user_id)
+                try:
+                    user_id_int = int(user_id)
+                    conditions.append(AuditLog.user_id == user_id_int)
+                except (ValueError, TypeError):
+                    # Invalid user_id format, skip this filter
+                    pass
             if username:
                 conditions.append(AuditLog.username.ilike(f"%{username}%"))
             if action:

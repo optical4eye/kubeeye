@@ -11,66 +11,30 @@ import uuid
 
 
 class AuditAction:
-    """Audit action types"""
+    """Audit action types - simple action names, resource type stored separately"""
 
     LOGIN = "login"
     LOGOUT = "logout"
-    PASSWORD_CHANGE = "password_change"
-    USER_CREATE = "user_create"
-    USER_UPDATE = "user_update"
-    USER_DELETE = "user_delete"
-    CLUSTER_CREATE = "cluster_create"
-    CLUSTER_UPDATE = "cluster_update"
-    CLUSTER_DELETE = "cluster_delete"
-    INSPECTION_RUN = "inspection_run"
-    INSPECTION_DELETE = "inspection_delete"
-    REPORT_VIEW = "report_view"
-    REPORT_EXPORT = "report_export"
-    REPORT_DELETE = "report_delete"
-    SECRET_CREATE = "secret_create"
-    SECRET_UPDATE = "secret_update"
-    SECRET_DELETE = "secret_delete"
-    RULE_UPDATE = "rule_update"
-    GITOPS_SYNC = "gitops_sync"
-    TASK_CREATE = "task_create"
-    TASK_UPDATE = "task_update"
-    TASK_DELETE = "task_delete"
-    TASK_RUN = "task_run"
-    NETWORK_CHECK = "network_check"
-    POPEYE_SCAN = "popeye_scan"
-    CLEANUP_RUN = "cleanup_run"
-    QUEUE_CLEAR = "queue_clear"
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    READ = "read"
+    RUN = "run"
+    CHECK = "check"
+    SCAN = "scan"
 
     @classmethod
     def all(cls):
         return [
             cls.LOGIN,
             cls.LOGOUT,
-            cls.PASSWORD_CHANGE,
-            cls.USER_CREATE,
-            cls.USER_UPDATE,
-            cls.USER_DELETE,
-            cls.CLUSTER_CREATE,
-            cls.CLUSTER_UPDATE,
-            cls.CLUSTER_DELETE,
-            cls.INSPECTION_RUN,
-            cls.INSPECTION_DELETE,
-            cls.REPORT_VIEW,
-            cls.REPORT_EXPORT,
-            cls.REPORT_DELETE,
-            cls.SECRET_CREATE,
-            cls.SECRET_UPDATE,
-            cls.SECRET_DELETE,
-            cls.RULE_UPDATE,
-            cls.GITOPS_SYNC,
-            cls.TASK_CREATE,
-            cls.TASK_UPDATE,
-            cls.TASK_DELETE,
-            cls.TASK_RUN,
-            cls.NETWORK_CHECK,
-            cls.POPEYE_SCAN,
-            cls.CLEANUP_RUN,
-            cls.QUEUE_CLEAR,
+            cls.CREATE,
+            cls.UPDATE,
+            cls.DELETE,
+            cls.READ,
+            cls.RUN,
+            cls.CHECK,
+            cls.SCAN,
         ]
 
 
@@ -96,6 +60,7 @@ class AuditLog(BaseModel):
     action = Column(String(50), nullable=False, index=True)
     resource_type = Column(String(50), nullable=True, index=True)
     resource_id = Column(String(255), nullable=True)
+    resource_name = Column(String(255), nullable=True)  # Human-readable resource name
     details = Column(JSON, nullable=True)
     ip_address = Column(String(45), nullable=True)  # IPv6 compatible
     user_agent = Column(String(500), nullable=True)
@@ -114,6 +79,7 @@ class AuditLog(BaseModel):
             "action": self.action,
             "resource_type": self.resource_type,
             "resource_id": self.resource_id,
+            "resource_name": self.resource_name,
             "details": self.details,
             "ip_address": self.ip_address,
             "user_agent": self.user_agent,

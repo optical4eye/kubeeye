@@ -5,6 +5,8 @@ Scheduled tasks routes
 """
 
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from db.database import get_db
 from .models import ScheduledTaskCreate
 from infra.dependency_injection.container import get_service
 from core.common.schedule_utils import calculate_next_run
@@ -12,6 +14,7 @@ from core.common.metrics import count_requests, time_operation
 from core.common.unified_validation import validate_task_id
 from api.dependencies import get_current_user
 from db.models.user import User
+from services.audit_service import AuditService
 from core.rbac import Permission, require_permission
 
 router = APIRouter()
@@ -69,7 +72,11 @@ async def get_scheduled_task(task_id: str, current_user: User = Depends(get_curr
 @count_requests("scheduled_tasks_create")
 @time_operation("api_create_scheduled_task")
 @require_permission(Permission.SCHEDULE_CREATE)
-async def create_scheduled_task(task: ScheduledTaskCreate, current_user: User = Depends(get_current_user)):
+async def create_scheduled_task(
+    task: ScheduledTaskCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Create scheduled task"""
     try:
         import time
@@ -91,6 +98,17 @@ async def create_scheduled_task(task: ScheduledTaskCreate, current_user: User = 
         created_task = await task_manager.create_task(task_data)
 
         if created_task:
+            # Log audit with resource name
+            audit_service = AuditService(db)
+            await audit_service.log_action(
+                user_id=current_user.id,
+                username=current_user.username,
+                action="create",
+                resource_type="task",
+                resource_id=created_task["task_id"],
+                resource_name=task.name,
+            )
+
             return {"message": "Task created successfully", "task_id": created_task["task_id"]}
         else:
             raise HTTPException(status_code=500, detail="Failed to create task")
@@ -104,14 +122,34 @@ async def create_scheduled_task(task: ScheduledTaskCreate, current_user: User = 
 @count_requests("scheduled_tasks_delete")
 @time_operation("api_delete_scheduled_task")
 @require_permission(Permission.SCHEDULE_DELETE)
-async def remove_scheduled_task(task_id: str, current_user: User = Depends(get_current_user)):
+async def remove_scheduled_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Delete scheduled task"""
     try:
         # Validate task_id parameter using centralized validation
         validated_task_id = validate_task_id(task_id)
 
         task_manager = await get_service("task_manager")
+
+        # Get task name before deletion
+        task = await task_manager.get_task(validated_task_id)
+        task_name = task.get("name", validated_task_id) if task else validated_task_id
+
         if await task_manager.delete_task(validated_task_id):
+            # Log audit with resource name
+            audit_service = AuditService(db)
+            await audit_service.log_action(
+                user_id=current_user.id,
+                username=current_user.username,
+                action="delete",
+                resource_type="task",
+                resource_id=validated_task_id,
+                resource_name=task_name,
+            )
+
             return {"message": f"Task {validated_task_id} deleted"}
         else:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -125,16 +163,36 @@ async def remove_scheduled_task(task_id: str, current_user: User = Depends(get_c
 @count_requests("scheduled_tasks_run")
 @time_operation("api_run_scheduled_task")
 @require_permission(Permission.TASK_RUN)
-async def run_scheduled_task(task_id: str, current_user: User = Depends(get_current_user)):
+async def run_scheduled_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Run scheduled task"""
     try:
         # Validate task_id parameter using centralized validation
         validated_task_id = validate_task_id(task_id)
 
         task_manager = await get_service("task_manager")
+
+        # Get task name for audit
+        task = await task_manager.get_task(validated_task_id)
+        task_name = task.get("name", validated_task_id) if task else validated_task_id
+
         result = await task_manager.run_task_now(validated_task_id)
 
         if result["success"]:
+            # Log audit with resource name
+            audit_service = AuditService(db)
+            await audit_service.log_action(
+                user_id=current_user.id,
+                username=current_user.username,
+                action="run",
+                resource_type="task",
+                resource_id=validated_task_id,
+                resource_name=task_name,
+            )
+
             return {"message": result["message"], "results": result.get("results")}
         else:
             raise HTTPException(status_code=500, detail=result["message"])
@@ -149,7 +207,10 @@ async def run_scheduled_task(task_id: str, current_user: User = Depends(get_curr
 @time_operation("api_update_scheduled_task")
 @require_permission(Permission.SCHEDULE_UPDATE)
 async def update_scheduled_task(
-    task_id: str, task: ScheduledTaskCreate, current_user: User = Depends(get_current_user)
+    task_id: str,
+    task: ScheduledTaskCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """Update scheduled task"""
     try:
@@ -171,6 +232,16 @@ async def update_scheduled_task(
 
         task_manager = await get_service("task_manager")
         if await task_manager.update_task(validated_task_id, update_data):
+            # Log audit with resource name
+            audit_service = AuditService(db)
+            await audit_service.log_action(
+                user_id=current_user.id,
+                username=current_user.username,
+                action="update",
+                resource_type="task",
+                resource_id=validated_task_id,
+                resource_name=task.name,
+            )
             return {"message": "Task updated successfully"}
         else:
             raise HTTPException(status_code=404, detail="Task not found")

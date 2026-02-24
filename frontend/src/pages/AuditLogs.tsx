@@ -94,11 +94,11 @@ const AuditLogsPage: React.FC = () => {
 
   const columns = [
     {
-      title: t('auditLogs.id'),
-      dataIndex: 'id',
-      key: 'id',
-      width: 250,
-      render: (id: string) => <span style={{ fontSize: '12px' }}>{id.substring(0, 8)}...</span>,
+      title: t('auditLogs.date'),
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 180,
+      render: (date: string) => new Date(date).toLocaleString('ru-RU'),
     },
     {
       title: t('auditLogs.user'),
@@ -110,31 +110,18 @@ const AuditLogsPage: React.FC = () => {
       title: t('auditLogs.action'),
       dataIndex: 'action',
       key: 'action',
-      width: 150,
+      width: 120,
       render: (action: string) => {
         const actionLabels: Record<string, string> = {
           login: t('auditLogs.actionTypes.login'),
           logout: t('auditLogs.actionTypes.logout'),
-          password_change: t('auditLogs.actionTypes.passwordChange'),
-          user_create: t('auditLogs.actionTypes.userCreate'),
-          user_update: t('auditLogs.actionTypes.userUpdate'),
-          user_delete: t('auditLogs.actionTypes.userDelete'),
-          cluster_create: t('auditLogs.actionTypes.clusterCreate'),
-          cluster_update: t('auditLogs.actionTypes.clusterUpdate'),
-          cluster_delete: t('auditLogs.actionTypes.clusterDelete'),
-          inspection_run: t('auditLogs.actionTypes.inspectionRun'),
-          inspection_create: t('auditLogs.actionTypes.inspectionCreate'),
-          inspection_delete: t('auditLogs.actionTypes.inspectionDelete'),
-          report_create: t('auditLogs.actionTypes.reportCreate'),
-          report_delete: t('auditLogs.actionTypes.reportDelete'),
-          secret_create: t('auditLogs.actionTypes.secretCreate'),
-          secret_update: t('auditLogs.actionTypes.secretUpdate'),
-          secret_delete: t('auditLogs.actionTypes.secretDelete'),
-          task_run: t('auditLogs.actionTypes.taskRun'),
-          task_create: t('auditLogs.actionTypes.taskCreate'),
-          task_delete: t('auditLogs.actionTypes.taskDelete'),
-          network_check: t('auditLogs.actionTypes.networkCheck'),
-          popeye_scan: t('auditLogs.actionTypes.popeyeScan'),
+          create: t('auditLogs.actionTypes.create'),
+          update: t('auditLogs.actionTypes.update'),
+          delete: t('auditLogs.actionTypes.delete'),
+          read: t('auditLogs.actionTypes.read'),
+          run: t('auditLogs.actionTypes.run'),
+          check: t('auditLogs.actionTypes.check'),
+          scan: t('auditLogs.actionTypes.scan'),
         };
         return actionLabels[action] || action;
       },
@@ -144,13 +131,35 @@ const AuditLogsPage: React.FC = () => {
       dataIndex: 'resource_type',
       key: 'resource_type',
       width: 120,
+      render: (resourceType: string) => {
+        const resourceTypeLabels: Record<string, string> = {
+          auth: t('auditLogs.resourceTypes.auth'),
+          user: t('auditLogs.resourceTypes.user'),
+          cluster: t('auditLogs.resourceTypes.cluster'),
+          secret: t('auditLogs.resourceTypes.secret'),
+          task: t('auditLogs.resourceTypes.task'),
+          report: t('auditLogs.resourceTypes.report'),
+          inspection: t('auditLogs.resourceTypes.inspection'),
+          inspection_task: t('auditLogs.resourceTypes.inspectionTask'),
+          popeye_task: t('auditLogs.resourceTypes.popeyeTask'),
+          network_check: t('auditLogs.resourceTypes.networkCheck'),
+        };
+        return resourceTypeLabels[resourceType] || resourceType;
+      },
     },
     {
-      title: t('auditLogs.resourceId'),
-      dataIndex: 'resource_id',
-      key: 'resource_id',
+      title: t('auditLogs.resourceName'),
+      dataIndex: 'resource_name',
+      key: 'resource_name',
       width: 150,
-      render: (id: string | undefined) => id || '-',
+      render: (name: string | undefined) => name || '-',
+    },
+    {
+      title: t('auditLogs.ipAddress'),
+      dataIndex: 'ip_address',
+      key: 'ip_address',
+      width: 130,
+      render: (ip: string | undefined) => ip || '-',
     },
     {
       title: t('auditLogs.status'),
@@ -162,13 +171,6 @@ const AuditLogsPage: React.FC = () => {
           {status === 'success' ? t('auditLogs.statusSuccess') : t('auditLogs.statusFailure')}
         </Tag>
       ),
-    },
-    {
-      title: t('auditLogs.date'),
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 180,
-      render: (date: string) => new Date(date).toLocaleString('ru-RU'),
     },
   ];
 
@@ -234,32 +236,37 @@ const AuditLogsPage: React.FC = () => {
 
           <Select
             placeholder={t('auditLogs.filters.action')}
-            style={{ width: 180 }}
+            style={{ width: 150 }}
             onChange={value => handleFilterChange('action', value)}
             allowClear
           >
             <Option value="login">{t('auditLogs.actionTypes.login')}</Option>
             <Option value="logout">{t('auditLogs.actionTypes.logout')}</Option>
-            <Option value="password_change">{t('auditLogs.actionTypes.passwordChange')}</Option>
-            <Option value="user_create">{t('auditLogs.actionTypes.userCreate')}</Option>
-            <Option value="user_update">{t('auditLogs.actionTypes.userUpdate')}</Option>
-            <Option value="user_delete">{t('auditLogs.actionTypes.userDelete')}</Option>
-            <Option value="cluster_create">{t('auditLogs.actionTypes.clusterCreate')}</Option>
-            <Option value="cluster_update">{t('auditLogs.actionTypes.clusterUpdate')}</Option>
-            <Option value="cluster_delete">{t('auditLogs.actionTypes.clusterDelete')}</Option>
-            <Option value="inspection_run">{t('auditLogs.actionTypes.inspectionRun')}</Option>
-            <Option value="inspection_create">{t('auditLogs.actionTypes.inspectionCreate')}</Option>
-            <Option value="inspection_delete">{t('auditLogs.actionTypes.inspectionDelete')}</Option>
-            <Option value="report_create">{t('auditLogs.actionTypes.reportCreate')}</Option>
-            <Option value="report_delete">{t('auditLogs.actionTypes.reportDelete')}</Option>
-            <Option value="secret_create">{t('auditLogs.actionTypes.secretCreate')}</Option>
-            <Option value="secret_update">{t('auditLogs.actionTypes.secretUpdate')}</Option>
-            <Option value="secret_delete">{t('auditLogs.actionTypes.secretDelete')}</Option>
-            <Option value="task_run">{t('auditLogs.actionTypes.taskRun')}</Option>
-            <Option value="task_create">{t('auditLogs.actionTypes.taskCreate')}</Option>
-            <Option value="task_delete">{t('auditLogs.actionTypes.taskDelete')}</Option>
-            <Option value="popeye_scan">{t('auditLogs.actionTypes.popeyeScan')}</Option>
-            <Option value="network_check">{t('auditLogs.actionTypes.networkCheck')}</Option>
+            <Option value="create">{t('auditLogs.actionTypes.create')}</Option>
+            <Option value="update">{t('auditLogs.actionTypes.update')}</Option>
+            <Option value="delete">{t('auditLogs.actionTypes.delete')}</Option>
+            <Option value="read">{t('auditLogs.actionTypes.read')}</Option>
+            <Option value="run">{t('auditLogs.actionTypes.run')}</Option>
+            <Option value="check">{t('auditLogs.actionTypes.check')}</Option>
+            <Option value="scan">{t('auditLogs.actionTypes.scan')}</Option>
+          </Select>
+
+          <Select
+            placeholder={t('auditLogs.filters.resourceType')}
+            style={{ width: 150 }}
+            onChange={value => handleFilterChange('resource_type', value)}
+            allowClear
+          >
+            <Option value="auth">{t('auditLogs.resourceTypes.auth')}</Option>
+            <Option value="user">{t('auditLogs.resourceTypes.user')}</Option>
+            <Option value="cluster">{t('auditLogs.resourceTypes.cluster')}</Option>
+            <Option value="secret">{t('auditLogs.resourceTypes.secret')}</Option>
+            <Option value="task">{t('auditLogs.resourceTypes.task')}</Option>
+            <Option value="report">{t('auditLogs.resourceTypes.report')}</Option>
+            <Option value="inspection">{t('auditLogs.resourceTypes.inspection')}</Option>
+            <Option value="inspection_task">{t('auditLogs.resourceTypes.inspectionTask')}</Option>
+            <Option value="popeye_task">{t('auditLogs.resourceTypes.popeyeTask')}</Option>
+            <Option value="network_check">{t('auditLogs.resourceTypes.networkCheck')}</Option>
           </Select>
 
           <Select

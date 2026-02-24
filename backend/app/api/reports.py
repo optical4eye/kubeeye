@@ -174,10 +174,26 @@ async def delete_report(report_id: str, current_user: User = Depends(get_current
         validated_report_id = validate_task_id(report_id)
 
         from db.repositories.inspection_result_repository import InspectionResultRepository
+        from services.audit_service import AuditService
 
         async with with_db_session() as db:
             repo = InspectionResultRepository(db)
+
+            # Get report info before deletion for audit log
+            report = await repo.get_by_result_id(validated_report_id)
+            report_name = report.cluster_name if report else validated_report_id
+
             if await repo.delete_by_result_id(validated_report_id):
+                # Log audit with resource name (cluster name)
+                audit_service = AuditService(db)
+                await audit_service.log_action(
+                    user_id=current_user.id,
+                    username=current_user.username,
+                    action="delete",
+                    resource_type="report",
+                    resource_id=validated_report_id,
+                    resource_name=report_name,
+                )
                 return {"message": f"Report {validated_report_id} deleted"}
             raise HTTPException(status_code=404, detail="Report not found")
     except HTTPException:

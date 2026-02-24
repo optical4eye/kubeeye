@@ -60,6 +60,12 @@ class StructuredFormatter:
             log_entry["user_id"] = user_id.get()
         if cluster_name.get():
             log_entry["cluster_name"] = cluster_name.get()
+        if resource_name.get():
+            log_entry["resource_name"] = resource_name.get()
+        if resource_type.get():
+            log_entry["resource_type"] = resource_type.get()
+        if resource_id.get():
+            log_entry["resource_id"] = resource_id.get()
 
         # Add extra fields from record
         if hasattr(record, "extra_fields") and record.extra_fields:
@@ -80,6 +86,12 @@ except ImportError:
 request_id: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
 user_id: ContextVar[Optional[str]] = ContextVar("user_id", default=None)
 cluster_name: ContextVar[Optional[str]] = ContextVar("cluster_name", default=None)
+resource_name: ContextVar[Optional[str]] = ContextVar("resource_name", default=None)
+resource_type: ContextVar[Optional[str]] = ContextVar("resource_type", default=None)
+resource_id: ContextVar[Optional[str]] = ContextVar("resource_id", default=None)
+# Client connection info (set by middleware)
+client_ip: ContextVar[Optional[str]] = ContextVar("client_ip", default=None)
+client_user_agent: ContextVar[Optional[str]] = ContextVar("client_user_agent", default=None)
 
 
 def structured_formatter(record):

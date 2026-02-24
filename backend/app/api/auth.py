@@ -16,7 +16,6 @@ from services.audit_service import AuditService
 from api.models import (
     LoginRequest,
     TokenResponse,
-    ChangePasswordRequest,
     UserResponse,
     UserCreateRequest,
     UserUpdateRequest,
@@ -137,52 +136,6 @@ async def logout(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
-@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
-@require_permission(Permission.USER_CHANGE_PASSWORD)
-async def change_password(
-    request: ChangePasswordRequest,
-    http_request: Request,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Change current user password (only for local users)
-
-    Requires authentication
-    """
-    audit_service = AuditService(db)
-    ip_address = http_request.client.host if http_request.client else None
-    user_agent = http_request.headers.get("user-agent")
-
-    try:
-        # Check if user is local
-        if not current_user.is_local():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Password change is not available for LDAP users"
-            )
-
-        auth_service = AuthService(db)
-        success = await auth_service.change_password(
-            user_id=current_user.id, old_password=request.old_password, new_password=request.new_password
-        )
-
-        if not success:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid old password")
-
-        # Log password change
-        await audit_service.log_password_change(
-            user_id=current_user.id,
-            username=current_user.username,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Change password error: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
-
-
 @router.get("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """
@@ -247,6 +200,7 @@ async def update_user(
     """
     try:
         user_repo = UserRepository(db)
+        audit_service = AuditService(db)
 
         # Check if user exists
         user = await user_repo.get_by_id(user_id)
@@ -271,6 +225,16 @@ async def update_user(
         # Update user
         updated_user = await user_repo.update(user_id, update_data)
 
+        # Log audit with resource name
+        await audit_service.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action="update",
+            resource_type="user",
+            resource_id=str(user_id),
+            resource_name=user.username,
+        )
+
         logger.info(f"User {user_id} updated by admin")
 
         return UserResponse.model_validate(updated_user)
@@ -291,6 +255,7 @@ async def delete_user(user_id: int, current_user: User = Depends(get_current_use
     """
     try:
         user_repo = UserRepository(db)
+        audit_service = AuditService(db)
 
         # Check if user exists
         user = await user_repo.get_by_id(user_id)
@@ -303,6 +268,16 @@ async def delete_user(user_id: int, current_user: User = Depends(get_current_use
 
         # Delete user
         await user_repo.delete(user_id)
+
+        # Log audit with resource name
+        await audit_service.log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action="delete",
+            resource_type="user",
+            resource_id=str(user_id),
+            resource_name=user.username,
+        )
 
         logger.info(f"User {user_id} deleted by admin")
     except HTTPException:

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dropdown, Avatar, Space, Typography, Button } from 'antd';
-import { UserOutlined, LogoutOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
@@ -13,10 +13,6 @@ const UserMenu: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
-  };
-
-  const handleChangePassword = () => {
-    navigate('/change-password');
   };
 
   const menuItems = [
@@ -35,12 +31,6 @@ const UserMenu: React.FC = () => {
     },
     {
       type: 'divider',
-    },
-    {
-      key: 'change-password',
-      icon: <LockOutlined />,
-      label: 'Change Password',
-      onClick: handleChangePassword,
     },
     {
       key: 'logout',

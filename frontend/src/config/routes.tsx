@@ -5,7 +5,6 @@ import React, { lazy } from 'react';
  */
 export const Dashboard = lazy(() => import('../pages/Dashboard'));
 export const Login = lazy(() => import('../pages/Login'));
-export const ChangePassword = lazy(() => import('../pages/ChangePassword'));
 export const ClusterManagement = lazy(() => import('../pages/ClusterManagement'));
 export const AddCluster = lazy(() => import('../pages/AddCluster'));
 export const Inspection = lazy(() => import('../pages/Inspection'));
@@ -67,7 +66,6 @@ export const protectedRoutes: RouteConfig[] = [
   { path: '/help/security', component: HelpSecurity, requiresAuth: true },
   { path: '/help/kubeconfig', component: HelpKubeconfig, requiresAuth: true },
   { path: '/help/api', component: HelpApi, requiresAuth: true },
-  { path: '/change-password', component: ChangePassword, requiresAuth: true },
   { path: '/users', component: UserManagement, requiresAuth: true, protected: true },
   { path: '/audit-logs', component: AuditLogs, requiresAuth: true, protected: true },
 ];

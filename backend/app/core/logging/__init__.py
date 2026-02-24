@@ -25,6 +25,11 @@ from .enhanced_logging import (
     request_id,
     user_id,
     cluster_name,
+    resource_name,
+    resource_type,
+    resource_id,
+    client_ip,
+    client_user_agent,
 )
 
 __all__ = [
@@ -49,4 +54,9 @@ __all__ = [
     "request_id",
     "user_id",
     "cluster_name",
+    "resource_name",
+    "resource_type",
+    "resource_id",
+    "client_ip",
+    "client_user_agent",
 ]

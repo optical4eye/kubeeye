@@ -274,10 +274,26 @@ async def delete_network_check_result(result_id: str, current_user: User = Depen
         # Try to delete from database first
         try:
             from db.repositories.inspection_result_repository import InspectionResultRepository
+            from services.audit_service import AuditService
 
             async with with_db_session() as db:
                 repo = InspectionResultRepository(db)
+
+                # Get result info before deletion for audit log
+                result = await repo.get_by_result_id(validated_result_id)
+                result_name = result.cluster_name if result else validated_result_id
+
                 if await repo.delete_by_result_id(validated_result_id):
+                    # Log audit with resource name (cluster name)
+                    audit_service = AuditService(db)
+                    await audit_service.log_action(
+                        user_id=current_user.id,
+                        username=current_user.username,
+                        action="delete",
+                        resource_type="network_check",
+                        resource_id=validated_result_id,
+                        resource_name=result_name,
+                    )
                     return {"message": f"Network check result {validated_result_id} deleted"}
                 raise HTTPException(status_code=404, detail="Network check result not found")
         except Exception as e:

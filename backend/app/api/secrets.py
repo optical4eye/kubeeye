@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator, StringConstraints, Confi
 
 from db.database import get_db
 from infra.security.secret_service import SecretService
-from .unified_middleware import api_error_handler
+from .unified_middleware import api_error_handler, set_resource_context, audit_resource
 from api.dependencies import get_current_user
 from db.models.user import User
 from core.logging import get_logger
@@ -177,6 +177,11 @@ async def get_secret(
 @router.post("/secrets", response_model=SecretResponse, status_code=status.HTTP_201_CREATED)
 @api_error_handler
 @require_permission(Permission.SECRET_CREATE)
+@audit_resource(
+    res_type="secret",
+    resource_name_extractor=lambda result: result.name,
+    resource_id_extractor=lambda result: str(result.id),
+)
 async def create_secret(
     secret_data: SecretCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
@@ -199,6 +204,7 @@ async def create_secret(
             description=secret_data.description,
             secret_metadata=secret_data.secret_metadata,
         )
+
         return SecretResponse.model_validate(secret)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -207,6 +213,12 @@ async def create_secret(
 @router.put("/secrets/{secret_id}", response_model=SecretResponse)
 @api_error_handler
 @require_permission(Permission.SECRET_UPDATE)
+@audit_resource(
+    res_type="secret",
+    resource_id_param="secret_id",
+    resource_name_extractor=lambda result: result.name,
+    resource_id_extractor=lambda result: str(result.id),
+)
 async def update_secret(
     secret_id: int,
     secret_data: SecretUpdate,
@@ -234,6 +246,7 @@ async def update_secret(
             secret_metadata=secret_data.secret_metadata,
             is_active=secret_data.is_active,
         )
+
         return SecretResponse.model_validate(secret)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -242,6 +255,10 @@ async def update_secret(
 @router.delete("/secrets/{secret_id}")
 @api_error_handler
 @require_permission(Permission.SECRET_DELETE)
+@audit_resource(
+    res_type="secret",
+    resource_id_param="secret_id",
+)
 async def delete_secret(
     secret_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
@@ -251,6 +268,13 @@ async def delete_secret(
     - **secret_id**: ID of the secret to delete
     """
     service = SecretService(db)
+
+    # Get secret name before deletion for logging
+    secret = await service.get_secret(secret_id)
+    secret_name = secret.name if secret else str(secret_id)
+
+    # Set resource context for middleware logging (before deletion)
+    set_resource_context(name=secret_name, type="secret", id=str(secret_id))
 
     success = await service.delete_secret(secret_id)
 
