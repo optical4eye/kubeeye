@@ -1,8 +1,7 @@
 #!/bin/bash
 # LDAP Initialization Script
 # This script waits for OpenLDAP to start and applies the bootstrap LDIF
-
-set -e
+# Since LDAP data is not persisted, this runs on every container restart
 
 LDAP_HOST="${LDAP_HOST:-openldap}"
 LDAP_PORT="${LDAP_PORT:-389}"
@@ -28,23 +27,67 @@ if [ $attempt -eq $max_attempts ]; then
     exit 1
 fi
 
-echo "Checking if LDAP needs initialization..."
-existing_entries=$(ldapsearch -x -H "ldap://${LDAP_HOST}:${LDAP_PORT}" -b "dc=kubeeye,dc=local" "(objectClass=*)" dn 2>/dev/null | grep -c "^dn:" || echo "0")
+# Function to check if specific user exists (with authentication)
+check_user_exists() {
+    local user_dn="$1"
+    ldapsearch -x -H "ldap://${LDAP_HOST}:${LDAP_PORT}" \
+        -D "${LDAP_ADMIN_DN}" \
+        -w "${LDAP_ADMIN_PASSWORD}" \
+        -b "$user_dn" -s base "(objectClass=*)" dn 2>/dev/null | grep -q "^dn:"
+}
 
-if [ "$existing_entries" -gt 0 ]; then
-    echo "LDAP already initialized ($existing_entries entries found), skipping..."
+# Check if already initialized
+echo "Checking if LDAP is already initialized..."
+if check_user_exists "uid=ldapadmin,ou=users,dc=kubeeye,dc=local"; then
+    echo "LDAP already initialized, skipping..."
     exit 0
 fi
 
-echo "Applying bootstrap LDIF..."
-ldapadd -x -H "ldap://${LDAP_HOST}:${LDAP_PORT}" \
-    -D "${LDAP_ADMIN_DN}" \
-    -w "${LDAP_ADMIN_PASSWORD}" \
-    -f "${LDIF_FILE}"
+echo "LDAP needs initialization..."
 
-if [ $? -eq 0 ]; then
+# Apply LDIF with retry (use -c to continue on "already exists" errors)
+max_retries=5
+retry=0
+
+while [ $retry -lt $max_retries ]; do
+    echo "Applying bootstrap LDIF (attempt $((retry + 1))/$max_retries)..."
+
+    # Use -c to continue on errors like "already exists"
+    output=$(ldapadd -x -c -H "ldap://${LDAP_HOST}:${LDAP_PORT}" \
+        -D "${LDAP_ADMIN_DN}" \
+        -w "${LDAP_ADMIN_PASSWORD}" \
+        -f "${LDIF_FILE}" 2>&1)
+
+    # Check if there were any real errors (not just "already exists")
+    if echo "$output" | grep -q "adding new entry"; then
+        echo "$output"
+        echo "LDIF applied successfully!"
+        break
+    elif echo "$output" | grep -v "Already exists" | grep -q "ldap_add:"; then
+        echo "$output"
+        retry=$((retry + 1))
+        if [ $retry -lt $max_retries ]; then
+            echo "Failed to apply LDIF, retrying in 3 seconds..."
+            sleep 3
+        else
+            echo "ERROR: Failed to apply LDIF after all retries"
+            exit 1
+        fi
+    else
+        echo "$output"
+        echo "Entries already exist, skipping..."
+        break
+    fi
+done
+
+# Verify initialization
+echo "Verifying LDAP initialization..."
+sleep 1
+
+if check_user_exists "uid=ldapadmin,ou=users,dc=kubeeye,dc=local"; then
     echo "LDAP initialization completed successfully!"
+    exit 0
 else
-    echo "ERROR: Failed to apply LDIF"
+    echo "WARNING: User 'ldapadmin' was not found"
     exit 1
 fi

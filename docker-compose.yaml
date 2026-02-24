@@ -29,10 +29,16 @@ services:
     ports:
       - "389:389"
       - "636:636"
-    volumes:
-      #- ./ldap_config:/etc/ldap/slapd.d
-      - ./ldap_init/50-bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/50-bootstrap.ldif
-      #- ./ldap_data:/var/lib/ldap
+    # Use tmpfs for LDAP data to ensure it's recreated on container restart
+    # Note: Config directory must persist for slapd to start properly
+    tmpfs:
+      - /var/lib/ldap
+    healthcheck:
+      test: ["CMD", "ldapsearch", "-x", "-H", "ldap://localhost:389", "-b", "", "-s", "base", "(objectclass=*)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   # LDAP initialization container - applies LDIF after OpenLDAP starts
@@ -40,7 +46,8 @@ services:
     image: osixia/openldap:1.5.0
     container_name: kubeeye-ldap-init
     depends_on:
-      - openldap
+      openldap:
+        condition: service_healthy
     volumes:
       - ./ldap_init.sh:/ldap_init.sh:ro
       - ./ldap_init/50-bootstrap.ldif:/ldif/50-bootstrap.ldif:ro

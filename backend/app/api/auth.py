@@ -49,12 +49,12 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
 
     Returns access token
     """
+    audit_service = AuditService(db)
+    ip_address = http_request.client.host if http_request.client else None
+    user_agent = http_request.headers.get("user-agent")
+
     try:
         auth_service = AuthService(db)
-
-        # Get client info
-        ip_address = http_request.client.host if http_request.client else None
-        user_agent = http_request.headers.get("user-agent")
 
         # Authenticate user with explicit auth_type if provided
         user = await auth_service.authenticate_user(
@@ -66,10 +66,28 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
         )
 
         if not user:
+            # Log failed login attempt
+            await audit_service.log_login(
+                user_id=0,
+                username=request.username,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                success=False,
+                error_message="Invalid username or password",
+            )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
 
         # Create tokens
         tokens = await auth_service.create_tokens(user=user, ip_address=ip_address, user_agent=user_agent)
+
+        # Log successful login
+        await audit_service.log_login(
+            user_id=user.id,
+            username=user.username,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            success=True,
+        )
 
         # Add user info to response
         tokens["user"] = UserResponse.model_validate(user)
@@ -79,17 +97,41 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
         raise
     except Exception as e:
         logger.error(f"Login error: {e}")
+        # Log failed login attempt
+        await audit_service.log_login(
+            user_id=0,
+            username=request.username,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            success=False,
+            error_message=str(e),
+        )
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(db: AsyncSession = Depends(get_db)):
+async def logout(
+    http_request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """
     Logout user (clears access token from client)
     """
     try:
-        # Access token will be cleared by client
-        logger.info("User logged out successfully")
+        audit_service = AuditService(db)
+        ip_address = http_request.client.host if http_request.client else None
+        user_agent = http_request.headers.get("user-agent")
+
+        # Log logout action
+        await audit_service.log_logout(
+            user_id=current_user.id,
+            username=current_user.username,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        logger.info(f"User '{current_user.username}' logged out successfully")
     except Exception as e:
         logger.error(f"Logout error: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
@@ -98,13 +140,20 @@ async def logout(db: AsyncSession = Depends(get_db)):
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
 @require_permission(Permission.USER_CHANGE_PASSWORD)
 async def change_password(
-    request: ChangePasswordRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    request: ChangePasswordRequest,
+    http_request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Change current user password (only for local users)
 
     Requires authentication
     """
+    audit_service = AuditService(db)
+    ip_address = http_request.client.host if http_request.client else None
+    user_agent = http_request.headers.get("user-agent")
+
     try:
         # Check if user is local
         if not current_user.is_local():
@@ -119,6 +168,14 @@ async def change_password(
 
         if not success:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid old password")
+
+        # Log password change
+        await audit_service.log_password_change(
+            user_id=current_user.id,
+            username=current_user.username,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
     except HTTPException:
         raise
     except Exception as e:
