@@ -76,7 +76,7 @@ const Login: React.FC = () => {
             <Segmented
               options={authTypeOptions}
               value={authType}
-              onChange={(value) => setAuthType(value as AuthType)}
+              onChange={value => setAuthType(value as AuthType)}
               block
             />
           </div>
@@ -93,7 +93,13 @@ const Login: React.FC = () => {
             name="username"
             rules={[{ required: true, message: 'Please input your username!' }]}
             tooltip={
-              <Tooltip title={authType === 'ldap' ? 'Enter your LDAP username' : 'Enter your registered username'}>
+              <Tooltip
+                title={
+                  authType === 'ldap'
+                    ? 'Enter your LDAP username'
+                    : 'Enter your registered username'
+                }
+              >
                 <QuestionCircleOutlined />
               </Tooltip>
             }
@@ -105,7 +111,11 @@ const Login: React.FC = () => {
             name="password"
             rules={[{ required: true, message: 'Please input your password!' }]}
             tooltip={
-              <Tooltip title={authType === 'ldap' ? 'Enter your LDAP password' : 'Enter your account password'}>
+              <Tooltip
+                title={
+                  authType === 'ldap' ? 'Enter your LDAP password' : 'Enter your account password'
+                }
+              >
                 <QuestionCircleOutlined />
               </Tooltip>
             }

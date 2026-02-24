@@ -8,7 +8,7 @@ export interface User {
   username: string;
   email: string;
   role: string;
-  auth_type: string;  // 'local' or 'ldap'
+  auth_type: string; // 'local' or 'ldap'
   is_active: boolean;
   created_at: string;
   last_login_at?: string;

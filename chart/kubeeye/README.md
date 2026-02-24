@@ -189,6 +189,7 @@ externalSecret:
 | `KUBEEYE_GITOPS_REPO_USERNAME` | Пользователь GitOps | `optical4eye` |
 | `KUBEEYE_GITOPS_REPO_TOKEN` | Токен GitOps | `""` |
 | `KUBEEYE_GITOPS_REPO_DESCRIPTION` | Описание репозитория правил GitOps | `kubeeye repo rules` |
+| `KUBEEYE_GITOPS_SYNC_INTERVAL` | Интервал синхронизации GitOps в секундах (по умолчанию: 5 минут) | `300` |
 | `GIT_SSL_NO_VERIFY` | Отключает проверку SSL сертификатов в Git | `None` |
 | `NODE_INSPECTOR_MAX_WORKERS` | Максимальное количество параллельных потоков для инспекции узлов | `5` |
 | `NODE_INSPECTOR_TIMEOUT` | Таймаут выполнения команды на узле (секунды) | `30` |
@@ -213,6 +214,18 @@ externalSecret:
 | `KUBEEYE_ACCOUNT_LOCK_DURATION_MINUTES` | Длительность блокировки аккаунта в минутах | `30` |
 | `KUBEEYE_AUDIT_ENABLED` | Включить/отключить логирование аудита | `True` |
 | `KUBEEYE_AUDIT_RETENTION_DAYS` | Количество дней хранения логов аудита | `14` |
+| `KUBEEYE_LDAP_ENABLED` | Включить/отключить LDAP аутентификацию | `False` |
+| `KUBEEYE_LDAP_SERVER_URL` | URL LDAP сервера | `ldap://localhost:389` |
+| `KUBEEYE_LDAP_USE_SSL` | Использовать SSL для LDAP соединения | `False` |
+| `KUBEEYE_LDAP_BIND_DN` | DN для связывания с LDAP сервером | `""` |
+| `KUBEEYE_LDAP_BIND_PASSWORD` | Пароль для LDAP bind | `""` |
+| `KUBEEYE_LDAP_BASE_DN` | Базовый DN для поиска пользователей | `""` |
+| `KUBEEYE_LDAP_GROUP_BASE_DN` | Базовый DN для поиска групп | `""` |
+| `KUBEEYE_LDAP_ADMIN_GROUP` | LDAP группа для роли admin | `""` |
+| `KUBEEYE_LDAP_OPERATOR_GROUP` | LDAP группа для роли operator | `""` |
+| `KUBEEYE_LDAP_USER_FILTER` | Фильтр поиска пользователей LDAP | `(uid={username})` |
+| `KUBEEYE_LDAP_TYPE` | Тип LDAP сервера: `openldap` или `ad` | `openldap` |
+| `KUBEEYE_LDAP_AD_DOMAIN` | Домен Active Directory (только для типа `ad`) | `None` |
 
 ## Правила безопасности
 

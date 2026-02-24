@@ -215,7 +215,7 @@ const ScheduledInspection = () => {
       title: t('scheduledInspection.status'),
       dataIndex: 'last_status',
       key: 'last_status',
-      render: (status) => getStatusTag(status),
+      render: status => getStatusTag(status),
     },
     {
       title: t('scheduledInspection.enabled'),

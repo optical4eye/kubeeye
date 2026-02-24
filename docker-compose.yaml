@@ -35,6 +35,23 @@ services:
       #- ./ldap_data:/var/lib/ldap
     restart: unless-stopped
 
+  # LDAP initialization container - applies LDIF after OpenLDAP starts
+  ldap-init:
+    image: osixia/openldap:1.5.0
+    container_name: kubeeye-ldap-init
+    depends_on:
+      - openldap
+    volumes:
+      - ./ldap_init.sh:/ldap_init.sh:ro
+      - ./ldap_init/50-bootstrap.ldif:/ldif/50-bootstrap.ldif:ro
+    environment:
+      - LDAP_HOST=openldap
+      - LDAP_PORT=389
+      - LDAP_ADMIN_DN=cn=admin,dc=kubeeye,dc=local
+      - LDAP_ADMIN_PASSWORD=admin
+    entrypoint: ["/bin/bash", "/ldap_init.sh"]
+    restart: "no"
+
   # # phpLDAPadmin - web interface for LDAP management
   # phpldapadmin:
   #   image: osixia/phpldapadmin:0.9.0
@@ -105,8 +122,12 @@ services:
     volumes:
       - ./data:/app/data
     depends_on:
-      - postgres
-      - openldap
+      postgres:
+        condition: service_healthy
+      ldap-init:
+        condition: service_completed_successfully
+      openldap:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://backend:8000/"]
       interval: 30s

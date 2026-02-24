@@ -10,10 +10,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from db.repositories.user_repository import UserRepository
-from db.models.user import User, AuthType
+from db.models.user import User
 from services.auth_service import AuthService
 from services.audit_service import AuditService
-from core.security.password_service import password_service
 from api.models import (
     LoginRequest,
     TokenResponse,
@@ -39,10 +38,8 @@ async def get_ldap_status():
     Returns whether LDAP is enabled and configured
     """
     from infra.security.ldap_service import ldap_service
-    return {
-        "enabled": ldap_service.is_enabled(),
-        "available": ldap_service.is_enabled()
-    }
+
+    return {"enabled": ldap_service.is_enabled(), "available": ldap_service.is_enabled()}
 
 
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
@@ -65,7 +62,7 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
             password=request.password,
             ip_address=ip_address,
             user_agent=user_agent,
-            auth_type=request.auth_type
+            auth_type=request.auth_type,
         )
 
         if not user:
@@ -112,8 +109,7 @@ async def change_password(
         # Check if user is local
         if not current_user.is_local():
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password change is not available for LDAP users"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Password change is not available for LDAP users"
             )
 
         auth_service = AuthService(db)
@@ -175,7 +171,7 @@ async def create_user(
     """
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Local user creation is disabled. Users are created automatically via LDAP authentication."
+        detail="Local user creation is disabled. Users are created automatically via LDAP authentication.",
     )
 
 

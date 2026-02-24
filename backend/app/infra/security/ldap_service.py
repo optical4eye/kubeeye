@@ -17,6 +17,7 @@ logger = get_logger(__name__)
 @dataclass
 class LDAPUser:
     """LDAP user information"""
+
     username: str
     email: str
     display_name: str
@@ -44,7 +45,7 @@ class LDAPService:
             "display_name": "displayName",
             "group_member": "member",
             "group_name": "cn",
-        }
+        },
     }
 
     def __init__(self):
@@ -67,11 +68,7 @@ class LDAPService:
 
     def _get_server(self) -> Server:
         """Create LDAP server connection"""
-        return Server(
-            self.server_url,
-            use_ssl=self.use_ssl,
-            get_info=ALL
-        )
+        return Server(self.server_url, use_ssl=self.use_ssl, get_info=ALL)
 
     def _get_connection(self, user_dn: str = None, password: str = None) -> Optional[Connection]:
         """
@@ -99,11 +96,7 @@ class LDAPService:
                 authentication = SIMPLE
 
             connection = Connection(
-                server,
-                user=bind_dn,
-                password=bind_password,
-                authentication=authentication,
-                auto_bind=True
+                server, user=bind_dn, password=bind_password, authentication=authentication, auto_bind=True
             )
 
             return connection
@@ -134,8 +127,13 @@ class LDAPService:
                 search_base=self.base_dn,
                 search_filter=search_filter,
                 search_scope=SUBTREE,
-                attributes=[self.attributes["username"], self.attributes["email"],
-                           self.attributes["display_name"], "memberOf", "distinguishedName"]
+                attributes=[
+                    self.attributes["username"],
+                    self.attributes["email"],
+                    self.attributes["display_name"],
+                    "memberOf",
+                    "distinguishedName",
+                ],
             )
 
             if len(conn.entries) == 0:
@@ -149,7 +147,7 @@ class LDAPService:
                 "username": str(getattr(entry, self.attributes["username"], username)),
                 "email": str(getattr(entry, self.attributes["email"], "")),
                 "display_name": str(getattr(entry, self.attributes["display_name"], username)),
-                "groups": self._get_user_groups(entry)
+                "groups": self._get_user_groups(entry),
             }
         except LDAPException as e:
             logger.error(f"LDAP search error: {e}")
@@ -194,7 +192,7 @@ class LDAPService:
                 search_base=self.group_base_dn,
                 search_filter=search_filter,
                 search_scope=SUBTREE,
-                attributes=[self.attributes["group_name"]]
+                attributes=[self.attributes["group_name"]],
             )
 
             return [entry.entry_dn for entry in conn.entries]
@@ -255,7 +253,7 @@ class LDAPService:
                 email=user_data["email"] or f"{username}@kubeeye.local",
                 display_name=user_data["display_name"] or username,
                 dn=user_dn,
-                groups=groups
+                groups=groups,
             )
 
         except LDAPException as e:

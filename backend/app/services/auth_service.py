@@ -27,8 +27,12 @@ class AuthService:
         self.user_repo = UserRepository(session)
 
     async def authenticate_user(
-        self, username: str, password: str, ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None, auth_type: Optional[str] = None
+        self,
+        username: str,
+        password: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        auth_type: Optional[str] = None,
     ) -> Optional[User]:
         """
         Authenticate user with username and password
@@ -198,15 +202,17 @@ class AuthService:
 
         # Create user in database
         try:
-            user = await self.user_repo.create({
-                "username": username,
-                "email": ldap_user.email,
-                "password_hash": None,  # No password for LDAP users
-                "role": role,
-                "auth_type": AuthType.LDAP,
-                "ldap_dn": ldap_user.dn,
-                "is_active": True
-            })
+            user = await self.user_repo.create(
+                {
+                    "username": username,
+                    "email": ldap_user.email,
+                    "password_hash": None,  # No password for LDAP users
+                    "role": role,
+                    "auth_type": AuthType.LDAP,
+                    "ldap_dn": ldap_user.dn,
+                    "is_active": True,
+                }
+            )
 
             # Update last login
             await self.user_repo.update_last_login(user.id)

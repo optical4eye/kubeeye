@@ -79,6 +79,30 @@ backend:
       value: "admin123"
     - name: KUBEEYE_JWT_SECRET_KEY
       value: "Uk5E9obf53tnXAcunvlBUKqF9d2JF12fqz2dzipHHQl"
+    - name: KUBEEYE_LDAP_ENABLED
+      value: "false"
+    - name: KUBEEYE_LDAP_SERVER_URL
+      value: "ldap://localhost:389"
+    - name: KUBEEYE_LDAP_USE_SSL
+      value: "false"
+    - name: KUBEEYE_LDAP_BIND_DN
+      value: ""
+    - name: KUBEEYE_LDAP_BIND_PASSWORD
+      value: ""
+    - name: KUBEEYE_LDAP_BASE_DN
+      value: ""
+    - name: KUBEEYE_LDAP_GROUP_BASE_DN
+      value: ""
+    - name: KUBEEYE_LDAP_ADMIN_GROUP
+      value: ""
+    - name: KUBEEYE_LDAP_OPERATOR_GROUP
+      value: ""
+    - name: KUBEEYE_LDAP_USER_FILTER
+      value: "(uid={username})"
+    - name: KUBEEYE_LDAP_TYPE
+      value: "openldap"
+    - name: KUBEEYE_LDAP_AD_DOMAIN
+      value: ""
   resources:
     limits:
       memory: "2Gi"
