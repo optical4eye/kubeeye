@@ -1,0 +1,61 @@
+# KubeEye LDAP Bootstrap Configuration
+# This file initializes the LDAP directory structure for KubeEye authentication
+# Note: Organization (dc=kubeeye,dc=local) is created automatically by the container
+
+# Organizational Unit for users
+dn: ou=users,dc=kubeeye,dc=local
+objectClass: organizationalUnit
+ou: users
+
+# Organizational Unit for groups
+dn: ou=groups,dc=kubeeye,dc=local
+objectClass: organizationalUnit
+ou: groups
+
+# KubeEye Administrators Group
+dn: cn=kubeeye-admins,ou=groups,dc=kubeeye,dc=local
+objectClass: groupOfNames
+cn: kubeeye-admins
+description: KubeEye Administrators Group
+member: uid=ldapadmin,ou=users,dc=kubeeye,dc=local
+
+# KubeEye Operators Group
+dn: cn=kubeeye-operators,ou=groups,dc=kubeeye,dc=local
+objectClass: groupOfNames
+cn: kubeeye-operators
+description: KubeEye Operators Group
+member: uid=operator1,ou=users,dc=kubeeye,dc=local
+
+# Test Administrator User
+dn: uid=ldapadmin,ou=users,dc=kubeeye,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: ldapadmin
+sn: Admin
+givenName: LDAP
+cn: LDAP Admin
+displayName: LDAP Administrator
+uidNumber: 10001
+gidNumber: 10001
+userPassword: ldapadmin123
+loginShell: /bin/bash
+homeDirectory: /home/ldapadmin
+mail: ldapadmin@kubeeye.local
+
+# Test Operator User
+dn: uid=operator1,ou=users,dc=kubeeye,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: operator1
+sn: Operator
+givenName: Test
+cn: Test Operator
+displayName: Test Operator
+uidNumber: 10002
+gidNumber: 10002
+userPassword: operator123
+loginShell: /bin/bash
+homeDirectory: /home/operator1
+mail: operator1@kubeeye.local

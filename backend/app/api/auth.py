@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from db.repositories.user_repository import UserRepository
-from db.models.user import User
+from db.models.user import User, AuthType
 from services.auth_service import AuthService
 from services.audit_service import AuditService
 from core.security.password_service import password_service
@@ -31,6 +31,20 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
+@router.get("/ldap-status", status_code=status.HTTP_200_OK)
+async def get_ldap_status():
+    """
+    Get LDAP authentication status
+
+    Returns whether LDAP is enabled and configured
+    """
+    from infra.security.ldap_service import ldap_service
+    return {
+        "enabled": ldap_service.is_enabled(),
+        "available": ldap_service.is_enabled()
+    }
+
+
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def login(request: LoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
     """
@@ -45,9 +59,13 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
         ip_address = http_request.client.host if http_request.client else None
         user_agent = http_request.headers.get("user-agent")
 
-        # Authenticate user
+        # Authenticate user with explicit auth_type if provided
         user = await auth_service.authenticate_user(
-            username=request.username, password=request.password, ip_address=ip_address, user_agent=user_agent
+            username=request.username,
+            password=request.password,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            auth_type=request.auth_type
         )
 
         if not user:
@@ -86,11 +104,18 @@ async def change_password(
     request: ChangePasswordRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
     """
-    Change current user password
+    Change current user password (only for local users)
 
     Requires authentication
     """
     try:
+        # Check if user is local
+        if not current_user.is_local():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password change is not available for LDAP users"
+            )
+
         auth_service = AuthService(db)
         success = await auth_service.change_password(
             user_id=current_user.id, old_password=request.old_password, new_password=request.new_password
@@ -135,49 +160,23 @@ async def list_users(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
+# NOTE: User creation endpoint is disabled - users are created automatically via LDAP
+# Only the default admin user (auth_type=local) can exist as a local user
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @require_permission(Permission.USER_CREATE)
 async def create_user(
     request: UserCreateRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
     """
-    Create new user
+    Create new user - DISABLED
 
-    Requires admin role
+    Local user creation is disabled. Users are automatically created via LDAP authentication.
+    Only the default admin user exists as a local user.
     """
-    try:
-        user_repo = UserRepository(db)
-
-        # Check if username exists
-        if await user_repo.username_exists(request.username):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists")
-
-        # Check if email exists
-        if await user_repo.email_exists(request.email):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists")
-
-        # Hash password
-        password_hash = password_service.hash_password(request.password)
-
-        # Create user
-        user = await user_repo.create(
-            {
-                "username": request.username,
-                "email": request.email,
-                "password_hash": password_hash,
-                "role": request.role,
-                "is_active": request.is_active,
-            }
-        )
-
-        logger.info(f"User created by admin: {request.username}")
-
-        return UserResponse.model_validate(user)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Create user error: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Local user creation is disabled. Users are created automatically via LDAP authentication."
+    )
 
 
 @router.put("/users/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK)

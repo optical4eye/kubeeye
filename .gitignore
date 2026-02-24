@@ -1,6 +1,8 @@
 # OSX leaves these everywhere on SMB shares
 ._*
 
+ldap_config
+ldap_data
 data
 postgres_data
 backend/data/

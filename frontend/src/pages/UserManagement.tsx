@@ -121,6 +121,16 @@ const UserManagement: React.FC = () => {
       render: (role: string) => <Tag color={getRoleColor(role)}>{getRoleLabel(role)}</Tag>,
     },
     {
+      title: t('userManagement.authType'),
+      dataIndex: 'auth_type',
+      key: 'auth_type',
+      render: (authType: string) => (
+        <Tag color={authType === 'ldap' ? 'blue' : 'green'}>
+          {authType === 'ldap' ? 'LDAP' : 'Local'}
+        </Tag>
+      ),
+    },
+    {
       title: t('userManagement.isActive'),
       dataIndex: 'is_active',
       key: 'is_active',

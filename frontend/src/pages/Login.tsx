@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Card, App, Typography, Tooltip } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, Card, App, Typography, Tooltip, Segmented } from 'antd';
 import { UserOutlined, LockOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -14,25 +14,49 @@ interface LoginFormData {
   password: string;
 }
 
+type AuthType = 'local' | 'ldap';
+
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  const [authType, setAuthType] = useState<AuthType>('ldap');
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, ldapStatus, fetchLdapStatus } = useAuthStore();
   const { message } = App.useApp();
   const { theme: uiTheme } = useUIStore();
+
+  useEffect(() => {
+    fetchLdapStatus();
+  }, [fetchLdapStatus]);
 
   const onFinish = async (values: LoginFormData) => {
     setLoading(true);
     try {
-      await login(values.username, values.password);
+      await login(values.username, values.password, authType);
       message.success('Login successful');
       navigate('/');
     } catch (error: any) {
-      message.error(error.response?.data?.detail || 'Login failed');
+      const errorData = error.response?.data?.detail;
+      let errorMessage = 'Login failed';
+
+      if (typeof errorData === 'string') {
+        errorMessage = errorData;
+      } else if (Array.isArray(errorData)) {
+        // Pydantic validation errors format
+        errorMessage = errorData.map((e: any) => e.msg).join(', ');
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      }
+
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  const authTypeOptions = [
+    { label: 'Local', value: 'local' },
+    { label: 'LDAP', value: 'ldap', disabled: !ldapStatus?.enabled },
+  ];
 
   return (
     <div className="login-container">
@@ -46,6 +70,18 @@ const Login: React.FC = () => {
         <Title level={2} className="login-title">
           KubeEye
         </Title>
+
+        {ldapStatus?.enabled && (
+          <div style={{ marginBottom: 24, textAlign: 'center' }}>
+            <Segmented
+              options={authTypeOptions}
+              value={authType}
+              onChange={(value) => setAuthType(value as AuthType)}
+              block
+            />
+          </div>
+        )}
+
         <Form
           name="login"
           onFinish={onFinish}
@@ -57,7 +93,7 @@ const Login: React.FC = () => {
             name="username"
             rules={[{ required: true, message: 'Please input your username!' }]}
             tooltip={
-              <Tooltip title="Enter your registered username">
+              <Tooltip title={authType === 'ldap' ? 'Enter your LDAP username' : 'Enter your registered username'}>
                 <QuestionCircleOutlined />
               </Tooltip>
             }
@@ -69,7 +105,7 @@ const Login: React.FC = () => {
             name="password"
             rules={[{ required: true, message: 'Please input your password!' }]}
             tooltip={
-              <Tooltip title="Enter your account password">
+              <Tooltip title={authType === 'ldap' ? 'Enter your LDAP password' : 'Enter your account password'}>
                 <QuestionCircleOutlined />
               </Tooltip>
             }

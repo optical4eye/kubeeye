@@ -660,6 +660,7 @@
     "username": "Имя пользователя",
     "email": "Email",
     "role": "Роль",
+    "authType": "Тип авторизации",
     "isActive": "Активен",
     "createdAt": "Создан",
     "lastLoginAt": "Последний вход",

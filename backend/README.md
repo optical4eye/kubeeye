@@ -641,6 +641,65 @@ backend/
 | `KUBEEYE_AUDIT_ENABLED` | `True` | Включить/отключить логирование аудита |
 | `KUBEEYE_AUDIT_RETENTION_DAYS` | `14` | Количество дней хранения логов аудита |
 
+### Переменные окружения для LDAP аутентификации
+
+| Переменная | По умолчанию | Описание |
+|------------|--------------|----------|
+| `KUBEEYE_LDAP_ENABLED` | `False` | Включить/отключить LDAP аутентификацию |
+| `KUBEEYE_LDAP_SERVER_URL` | `ldap://localhost:389` | URL LDAP сервера |
+| `KUBEEYE_LDAP_USE_SSL` | `False` | Использовать SSL для LDAP соединения |
+| `KUBEEYE_LDAP_BIND_DN` | `""` | DN для связывания с LDAP сервером |
+| `KUBEEYE_LDAP_BIND_PASSWORD` | `""` | Пароль для LDAP bind |
+| `KUBEEYE_LDAP_BASE_DN` | `""` | Базовый DN для поиска пользователей |
+| `KUBEEYE_LDAP_GROUP_BASE_DN` | `""` | Базовый DN для поиска групп |
+| `KUBEEYE_LDAP_ADMIN_GROUP` | `""` | LDAP группа для роли admin |
+| `KUBEEYE_LDAP_OPERATOR_GROUP` | `""` | LDAP группа для роли operator |
+| `KUBEEYE_LDAP_USER_FILTER` | `(uid={username})` | Фильтр поиска пользователей LDAP |
+| `KUBEEYE_LDAP_TYPE` | `openldap` | Тип LDAP сервера: `openldap` или `ad` |
+| `KUBEEYE_LDAP_AD_DOMAIN` | `None` | Домен Active Directory (только для типа `ad`) |
+
+#### Пример конфигурации OpenLDAP
+
+```yaml
+# docker-compose.yaml
+environment:
+  - KUBEEYE_LDAP_ENABLED=true
+  - KUBEEYE_LDAP_SERVER_URL=ldap://openldap:389
+  - KUBEEYE_LDAP_USE_SSL=false
+  - KUBEEYE_LDAP_BIND_DN=cn=admin,dc=kubeeye,dc=local
+  - KUBEEYE_LDAP_BIND_PASSWORD=admin
+  - KUBEEYE_LDAP_BASE_DN=ou=users,dc=kubeeye,dc=local
+  - KUBEEYE_LDAP_GROUP_BASE_DN=ou=groups,dc=kubeeye,dc=local
+  - KUBEEYE_LDAP_ADMIN_GROUP=cn=kubeeye-admins,ou=groups,dc=kubeeye,dc=local
+  - KUBEEYE_LDAP_OPERATOR_GROUP=cn=kubeeye-operators,ou=groups,dc=kubeeye,dc=local
+  - KUBEEYE_LDAP_USER_FILTER=(uid={username})
+  - KUBEEYE_LDAP_TYPE=openldap
+```
+
+#### Пример конфигурации Active Directory
+
+```yaml
+# docker-compose.yaml
+environment:
+  - KUBEEYE_LDAP_ENABLED=true
+  - KUBEEYE_LDAP_SERVER_URL=ldap://ad.company.local:389
+  - KUBEEYE_LDAP_USE_SSL=false
+  - KUBEEYE_LDAP_BIND_DN=CN=svc_kubeeye,OU=Service Accounts,DC=company,DC=local
+  - KUBEEYE_LDAP_BIND_PASSWORD=your-service-password
+  - KUBEEYE_LDAP_BASE_DN=OU=Users,DC=company,DC=local
+  - KUBEEYE_LDAP_GROUP_BASE_DN=OU=Groups,DC=company,DC=local
+  - KUBEEYE_LDAP_ADMIN_GROUP=CN=KubeEye-Admins,OU=Groups,DC=company,DC=local
+  - KUBEEYE_LDAP_OPERATOR_GROUP=CN=KubeEye-Operators,OU=Groups,DC=company,DC=local
+  - KUBEEYE_LDAP_USER_FILTER=(sAMAccountName={username})
+  - KUBEEYE_LDAP_TYPE=ad
+  - KUBEEYE_LDAP_AD_DOMAIN=company.local
+```
+
+**Примечания для Active Directory:**
+- Используйте `sAMAccountName` в фильтре поиска вместо `uid`
+- Укажите домен в `KUBEEYE_LDAP_AD_DOMAIN` для корректной аутентификации
+- Service account (`svc_kubeeye`) должен иметь права на чтение пользователей и групп
+
 ### Переменные окружения для инспектора узлов
 
 | Переменная | По умолчанию | Описание |

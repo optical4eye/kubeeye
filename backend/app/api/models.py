@@ -278,6 +278,14 @@ class LoginRequest(BaseModel):
 
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=6)
+    auth_type: Optional[str] = Field(None, description="Authentication type: 'local' or 'ldap'")
+
+    @field_validator("auth_type")
+    @classmethod
+    def validate_auth_type(cls, v):
+        if v is not None and v not in ("local", "ldap"):
+            raise ValueError("auth_type must be 'local' or 'ldap'")
+        return v
 
 
 class TokenResponse(BaseModel):
@@ -302,6 +310,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     role: str
+    auth_type: str = "local"  # 'local' or 'ldap'
     is_active: bool
     created_at: datetime
     last_login_at: Optional[datetime] = None

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Layout, ConfigProvider, App as AntdApp, theme as antdTheme } from 'antd';
+import { Layout, ConfigProvider, App as AntdApp, theme as antdTheme, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 import LoadingScreen from './components/ui/LoadingScreen';
 import { useUIStore } from './stores/uiStore';
@@ -12,10 +12,10 @@ import { createMenuItems } from './config/menuConfig';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import AppHeader from './components/AppHeader';
-import PublicRoutes from './components/PublicRoutes';
 import ProtectedRoutes from './components/ProtectedRoutes';
 import { MenuItem } from './types/menu';
 import { MIN_LOADING_TIME } from './config/constants';
+import { Login } from './config/routes';
 
 const { Content } = Layout;
 
@@ -98,7 +98,14 @@ function App() {
               <div className="app-container">
                 <Routes>
                   {/* Public routes - no layout */}
-                  <Route path="/login" element={<PublicRoutes />} />
+                  <Route
+                    path="/login"
+                    element={
+                      <Suspense fallback={<Spin size="large" />}>
+                        <Login />
+                      </Suspense>
+                    }
+                  />
 
                   {/* Protected routes - with layout */}
                   <Route

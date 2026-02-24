@@ -13,14 +13,21 @@ interface User {
   last_login_at?: string;
 }
 
+interface LdapStatus {
+  enabled: boolean;
+  available: boolean;
+}
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  ldapStatus: LdapStatus | null;
+  login: (username: string, password: string, authType?: 'local' | 'ldap') => Promise<void>;
   logout: () => Promise<void>;
   getCurrentUser: () => Promise<void>;
   checkAuth: () => boolean;
+  fetchLdapStatus: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -29,14 +36,21 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      ldapStatus: null,
 
-      login: async (username: string, password: string) => {
+      login: async (username: string, password: string, authType?: 'local' | 'ldap') => {
         set({ isLoading: true });
         try {
-          const response = await api.post('/api/auth/login', {
+          const requestData: { username: string; password: string; auth_type?: string } = {
             username,
             password,
-          });
+          };
+
+          if (authType) {
+            requestData.auth_type = authType;
+          }
+
+          const response = await api.post('/api/auth/login', requestData);
 
           const { access_token, user } = response.data;
 
@@ -89,6 +103,16 @@ export const useAuthStore = create<AuthState>()(
 
       checkAuth: () => {
         return tokenStorage.hasToken() && get().isAuthenticated;
+      },
+
+      fetchLdapStatus: async () => {
+        try {
+          const response = await api.get('/api/auth/ldap-status');
+          set({ ldapStatus: response.data });
+        } catch (error) {
+          console.error('Failed to fetch LDAP status:', error);
+          set({ ldapStatus: { enabled: false, available: false } });
+        }
       },
     }),
     {

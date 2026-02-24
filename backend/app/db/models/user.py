@@ -23,6 +23,21 @@ class UserRole:
         return role in cls.all()
 
 
+class AuthType:
+    """Authentication type enum"""
+
+    LOCAL = "local"  # Local user with password in database
+    LDAP = "ldap"  # LDAP/Active Directory user
+
+    @classmethod
+    def all(cls):
+        return [cls.LOCAL, cls.LDAP]
+
+    @classmethod
+    def is_valid(cls, auth_type: str) -> bool:
+        return auth_type in cls.all()
+
+
 class User(BaseModel):
     """User model for authentication"""
 
@@ -31,15 +46,18 @@ class User(BaseModel):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=True)  # Nullable for LDAP users
     role = Column(String(20), nullable=False, default=UserRole.OPERATOR, index=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime(timezone=True), nullable=True)
+    # LDAP fields
+    auth_type = Column(String(20), nullable=False, default=AuthType.LDAP, index=True)
+    ldap_dn = Column(String(255), nullable=True)  # Distinguished Name in LDAP
 
     def __repr__(self):
-        return f"<User(id={self.id}, username='{self.username}', role='{self.role}')>"
+        return f"<User(id={self.id}, username='{self.username}', role='{self.role}', auth_type='{self.auth_type}')>"
 
     def is_admin(self) -> bool:
         """Check if user has admin role"""
@@ -48,6 +66,14 @@ class User(BaseModel):
     def is_operator(self) -> bool:
         """Check if user has operator role"""
         return self.role == UserRole.OPERATOR
+
+    def is_local(self) -> bool:
+        """Check if user is a local user"""
+        return self.auth_type == AuthType.LOCAL
+
+    def is_ldap(self) -> bool:
+        """Check if user is an LDAP user"""
+        return self.auth_type == AuthType.LDAP
 
     def is_locked(self) -> bool:
         """Check if user account is locked"""

@@ -660,6 +660,7 @@
     "username": "Username",
     "email": "Email",
     "role": "Role",
+    "authType": "Auth Type",
     "isActive": "Active",
     "createdAt": "Created",
     "lastLoginAt": "Last Login",
