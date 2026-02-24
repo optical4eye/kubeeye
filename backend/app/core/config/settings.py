@@ -108,6 +108,8 @@ class Settings(BaseSettings):
     kubeeye_ldap_enabled: bool = Field(default=False, description="Enable LDAP authentication")
     kubeeye_ldap_server_url: str = Field(default="ldap://localhost:389", description="LDAP server URL")
     kubeeye_ldap_use_ssl: bool = Field(default=False, description="Use SSL for LDAP connection")
+    kubeeye_ldap_start_tls: bool = Field(default=False, description="Use StartTLS for LDAP connection")
+    kubeeye_ldap_insecure_skip_verify: bool = Field(default=False, description="Skip TLS certificate verification")
     kubeeye_ldap_bind_dn: str = Field(default="", description="DN for binding to LDAP server")
     kubeeye_ldap_bind_password: str = Field(default="", description="Password for LDAP bind")
     kubeeye_ldap_base_dn: str = Field(default="", description="Base DN for user search")

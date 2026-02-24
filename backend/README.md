@@ -647,7 +647,9 @@ backend/
 |------------|--------------|----------|
 | `KUBEEYE_LDAP_ENABLED` | `False` | Включить/отключить LDAP аутентификацию |
 | `KUBEEYE_LDAP_SERVER_URL` | `ldap://localhost:389` | URL LDAP сервера |
-| `KUBEEYE_LDAP_USE_SSL` | `False` | Использовать SSL для LDAP соединения |
+| `KUBEEYE_LDAP_USE_SSL` | `False` | Использовать SSL для LDAP соединения (LDAPS) |
+| `KUBEEYE_LDAP_START_TLS` | `False` | Использовать StartTLS для LDAP соединения |
+| `KUBEEYE_LDAP_INSECURE_SKIP_VERIFY` | `False` | Пропустить проверку TLS сертификата |
 | `KUBEEYE_LDAP_BIND_DN` | `""` | DN для связывания с LDAP сервером |
 | `KUBEEYE_LDAP_BIND_PASSWORD` | `""` | Пароль для LDAP bind |
 | `KUBEEYE_LDAP_BASE_DN` | `""` | Базовый DN для поиска пользователей |

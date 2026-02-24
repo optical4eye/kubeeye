@@ -85,6 +85,10 @@ backend:
       value: "ldap://localhost:389"
     - name: KUBEEYE_LDAP_USE_SSL
       value: "false"
+    - name: KUBEEYE_LDAP_START_TLS
+      value: "false"
+    - name: KUBEEYE_LDAP_INSECURE_SKIP_VERIFY
+      value: "false"
     - name: KUBEEYE_LDAP_BIND_DN
       value: ""
     - name: KUBEEYE_LDAP_BIND_PASSWORD

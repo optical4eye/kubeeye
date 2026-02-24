@@ -6,8 +6,9 @@ LDAP Service for authentication against OpenLDAP and Active Directory
 
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
-from ldap3 import Server, Connection, ALL, NTLM, SUBTREE, SIMPLE
+from ldap3 import Server, Connection, ALL, NTLM, SUBTREE, SIMPLE, Tls
 from ldap3.core.exceptions import LDAPException, LDAPBindError
+import ssl
 from core.config.settings import settings
 from core.logging import get_logger
 
@@ -53,6 +54,8 @@ class LDAPService:
         self.enabled = settings.kubeeye_ldap_enabled
         self.server_url = settings.kubeeye_ldap_server_url
         self.use_ssl = settings.kubeeye_ldap_use_ssl
+        self.start_tls = settings.kubeeye_ldap_start_tls
+        self.skip_verify = settings.kubeeye_ldap_insecure_skip_verify
         self.bind_dn = settings.kubeeye_ldap_bind_dn
         self.bind_password = settings.kubeeye_ldap_bind_password
         self.base_dn = settings.kubeeye_ldap_base_dn
@@ -68,7 +71,13 @@ class LDAPService:
 
     def _get_server(self) -> Server:
         """Create LDAP server connection"""
-        return Server(self.server_url, use_ssl=self.use_ssl, get_info=ALL)
+        tls_config = None
+        if self.use_ssl or self.start_tls:
+            tls_config = Tls(
+                validate=ssl.CERT_NONE if self.skip_verify else ssl.CERT_REQUIRED,
+                version=ssl.PROTOCOL_TLS_CLIENT,
+            )
+        return Server(self.server_url, use_ssl=self.use_ssl, get_info=ALL, tls=tls_config)
 
     def _get_connection(self, user_dn: str = None, password: str = None) -> Optional[Connection]:
         """
@@ -98,6 +107,13 @@ class LDAPService:
             connection = Connection(
                 server, user=bind_dn, password=bind_password, authentication=authentication, auto_bind=True
             )
+
+            # StartTLS if configured (upgrade plain connection to TLS)
+            if self.start_tls and not self.use_ssl:
+                if not connection.start_tls():
+                    logger.error("Failed to start TLS on LDAP connection")
+                    connection.unbind()
+                    return None
 
             return connection
         except LDAPBindError as e:

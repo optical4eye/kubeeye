@@ -216,7 +216,9 @@ externalSecret:
 | `KUBEEYE_AUDIT_RETENTION_DAYS` | Количество дней хранения логов аудита | `14` |
 | `KUBEEYE_LDAP_ENABLED` | Включить/отключить LDAP аутентификацию | `False` |
 | `KUBEEYE_LDAP_SERVER_URL` | URL LDAP сервера | `ldap://localhost:389` |
-| `KUBEEYE_LDAP_USE_SSL` | Использовать SSL для LDAP соединения | `False` |
+| `KUBEEYE_LDAP_USE_SSL` | Использовать SSL для LDAP соединения (LDAPS) | `False` |
+| `KUBEEYE_LDAP_START_TLS` | Использовать StartTLS для LDAP соединения | `False` |
+| `KUBEEYE_LDAP_INSECURE_SKIP_VERIFY` | Пропустить проверку TLS сертификата | `False` |
 | `KUBEEYE_LDAP_BIND_DN` | DN для связывания с LDAP сервером | `""` |
 | `KUBEEYE_LDAP_BIND_PASSWORD` | Пароль для LDAP bind | `""` |
 | `KUBEEYE_LDAP_BASE_DN` | Базовый DN для поиска пользователей | `""` |
