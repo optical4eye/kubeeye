@@ -41,8 +41,41 @@ def get_retention_days() -> int:
         return DEFAULT_RETENTION_DAYS
 
 
+async def run_audit_logs_cleanup() -> Dict[str, Any]:
+    """Execute cleanup of old audit logs
+
+    Returns:
+        Dict with cleanup results
+    """
+    try:
+        from db.database import get_session_local
+        from services.audit_service import AuditService
+
+        logger.info("Starting cleanup of old audit logs...")
+
+        retention_days = settings.kubeeye_audit_retention_days
+        logger.info(f"Audit logs retention period: {retention_days} days")
+
+        session_factory = get_session_local()
+        async with session_factory() as db:
+            audit_service = AuditService(db)
+            deleted_count = await audit_service.cleanup_old_logs()
+
+            logger.info(f"Deleted {deleted_count} old audit logs")
+
+            return {
+                "deleted_count": deleted_count,
+                "retention_days": retention_days,
+                "message": f"Successfully deleted {deleted_count} old audit logs",
+            }
+
+    except Exception as e:
+        logger.error(f"Audit logs cleanup failed: {e}")
+        return {"deleted_count": 0, "error": str(e), "retention_days": settings.kubeeye_audit_retention_days}
+
+
 async def run_database_cleanup(retention_days: Optional[int] = None) -> Dict[str, Any]:
-    """Execute database cleanup of old inspection reports
+    """Execute database cleanup of old inspection reports and audit logs
 
     Args:
         retention_days: number of days to keep reports (overrides config)
@@ -50,6 +83,12 @@ async def run_database_cleanup(retention_days: Optional[int] = None) -> Dict[str
     Returns:
         Dict with cleanup results
     """
+    results: Dict[str, Any] = {
+        "reports": {"deleted_count": 0},
+        "audit_logs": {"deleted_count": 0},
+    }
+
+    # Cleanup inspection reports
     try:
         from services.components.report_cleanup_service import cleanup_old_reports
 
@@ -63,6 +102,7 @@ async def run_database_cleanup(retention_days: Optional[int] = None) -> Dict[str
 
         # Execute cleanup
         result = await cleanup_old_reports(retention_days)
+        results["reports"] = result
 
         # Log results
         if result.get("deleted_count", 0) > 0:
@@ -71,13 +111,17 @@ async def run_database_cleanup(retention_days: Optional[int] = None) -> Dict[str
             logger.info("No old reports found for deletion")
 
         if "error" in result:
-            logger.error(f"Cleanup error: {result['error']}")
-
-        return result
+            logger.error(f"Reports cleanup error: {result['error']}")
 
     except Exception as e:
-        logger.error(f"Database cleanup failed: {e}")
-        return {"deleted_count": 0, "error": str(e), "retention_days": retention_days or get_retention_days()}
+        logger.error(f"Reports cleanup failed: {e}")
+        results["reports"]["error"] = str(e)
+
+    # Cleanup audit logs
+    audit_result = await run_audit_logs_cleanup()
+    results["audit_logs"] = audit_result
+
+    return results
 
 
 async def get_cleanup_statistics() -> Dict[str, Any]:
@@ -208,13 +252,20 @@ def main():
 
             result = await run_database_cleanup(args.retention_days)
             print("\n=== Cleanup Result ===")
-            if "error" in result:
-                print(f"Error: {result['error']}")
+            # Reports cleanup result
+            reports = result.get("reports", {})
+            if "error" in reports:
+                print(f"Reports Error: {reports['error']}")
             else:
-                print(f"Deleted records: {result.get('deleted_count', 0)}")
-                print(f"Retention days: {result.get('retention_days', 0)}")
-                print(f"Cutoff date: {result.get('cutoff_date', 'Unknown')}")
-                print(f"Message: {result.get('message', 'No message')}")
+                print(f"Reports deleted: {reports.get('deleted_count', 0)}")
+                print(f"Reports retention days: {reports.get('retention_days', 0)}")
+            # Audit logs cleanup result
+            audit_logs = result.get("audit_logs", {})
+            if "error" in audit_logs:
+                print(f"Audit logs Error: {audit_logs['error']}")
+            else:
+                print(f"Audit logs deleted: {audit_logs.get('deleted_count', 0)}")
+                print(f"Audit logs retention days: {audit_logs.get('retention_days', 0)}")
 
     # Run the async command with custom loop factory if uvloop is available
     if uvloop is not None:

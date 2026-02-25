@@ -55,7 +55,7 @@ class AuditLog(BaseModel):
     __tablename__ = "audit_log"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     username = Column(String(50), nullable=False, index=True)
     action = Column(String(50), nullable=False, index=True)
     resource_type = Column(String(50), nullable=True, index=True)

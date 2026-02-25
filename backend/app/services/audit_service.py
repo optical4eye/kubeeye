@@ -24,7 +24,7 @@ class AuditService:
 
     async def log_action(
         self,
-        user_id: int,
+        user_id: Optional[int],
         username: str,
         action: str,
         resource_type: Optional[str] = None,
@@ -189,7 +189,7 @@ class AuditService:
 
     async def log_login(
         self,
-        user_id: int,
+        user_id: Optional[int],
         username: str,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,

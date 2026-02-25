@@ -67,7 +67,7 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
         if not user:
             # Log failed login attempt
             await audit_service.log_login(
-                user_id=0,
+                user_id=None,
                 username=request.username,
                 ip_address=ip_address,
                 user_agent=user_agent,
@@ -98,7 +98,7 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
         logger.error(f"Login error: {e}")
         # Log failed login attempt
         await audit_service.log_login(
-            user_id=0,
+            user_id=None,
             username=request.username,
             ip_address=ip_address,
             user_agent=user_agent,
