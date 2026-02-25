@@ -14,12 +14,12 @@ class PasswordService:
     """Service for password hashing and verification"""
 
     def __init__(self):
-        # Use recommended hasher (bcrypt by default)
+        # Use recommended hasher (Argon2 when pwdlib[argon2] is installed)
         self.hasher = PasswordHash.recommended()
 
     def hash_password(self, password: str) -> str:
         """
-        Hash password using bcrypt
+        Hash password using Argon2
 
         Args:
             password: Plain text password

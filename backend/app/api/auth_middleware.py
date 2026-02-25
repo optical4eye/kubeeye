@@ -40,8 +40,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/redoc",
             "/openapi.json",
             "/health",
-            "/api/auth",
-            "/api/auth/refresh",
+            "/api/auth/login",
+            "/api/auth/ldap-status",
         ]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
@@ -120,6 +120,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             "/openapi.json",
             "/health",
             "/api/auth/login",
+            "/api/auth/ldap-status",
             "/api/auth/logout",
             "/api/auth/me",
             "/api/audit/logs",

@@ -133,6 +133,13 @@ app = FastAPI(
     3. Access token expires after 24 hours
     4. Re-login after token expiration
 
+    ### Using Swagger UI with Authentication
+
+    1. Click the **Authorize** button in the top right corner
+    2. Enter your JWT token (without "Bearer " prefix)
+    3. Click **Authorize** and then **Close**
+    4. Now you can execute protected endpoints
+
     ### Roles
 
     - **admin**: Full access to all features
@@ -255,6 +262,52 @@ app = FastAPI(
     openapi_url="/openapi.json",
     lifespan=lifespan,
 )
+
+
+# Custom OpenAPI schema with Bearer authentication support
+def custom_openapi():
+    """Generate OpenAPI schema with Bearer authentication support for SwaggerUI."""
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    from fastapi.openapi.utils import get_openapi
+
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        contact=app.contact,
+        license_info=app.license_info,
+    )
+
+    # Add Bearer security scheme
+    openapi_schema["components"]["securitySchemes"] = {
+        "Bearer": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "JWT Authorization header using the Bearer scheme. Enter your JWT token (without 'Bearer ' prefix).",
+        }
+    }
+
+    # Apply security to each endpoint individually
+    # This ensures SwaggerUI sends the Authorization header
+    paths = openapi_schema.get("paths", {})
+    for path, methods in paths.items():
+        # Skip documentation and health endpoints
+        if path in ["/docs", "/redoc", "/openapi.json", "/health", "/api/auth/login", "/api/auth/ldap-status"]:
+            continue
+
+        for method in methods:
+            if method in ["get", "post", "put", "delete", "patch"]:
+                methods[method]["security"] = [{"Bearer": []}]
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 # Add validation middleware (only validates query parameters, not body to avoid consuming request body)
