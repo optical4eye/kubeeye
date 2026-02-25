@@ -182,7 +182,11 @@ class TestNodeInspector:
     @patch("infra.security.command_security.CommandSecurityChecker")
     def test_is_ssh_connection_error(self, mock_security_checker):
         """Test SSH connection error detection"""
+        from infra.dependency_injection.container import get_service_sync
         inspector = NodeInspector([])
+
+        # Get SSH service for error detection
+        ssh_service = get_service_sync("ssh_service")
 
         # Test SSH-related errors
         ssh_errors = [
@@ -194,13 +198,13 @@ class TestNodeInspector:
         ]
 
         for error in ssh_errors:
-            assert inspector.ssh_execution_manager.is_ssh_connection_error(error)
+            assert ssh_service.is_ssh_connection_error(error)
 
         # Test non-SSH errors
         non_ssh_errors = ["command not found", "permission denied", "file not found"]
 
         for error in non_ssh_errors:
-            assert not inspector.ssh_execution_manager.is_ssh_connection_error(error)
+            assert not ssh_service.is_ssh_connection_error(error)
 
     @patch("infra.security.command_security.CommandSecurityChecker")
     def test_get_execution_stats(self, mock_security_checker):
@@ -244,11 +248,24 @@ class TestNodeInspector:
 
     @patch("infra.security.command_security.CommandSecurityChecker")
     def test_create_optimized_large_cluster(self, mock_security_checker):
-        """Test creating optimized inspector for large cluster"""
+        """Test creating optimized inspector for large cluster (supports up to 50 hosts)"""
         nodes_config = [{"ip": f"192.168.1.{i}", "port": 22, "name": f"node{i}"} for i in range(1, 25)]
 
         inspector = NodeInspector.create_optimized(nodes_config)
 
-        assert inspector.max_workers == 24  # 25 nodes, min(25, 25) = 25, but wait, let's check the logic
+        # 24 nodes -> adaptive config: node_count <= 35, so max_workers = min(35, 24) = 24
+        assert inspector.max_workers == 24
         assert inspector.enable_concurrent is True
-        assert inspector.timeout == 15
+        assert inspector.timeout == 18  # For node_count 21-35, timeout is 18
+
+    @patch("infra.security.command_security.CommandSecurityChecker")
+    def test_create_optimized_50_hosts_cluster(self, mock_security_checker):
+        """Test creating optimized inspector for 50 hosts cluster"""
+        nodes_config = [{"ip": f"192.168.1.{i}", "port": 22, "name": f"node{i}"} for i in range(1, 51)]
+
+        inspector = NodeInspector.create_optimized(nodes_config)
+
+        # 50 nodes -> adaptive config: node_count > 35, so max_workers = min(50, 50) = 50
+        assert inspector.max_workers == 50
+        assert inspector.enable_concurrent is True
+        assert inspector.timeout == 15  # For node_count > 35, timeout is 15

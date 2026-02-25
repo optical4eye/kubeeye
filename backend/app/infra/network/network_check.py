@@ -14,6 +14,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from core.logging import get_logger
+from core.config.settings import settings
 from db.database_context import with_db_session
 
 # Attempt import for PDF generation
@@ -38,7 +39,7 @@ except ImportError:
 
 from infra.cluster.node_connection import AsyncNodeConnection
 from infra.security.ssh_key_resolver import SSHKeyResolver
-from infra.dependency_injection.container import get_service_sync
+from infra.dependency_injection.container import get_service
 from core.common.unified_validation import validate_ipv4_address
 
 logger = get_logger(__name__)
@@ -81,7 +82,7 @@ async def check_connection(node: Dict[str, Any], target_ip: str, target_port: in
 
         try:
             # Use SSHService for async command execution
-            ssh_service = get_service_sync("ssh_service")
+            ssh_service = await get_service("ssh_service")
             stdout, stderr = await ssh_service.execute_command(
                 node, command, timeout=timeout, enable_security_check=False
             )
@@ -138,27 +139,33 @@ async def check_connectivity_from_nodes(
     Returns:
         List of connectivity check results
     """
+    # Get max concurrent checks from settings to limit parallel SSH connections
+    max_concurrent_checks = settings.kubeeye_ssh_max_concurrent_checks
+    semaphore = asyncio.Semaphore(max_concurrent_checks)
+
+    logger.info(f"Starting network connectivity check for {len(nodes)} nodes (max concurrent: {max_concurrent_checks})")
 
     async def check_single_node(node):
-        node_ip = node.get("ip")
-        node_name = node.get("name", node_ip)
-        logger.info(f"Checking connectivity from {node_name} ({node_ip}) to {target_ip}:{target_port}")
+        async with semaphore:
+            node_ip = node.get("ip")
+            node_name = node.get("name", node_ip)
+            logger.info(f"Checking connectivity from {node_name} ({node_ip}) to {target_ip}:{target_port}")
 
-        try:
-            result = await check_connection(node, target_ip, target_port, timeout)
-            return result
-        except Exception as e:
-            logger.error(f"Error checking node {node_name}: {str(e)}")
-            return {
-                "status": "failed",
-                "error": f"Check execution error: {str(e)}",
-                "response_time": 0,
-                "node_ip": node_ip,
-                "target_ip": target_ip,
-                "target_port": target_port,
-            }
+            try:
+                result = await check_connection(node, target_ip, target_port, timeout)
+                return result
+            except Exception as e:
+                logger.error(f"Error checking node {node_name}: {str(e)}")
+                return {
+                    "status": "failed",
+                    "error": f"Check execution error: {str(e)}",
+                    "response_time": 0,
+                    "node_ip": node_ip,
+                    "target_ip": target_ip,
+                    "target_port": target_port,
+                }
 
-    # Use asyncio.gather for parallel async checks
+    # Use asyncio.gather for parallel async checks with semaphore limiting
     tasks = [check_single_node(node) for node in nodes]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 

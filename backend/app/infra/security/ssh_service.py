@@ -176,9 +176,11 @@ class SSHService(ISSHService):
                     try:
                         conn_info.client.close()
                         self._pool_stats["closed_connections"] += 1
+                        logger.debug(f"Closed dead connection for {node_key}")
                     except Exception:
                         pass
 
+        logger.debug(f"No pooled connection available for {node_key}")
         return None
 
     async def _return_connection_to_pool(
@@ -211,14 +213,14 @@ class SSHService(ISSHService):
             if len(self.pools[node_key]) < self.DEFAULT_POOL_SIZE:
                 conn_info = ConnectionInfo(client=client, last_used=time.time(), created_at=time.time())
                 self.pools[node_key].append(conn_info)
-                logger.debug(f"Returned connection to pool for {node_key}")
+                logger.debug(f"Returned connection to pool for {node_key}, pool size: {len(self.pools[node_key])}")
             else:
                 # Pool is full, close connection
                 try:
                     client.close()
                 except Exception:
                     pass
-                logger.debug(f"Closed connection (pool full) for {node_key}")
+                logger.debug(f"Closed connection (pool full) for {node_key}, max pool size: {self.DEFAULT_POOL_SIZE}")
 
     async def _is_connection_alive(self, client: asyncssh.SSHClientConnection) -> bool:
         """Check if connection is alive"""
@@ -352,7 +354,7 @@ class SSHService(ISSHService):
             if timeout is None:
                 timeout = settings.kubeeye_ssh_connection_timeout
 
-            logger.debug(f"Creating new SSH connection to {host}:{port} with auth_type: {auth_type}")
+            logger.info(f"Creating new SSH connection to {host}:{port} with auth_type: {auth_type}, timeout: {timeout}s")
 
             if auth_type == "password":
                 logger.debug("Using password authentication")
@@ -387,7 +389,7 @@ class SSHService(ISSHService):
 
             self._pool_stats["new_connections"] += 1
             self._pool_stats["total_connections"] += 1
-            logger.debug(f"SSH connection to {host}:{port} established successfully")
+            logger.info(f"SSH connection to {host}:{port} established successfully")
             return conn
 
         except Exception as e:
@@ -419,10 +421,10 @@ class SSHService(ISSHService):
             password = node_info.get("password")
             ssh_key = node_info.get("ssh_key")
 
-            # Use shorter timeout for testing (half of default)
-            test_timeout = int(settings.kubeeye_ssh_connection_timeout * 0.5)
+            # Use full timeout for testing to avoid false failures
+            test_timeout = settings.kubeeye_ssh_connection_timeout
 
-            # Try to connect (don't use pool for testing)
+            # Try to connect using pool for better resource management
             client = await self.connect(
                 host=host,
                 port=port,
@@ -431,15 +433,12 @@ class SSHService(ISSHService):
                 password=password,
                 key_data=ssh_key,
                 timeout=test_timeout,
-                use_pool=False,  # Don't use pool for testing
+                use_pool=True,  # Use pool for better resource management with many nodes
             )
 
             if client:
-                # Close connection after successful test
-                try:
-                    client.close()
-                except Exception as e:
-                    logger.warning(f"Error closing test connection: {e}")
+                # Return connection to pool instead of closing
+                await self._return_connection_to_pool(host, port, username, client)
 
                 logger.debug(f"Connection test successful for {host}")
                 return True, f"Connection to {host}:{port} successful"

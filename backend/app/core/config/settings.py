@@ -40,35 +40,34 @@ class Settings(BaseSettings):
     # Report cleanup
     kubeeye_report_retention_days: int = Field(default=7, description="Number of days to retain reports")
 
-    # SSH configuration
-    kubeeye_ssh_connection_timeout: int = Field(default=10, description="SSH connection timeout in seconds")
-    kubeeye_ssh_max_concurrent_checks: int = Field(default=20, description="Max concurrent SSH checks")
+    # SSH configuration (unified for all SSH operations)
+    kubeeye_ssh_connection_timeout: int = Field(default=15, description="SSH connection timeout in seconds")
+    kubeeye_ssh_max_concurrent_checks: int = Field(default=50, description="Max concurrent SSH checks (supports up to 50 hosts)")
+    kubeeye_ssh_command_timeout: int = Field(default=60, description="SSH command execution timeout in seconds")
+
+    # SSH retry configuration
+    kubeeye_ssh_retry_attempts: int = Field(default=2, description="Number of SSH retry attempts")
+    kubeeye_ssh_retry_delay: int = Field(default=2, description="Delay between SSH retry attempts in seconds")
 
     # SSH connection pool configuration
-    kubeeye_ssh_pool_size: int = Field(default=10, description="SSH connection pool size")
+    kubeeye_ssh_pool_enabled: bool = Field(default=True, description="Enable SSH connection pool")
+    kubeeye_ssh_pool_size: int = Field(default=50, description="SSH connection pool size (supports up to 50 hosts)")
     kubeeye_ssh_pool_connection_timeout: int = Field(
         default=300, description="SSH connection pool timeout in seconds (5 minutes)"
     )
     kubeeye_ssh_pool_keepalive_interval: int = Field(
         default=60, description="SSH connection pool keepalive interval in seconds (1 minute)"
     )
+    kubeeye_ssh_keep_alive: bool = Field(default=True, description="Keep SSH connections alive")
+
+    # SSH logging configuration
+    kubeeye_ssh_verbose: bool = Field(default=False, description="Enable verbose SSH logging")
+    kubeeye_ssh_log_output: bool = Field(default=False, description="Log SSH command output")
 
     # Popeye configuration
     kubeeye_popeye_path: str = Field(default="/usr/local/bin/popeye", description="Path to Popeye binary")
     kubeeye_popeye_timeout: int = Field(default=300, description="Popeye execution timeout")
     kubeeye_popeye_default_format: str = Field(default="html", description="Default Popeye output format")
-
-    # Node inspector configuration
-    node_inspector_max_workers: int = Field(default=5, description="Max workers for node inspector")
-    node_inspector_timeout: int = Field(default=30, description="Timeout for node inspector")
-    node_inspector_connection_timeout: int = Field(default=10, description="Connection timeout for node inspector")
-    node_inspector_retry_attempts: int = Field(default=2, description="Retry attempts for node inspector")
-    node_inspector_retry_delay: int = Field(default=1, description="Retry delay for node inspector")
-    node_inspector_connection_pool: bool = Field(default=True, description="Enable connection pool for node inspector")
-    node_inspector_pool_size: int = Field(default=10, description="Pool size for node inspector")
-    node_inspector_keep_alive: bool = Field(default=True, description="Keep alive for node inspector")
-    node_inspector_verbose: bool = Field(default=False, description="Verbose logging for node inspector")
-    node_inspector_log_output: bool = Field(default=False, description="Log command output for node inspector")
 
     # GitOps configuration
     kubeeye_gitops_repo_url: Optional[str] = Field(default=None, description="GitOps repository URL")

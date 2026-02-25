@@ -63,7 +63,7 @@ class AsyncNodeConnection:
                 auth_type=self.node_info["auth_type"],
                 password=self.node_info.get("password"),
                 key_data=self.node_info.get("ssh_key"),
-                timeout=5,
+                timeout=settings.kubeeye_ssh_connection_timeout,
             )
 
             self.connected = True
@@ -220,18 +220,16 @@ class NodeConnection:
         command_timeout = ssh_timeout * 6  # 60s for 10s base
 
         # Use SSHService to execute command (it handles connection pooling internally)
-        success, stdout, stderr = await ssh_service.execute_command(
-            host=self.node_info["ip"],
-            port=int(self.node_info["port"]),
-            username=self.node_info["username"],
-            auth_type=self.node_info["auth_type"],
-            password=self.node_info.get("password"),
-            key_data=self.node_info.get("ssh_key"),
+        # execute_command expects node_info dict and returns (stdout, stderr)
+        stdout, stderr = await ssh_service.execute_command(
+            node_info=self.node_info,
             command=command,
             timeout=command_timeout,
-            use_pool=True,  # Use connection pooling
+            enable_security_check=False,  # Allow all commands for node inspection
         )
 
+        # Determine success: no stderr means success
+        success = not bool(stderr)
         return success, stdout, stderr
 
     def _execute_command_sync(self, command: str) -> Tuple[bool, str, str]:

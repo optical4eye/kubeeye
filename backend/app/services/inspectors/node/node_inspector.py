@@ -32,8 +32,8 @@ logger = get_logger(__name__)
 class NodeInspectorConfig:
     """Node inspector configuration"""
 
-    # Parallelism management
-    max_workers: int = 5  # Maximum number of parallel threads
+    # Parallelism management (supports up to 50 hosts)
+    max_workers: int = 10  # Maximum number of parallel threads
     timeout: int = 30  # Command execution timeout for one node (seconds)
 
     # Connection configuration
@@ -43,7 +43,7 @@ class NodeInspectorConfig:
 
     # Performance optimization
     enable_connection_pool: bool = True  # Enable connection pool
-    pool_size: int = 10  # Connection pool size
+    pool_size: int = 50  # Connection pool size (supports up to 50 hosts)
     keep_alive: bool = True  # Keep connection alive
 
     # Logging configuration
@@ -52,34 +52,38 @@ class NodeInspectorConfig:
 
     @classmethod
     def from_env(cls) -> "NodeInspectorConfig":
-        """Create configuration from environment variables"""
+        """Create configuration from environment variables (unified KUBEEYE_SSH_*)"""
         return cls(
-            max_workers=settings.node_inspector_max_workers,
-            timeout=settings.node_inspector_timeout,
-            connection_timeout=settings.node_inspector_connection_timeout,
-            retry_attempts=settings.node_inspector_retry_attempts,
-            retry_delay=settings.node_inspector_retry_delay,
-            enable_connection_pool=settings.node_inspector_connection_pool,
-            pool_size=settings.node_inspector_pool_size,
-            keep_alive=settings.node_inspector_keep_alive,
-            verbose_logging=settings.node_inspector_verbose,
-            log_command_output=settings.node_inspector_log_output,
+            max_workers=settings.kubeeye_ssh_max_concurrent_checks,
+            timeout=settings.kubeeye_ssh_command_timeout,
+            connection_timeout=settings.kubeeye_ssh_connection_timeout,
+            retry_attempts=settings.kubeeye_ssh_retry_attempts,
+            retry_delay=settings.kubeeye_ssh_retry_delay,
+            enable_connection_pool=settings.kubeeye_ssh_pool_enabled,
+            pool_size=settings.kubeeye_ssh_pool_size,
+            keep_alive=settings.kubeeye_ssh_keep_alive,
+            verbose_logging=settings.kubeeye_ssh_verbose,
+            log_command_output=settings.kubeeye_ssh_log_output,
         )
 
     @classmethod
     def adaptive(cls, node_count: int) -> "NodeInspectorConfig":
-        """Adaptive configuration based on node count"""
+        """Adaptive configuration based on node count (supports up to 50 hosts)"""
         if node_count <= 3:
             max_workers = node_count
             timeout = 30
         elif node_count <= 10:
-            max_workers = min(8, node_count)
+            max_workers = min(10, node_count)
             timeout = 25
         elif node_count <= 20:
-            max_workers = min(15, node_count)
+            max_workers = min(20, node_count)
             timeout = 20
+        elif node_count <= 35:
+            max_workers = min(35, node_count)
+            timeout = 18
         else:
-            max_workers = min(25, node_count)
+            # For 36-50 nodes: use up to 50 workers
+            max_workers = min(50, node_count)
             timeout = 15
 
         return cls(
@@ -111,8 +115,8 @@ class NodeInspectorConfig:
 
         if self.max_workers < 1:
             issues.append("max_workers must be greater than 0")
-        if self.max_workers > 20:
-            issues.append("max_workers should not exceed 20, may cause resource overload")
+        if self.max_workers > 50:
+            issues.append("max_workers should not exceed 50, may cause resource overload")
 
         if self.timeout < 5:
             issues.append("timeout should not be less than 5 seconds")
@@ -270,26 +274,42 @@ class NodeInspector(BaseInspector):
         ssh_timeout = settings.kubeeye_ssh_connection_timeout
         max_concurrent_checks = settings.kubeeye_ssh_max_concurrent_checks
 
-        # Calculate derived timeouts based on base SSH timeout
-        connection_check_timeout = ssh_timeout * 1.5  # 15s for 10s base
+        # Calculate derived timeouts based on base SSH timeout and node count
+        # For large node counts, increase timeout to allow more time for connections
+        if len(self.nodes) > 20:
+            connection_check_timeout = ssh_timeout * 2.5  # 25s for 10s base with many nodes
+        else:
+            connection_check_timeout = ssh_timeout * 1.5  # 15s for 10s base
+
+        logger.info(f"Connection check parameters: nodes={len(self.nodes)}, max_concurrent={max_concurrent_checks}, timeout={connection_check_timeout}s")
 
         # Create semaphore to limit concurrent connections
         semaphore = asyncio.Semaphore(max_concurrent_checks)
 
-        async def check_single_node(node):
+        # Track checked nodes to ensure all get a status
+        checked_nodes = {}
+
+        async def check_single_node(node, index):
             async with semaphore:
                 node_key = self.ssh_error_manager._get_node_key(node)
                 node_name = node.get("name", node["ip"])
 
+                logger.debug(f"[{index}/{len(self.nodes)}] Starting connection check for node {node_name}")
+
+                # Mark node as being checked
+                checked_nodes[node_key] = {"node": node, "status": None}
+
                 # Check if there was already an error for this node
                 if self.ssh_error_manager.has_connection_error(node):
                     logger.debug(f"Node {node_name} already has SSH error, skipping")
+                    checked_nodes[node_key]["status"] = {"success": False, "message": "Already has SSH error"}
                     return None
 
                 # Check status cache
                 if node_key in self.connection_status_cache:
                     status = self.connection_status_cache[node_key]
                     node["connection_status"] = status
+                    checked_nodes[node_key]["status"] = status
                     if status["success"]:
                         return node
                     else:
@@ -305,43 +325,71 @@ class NodeInspector(BaseInspector):
                     status = {"success": success, "message": message}
                     self.connection_status_cache[node_key] = status
                     node["connection_status"] = status
+                    checked_nodes[node_key]["status"] = status
 
                     if success:
-                        logger.info(f"SSH connection to node {node_name} successful")
+                        logger.info(f"[{index}/{len(self.nodes)}] SSH connection to node {node_name} successful")
                         return node
                     else:
-                        logger.error(f"SSH connection to node {node_name} unavailable: {message}")
+                        logger.error(f"[{index}/{len(self.nodes)}] SSH connection to node {node_name} unavailable: {message}")
                         # Register error in manager
                         self.ssh_error_manager.register_connection_error(node, message)
                         return None
 
                 except asyncio.TimeoutError:
                     error_msg = f"Connection check timeout ({connection_check_timeout}s) for node {node_name}"
-                    logger.error(error_msg)
+                    logger.error(f"[{index}/{len(self.nodes)}] {error_msg}")
+                    status = {"success": False, "message": error_msg}
+                    node["connection_status"] = status
+                    checked_nodes[node_key]["status"] = status
                     self.ssh_error_manager.register_connection_error(node, error_msg)
                     return None
                 except Exception as e:
                     error_msg = f"Connection check error for node {node_name}: {str(e)}"
-                    logger.error(error_msg)
+                    logger.error(f"[{index}/{len(self.nodes)}] {error_msg}")
+                    status = {"success": False, "message": error_msg}
+                    node["connection_status"] = status
+                    checked_nodes[node_key]["status"] = status
                     self.ssh_error_manager.register_connection_error(node, error_msg)
                     return None
 
-        # Create tasks for all nodes
-        tasks = [check_single_node(node) for node in self.nodes]
+        # Create tasks for all nodes with index
+        tasks = [check_single_node(node, i+1) for i, node in enumerate(self.nodes)]
 
         # Wait for all tasks to complete
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Process results
-        for result in results:
+        # Process results and ensure all nodes have connection_status
+        for i, result in enumerate(results):
+            node = self.nodes[i]
+            node_key = self.ssh_error_manager._get_node_key(node)
+            node_name = node.get("name", node["ip"])
+
             if isinstance(result, Exception):
-                logger.error(f"Unexpected error during connection check: {str(result)}")
+                logger.error(f"Unexpected error during connection check for {node_name}: {str(result)}")
+                # Ensure node has a failed status
+                error_msg = f"Unexpected error: {str(result)}"
+                status = {"success": False, "message": error_msg}
+                node["connection_status"] = status
+                self.ssh_error_manager.register_connection_error(node, error_msg)
             elif result is not None:
                 available_nodes.append(result)
 
+        # Log summary of connection checks
+        successful = sum(1 for n in self.nodes if n.get("connection_status", {}).get("success", False))
+        failed = len(self.nodes) - successful
         logger.info(
-            f"Connection check completed. Available: {len(available_nodes)}, Unavailable: {len(self.nodes) - len(available_nodes)}"
+            f"Connection check completed. Available: {successful}, Unavailable: {failed}"
         )
+
+        # Log details for unavailable nodes
+        for node in self.nodes:
+            status = node.get("connection_status", {})
+            if not status.get("success", False):
+                node_name = node.get("name", node["ip"])
+                error_msg = status.get("message", "No status recorded")
+                logger.warning(f"Node {node_name} unavailable: {error_msg}")
+
         return available_nodes
 
     async def _apply_rule(self, rule: Rule, context: Dict) -> Optional[Dict]:

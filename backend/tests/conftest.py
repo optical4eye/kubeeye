@@ -38,7 +38,7 @@ def mock_env_vars(temp_data_dir):
         "KUBEEYE_DATA_DIR": str(temp_data_dir),
         "KUBEEYE_REPORT_RETENTION_DAYS": "7",
         "KUBEEYE_SSH_CONNECTION_TIMEOUT": "10",
-        "KUBEEYE_SSH_MAX_CONCURRENT_CHECKS": "5",
+        "KUBEEYE_SSH_MAX_CONCURRENT_CHECKS": "50",  # Support for 50 hosts
         "PYTHONPATH": "/app",
         "DB_HOST": "localhost",
         "DB_PORT": "5432",

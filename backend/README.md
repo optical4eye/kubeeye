@@ -597,11 +597,18 @@ backend/
 | `SQL_DEBUG` | `False` | Включить SQL debug логирование |
 | `KUBEEYE_LOG_LEVEL` | `INFO` | Уровень логирования приложения |
 | `KUBEEYE_REPORT_RETENTION_DAYS` | `7` | Количество дней хранения отчетов |
-| `KUBEEYE_SSH_CONNECTION_TIMEOUT` | `10` | Базовый таймаут для SSH соединений (секунды) |
+| `KUBEEYE_SSH_CONNECTION_TIMEOUT` | `10` | Таймаут SSH соединения (секунды) |
 | `KUBEEYE_SSH_MAX_CONCURRENT_CHECKS` | `20` | Максимальное количество одновременных SSH проверок |
+| `KUBEEYE_SSH_COMMAND_TIMEOUT` | `30` | Таймаут выполнения SSH команды (секунды) |
+| `KUBEEYE_SSH_RETRY_ATTEMPTS` | `2` | Количество повторных попыток SSH соединения |
+| `KUBEEYE_SSH_RETRY_DELAY` | `1` | Задержка между повторными попытками (секунды) |
+| `KUBEEYE_SSH_POOL_ENABLED` | `true` | Включить пул SSH соединений |
 | `KUBEEYE_SSH_POOL_SIZE` | `10` | Размер пула SSH соединений |
 | `KUBEEYE_SSH_POOL_CONNECTION_TIMEOUT` | `300` | Таймаут соединения в пуле SSH (секунды, 5 минут) |
 | `KUBEEYE_SSH_POOL_KEEPALIVE_INTERVAL` | `60` | Интервал keepalive для пула SSH (секунды, 1 минута) |
+| `KUBEEYE_SSH_KEEP_ALIVE` | `true` | Поддерживать SSH соединения активными |
+| `KUBEEYE_SSH_VERBOSE` | `false` | Подробное логирование SSH |
+| `KUBEEYE_SSH_LOG_OUTPUT` | `false` | Логировать вывод SSH команд |
 | `KUBEEYE_GITOPS_REPO_NAME` | `None` | Идентификатор репозитория правил GitOps |
 | `KUBEEYE_GITOPS_REPO_URL` | `None` | URL репозитория правил GitOps |
 | `KUBEEYE_GITOPS_REPO_BRANCH` | `main` | Ветка репозитория правил GitOps |
@@ -701,21 +708,6 @@ environment:
 - Используйте `sAMAccountName` в фильтре поиска вместо `uid`
 - Укажите домен в `KUBEEYE_LDAP_AD_DOMAIN` для корректной аутентификации
 - Service account (`svc_kubeeye`) должен иметь права на чтение пользователей и групп
-
-### Переменные окружения для инспектора узлов
-
-| Переменная | По умолчанию | Описание |
-|------------|--------------|----------|
-| `NODE_INSPECTOR_MAX_WORKERS` | `5` | Максимальное количество параллельных потоков |
-| `NODE_INSPECTOR_TIMEOUT` | `30` | Таймаут выполнения команды на узле (секунды) |
-| `NODE_INSPECTOR_CONNECTION_TIMEOUT` | `10` | Таймаут SSH соединения (секунды) |
-| `NODE_INSPECTOR_RETRY_ATTEMPTS` | `2` | Количество повторных попыток |
-| `NODE_INSPECTOR_RETRY_DELAY` | `1` | Задержка между попытками (секунды) |
-| `NODE_INSPECTOR_CONNECTION_POOL` | `true` | Включить пул SSH соединений |
-| `NODE_INSPECTOR_POOL_SIZE` | `10` | Размер пула SSH соединений |
-| `NODE_INSPECTOR_KEEP_ALIVE` | `true` | Поддерживать соединения активными |
-| `NODE_INSPECTOR_VERBOSE` | `false` | Подробное логирование |
-| `NODE_INSPECTOR_LOG_OUTPUT` | `false` | Логировать вывод команд |
 
 ### Переменные окружения для Popeye инспектора
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClusterForm } from '../hooks/useClusterForm';
+import { useClusters } from '../hooks/useClusters';
 import { ClusterForm } from '../components/cluster';
 import { Form, Card } from 'antd';
 import { ClusterFormValues } from '../types/cluster';
@@ -9,12 +10,12 @@ const AddCluster = () => {
   const { t } = useTranslation();
   const [createForm] = Form.useForm();
 
+  const { handleCreateCluster } = useClusters();
   const { handleTestNodes, handleTestKubeconfig, handleGetNodesFromKubeconfig } =
     useClusterForm(null);
 
   const onCreateSubmit = (values: ClusterFormValues) => {
-    // This will be handled by the parent component or a hook
-    console.log('Creating cluster:', values);
+    handleCreateCluster(values);
   };
 
   return (

@@ -178,11 +178,18 @@ externalSecret:
 | `SQL_DEBUG` | Включить SQL debug логирование | `False` |
 | `KUBEEYE_LOG_LEVEL` | Уровень логирования | `INFO` |
 | `KUBEEYE_REPORT_RETENTION_DAYS` | Дни хранения отчетов | `7` |
-| `KUBEEYE_SSH_CONNECTION_TIMEOUT` | Таймаут SSH | `10` |
+| `KUBEEYE_SSH_CONNECTION_TIMEOUT` | Таймаут SSH соединения (секунды) | `10` |
 | `KUBEEYE_SSH_MAX_CONCURRENT_CHECKS` | Максимальное количество одновременных SSH проверок | `20` |
+| `KUBEEYE_SSH_COMMAND_TIMEOUT` | Таймаут выполнения SSH команды (секунды) | `30` |
+| `KUBEEYE_SSH_RETRY_ATTEMPTS` | Количество повторных попыток SSH соединения | `2` |
+| `KUBEEYE_SSH_RETRY_DELAY` | Задержка между повторными попытками (секунды) | `1` |
+| `KUBEEYE_SSH_POOL_ENABLED` | Включить пул SSH соединений | `true` |
 | `KUBEEYE_SSH_POOL_SIZE` | Размер пула SSH соединений | `10` |
 | `KUBEEYE_SSH_POOL_CONNECTION_TIMEOUT` | Таймаут соединения в пуле SSH (секунды, 5 минут) | `300` |
 | `KUBEEYE_SSH_POOL_KEEPALIVE_INTERVAL` | Интервал keepalive для пула SSH (секунды, 1 минута) | `60` |
+| `KUBEEYE_SSH_KEEP_ALIVE` | Поддерживать SSH соединения активными | `true` |
+| `KUBEEYE_SSH_VERBOSE` | Подробное логирование SSH | `false` |
+| `KUBEEYE_SSH_LOG_OUTPUT` | Логировать вывод SSH команд | `false` |
 | `KUBEEYE_GITOPS_REPO_NAME` | Идентификатор репозитория правил GitOps | `kubeeye_rules` |
 | `KUBEEYE_GITOPS_REPO_URL` | URL репозитория правил | `https://github.com/optical4eye/kubeeye-rules.git` |
 | `KUBEEYE_GITOPS_REPO_BRANCH` | Ветка репозитория | `main` |
@@ -191,16 +198,6 @@ externalSecret:
 | `KUBEEYE_GITOPS_REPO_DESCRIPTION` | Описание репозитория правил GitOps | `kubeeye repo rules` |
 | `KUBEEYE_GITOPS_SYNC_INTERVAL` | Интервал синхронизации GitOps в секундах (по умолчанию: 5 минут) | `300` |
 | `GIT_SSL_NO_VERIFY` | Отключает проверку SSL сертификатов в Git | `None` |
-| `NODE_INSPECTOR_MAX_WORKERS` | Максимальное количество параллельных потоков для инспекции узлов | `5` |
-| `NODE_INSPECTOR_TIMEOUT` | Таймаут выполнения команды на узле (секунды) | `30` |
-| `NODE_INSPECTOR_CONNECTION_TIMEOUT` | Таймаут SSH соединения (секунды) | `10` |
-| `NODE_INSPECTOR_RETRY_ATTEMPTS` | Количество повторных попыток при неудачном подключении | `2` |
-| `NODE_INSPECTOR_RETRY_DELAY` | Задержка между повторными попытками (секунды) | `1` |
-| `NODE_INSPECTOR_CONNECTION_POOL` | Включить пул SSH соединений | `true` |
-| `NODE_INSPECTOR_POOL_SIZE` | Размер пула SSH соединений | `10` |
-| `NODE_INSPECTOR_KEEP_ALIVE` | Поддерживать соединения активными | `true` |
-| `NODE_INSPECTOR_VERBOSE` | Подробное логирование | `false` |
-| `NODE_INSPECTOR_LOG_OUTPUT` | Логировать вывод команд | `false` |
 | `KUBEEYE_POPEYE_PATH` | Путь к исполняемому файлу Popeye | `/usr/local/bin/popeye` |
 | `KUBEEYE_POPEYE_TIMEOUT` | Таймаут выполнения сканирования Popeye (секунды) | `300` |
 | `KUBEEYE_POPEYE_DEFAULT_FORMAT` | Формат вывода для Popeye | `html` |
