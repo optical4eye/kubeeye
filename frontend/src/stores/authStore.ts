@@ -13,21 +13,30 @@ interface User {
   last_login_at?: string;
 }
 
-interface LdapStatus {
+interface OAuthStatus {
   enabled: boolean;
-  available: boolean;
+  configured: boolean;
+  connected: boolean;
+  message: string;
 }
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  ldapStatus: LdapStatus | null;
-  login: (username: string, password: string, authType?: 'local' | 'ldap') => Promise<void>;
+  oauthStatus: OAuthStatus | null;
+
+  // Local login (for admin/emergency access)
+  login: (username: string, password: string) => Promise<void>;
+
+  // OAuth login
+  initiateOAuthLogin: () => Promise<void>;
+  handleOAuthCallback: (code: string, state: string) => Promise<void>;
+
   logout: () => Promise<void>;
   getCurrentUser: () => Promise<void>;
   checkAuth: () => boolean;
-  fetchLdapStatus: () => Promise<void>;
+  fetchOAuthStatus: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -36,21 +45,53 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
-      ldapStatus: null,
+      oauthStatus: null,
 
-      login: async (username: string, password: string, authType?: 'local' | 'ldap') => {
+      // Local login (admin only)
+      login: async (username: string, password: string) => {
         set({ isLoading: true });
         try {
-          const requestData: { username: string; password: string; auth_type?: string } = {
-            username,
-            password,
-          };
+          const response = await api.post('/api/auth/login', { username, password });
 
-          if (authType) {
-            requestData.auth_type = authType;
-          }
+          const { access_token, user } = response.data;
 
-          const response = await api.post('/api/auth/login', requestData);
+          // Store access token
+          tokenStorage.setAccessToken(access_token);
+
+          // Update state
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      // OAuth: Initiate login (redirect to Dex)
+      initiateOAuthLogin: async () => {
+        set({ isLoading: true });
+        try {
+          const response = await api.get('/api/oauth/auth-url');
+          const { authorization_url } = response.data;
+
+          // Redirect to Dex for authentication
+          window.location.href = authorization_url;
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      // OAuth: Handle callback from Dex
+      handleOAuthCallback: async (code: string, state: string) => {
+        set({ isLoading: true });
+        try {
+          const response = await api.post('/api/oauth/callback', null, {
+            params: { code, state }
+          });
 
           const { access_token, user } = response.data;
 
@@ -105,13 +146,13 @@ export const useAuthStore = create<AuthState>()(
         return tokenStorage.hasToken() && get().isAuthenticated;
       },
 
-      fetchLdapStatus: async () => {
+      fetchOAuthStatus: async () => {
         try {
-          const response = await api.get('/api/auth/ldap-status');
-          set({ ldapStatus: response.data });
+          const response = await api.get('/api/oauth/status');
+          set({ oauthStatus: response.data });
         } catch (error) {
-          console.error('Failed to fetch LDAP status:', error);
-          set({ ldapStatus: { enabled: false, available: false } });
+          console.error('Failed to fetch OAuth status:', error);
+          set({ oauthStatus: { enabled: false, configured: false, connected: false, message: 'OAuth unavailable' } });
         }
       },
     }),

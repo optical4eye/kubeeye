@@ -211,6 +211,7 @@ graph TB
 - [`infra/security/cert_checker.py`](backend/app/infra/security/cert_checker.py:1) - проверка сертификатов
 - [`infra/security/command_security.py`](backend/app/infra/security/command_security.py:1) - безопасность команд
 - [`infra/security/crypto_utils.py`](backend/app/infra/security/crypto_utils.py:1) - утилиты шифрования (с автоматической генерацией ключа)
+- [`infra/security/oauth_service.py`](backend/app/infra/security/oauth_service.py:1) - OAuth/OIDC сервис для аутентификации через Dex
 - [`infra/security/secret_service.py`](backend/app/infra/security/secret_service.py:1) - сервис управления секретами (SecretValidator + SecretService)
 - [`infra/security/secret_variable_parser.py`](backend/app/infra/security/secret_variable_parser.py:1) - парсер переменных секретов
 - [`infra/security/ssh_service.py`](backend/app/infra/security/ssh_service.py:1) - унифицированный SSH сервис (исключения, загрузка ключей, выполнение команд, пул соединений)
@@ -502,13 +503,13 @@ backend/
 │   │   │   ├── k8s_dynamic_client.py
 │   │   │   ├── node_connection.py
 │   │   │   └── node_parser.py
-│   │   ├── security/             # Шифрование, SSH, секреты
+│   │   ├── security/             # Шифрование, OAuth, SSH, секреты
 │   │   │   ├── cert_checker.py
 │   │   │   ├── command_security.py
 │   │   │   ├── crypto_utils.py
+│   │   │   ├── oauth_service.py  # OAuth/OIDC сервис для Dex
 │   │   │   ├── secret_service.py
 │   │   │   ├── secret_variable_parser.py
-│   │   │   ├── ssh_connection_pool.py
 │   │   │   ├── ssh_service.py
 │   │   │   ├── ssh_key_resolver.py
 │   │   │   └── interfaces.py
@@ -648,66 +649,83 @@ backend/
 | `KUBEEYE_AUDIT_ENABLED` | `True` | Включить/отключить логирование аудита |
 | `KUBEEYE_AUDIT_RETENTION_DAYS` | `14` | Количество дней хранения логов аудита |
 
-### Переменные окружения для LDAP аутентификации
+### Переменные окружения для OAuth аутентификации (через Dex)
 
 | Переменная | По умолчанию | Описание |
 |------------|--------------|----------|
-| `KUBEEYE_LDAP_ENABLED` | `False` | Включить/отключить LDAP аутентификацию |
-| `KUBEEYE_LDAP_SERVER_URL` | `ldap://localhost:389` | URL LDAP сервера |
-| `KUBEEYE_LDAP_USE_SSL` | `False` | Использовать SSL для LDAP соединения (LDAPS) |
-| `KUBEEYE_LDAP_START_TLS` | `False` | Использовать StartTLS для LDAP соединения |
-| `KUBEEYE_LDAP_INSECURE_SKIP_VERIFY` | `False` | Пропустить проверку TLS сертификата |
-| `KUBEEYE_LDAP_BIND_DN` | `""` | DN для связывания с LDAP сервером |
-| `KUBEEYE_LDAP_BIND_PASSWORD` | `""` | Пароль для LDAP bind |
-| `KUBEEYE_LDAP_BASE_DN` | `""` | Базовый DN для поиска пользователей |
-| `KUBEEYE_LDAP_GROUP_BASE_DN` | `""` | Базовый DN для поиска групп |
-| `KUBEEYE_LDAP_ADMIN_GROUP` | `""` | LDAP группа для роли admin |
-| `KUBEEYE_LDAP_OPERATOR_GROUP` | `""` | LDAP группа для роли operator |
-| `KUBEEYE_LDAP_USER_FILTER` | `(uid={username})` | Фильтр поиска пользователей LDAP |
-| `KUBEEYE_LDAP_TYPE` | `openldap` | Тип LDAP сервера: `openldap` или `ad` |
-| `KUBEEYE_LDAP_AD_DOMAIN` | `None` | Домен Active Directory (только для типа `ad`) |
+| `KUBEEYE_OAUTH_ENABLED` | `True` | Включить/отключить OAuth аутентификацию |
+| `KUBEEYE_OAUTH_ISSUER_URL` | `http://dex:5556` | URL Dex OIDC issuer |
+| `KUBEEYE_OAUTH_CLIENT_ID` | `kubeeye` | Client ID для OIDC |
+| `KUBEEYE_OAUTH_CLIENT_SECRET` | `kubeeye-secret` | Client Secret для OIDC |
+| `KUBEEYE_OAUTH_REDIRECT_URI` | `http://localhost:3000/auth/callback` | URI для callback после аутентификации |
+| `KUBEEYE_OAUTH_ADMIN_GROUP` | `kubeeye-admins` | Группа для роли admin (соответствует LDAP группе) |
+| `KUBEEYE_OAUTH_OPERATOR_GROUP` | `kubeeye-operators` | Группа для роли operator (соответствует LDAP группе) |
+| `KUBEEYE_OAUTH_SCOPES` | `openid,profile,email,groups` | Запрашиваемые OIDC scopes |
 
-#### Пример конфигурации OpenLDAP
+#### Пример конфигурации OAuth через Dex
 
 ```yaml
 # docker-compose.yaml
 environment:
-  - KUBEEYE_LDAP_ENABLED=true
-  - KUBEEYE_LDAP_SERVER_URL=ldap://openldap:389
-  - KUBEEYE_LDAP_USE_SSL=false
-  - KUBEEYE_LDAP_BIND_DN=cn=admin,dc=kubeeye,dc=local
-  - KUBEEYE_LDAP_BIND_PASSWORD=admin
-  - KUBEEYE_LDAP_BASE_DN=ou=users,dc=kubeeye,dc=local
-  - KUBEEYE_LDAP_GROUP_BASE_DN=ou=groups,dc=kubeeye,dc=local
-  - KUBEEYE_LDAP_ADMIN_GROUP=cn=kubeeye-admins,ou=groups,dc=kubeeye,dc=local
-  - KUBEEYE_LDAP_OPERATOR_GROUP=cn=kubeeye-operators,ou=groups,dc=kubeeye,dc=local
-  - KUBEEYE_LDAP_USER_FILTER=(uid={username})
-  - KUBEEYE_LDAP_TYPE=openldap
+  # OAuth через Dex
+  - KUBEEYE_OAUTH_ENABLED=true
+  - KUBEEYE_OAUTH_ISSUER_URL=http://dex:5556
+  - KUBEEYE_OAUTH_CLIENT_ID=kubeeye
+  - KUBEEYE_OAUTH_CLIENT_SECRET=kubeeye-secret
+  - KUBEEYE_OAUTH_REDIRECT_URI=http://localhost:3000/auth/callback
+  - KUBEEYE_OAUTH_ADMIN_GROUP=kubeeye-admins
+  - KUBEEYE_OAUTH_OPERATOR_GROUP=kubeeye-operators
+  - KUBEEYE_OAUTH_SCOPES=openid,profile,email,groups
 ```
 
-#### Пример конфигурации Active Directory
+**Примечания:**
+- Dex выступает в роли OIDC провайдера, подключаясь к LDAP или другим identity provider
+- Группы пользователей приходят из Dex (который получает их из LDAP)
+- Локальный admin всегда доступен как fallback при неработающем OAuth
+- Для production измените `KUBEEYE_OAUTH_REDIRECT_URI` на ваш production URL
+
+#### Конфигурация Dex (dex-config.yaml)
 
 ```yaml
-# docker-compose.yaml
-environment:
-  - KUBEEYE_LDAP_ENABLED=true
-  - KUBEEYE_LDAP_SERVER_URL=ldap://ad.company.local:389
-  - KUBEEYE_LDAP_USE_SSL=false
-  - KUBEEYE_LDAP_BIND_DN=CN=svc_kubeeye,OU=Service Accounts,DC=company,DC=local
-  - KUBEEYE_LDAP_BIND_PASSWORD=your-service-password
-  - KUBEEYE_LDAP_BASE_DN=OU=Users,DC=company,DC=local
-  - KUBEEYE_LDAP_GROUP_BASE_DN=OU=Groups,DC=company,DC=local
-  - KUBEEYE_LDAP_ADMIN_GROUP=CN=KubeEye-Admins,OU=Groups,DC=company,DC=local
-  - KUBEEYE_LDAP_OPERATOR_GROUP=CN=KubeEye-Operators,OU=Groups,DC=company,DC=local
-  - KUBEEYE_LDAP_USER_FILTER=(sAMAccountName={username})
-  - KUBEEYE_LDAP_TYPE=ad
-  - KUBEEYE_LDAP_AD_DOMAIN=company.local
-```
+issuer: http://dex:5556
+storage:
+  type: memory
+web:
+  http: 0.0.0.0:5556
 
-**Примечания для Active Directory:**
-- Используйте `sAMAccountName` в фильтре поиска вместо `uid`
-- Укажите домен в `KUBEEYE_LDAP_AD_DOMAIN` для корректной аутентификации
-- Service account (`svc_kubeeye`) должен иметь права на чтение пользователей и групп
+staticClients:
+  - id: kubeeye
+    redirectURIs:
+      - 'http://localhost:3000/auth/callback'
+    name: 'KubeEye'
+    secret: kubeeye-secret
+
+connectors:
+  - type: ldap
+    id: ldap
+    name: OpenLDAP
+    config:
+      host: openldap:389
+      insecureNoSSL: true
+      bindDN: cn=admin,dc=kubeeye,dc=local
+      bindPW: admin
+      usernamePrompt: Username
+      userSearch:
+        baseDN: ou=users,dc=kubeeye,dc=local
+        filter: '(objectClass=person)'
+        username: uid
+        idAttr: DN
+        emailAttr: mail
+        nameAttr: cn
+        groupsAttr: memberOf
+      groupSearch:
+        baseDN: ou=groups,dc=kubeeye,dc=local
+        filter: '(objectClass=groupOfNames)'
+        userMatchers:
+          - userAttr: DN
+            groupAttr: member
+        nameAttr: cn
+```
 
 ### Переменные окружения для Popeye инспектора
 

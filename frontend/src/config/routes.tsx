@@ -5,6 +5,7 @@ import React, { lazy } from 'react';
  */
 export const Dashboard = lazy(() => import('../pages/Dashboard'));
 export const Login = lazy(() => import('../pages/Login'));
+export const OAuthCallback = lazy(() => import('../pages/OAuthCallback'));
 export const ClusterManagement = lazy(() => import('../pages/ClusterManagement'));
 export const AddCluster = lazy(() => import('../pages/AddCluster'));
 export const Inspection = lazy(() => import('../pages/Inspection'));
@@ -42,6 +43,11 @@ export const publicRoutes: RouteConfig[] = [
   {
     path: '/login',
     component: Login,
+    isPublic: true,
+  },
+  {
+    path: '/auth/callback',
+    component: OAuthCallback,
     isPublic: true,
   },
 ];

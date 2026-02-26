@@ -54,6 +54,7 @@ from . import (
     secrets,
     websocket,
     auth,
+    oauth,
 )
 
 # Import new route modules
@@ -296,7 +297,7 @@ def custom_openapi():
     paths = openapi_schema.get("paths", {})
     for path, methods in paths.items():
         # Skip documentation and health endpoints
-        if path in ["/docs", "/redoc", "/openapi.json", "/health", "/api/auth/login", "/api/auth/ldap-status"]:
+        if path in ["/docs", "/redoc", "/openapi.json", "/health", "/api/auth/login"]:
             continue
 
         for method in methods:
@@ -350,6 +351,7 @@ app.include_router(network.router, prefix="/api", tags=["network"])
 app.include_router(report_cleanup.router, prefix="/api", tags=["report-cleanup"])
 app.include_router(secrets.router, prefix="/api", tags=["secrets"])
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
+app.include_router(oauth.router, prefix="/api/oauth", tags=["oauth"])
 
 
 if __name__ == "__main__":

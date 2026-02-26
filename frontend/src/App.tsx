@@ -15,7 +15,7 @@ import AppHeader from './components/AppHeader';
 import ProtectedRoutes from './components/ProtectedRoutes';
 import { MenuItem } from './types/menu';
 import { MIN_LOADING_TIME } from './config/constants';
-import { Login } from './config/routes';
+import { Login, OAuthCallback } from './config/routes';
 
 const { Content } = Layout;
 
@@ -103,6 +103,14 @@ function App() {
                     element={
                       <Suspense fallback={<Spin size="large" />}>
                         <Login />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/auth/callback"
+                    element={
+                      <Suspense fallback={<Spin size="large" />}>
+                        <OAuthCallback />
                       </Suspense>
                     }
                   />

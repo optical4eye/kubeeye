@@ -1,0 +1,43 @@
+issuer: http://192.168.0.15:5556/dex
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+oauth2:
+  skipApprovalScreen: true
+
+staticClients:
+  - id: kubeeye
+    secret: kubeeye-secret
+    name: KubeEye
+    redirectURIs:
+      - http://192.168.0.15:3000/auth/callback
+
+connectors:
+  - type: ldap
+    id: ldap
+    name: OpenLDAP
+    config:
+      host: openldap:389
+      insecureNoSSL: true
+      bindDN: cn=admin,dc=kubeeye,dc=local
+      bindPW: admin
+      usernamePrompt: Username
+      userSearch:
+        baseDN: ou=users,dc=kubeeye,dc=local
+        filter: "(objectClass=inetOrgPerson)"
+        username: uid
+        idAttr: DN
+        emailAttr: mail
+        nameAttr: cn
+        groupsAttr: memberOf
+      groupSearch:
+        baseDN: ou=groups,dc=kubeeye,dc=local
+        filter: "(objectClass=groupOfNames)"
+        userMatchers:
+          - userAttr: DN
+            groupAttr: member
+        nameAttr: cn

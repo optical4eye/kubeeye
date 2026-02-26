@@ -122,3 +122,8 @@ backend/logs/
 *.tmp
 *.temp
 .cache/
+
+# Backup files created by run.sh
+*.bak
+docker-compose.yaml.bak
+ldap_files/*.bak

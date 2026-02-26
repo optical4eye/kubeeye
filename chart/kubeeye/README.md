@@ -211,20 +211,109 @@ externalSecret:
 | `KUBEEYE_ACCOUNT_LOCK_DURATION_MINUTES` | Длительность блокировки аккаунта в минутах | `30` |
 | `KUBEEYE_AUDIT_ENABLED` | Включить/отключить логирование аудита | `True` |
 | `KUBEEYE_AUDIT_RETENTION_DAYS` | Количество дней хранения логов аудита | `14` |
-| `KUBEEYE_LDAP_ENABLED` | Включить/отключить LDAP аутентификацию | `False` |
-| `KUBEEYE_LDAP_SERVER_URL` | URL LDAP сервера | `ldap://localhost:389` |
-| `KUBEEYE_LDAP_USE_SSL` | Использовать SSL для LDAP соединения (LDAPS) | `False` |
-| `KUBEEYE_LDAP_START_TLS` | Использовать StartTLS для LDAP соединения | `False` |
-| `KUBEEYE_LDAP_INSECURE_SKIP_VERIFY` | Пропустить проверку TLS сертификата | `False` |
-| `KUBEEYE_LDAP_BIND_DN` | DN для связывания с LDAP сервером | `""` |
-| `KUBEEYE_LDAP_BIND_PASSWORD` | Пароль для LDAP bind | `""` |
-| `KUBEEYE_LDAP_BASE_DN` | Базовый DN для поиска пользователей | `""` |
-| `KUBEEYE_LDAP_GROUP_BASE_DN` | Базовый DN для поиска групп | `""` |
-| `KUBEEYE_LDAP_ADMIN_GROUP` | LDAP группа для роли admin | `""` |
-| `KUBEEYE_LDAP_OPERATOR_GROUP` | LDAP группа для роли operator | `""` |
-| `KUBEEYE_LDAP_USER_FILTER` | Фильтр поиска пользователей LDAP | `(uid={username})` |
-| `KUBEEYE_LDAP_TYPE` | Тип LDAP сервера: `openldap` или `ad` | `openldap` |
-| `KUBEEYE_LDAP_AD_DOMAIN` | Домен Active Directory (только для типа `ad`) | `None` |
+| `KUBEEYE_OAUTH_ENABLED` | Включить/отключить OAuth аутентификацию | `True` |
+| `KUBEEYE_OAUTH_ISSUER_URL` | URL Dex OIDC issuer | `http://dex:5556` |
+| `KUBEEYE_OAUTH_CLIENT_ID` | Client ID для OIDC | `kubeeye` |
+| `KUBEEYE_OAUTH_CLIENT_SECRET` | Client Secret для OIDC | `kubeeye-secret` |
+| `KUBEEYE_OAUTH_REDIRECT_URI` | URI для callback после аутентификации | `http://localhost:3000/auth/callback` |
+| `KUBEEYE_OAUTH_ADMIN_GROUP` | Группа для роли admin | `kubeeye-admins` |
+| `KUBEEYE_OAUTH_OPERATOR_GROUP` | Группа для роли operator | `kubeeye-operators` |
+| `KUBEEYE_OAUTH_SCOPES` | Запрашиваемые OIDC scopes | `openid,profile,email,groups` |
+
+## Аутентификация через Dex (OAuth/OIDC)
+
+KubeEye использует Dex как OIDC провайдер для аутентификации пользователей. Dex может подключаться к различным identity provider (LDAP, Active Directory, GitHub, Google и др.).
+
+### Архитектура аутентификации
+
+```
+User → Frontend → Backend → Dex → LDAP/AD/Other IdP
+                ↓
+           JWT Token
+```
+
+### Конфигурация Dex
+
+Создайте ConfigMap с конфигурацией Dex:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-config
+data:
+  config.yaml: |
+    issuer: https://dex.your-domain.com
+    storage:
+      type: kubernetes
+      config:
+        inCluster: true
+    web:
+      http: 0.0.0.0:5556
+
+    staticClients:
+      - id: kubeeye
+        redirectURIs:
+          - 'https://kubeeye.your-domain.com/auth/callback'
+        name: 'KubeEye'
+        secret: your-client-secret
+
+    connectors:
+      - type: ldap
+        id: ldap
+        name: OpenLDAP
+        config:
+          host: ldap.your-domain.com:636
+          rootCAData: <base64-encoded-ca>
+          bindDN: cn=admin,dc=example,dc=com
+          bindPW: $LDAP_BIND_PASSWORD
+          usernamePrompt: Username
+          userSearch:
+            baseDN: ou=users,dc=example,dc=com
+            filter: '(objectClass=person)'
+            username: uid
+            idAttr: DN
+            emailAttr: mail
+            nameAttr: cn
+            groupsAttr: memberOf
+          groupSearch:
+            baseDN: ou=groups,dc=example,dc=com
+            filter: '(objectClass=groupOfNames)'
+            userMatchers:
+              - userAttr: DN
+                groupAttr: member
+            nameAttr: cn
+```
+
+### Настройка переменных окружения для OAuth
+
+```yaml
+backend:
+  env:
+    - name: KUBEEYE_OAUTH_ENABLED
+      value: "true"
+    - name: KUBEEYE_OAUTH_ISSUER_URL
+      value: "https://dex.your-domain.com"
+    - name: KUBEEYE_OAUTH_CLIENT_ID
+      value: "kubeeye"
+    - name: KUBEEYE_OAUTH_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: kubeeye-oauth-secret
+          key: client-secret
+    - name: KUBEEYE_OAUTH_REDIRECT_URI
+      value: "https://kubeeye.your-domain.com/auth/callback"
+    - name: KUBEEYE_OAUTH_ADMIN_GROUP
+      value: "kubeeye-admins"
+    - name: KUBEEYE_OAUTH_OPERATOR_GROUP
+      value: "kubeeye-operators"
+```
+
+### Fallback аутентификация
+
+Локальный admin пользователь всегда доступен как fallback при неработающем OAuth:
+- Username: `admin` (из `KUBEEYE_ADMIN_USERNAME`)
+- Password: из `KUBEEYE_ADMIN_PASSWORD`
 
 ## Правила безопасности
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Script to initialize admin user
-Creates a local admin user for fallback access when LDAP is enabled
+Creates a local admin user for fallback access when OAuth is enabled
 """
 
 import asyncio
@@ -53,7 +53,7 @@ async def init_admin_user():
         logger.info(f"Local admin user '{settings.kubeeye_admin_username}' created successfully")
         logger.warning(f"Default admin password: {settings.kubeeye_admin_password}")
         logger.warning("Please change the default admin password in production!")
-        logger.info("This is a LOCAL admin user for fallback access when LDAP is unavailable")
+        logger.info("This is a LOCAL admin user for fallback access when OAuth is unavailable")
 
         return admin_user
 

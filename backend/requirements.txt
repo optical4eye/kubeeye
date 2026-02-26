@@ -33,4 +33,5 @@ cachetools>=7.0.1  # Thread-safe caching with TTL
 python-jose[cryptography]>=3.5.0  # JWT token handling
 pwdlib[argon2]>=0.3.0  # Password hashing (Argon2 only)
 python-multipart>=0.0.22  # Form data parsing for login
-ldap3>=2.9.1  # LDAP client for authentication (OpenLDAP and Active Directory)
+authlib>=1.6.8  # OAuth/OIDC client for Dex authentication
+pyjwt>=2.11.0  # JWT parsing for ID tokens

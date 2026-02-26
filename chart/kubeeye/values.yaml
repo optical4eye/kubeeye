@@ -79,34 +79,21 @@ backend:
       value: "admin123"
     - name: KUBEEYE_JWT_SECRET_KEY
       value: "Uk5E9obf53tnXAcunvlBUKqF9d2JF12fqz2dzipHHQl"
-    - name: KUBEEYE_LDAP_ENABLED
-      value: "false"
-    - name: KUBEEYE_LDAP_SERVER_URL
-      value: "ldap://localhost:389"
-    - name: KUBEEYE_LDAP_USE_SSL
-      value: "false"
-    - name: KUBEEYE_LDAP_START_TLS
-      value: "false"
-    - name: KUBEEYE_LDAP_INSECURE_SKIP_VERIFY
-      value: "false"
-    - name: KUBEEYE_LDAP_BIND_DN
-      value: ""
-    - name: KUBEEYE_LDAP_BIND_PASSWORD
-      value: ""
-    - name: KUBEEYE_LDAP_BASE_DN
-      value: ""
-    - name: KUBEEYE_LDAP_GROUP_BASE_DN
-      value: ""
-    - name: KUBEEYE_LDAP_ADMIN_GROUP
-      value: ""
-    - name: KUBEEYE_LDAP_OPERATOR_GROUP
-      value: ""
-    - name: KUBEEYE_LDAP_USER_FILTER
-      value: "(uid={username})"
-    - name: KUBEEYE_LDAP_TYPE
-      value: "openldap"
-    - name: KUBEEYE_LDAP_AD_DOMAIN
-      value: ""
+    # OAuth/Dex configuration (replaces LDAP)
+    - name: KUBEEYE_OAUTH_ISSUER_URL
+      value: "http://dex:5556/dex"
+    - name: KUBEEYE_OAUTH_CLIENT_ID
+      value: "kubeeye"
+    - name: KUBEEYE_OAUTH_CLIENT_SECRET
+      value: "kubeeye-secret"
+    - name: KUBEEYE_OAUTH_REDIRECT_URI
+      value: "http://localhost:3000/auth/callback"
+    - name: KUBEEYE_OAUTH_SCOPE
+      value: "openid profile email groups"
+    - name: KUBEEYE_OAUTH_ADMIN_GROUP
+      value: "kubeeye-admins"
+    - name: KUBEEYE_OAUTH_OPERATOR_GROUP
+      value: "kubeeye-operators"
   resources:
     limits:
       memory: "2Gi"

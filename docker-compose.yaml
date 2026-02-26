@@ -29,10 +29,10 @@ services:
     ports:
       - "389:389"
       - "636:636"
-    # Use tmpfs for LDAP data to ensure it's recreated on container restart
-    # Note: Config directory must persist for slapd to start properly
+    # LDAP data is initialized via ldapadd after container start (see run.sh)
     tmpfs:
       - /var/lib/ldap
+      - /etc/ldap/slapd.d
     healthcheck:
       test: ["CMD", "ldapsearch", "-x", "-H", "ldap://localhost:389", "-b", "", "-s", "base", "(objectclass=*)"]
       interval: 10s
@@ -41,36 +41,24 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  # LDAP initialization container - applies LDIF after OpenLDAP starts
-  ldap-init:
-    image: osixia/openldap:1.5.0
-    container_name: kubeeye-ldap-init
+  # Dex - OpenID Connect Identity Provider
+  dex:
+    image: dexidp/dex:v2.45.0
+    container_name: kubeeye-dex
+    volumes:
+      - ./ldap_files/dex-config.yaml:/etc/dex/config.yaml:ro
+    ports:
+      - "5556:5556"
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    restart: unless-stopped
     depends_on:
       openldap:
         condition: service_healthy
-    volumes:
-      - ./ldap_init.sh:/ldap_init.sh:ro
-      - ./ldap_init/50-bootstrap.ldif:/ldif/50-bootstrap.ldif:ro
-    environment:
-      - LDAP_HOST=openldap
-      - LDAP_PORT=389
-      - LDAP_ADMIN_DN=cn=admin,dc=kubeeye,dc=local
-      - LDAP_ADMIN_PASSWORD=admin
-    entrypoint: ["/bin/bash", "/ldap_init.sh"]
-    restart: "no"
-
-  # # phpLDAPadmin - web interface for LDAP management
-  # phpldapadmin:
-  #   image: osixia/phpldapadmin:0.9.0
-  #   container_name: kubeeye-phpldapadmin
-  #   environment:
-  #     PHPLDAPADMIN_LDAP_HOSTS: "openldap"
-  #     PHPLDAPADMIN_HTTPS: "false"
-  #   ports:
-  #     - "8080:80"
-  #   depends_on:
-  #     - openldap
-  #   restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://192.168.0.15:5556/dex/.well-known/openid-configuration"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -95,18 +83,6 @@ services:
       - DB_PASS=kubeeye
       - DB_NAME=kubeeye-db
 
-      # SSH configuration (supports up to 50 hosts)
-      - KUBEEYE_SSH_CONNECTION_TIMEOUT=15
-      - KUBEEYE_SSH_MAX_CONCURRENT_CHECKS=50
-      - KUBEEYE_SSH_COMMAND_TIMEOUT=60
-      - KUBEEYE_SSH_RETRY_ATTEMPTS=2
-      - KUBEEYE_SSH_RETRY_DELAY=2
-      - KUBEEYE_SSH_POOL_ENABLED=true
-      - KUBEEYE_SSH_POOL_SIZE=50
-      - KUBEEYE_SSH_POOL_CONNECTION_TIMEOUT=300
-      - KUBEEYE_SSH_POOL_KEEPALIVE_INTERVAL=60
-      - KUBEEYE_SSH_KEEP_ALIVE=true
-
       # JWT configuration
       - KUBEEYE_JWT_SECRET_KEY=Uk5E9obf53tnXAcunvlBUKqF9d2JF12fqz2dzipHHQl
       - KUBEEYE_JWT_ALGORITHM=HS256
@@ -117,38 +93,29 @@ services:
       - KUBEEYE_ADMIN_EMAIL=admin@kubeeye.local
       - KUBEEYE_ADMIN_PASSWORD=admin123
 
-      # Security settings
-      - KUBEEYE_MAX_FAILED_LOGIN_ATTEMPTS=5
-      - KUBEEYE_ACCOUNT_LOCK_DURATION_MINUTES=30
+      # OAuth/Dex configuration
+      # Use host.docker.internal to access Dex from inside the container
+      - KUBEEYE_OAUTH_ISSUER_URL=http://192.168.0.15:5556/dex
+      - KUBEEYE_OAUTH_CLIENT_ID=kubeeye
+      - KUBEEYE_OAUTH_CLIENT_SECRET=kubeeye-secret
+      - KUBEEYE_OAUTH_REDIRECT_URI=http://192.168.0.15:3000/auth/callback
+      - KUBEEYE_OAUTH_SCOPE=openid profile email groups
 
-      # Audit configuration
-      - KUBEEYE_AUDIT_ENABLED=true
-      - KUBEEYE_AUDIT_RETENTION_DAYS=1
-
-      # LDAP configuration
-      - KUBEEYE_LDAP_ENABLED=true
-      - KUBEEYE_LDAP_SERVER_URL=ldap://openldap:389
-      - KUBEEYE_LDAP_USE_SSL=false
-      - KUBEEYE_LDAP_BIND_DN=cn=admin,dc=kubeeye,dc=local
-      - KUBEEYE_LDAP_BIND_PASSWORD=admin
-      - KUBEEYE_LDAP_BASE_DN=ou=users,dc=kubeeye,dc=local
-      - KUBEEYE_LDAP_GROUP_BASE_DN=ou=groups,dc=kubeeye,dc=local
-      - KUBEEYE_LDAP_ADMIN_GROUP=cn=kubeeye-admins,ou=groups,dc=kubeeye,dc=local
-      - KUBEEYE_LDAP_OPERATOR_GROUP=cn=kubeeye-operators,ou=groups,dc=kubeeye,dc=local
-      - KUBEEYE_LDAP_USER_FILTER=(uid={username})
-      - KUBEEYE_LDAP_TYPE=openldap
+      # Group to role mapping
+      - KUBEEYE_OAUTH_ADMIN_GROUP=kubeeye-admins
+      - KUBEEYE_OAUTH_OPERATOR_GROUP=kubeeye-operators
     restart: unless-stopped
     volumes:
       - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
-      ldap-init:
-        condition: service_completed_successfully
+      dex:
+        condition: service_healthy
       openldap:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://backend:8000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

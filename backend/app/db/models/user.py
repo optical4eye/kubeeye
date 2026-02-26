@@ -27,11 +27,11 @@ class AuthType:
     """Authentication type enum"""
 
     LOCAL = "local"  # Local user with password in database
-    LDAP = "ldap"  # LDAP/Active Directory user
+    OAUTH = "oauth"  # OAuth/OIDC user (via Dex)
 
     @classmethod
     def all(cls):
-        return [cls.LOCAL, cls.LDAP]
+        return [cls.LOCAL, cls.OAUTH]
 
     @classmethod
     def is_valid(cls, auth_type: str) -> bool:
@@ -46,15 +46,15 @@ class User(BaseModel):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=True)  # Nullable for LDAP users
+    password_hash = Column(String(255), nullable=True)  # Nullable for OAuth users
     role = Column(String(20), nullable=False, default=UserRole.OPERATOR, index=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime(timezone=True), nullable=True)
-    # LDAP fields
-    auth_type = Column(String(20), nullable=False, default=AuthType.LDAP, index=True)
-    ldap_dn = Column(String(255), nullable=True)  # Distinguished Name in LDAP
+    # OAuth fields
+    auth_type = Column(String(20), nullable=False, default=AuthType.OAUTH, index=True)
+    oauth_subject = Column(String(255), nullable=True, index=True)  # OAuth subject ID
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}', role='{self.role}', auth_type='{self.auth_type}')>"
@@ -71,9 +71,9 @@ class User(BaseModel):
         """Check if user is a local user"""
         return self.auth_type == AuthType.LOCAL
 
-    def is_ldap(self) -> bool:
-        """Check if user is an LDAP user"""
-        return self.auth_type == AuthType.LDAP
+    def is_oauth(self) -> bool:
+        """Check if user is an OAuth user"""
+        return self.auth_type == AuthType.OAUTH
 
     def is_locked(self) -> bool:
         """Check if user account is locked"""

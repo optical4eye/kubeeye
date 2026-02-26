@@ -103,21 +103,16 @@ class Settings(BaseSettings):
     kubeeye_audit_enabled: bool = Field(default=True, description="Enable/disable audit logging")
     kubeeye_audit_retention_days: int = Field(default=14, description="Number of days to retain audit logs")
 
-    # LDAP configuration
-    kubeeye_ldap_enabled: bool = Field(default=False, description="Enable LDAP authentication")
-    kubeeye_ldap_server_url: str = Field(default="ldap://localhost:389", description="LDAP server URL")
-    kubeeye_ldap_use_ssl: bool = Field(default=False, description="Use SSL for LDAP connection")
-    kubeeye_ldap_start_tls: bool = Field(default=False, description="Use StartTLS for LDAP connection")
-    kubeeye_ldap_insecure_skip_verify: bool = Field(default=False, description="Skip TLS certificate verification")
-    kubeeye_ldap_bind_dn: str = Field(default="", description="DN for binding to LDAP server")
-    kubeeye_ldap_bind_password: str = Field(default="", description="Password for LDAP bind")
-    kubeeye_ldap_base_dn: str = Field(default="", description="Base DN for user search")
-    kubeeye_ldap_group_base_dn: str = Field(default="", description="Base DN for group search")
-    kubeeye_ldap_admin_group: str = Field(default="", description="LDAP group for admin role")
-    kubeeye_ldap_operator_group: str = Field(default="", description="LDAP group for operator role")
-    kubeeye_ldap_user_filter: str = Field(default="(uid={username})", description="LDAP user search filter")
-    kubeeye_ldap_type: str = Field(default="openldap", description="LDAP server type: openldap or ad")
-    kubeeye_ldap_ad_domain: Optional[str] = Field(default=None, description="Active Directory domain")
+    # OAuth/Dex configuration
+    kubeeye_oauth_issuer_url: str = Field(default="", description="Dex issuer URL (e.g., http://dex:5556/dex)")
+    kubeeye_oauth_client_id: str = Field(default="kubeeye", description="OAuth client ID")
+    kubeeye_oauth_client_secret: str = Field(default="", description="OAuth client secret")
+    kubeeye_oauth_redirect_uri: str = Field(default="http://localhost:3000/auth/callback", description="OAuth redirect URI")
+    kubeeye_oauth_scope: str = Field(default="openid profile email groups", description="OAuth scopes")
+
+    # Group to role mapping for OAuth
+    kubeeye_oauth_admin_group: str = Field(default="kubeeye-admins", description="OAuth group for admin role")
+    kubeeye_oauth_operator_group: str = Field(default="kubeeye-operators", description="OAuth group for operator role")
 
 
 # Global settings instance

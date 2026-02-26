@@ -29,25 +29,21 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.get("/ldap-status", status_code=status.HTTP_200_OK)
-async def get_ldap_status():
-    """
-    Get LDAP authentication status
-
-    Returns whether LDAP is enabled and configured
-    """
-    from infra.security.ldap_service import ldap_service
-
-    return {"enabled": ldap_service.is_enabled(), "available": ldap_service.is_enabled()}
-
-
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def login(request: LoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
     """
-    Login user with username and password
+    Login user with username and password (local auth only - for emergency/admin access)
+    OAuth is the preferred authentication method via /api/oauth/*
 
     Returns access token
     """
+    # Reject LDAP auth type
+    if request.auth_type == "ldap":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="LDAP authentication is deprecated. Use OAuth via /api/oauth/auth-url"
+        )
+
     audit_service = AuditService(db)
     ip_address = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
@@ -55,13 +51,10 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
     try:
         auth_service = AuthService(db)
 
-        # Authenticate user with explicit auth_type if provided
-        user = await auth_service.authenticate_user(
+        # Authenticate local user only
+        user = await auth_service.authenticate_local_user(
             username=request.username,
             password=request.password,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            auth_type=request.auth_type,
         )
 
         if not user:
@@ -166,7 +159,7 @@ async def list_users(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
-# NOTE: User creation endpoint is disabled - users are created automatically via LDAP
+# NOTE: User creation endpoint is disabled - users are created automatically via OAuth
 # Only the default admin user (auth_type=local) can exist as a local user
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @require_permission(Permission.USER_CREATE)
@@ -176,12 +169,12 @@ async def create_user(
     """
     Create new user - DISABLED
 
-    Local user creation is disabled. Users are automatically created via LDAP authentication.
+    Local user creation is disabled. Users are automatically created via OAuth authentication.
     Only the default admin user exists as a local user.
     """
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Local user creation is disabled. Users are created automatically via LDAP authentication.",
+        detail="Local user creation is disabled. Users are created automatically via OAuth authentication.",
     )
 
 
