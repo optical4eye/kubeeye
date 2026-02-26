@@ -57,8 +57,14 @@ class AuthService:
             logger.warning(f"User '{oauth_user.username}' not in authorized groups: {oauth_user.groups}")
             return None
 
-        # Get or create user
+        # Get user by username or email
         user = await self.user_repo.get_by_username(oauth_user.username)
+
+        if not user:
+            # Check if user exists with same email (could be local user or OAuth with different username)
+            user = await self.user_repo.get_by_email(oauth_user.email)
+            if user:
+                logger.info(f"Found existing user by email '{oauth_user.email}', linking OAuth credentials")
 
         if user:
             # Update existing user
@@ -67,12 +73,18 @@ class AuthService:
                 return None
 
             update_data = {}
+            if user.username != oauth_user.username:
+                update_data["username"] = oauth_user.username
             if user.email != oauth_user.email:
                 update_data["email"] = oauth_user.email
             if user.role != role:
                 update_data["role"] = role
             if user.oauth_subject != oauth_user.subject:
                 update_data["oauth_subject"] = oauth_user.subject
+            # Convert local user to OAuth if needed
+            if user.auth_type != AuthType.OAUTH:
+                update_data["auth_type"] = AuthType.OAUTH
+                update_data["password_hash"] = None
 
             if update_data:
                 await self.user_repo.update(user.id, update_data)

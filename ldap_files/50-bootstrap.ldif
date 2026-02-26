@@ -34,8 +34,8 @@ objectClass: shadowAccount
 uid: ldapadmin
 sn: Admin
 givenName: LDAP
-cn: LDAP Admin
-displayName: LDAP Administrator
+cn: Administrator LDAP Administrator
+displayName: Administrator LDAP Administratorw
 uidNumber: 10001
 gidNumber: 10001
 userPassword: ldapadmin123
