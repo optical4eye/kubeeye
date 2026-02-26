@@ -281,7 +281,9 @@ class NodeInspector(BaseInspector):
         else:
             connection_check_timeout = ssh_timeout * 1.5  # 15s for 10s base
 
-        logger.info(f"Connection check parameters: nodes={len(self.nodes)}, max_concurrent={max_concurrent_checks}, timeout={connection_check_timeout}s")
+        logger.info(
+            f"Connection check parameters: nodes={len(self.nodes)}, max_concurrent={max_concurrent_checks}, timeout={connection_check_timeout}s"
+        )
 
         # Create semaphore to limit concurrent connections
         semaphore = asyncio.Semaphore(max_concurrent_checks)
@@ -331,7 +333,9 @@ class NodeInspector(BaseInspector):
                         logger.info(f"[{index}/{len(self.nodes)}] SSH connection to node {node_name} successful")
                         return node
                     else:
-                        logger.error(f"[{index}/{len(self.nodes)}] SSH connection to node {node_name} unavailable: {message}")
+                        logger.error(
+                            f"[{index}/{len(self.nodes)}] SSH connection to node {node_name} unavailable: {message}"
+                        )
                         # Register error in manager
                         self.ssh_error_manager.register_connection_error(node, message)
                         return None
@@ -354,7 +358,7 @@ class NodeInspector(BaseInspector):
                     return None
 
         # Create tasks for all nodes with index
-        tasks = [check_single_node(node, i+1) for i, node in enumerate(self.nodes)]
+        tasks = [check_single_node(node, i + 1) for i, node in enumerate(self.nodes)]
 
         # Wait for all tasks to complete
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -378,9 +382,7 @@ class NodeInspector(BaseInspector):
         # Log summary of connection checks
         successful = sum(1 for n in self.nodes if n.get("connection_status", {}).get("success", False))
         failed = len(self.nodes) - successful
-        logger.info(
-            f"Connection check completed. Available: {successful}, Unavailable: {failed}"
-        )
+        logger.info(f"Connection check completed. Available: {successful}, Unavailable: {failed}")
 
         # Log details for unavailable nodes
         for node in self.nodes:

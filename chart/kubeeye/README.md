@@ -170,12 +170,12 @@ externalSecret:
 |------------|----------|--------------|
 | `PYTHONPATH` | Путь поиска модулей Python | `/app` |
 | `KUBEEYE_DATA_DIR` | Директория для хранения данных приложения (кластеры, отчеты и т.д.) | `/app/data` |
-| `DB_HOST` | Хост PostgreSQL | `kubeeye-postgresql` |
-| `DB_PORT` | Порт PostgreSQL | `5432` |
-| `DB_USER` | Пользователь БД | `kubeeye` |
-| `DB_PASS` | Пароль БД | `password` |
-| `DB_NAME` | Имя БД | `kubeeye-db` |
-| `SQL_DEBUG` | Включить SQL debug логирование | `False` |
+| `KUBEEYE_DB_HOST` | Хост PostgreSQL | `kubeeye-postgresql` |
+| `KUBEEYE_DB_PORT` | Порт PostgreSQL | `5432` |
+| `KUBEEYE_DB_USER` | Пользователь БД | `kubeeye` |
+| `KUBEEYE_DB_PASS` | Пароль БД | `password` |
+| `KUBEEYE_DB_NAME` | Имя БД | `kubeeye-db` |
+| `KUBEEYE_SQL_DEBUG` | Включить SQL debug логирование | `False` |
 | `KUBEEYE_LOG_LEVEL` | Уровень логирования | `INFO` |
 | `KUBEEYE_REPORT_RETENTION_DAYS` | Дни хранения отчетов | `7` |
 | `KUBEEYE_SSH_CONNECTION_TIMEOUT` | Таймаут SSH соединения (секунды) | `10` |
@@ -216,8 +216,8 @@ externalSecret:
 | `KUBEEYE_OAUTH_CLIENT_ID` | Client ID для OIDC | `kubeeye` |
 | `KUBEEYE_OAUTH_CLIENT_SECRET` | Client Secret для OIDC | `kubeeye-secret` |
 | `KUBEEYE_OAUTH_REDIRECT_URI` | URI для callback после аутентификации | `http://localhost:3000/auth/callback` |
-| `KUBEEYE_OAUTH_ADMIN_GROUP` | Группа для роли admin | `kubeeye-admins` |
-| `KUBEEYE_OAUTH_OPERATOR_GROUP` | Группа для роли operator | `kubeeye-operators` |
+| `KUBEEYE_OAUTH_ADMIN_GROUPS` | Список групп для роли admin (через запятую) | `kubeeye-admins` |
+| `KUBEEYE_OAUTH_OPERATOR_GROUPS` | Список групп для роли operator (через запятую) | `kubeeye-operators` |
 | `KUBEEYE_OAUTH_SCOPES` | Запрашиваемые OIDC scopes | `openid,profile,email,groups` |
 
 ## Аутентификация через Dex (OAuth/OIDC)
@@ -303,10 +303,10 @@ backend:
           key: client-secret
     - name: KUBEEYE_OAUTH_REDIRECT_URI
       value: "https://kubeeye.your-domain.com/auth/callback"
-    - name: KUBEEYE_OAUTH_ADMIN_GROUP
-      value: "kubeeye-admins"
-    - name: KUBEEYE_OAUTH_OPERATOR_GROUP
-      value: "kubeeye-operators"
+    - name: KUBEEYE_OAUTH_ADMIN_GROUPS
+      value: "kubeeye-admins,k8s-admins,infra-admins"
+    - name: KUBEEYE_OAUTH_OPERATOR_GROUPS
+      value: "kubeeye-operators,k8s-operators"
 ```
 
 ### Fallback аутентификация

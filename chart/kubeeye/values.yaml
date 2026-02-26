@@ -30,7 +30,6 @@ frontend:
   replicaCount: 1
   image:
     repository: kubeeye-frontend
-    tag: "v3.3"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -49,7 +48,6 @@ backend:
   replicaCount: 1
   image:
     repository: kubeeye-backend
-    tag: "v3.3"
     pullPolicy: IfNotPresent
   service:
     port: 8000
@@ -65,11 +63,11 @@ backend:
       value: "optical4eye"
     - name: KUBEEYE_GITOPS_REPO_DESCRIPTION
       value: "kubeeye repo rules"
-    - name: DB_USER
+    - name: KUBEEYE_DB_USER
       value: "kubeeye"
-    - name: DB_NAME
+    - name: KUBEEYE_DB_NAME
       value: "kubeeye"
-    - name: DB_PASS
+    - name: KUBEEYE_DB_PASS
       value: "password"
     - name: KUBEEYE_ADMIN_USERNAME
       value: "admin"
@@ -90,9 +88,10 @@ backend:
       value: "http://localhost:3000/auth/callback"
     - name: KUBEEYE_OAUTH_SCOPE
       value: "openid profile email groups"
-    - name: KUBEEYE_OAUTH_ADMIN_GROUP
+    # Multiple groups support (comma-separated list)
+    - name: KUBEEYE_OAUTH_ADMIN_GROUPS
       value: "kubeeye-admins"
-    - name: KUBEEYE_OAUTH_OPERATOR_GROUP
+    - name: KUBEEYE_OAUTH_OPERATOR_GROUPS
       value: "kubeeye-operators"
   resources:
     limits:

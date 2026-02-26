@@ -27,22 +27,24 @@ class Settings(BaseSettings):
     )
 
     # Logging
-    kubeeye_log_level: str = Field(default="INFO", description="Logging level", validation_alias="KUBEEYE_LOG_LEVEL")
+    kubeeye_log_level: str = Field(default="INFO", description="Logging level")
 
     # Database configuration
-    db_host: str = Field(default="localhost", description="Database host")
-    db_port: str = Field(default="5432", description="Database port")
-    db_user: str = Field(default="kubeeye", description="Database username")
-    db_pass: str = Field(default="kubeeye", description="Database password")
-    db_name: str = Field(default="kubeeye", description="Database name")
-    sql_debug: bool = Field(default=False, description="Enable SQL debug logging")
+    kubeeye_db_host: str = Field(default="localhost", description="Database host")
+    kubeeye_db_port: str = Field(default="5432", description="Database port")
+    kubeeye_db_user: str = Field(default="kubeeye", description="Database username")
+    kubeeye_db_pass: str = Field(default="kubeeye", description="Database password")
+    kubeeye_db_name: str = Field(default="kubeeye", description="Database name")
+    kubeeye_sql_debug: bool = Field(default=False, description="Enable SQL debug logging")
 
     # Report cleanup
     kubeeye_report_retention_days: int = Field(default=7, description="Number of days to retain reports")
 
     # SSH configuration (unified for all SSH operations)
     kubeeye_ssh_connection_timeout: int = Field(default=15, description="SSH connection timeout in seconds")
-    kubeeye_ssh_max_concurrent_checks: int = Field(default=50, description="Max concurrent SSH checks (supports up to 50 hosts)")
+    kubeeye_ssh_max_concurrent_checks: int = Field(
+        default=50, description="Max concurrent SSH checks (supports up to 50 hosts)"
+    )
     kubeeye_ssh_command_timeout: int = Field(default=60, description="SSH command execution timeout in seconds")
 
     # SSH retry configuration
@@ -107,12 +109,18 @@ class Settings(BaseSettings):
     kubeeye_oauth_issuer_url: str = Field(default="", description="Dex issuer URL (e.g., http://dex:5556/dex)")
     kubeeye_oauth_client_id: str = Field(default="kubeeye", description="OAuth client ID")
     kubeeye_oauth_client_secret: str = Field(default="", description="OAuth client secret")
-    kubeeye_oauth_redirect_uri: str = Field(default="http://localhost:3000/auth/callback", description="OAuth redirect URI")
+    kubeeye_oauth_redirect_uri: str = Field(
+        default="http://localhost:3000/auth/callback", description="OAuth redirect URI"
+    )
     kubeeye_oauth_scope: str = Field(default="openid profile email groups", description="OAuth scopes")
 
-    # Group to role mapping for OAuth
-    kubeeye_oauth_admin_group: str = Field(default="kubeeye-admins", description="OAuth group for admin role")
-    kubeeye_oauth_operator_group: str = Field(default="kubeeye-operators", description="OAuth group for operator role")
+    # Group to role mapping for OAuth (comma-separated list of groups)
+    kubeeye_oauth_admin_groups: str = Field(
+        default="kubeeye-admins", description="Comma-separated list of OAuth groups for admin role"
+    )
+    kubeeye_oauth_operator_groups: str = Field(
+        default="kubeeye-operators", description="Comma-separated list of OAuth groups for operator role"
+    )
 
 
 # Global settings instance

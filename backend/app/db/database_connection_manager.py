@@ -20,12 +20,10 @@ logger = get_logger(__name__)
 
 
 # Формируем URL подключения к базе данных из переменных окружения
-DATABASE_URL = (
-    f"postgresql://{settings.db_user}:{settings.db_pass}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
-)
+DATABASE_URL = f"postgresql://{settings.kubeeye_db_user}:{settings.kubeeye_db_pass}@{settings.kubeeye_db_host}:{settings.kubeeye_db_port}/{settings.kubeeye_db_name}"
 
 # Формируем асинхронный URL подключения к базе данных из переменных окружения
-ASYNC_DATABASE_URL = f"postgresql+asyncpg://{settings.db_user}:{settings.db_pass}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+ASYNC_DATABASE_URL = f"postgresql+asyncpg://{settings.kubeeye_db_user}:{settings.kubeeye_db_pass}@{settings.kubeeye_db_host}:{settings.kubeeye_db_port}/{settings.kubeeye_db_name}"
 
 
 def get_database_url() -> str:
@@ -70,7 +68,7 @@ class DatabaseConnectionManager:
             try:
                 self._async_engine = create_async_engine(
                     ASYNC_DATABASE_URL,
-                    echo=settings.sql_debug,
+                    echo=settings.kubeeye_sql_debug,
                     pool_size=pool_size,
                     max_overflow=pool_size // 2,
                     pool_recycle=3600,  # Recycle connections after 1 hour

@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 @dataclass
 class OAuthUser:
     """OAuth user information from ID token"""
+
     username: str
     email: str
     display_name: str
@@ -34,8 +35,9 @@ class OAuthService:
         self.client_secret = settings.kubeeye_oauth_client_secret
         self.redirect_uri = settings.kubeeye_oauth_redirect_uri
         self.scope = settings.kubeeye_oauth_scope
-        self.admin_group = settings.kubeeye_oauth_admin_group
-        self.operator_group = settings.kubeeye_oauth_operator_group
+        # Parse comma-separated groups into lists
+        self.admin_groups = [g.strip() for g in settings.kubeeye_oauth_admin_groups.split(",") if g.strip()]
+        self.operator_groups = [g.strip() for g in settings.kubeeye_oauth_operator_groups.split(",") if g.strip()]
 
         # Cached endpoints
         self._authorization_endpoint: Optional[str] = None
@@ -95,9 +97,7 @@ class OAuthService:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    self._token_endpoint,
-                    data=data,
-                    headers={"Content-Type": "application/x-www-form-urlencoded"}
+                    self._token_endpoint, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}
                 )
                 if response.status_code == 200:
                     return response.json()
@@ -118,33 +118,39 @@ class OAuthService:
             groups = claims.get("groups", []) or []
             subject = claims.get("sub", "")
 
-            return OAuthUser(
-                username=username,
-                email=email,
-                display_name=display_name,
-                groups=groups,
-                subject=subject
-            )
+            return OAuthUser(username=username, email=email, display_name=display_name, groups=groups, subject=subject)
         except Exception as e:
             logger.error(f"Failed to parse ID token: {e}")
             return None
 
     def determine_role(self, groups: List[str]) -> Optional[str]:
-        """Determine user role based on OAuth groups from Dex/LDAP"""
+        """Determine user role based on OAuth groups from Dex/LDAP
+
+        Supports multiple admin and operator groups defined in settings.
+        Admin groups take precedence over operator groups.
+        """
         if not groups:
             return None
 
-        # Check admin group
-        for group in groups:
-            if self.admin_group.lower() in group.lower():
-                return "admin"
+        # Check admin groups first (takes precedence)
+        for user_group in groups:
+            user_group_lower = user_group.lower()
+            for admin_group in self.admin_groups:
+                if admin_group.lower() in user_group_lower:
+                    logger.debug(f"Matched admin group: {user_group} -> {admin_group}")
+                    return "admin"
 
-        # Check operator group
-        for group in groups:
-            if self.operator_group.lower() in group.lower():
-                return "operator"
+        # Check operator groups
+        for user_group in groups:
+            user_group_lower = user_group.lower()
+            for operator_group in self.operator_groups:
+                if operator_group.lower() in user_group_lower:
+                    logger.debug(f"Matched operator group: {user_group} -> {operator_group}")
+                    return "operator"
 
         logger.warning(f"User not in authorized groups: {groups}")
+        logger.debug(f"Expected admin groups: {self.admin_groups}")
+        logger.debug(f"Expected operator groups: {self.operator_groups}")
         return None
 
     def is_configured(self) -> bool:

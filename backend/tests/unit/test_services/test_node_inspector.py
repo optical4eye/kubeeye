@@ -183,6 +183,7 @@ class TestNodeInspector:
     def test_is_ssh_connection_error(self, mock_security_checker):
         """Test SSH connection error detection"""
         from infra.dependency_injection.container import get_service_sync
+
         inspector = NodeInspector([])
 
         # Get SSH service for error detection

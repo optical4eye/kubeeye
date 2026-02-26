@@ -9,22 +9,31 @@ const OAuthCallback: React.FC = () => {
   const { handleOAuthCallback } = useAuthStore();
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const processedRef = React.useRef(false);
 
   useEffect(() => {
+    // Skip if already processed to prevent cascading renders
+    if (processedRef.current) return;
+    processedRef.current = true;
+
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
     if (errorParam) {
-      setError(errorDescription || `Authentication error: ${errorParam}`);
-      setLoading(false);
+      queueMicrotask(() => {
+        setError(errorDescription || `Authentication error: ${errorParam}`);
+        setLoading(false);
+      });
       return;
     }
 
     if (!code || !state) {
-      setError('Missing authorization parameters');
-      setLoading(false);
+      queueMicrotask(() => {
+        setError('Missing authorization parameters');
+        setLoading(false);
+      });
       return;
     }
 
@@ -34,21 +43,25 @@ const OAuthCallback: React.FC = () => {
       })
       .catch((err: any) => {
         const errorMsg = err.response?.data?.detail || 'Authentication failed';
-        setError(errorMsg);
-        setLoading(false);
+        queueMicrotask(() => {
+          setError(errorMsg);
+          setLoading(false);
+        });
       });
   }, [searchParams, navigate, handleOAuthCallback]);
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        flexDirection: 'column',
-        gap: 16
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+          gap: 16,
+        }}
+      >
         <Spin size="large" />
         <div>Completing authentication...</div>
       </div>
@@ -57,12 +70,14 @@ const OAuthCallback: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+        }}
+      >
         <Result
           status="error"
           title="Authentication Failed"

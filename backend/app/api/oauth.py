@@ -6,8 +6,6 @@ OAuth API endpoints - replaces LDAP authentication
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
-from db.repositories.user_repository import UserRepository
-from db.models.user import User, AuthType
 from services.audit_service import AuditService
 from services.auth_service import AuthService
 from api.models import TokenResponse, UserResponse
@@ -23,18 +21,14 @@ router = APIRouter()
 async def get_auth_url():
     """Get Dex authorization URL to initiate OAuth flow"""
     if not oauth_service.is_configured():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="OAuth is not configured"
-        )
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="OAuth is not configured")
 
     state = oauth_service.generate_state()
     auth_url = await oauth_service.get_authorization_url(state)
 
     if not auth_url:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate authorization URL"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate authorization URL"
         )
 
     logger.info(f"OAuth flow initiated, state={state[:8]}...")
@@ -42,12 +36,7 @@ async def get_auth_url():
 
 
 @router.post("/callback", response_model=TokenResponse)
-async def oauth_callback(
-    request: Request,
-    code: str,
-    state: str,
-    db: AsyncSession = Depends(get_db)
-):
+async def oauth_callback(request: Request, code: str, state: str, db: AsyncSession = Depends(get_db)):
     """Handle OAuth callback from Dex"""
     audit_service = AuditService(db)
     ip_address = request.client.host if request.client else None
@@ -59,9 +48,12 @@ async def oauth_callback(
 
         if not token_data:
             await audit_service.log_login(
-                user_id=None, username="oauth", ip_address=ip_address,
-                user_agent=user_agent, success=False,
-                error_message="Token exchange failed"
+                user_id=None,
+                username="oauth",
+                ip_address=ip_address,
+                user_agent=user_agent,
+                success=False,
+                error_message="Token exchange failed",
             )
             raise HTTPException(status_code=401, detail="OAuth authentication failed")
 
@@ -84,8 +76,7 @@ async def oauth_callback(
 
         # Log success
         await audit_service.log_login(
-            user_id=user.id, username=user.username,
-            ip_address=ip_address, user_agent=user_agent, success=True
+            user_id=user.id, username=user.username, ip_address=ip_address, user_agent=user_agent, success=True
         )
 
         return tokens
@@ -101,11 +92,7 @@ async def oauth_callback(
 async def get_oauth_status():
     """Get OAuth/Dex status"""
     if not oauth_service.is_configured():
-        return {
-            "enabled": False,
-            "configured": False,
-            "message": "OAuth not configured"
-        }
+        return {"enabled": False, "configured": False, "message": "OAuth not configured"}
 
     connected, message = await oauth_service.test_connection()
     return {
@@ -113,5 +100,5 @@ async def get_oauth_status():
         "configured": True,
         "connected": connected,
         "message": message,
-        "issuer_url": oauth_service.issuer_url
+        "issuer_url": oauth_service.issuer_url,
     }

@@ -1,19 +1,4 @@
 services:
-  postgres-test:
-    image: postgres:18-alpine
-    environment:
-      POSTGRES_USER: kubeeye
-      POSTGRES_PASSWORD: kubeeye
-      POSTGRES_DB: kubeeye-db-test
-      POSTGRES_HOST_AUTH_METHOD: trust
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kubeeye -d kubeeye-db-test"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-
   frontend-lint:
     build:
       context: ./frontend
@@ -50,15 +35,12 @@ services:
        - KUBEEYE_GITOPS_REPO_USERNAME=optical4eye
        - KUBEEYE_GITOPS_REPO_TOKEN=""
        - KUBEEYE_GITOPS_REPO_DESCRIPTION=kubeeye repo rules
-       - DB_HOST=postgres-test
-       - DB_PORT=5432
-       - DB_USER=kubeeye
-       - DB_PASS=kubeeye
-       - DB_NAME=kubeeye-db-test
+       - KUBEEYE_DB_HOST=postgres-test
+       - KUBEEYE_DB_PORT=5432
+       - KUBEEYE_DB_USER=kubeeye
+       - KUBEEYE_DB_PASS=kubeeye
+       - KUBEEYE_DB_NAME=kubeeye-db-test
     command: ["pytest", "/app/tests/", "-v", "--tb=short", "--cov=.", "--cov-report=term-missing"]
-    depends_on:
-      postgres-test:
-        condition: service_healthy
     profiles: ["test"]
 
 networks:

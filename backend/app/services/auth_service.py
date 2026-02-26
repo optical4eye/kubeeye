@@ -24,9 +24,7 @@ class AuthService:
         self.session = session
         self.user_repo = UserRepository(session)
 
-    async def authenticate_local_user(
-        self, username: str, password: str
-    ) -> Optional[User]:
+    async def authenticate_local_user(self, username: str, password: str) -> Optional[User]:
         """
         Authenticate local user (admin only, for emergency access)
         """
@@ -48,9 +46,7 @@ class AuthService:
         logger.info(f"Local user '{username}' authenticated")
         return user
 
-    async def authenticate_oauth_user(
-        self, oauth_user: OAuthUser
-    ) -> Optional[User]:
+    async def authenticate_oauth_user(self, oauth_user: OAuthUser) -> Optional[User]:
         """
         Authenticate or create user from OAuth data
         """
@@ -86,15 +82,17 @@ class AuthService:
             logger.info(f"OAuth user '{oauth_user.username}' authenticated")
         else:
             # Create new user
-            user = await self.user_repo.create({
-                "username": oauth_user.username,
-                "email": oauth_user.email,
-                "password_hash": None,
-                "role": role,
-                "auth_type": AuthType.OAUTH,
-                "oauth_subject": oauth_user.subject,
-                "is_active": True,
-            })
+            user = await self.user_repo.create(
+                {
+                    "username": oauth_user.username,
+                    "email": oauth_user.email,
+                    "password_hash": None,
+                    "role": role,
+                    "auth_type": AuthType.OAUTH,
+                    "oauth_subject": oauth_user.subject,
+                    "is_active": True,
+                }
+            )
             await self.user_repo.update_last_login(user.id)
             logger.info(f"Created new OAuth user '{oauth_user.username}' with role '{role}'")
 

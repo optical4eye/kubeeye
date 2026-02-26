@@ -94,7 +94,7 @@ spec:
               value: "/app/data"
             - name: PYTHONPATH
               value: "/app"
-            - name: DB_HOST
+            - name: KUBEEYE_DB_HOST
               value: "{{ .Release.Name }}-postgresql"
             {{- .Values.backend.env | toYaml | nindent 12 }}
           livenessProbe:

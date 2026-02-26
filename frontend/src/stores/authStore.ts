@@ -90,7 +90,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await api.post('/api/oauth/callback', null, {
-            params: { code, state }
+            params: { code, state },
           });
 
           const { access_token, user } = response.data;
@@ -152,7 +152,14 @@ export const useAuthStore = create<AuthState>()(
           set({ oauthStatus: response.data });
         } catch (error) {
           console.error('Failed to fetch OAuth status:', error);
-          set({ oauthStatus: { enabled: false, configured: false, connected: false, message: 'OAuth unavailable' } });
+          set({
+            oauthStatus: {
+              enabled: false,
+              configured: false,
+              connected: false,
+              message: 'OAuth unavailable',
+            },
+          });
         }
       },
     }),

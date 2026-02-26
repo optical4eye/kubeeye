@@ -77,11 +77,11 @@ services:
       - GIT_SSL_NO_VERIFY=1
 
       # Database configuration
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=kubeeye
-      - DB_PASS=kubeeye
-      - DB_NAME=kubeeye-db
+      - KUBEEYE_DB_HOST=postgres
+      - KUBEEYE_DB_PORT=5432
+      - KUBEEYE_DB_USER=kubeeye
+      - KUBEEYE_DB_PASS=kubeeye
+      - KUBEEYE_DB_NAME=kubeeye-db
 
       # JWT configuration
       - KUBEEYE_JWT_SECRET_KEY=Uk5E9obf53tnXAcunvlBUKqF9d2JF12fqz2dzipHHQl
@@ -101,9 +101,9 @@ services:
       - KUBEEYE_OAUTH_REDIRECT_URI=http://192.168.0.15:3000/auth/callback
       - KUBEEYE_OAUTH_SCOPE=openid profile email groups
 
-      # Group to role mapping
-      - KUBEEYE_OAUTH_ADMIN_GROUP=kubeeye-admins
-      - KUBEEYE_OAUTH_OPERATOR_GROUP=kubeeye-operators
+      # Group to role mapping (comma-separated list of groups)
+      - KUBEEYE_OAUTH_ADMIN_GROUPS=kubeeye-admins
+      - KUBEEYE_OAUTH_OPERATOR_GROUPS=kubeeye-operators
     restart: unless-stopped
     volumes:
       - ./data:/app/data

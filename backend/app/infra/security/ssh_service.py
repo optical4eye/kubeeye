@@ -354,7 +354,9 @@ class SSHService(ISSHService):
             if timeout is None:
                 timeout = settings.kubeeye_ssh_connection_timeout
 
-            logger.info(f"Creating new SSH connection to {host}:{port} with auth_type: {auth_type}, timeout: {timeout}s")
+            logger.info(
+                f"Creating new SSH connection to {host}:{port} with auth_type: {auth_type}, timeout: {timeout}s"
+            )
 
             if auth_type == "password":
                 logger.debug("Using password authentication")

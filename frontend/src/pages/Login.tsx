@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, App, Typography, Divider, Collapse } from 'antd';
+import { Form, Input, Button, Card, App, Typography, Collapse } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -12,12 +12,7 @@ const { Panel } = Collapse;
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const {
-    login,
-    initiateOAuthLogin,
-    oauthStatus,
-    fetchOAuthStatus
-  } = useAuthStore();
+  const { login, initiateOAuthLogin, oauthStatus, fetchOAuthStatus } = useAuthStore();
   const { message } = App.useApp();
 
   useEffect(() => {
@@ -55,7 +50,9 @@ const Login: React.FC = () => {
         <div className="login-logo-container">
           <KubeEyeLogo size={80} />
         </div>
-        <Title level={2} className="login-title">KubeEye</Title>
+        <Title level={2} className="login-title">
+          KubeEye
+        </Title>
 
         {/* Primary: OAuth Login */}
         <Button
@@ -72,12 +69,7 @@ const Login: React.FC = () => {
         {/* Secondary: Local Login (collapsed) */}
         <Collapse ghost>
           <Panel header="Admin Login (Local)" key="1">
-            <Form
-              name="login"
-              onFinish={handleLocalLogin}
-              autoComplete="off"
-              size="large"
-            >
+            <Form name="login" onFinish={handleLocalLogin} autoComplete="off" size="large">
               <Form.Item
                 name="username"
                 rules={[{ required: true, message: 'Please input username' }]}
@@ -89,10 +81,7 @@ const Login: React.FC = () => {
                 name="password"
                 rules={[{ required: true, message: 'Please input password' }]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Password"
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder="Password" />
               </Form.Item>
 
               <Form.Item>

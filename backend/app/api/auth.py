@@ -41,7 +41,7 @@ async def login(request: LoginRequest, http_request: Request, db: AsyncSession =
     if request.auth_type == "ldap":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="LDAP authentication is deprecated. Use OAuth via /api/oauth/auth-url"
+            detail="LDAP authentication is deprecated. Use OAuth via /api/oauth/auth-url",
         )
 
     audit_service = AuditService(db)

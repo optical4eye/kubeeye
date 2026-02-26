@@ -590,12 +590,12 @@ backend/
 |------------|--------------|----------|
 | `PYTHONPATH` | `/app` | Путь поиска модулей Python |
 | `KUBEEYE_DATA_DIR` | `backend/app/..` | Директория для хранения данных приложения (динамическое значение) |
-| `DB_HOST` | `localhost` | Хост базы данных PostgreSQL |
-| `DB_PORT` | `5432` | Порт базы данных PostgreSQL |
-| `DB_USER` | `kubeeye` | Пользователь базы данных PostgreSQL |
-| `DB_PASS` | `kubeeye` | Пароль пользователя базы данных PostgreSQL |
-| `DB_NAME` | `kubeeye` | Имя базы данных PostgreSQL |
-| `SQL_DEBUG` | `False` | Включить SQL debug логирование |
+| `KUBEEYE_DB_HOST` | `localhost` | Хост базы данных PostgreSQL |
+| `KUBEEYE_DB_PORT` | `5432` | Порт базы данных PostgreSQL |
+| `KUBEEYE_DB_USER` | `kubeeye` | Пользователь базы данных PostgreSQL |
+| `KUBEEYE_DB_PASS` | `kubeeye` | Пароль пользователя базы данных PostgreSQL |
+| `KUBEEYE_DB_NAME` | `kubeeye` | Имя базы данных PostgreSQL |
+| `KUBEEYE_SQL_DEBUG` | `False` | Включить SQL debug логирование |
 | `KUBEEYE_LOG_LEVEL` | `INFO` | Уровень логирования приложения |
 | `KUBEEYE_REPORT_RETENTION_DAYS` | `7` | Количество дней хранения отчетов |
 | `KUBEEYE_SSH_CONNECTION_TIMEOUT` | `10` | Таймаут SSH соединения (секунды) |
@@ -658,8 +658,8 @@ backend/
 | `KUBEEYE_OAUTH_CLIENT_ID` | `kubeeye` | Client ID для OIDC |
 | `KUBEEYE_OAUTH_CLIENT_SECRET` | `kubeeye-secret` | Client Secret для OIDC |
 | `KUBEEYE_OAUTH_REDIRECT_URI` | `http://localhost:3000/auth/callback` | URI для callback после аутентификации |
-| `KUBEEYE_OAUTH_ADMIN_GROUP` | `kubeeye-admins` | Группа для роли admin (соответствует LDAP группе) |
-| `KUBEEYE_OAUTH_OPERATOR_GROUP` | `kubeeye-operators` | Группа для роли operator (соответствует LDAP группе) |
+| `KUBEEYE_OAUTH_ADMIN_GROUPS` | `kubeeye-admins` | Список групп для роли admin, через запятую (соответствует LDAP группам) |
+| `KUBEEYE_OAUTH_OPERATOR_GROUPS` | `kubeeye-operators` | Список групп для роли operator, через запятую (соответствует LDAP группам) |
 | `KUBEEYE_OAUTH_SCOPES` | `openid,profile,email,groups` | Запрашиваемые OIDC scopes |
 
 #### Пример конфигурации OAuth через Dex
@@ -673,8 +673,8 @@ environment:
   - KUBEEYE_OAUTH_CLIENT_ID=kubeeye
   - KUBEEYE_OAUTH_CLIENT_SECRET=kubeeye-secret
   - KUBEEYE_OAUTH_REDIRECT_URI=http://localhost:3000/auth/callback
-  - KUBEEYE_OAUTH_ADMIN_GROUP=kubeeye-admins
-  - KUBEEYE_OAUTH_OPERATOR_GROUP=kubeeye-operators
+  - KUBEEYE_OAUTH_ADMIN_GROUPS=kubeeye-admins,k8s-admins,infra-admins
+  - KUBEEYE_OAUTH_OPERATOR_GROUPS=kubeeye-operators,k8s-operators
   - KUBEEYE_OAUTH_SCOPES=openid,profile,email,groups
 ```
 
@@ -1781,7 +1781,7 @@ success, stdout, stderr = await ssh_service.execute_command(
 
 ### Общие проблемы
 1. **Проблемы с подключением к БД**
-   - Проверьте переменные окружения `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`
+   - Проверьте переменные окружения `KUBEEYE_DB_HOST`, `KUBEEYE_DB_PORT`, `KUBEEYE_DB_USER`, `KUBEEYE_DB_PASS`, `KUBEEYE_DB_NAME`
    - Убедитесь, что PostgreSQL запущен
    - Проверьте логи приложения
 
