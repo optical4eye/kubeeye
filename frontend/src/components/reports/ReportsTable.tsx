@@ -4,6 +4,7 @@ import { DownloadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons
 import { useTranslation } from 'react-i18next';
 import { getStatusTag, getSeverityBadge } from '../ui/statusUtils';
 import { Report } from '../../types';
+import { formatDate } from '../../utils/dateFormat';
 
 interface ReportsTableProps {
   filteredReports: Report[];
@@ -33,7 +34,7 @@ const ReportsTable: React.FC<ReportsTableProps> = React.memo(
         title: t('reports.time'),
         dataIndex: 'timestamp',
         key: 'timestamp',
-        render: (timestamp: string) => new Date(timestamp).toLocaleString(),
+        render: (timestamp: string) => formatDate(timestamp),
       },
       {
         title: t('reports.type'),

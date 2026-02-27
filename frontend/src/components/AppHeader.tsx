@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Button, Breadcrumb, Switch, Select } from 'antd';
+import { Layout, Button, Breadcrumb, Switch, Select, Flex, Space } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import {
@@ -46,8 +46,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ menuItems, menuNavigation }) => {
 
   return (
     <Header className="header-bg">
-      <div className="header-content">
-        <div className="kube-display-flex kube-align-center kube-gap-8">
+      <Flex className="header-content" align="center">
+        <Flex align="center" gap="small">
           {/* Collapse/Expand button */}
           <Button
             type="text"
@@ -55,16 +55,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({ menuItems, menuNavigation }) => {
             onClick={menuNavigation.toggleCollapsed}
             className="desktop-collapse-button"
           />
-        </div>
+        </Flex>
 
         {/* Breadcrumbs */}
-        <div className="kube-margin-left-8 kube-margin-right-8">
+        <Space style={{ marginLeft: 8, marginRight: 8 }}>
           <Breadcrumb items={getBreadcrumbItems()} />
-        </div>
+        </Space>
 
         <div className="header-title">{t('header.title')}</div>
 
-        <div className="kube-margin-left-auto kube-display-flex kube-align-center kube-gap-16">
+        <Flex justify="flex-end" align="center" gap="middle" style={{ marginLeft: 'auto' }}>
           <UserMenu />
           <Switch
             checked={theme === 'dark'}
@@ -79,11 +79,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ menuItems, menuNavigation }) => {
               { value: 'ru', label: 'RU' },
               { value: 'en', label: 'EN' },
             ]}
-            className="kube-width-60px"
+            style={{ width: 60 }}
             size="small"
           />
-        </div>
-      </div>
+        </Flex>
+      </Flex>
     </Header>
   );
 };

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { getClusters } from '../services/api';
 import { getTaskStatusIcon } from '../components/ui/statusUtils';
 import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
+import { formatDate, getCurrentISOTime } from '../utils/dateFormat';
 
 interface Task {
   task_id: string;
@@ -100,7 +101,7 @@ const PopeyeScan = () => {
         task_id: taskId,
         task_type: 'popeye',
         status: 'pending',
-        created_at: new Date().toISOString(),
+        created_at: getCurrentISOTime(),
         payload: scanData,
       };
 
@@ -121,7 +122,7 @@ const PopeyeScan = () => {
 
   const formatTaskTime = isoString => {
     if (!isoString) return '';
-    return new Date(isoString).toLocaleString();
+    return formatDate(isoString);
   };
 
   return (

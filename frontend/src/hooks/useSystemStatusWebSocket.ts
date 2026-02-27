@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { WebSocketConnectionManager } from '../services/websocket/connectionManager';
 import { SystemStatusMessage } from '../services/websocket/messageTypes';
@@ -13,7 +12,12 @@ interface SystemStatus {
   wsError?: string;
 }
 
-export const useSystemStatusWebSocket = () => {
+interface UseSystemStatusWebSocketOptions {
+  /** Callback for showing warning messages - replaces static message.warning */
+  onWarning?: (message: string) => void;
+}
+
+export const useSystemStatusWebSocket = (options?: UseSystemStatusWebSocketOptions) => {
   const { t } = useTranslation();
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
     isReady: false,
@@ -103,11 +107,11 @@ export const useSystemStatusWebSocket = () => {
             }
           }, 10000); // 10 seconds timeout
         })
-        .catch(error => {
+        .catch((error: Error) => {
           console.error('WebSocket: Connection failed:', error);
           setIsWebSocketAvailable(false);
           if (!document.hidden) {
-            message.warning(
+            options?.onWarning?.(
               t('websocket.systemStatusUnavailable', 'System status monitoring unavailable')
             );
           }
@@ -124,10 +128,10 @@ export const useSystemStatusWebSocket = () => {
     }
 
     // Add error and close handlers for logging and fallback
-    const unsubscribeError = wsManagerRef.current.onError(error => {
+    const unsubscribeError = wsManagerRef.current.onError((error: Error) => {
       console.error('WebSocket: Error event:', error);
       if (isWebSocketAvailable && !isWarningShownRef.current && !document.hidden) {
-        message.warning(
+        options?.onWarning?.(
           t(
             'websocket.systemStatusFallback',
             'System status monitoring unavailable, attempting to reconnect'
@@ -146,14 +150,14 @@ export const useSystemStatusWebSocket = () => {
       }));
     });
 
-    const unsubscribeClose = wsManagerRef.current.onClose(event => {
+    const unsubscribeClose = wsManagerRef.current.onClose((event: CloseEvent) => {
       if (
         isWebSocketAvailable &&
         event.code !== 1000 &&
         !isWarningShownRef.current &&
         !document.hidden
       ) {
-        message.warning(
+        options?.onWarning?.(
           t(
             'websocket.systemStatusFallback',
             'System status monitoring unavailable, attempting to reconnect'
@@ -176,7 +180,7 @@ export const useSystemStatusWebSocket = () => {
       if (isWebSocketAvailable) {
         setIsWebSocketAvailable(false);
         if (!document.hidden) {
-          message.warning(
+          options?.onWarning?.(
             t('websocket.systemStatusUnavailable', 'System status monitoring unavailable')
           );
         }
@@ -219,7 +223,7 @@ export const useSystemStatusWebSocket = () => {
         // Reset received status flag on reconnect
         hasReceivedStatusRef.current = false;
         // Reconnect when tab becomes visible
-        wsManagerRef.current?.connect(['system_status']).catch(error => {
+        wsManagerRef.current?.connect(['system_status']).catch((error: Error) => {
           console.error('System status WebSocket reconnection failed:', error);
         });
       }

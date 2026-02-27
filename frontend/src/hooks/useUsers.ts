@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { message } from 'antd';
+import type { MessageInstance } from 'antd/es/message/interface';
 import { useTranslation } from 'react-i18next';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/api';
 
@@ -28,7 +28,12 @@ export interface UserUpdateData {
   is_active?: boolean;
 }
 
-export const useUsers = () => {
+interface UseUsersOptions {
+  /** Message API instance from App.useApp() */
+  messageApi?: MessageInstance;
+}
+
+export const useUsers = (options?: UseUsersOptions) => {
   const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +46,7 @@ export const useUsers = () => {
       setUsers(response.data);
       setTotal(response.data.length);
     } catch (error) {
-      message.error(t('userManagement.title') + ': ' + t('errors.loadClusters'));
+      options?.messageApi?.error(t('userManagement.title') + ': ' + t('errors.loadClusters'));
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
@@ -53,11 +58,13 @@ export const useUsers = () => {
       setLoading(true);
       try {
         const response = await createUser(userData);
-        message.success(t('userManagement.messages.createSuccess'));
+        options?.messageApi?.success(t('userManagement.messages.createSuccess'));
         await fetchUsers();
         return response.data;
       } catch (error: any) {
-        message.error(error.response?.data?.detail || t('userManagement.messages.createError'));
+        options?.messageApi?.error(
+          error.response?.data?.detail || t('userManagement.messages.createError')
+        );
         throw error;
       } finally {
         setLoading(false);
@@ -71,11 +78,13 @@ export const useUsers = () => {
       setLoading(true);
       try {
         const response = await updateUser(userId, userData);
-        message.success(t('userManagement.messages.updateSuccess'));
+        options?.messageApi?.success(t('userManagement.messages.updateSuccess'));
         await fetchUsers();
         return response.data;
       } catch (error: any) {
-        message.error(error.response?.data?.detail || t('userManagement.messages.updateError'));
+        options?.messageApi?.error(
+          error.response?.data?.detail || t('userManagement.messages.updateError')
+        );
         throw error;
       } finally {
         setLoading(false);
@@ -89,10 +98,12 @@ export const useUsers = () => {
       setLoading(true);
       try {
         await deleteUser(userId);
-        message.success(t('userManagement.messages.deleteSuccess'));
+        options?.messageApi?.success(t('userManagement.messages.deleteSuccess'));
         await fetchUsers();
       } catch (error: any) {
-        message.error(error.response?.data?.detail || t('userManagement.messages.deleteError'));
+        options?.messageApi?.error(
+          error.response?.data?.detail || t('userManagement.messages.deleteError')
+        );
         throw error;
       } finally {
         setLoading(false);

@@ -1,10 +1,11 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { message } from 'antd';
+import type { MessageInstance } from 'antd/es/message/interface';
 import { useTranslation } from 'react-i18next';
 import { cancelInspectionTask } from '../services/api';
 import { WebSocketConnectionManager } from '../services/websocket/connectionManager';
 import { TaskMessage } from '../services/websocket/messageTypes';
 import { useWebSocketStore } from '../stores/websocketStore';
+import { getCurrentISOTime } from '../utils/dateFormat';
 
 interface Task {
   task_id: string;
@@ -18,9 +19,15 @@ interface Task {
   result?: any;
 }
 
+interface UseTaskWebSocketOptions {
+  /** Message API instance from App.useApp() */
+  messageApi?: MessageInstance;
+}
+
 export const useTaskWebSocket = (
   activeTasks: Task[],
-  setActiveTasks: React.Dispatch<React.SetStateAction<Task[]>>
+  setActiveTasks: React.Dispatch<React.SetStateAction<Task[]>>,
+  options?: UseTaskWebSocketOptions
 ) => {
   const { t } = useTranslation();
   const wsManagerRef = useRef<WebSocketConnectionManager | null>(null);
@@ -58,7 +65,7 @@ export const useTaskWebSocket = (
     const unsubscribeError = wsManagerRef.current.onError(error => {
       console.error('WebSocket error in task monitoring:', error);
       if (!document.hidden) {
-        message.error(
+        options?.messageApi?.error(
           t('websocket.error', 'WebSocket error occurred. Task monitoring may be unavailable.')
         );
       }
@@ -66,7 +73,7 @@ export const useTaskWebSocket = (
 
     const unsubscribeClose = wsManagerRef.current.onClose(event => {
       if (event.code !== 1000 && !document.hidden) {
-        message.warning(
+        options?.messageApi?.warning(
           t('websocket.reconnecting', 'WebSocket unavailable, attempting to reconnect')
         );
       }
@@ -75,7 +82,7 @@ export const useTaskWebSocket = (
     const unsubscribeReconnectFailed = wsManagerRef.current.onReconnectFailed(() => {
       setIsWebSocketAvailable(false);
       if (!document.hidden) {
-        message.warning(
+        options?.messageApi?.warning(
           t('websocket.unavailable', 'WebSocket unavailable, task monitoring may be limited')
         );
       }
@@ -118,17 +125,17 @@ export const useTaskWebSocket = (
           switch (message.type) {
             case 'task_started':
               updatedTask.status = 'running';
-              updatedTask.started_at = new Date().toISOString();
+              updatedTask.started_at = getCurrentISOTime();
               break;
             case 'task_completed':
               updatedTask.status = 'completed';
-              updatedTask.completed_at = new Date().toISOString();
+              updatedTask.completed_at = getCurrentISOTime();
               updatedTask.result = result;
               showCompletionMessage(updatedTask);
               break;
             case 'task_failed':
               updatedTask.status = 'failed';
-              updatedTask.completed_at = new Date().toISOString();
+              updatedTask.completed_at = getCurrentISOTime();
               updatedTask.error = error;
               showErrorMessage(updatedTask, error);
               break;
@@ -142,7 +149,7 @@ export const useTaskWebSocket = (
   }, []);
 
   const showCompletionMessage = (task: Task) => {
-    message.success(t('tasks.taskCompleted', { taskId: task.task_id }));
+    options?.messageApi?.success(t('tasks.taskCompleted', { taskId: task.task_id }));
 
     // Trigger a custom event to notify other components about the new report
     window.dispatchEvent(
@@ -156,7 +163,9 @@ export const useTaskWebSocket = (
   };
 
   const showErrorMessage = (task: Task, error?: string) => {
-    message.error(t('tasks.taskFailed', { taskId: task.task_id, error: error || task.error }));
+    options?.messageApi?.error(
+      t('tasks.taskFailed', { taskId: task.task_id, error: error || task.error })
+    );
   };
 
   const startTaskMonitoring = (_taskId: string) => {
@@ -178,9 +187,9 @@ export const useTaskWebSocket = (
       setActiveTasks(prev =>
         prev.map(t => (t.task_id === taskId ? { ...t, status: 'cancelled' } : t))
       );
-      message.success(t('tasks.taskCancelled'));
+      options?.messageApi?.success(t('tasks.taskCancelled'));
     } catch {
-      message.error(t('tasks.cancelTaskError'));
+      options?.messageApi?.error(t('tasks.cancelTaskError'));
     }
   };
 

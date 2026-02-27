@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from db.models.base import Base
 from core.common.retry_utils import retry_on_failure
-from core.common.exceptions import RepositoryError, NotFoundError
+from core.common.exceptions import RepositoryError, NotFoundError, DatabaseError, NetworkError
 from core.common.cache_utils import invalidate_cache, _cache_manager
 from core.logging import get_logger
 
@@ -68,12 +68,13 @@ class BaseRepository(Generic[T]):
 
         return result
 
-    @retry_on_failure(max_attempts=3, exceptions=(Exception,))
+    @retry_on_failure(max_attempts=3, exceptions=(DatabaseError, NetworkError, ConnectionError, OSError))
     async def get_by_id(self, id: int) -> Optional[T]:
         """
         Get entity by ID
 
         Note: Uses model-specific namespace for cache isolation.
+        Note: NotFoundError is not retried as it's an expected outcome, not a transient failure.
         """
         cache_key = f"get_by_id:{id}"
         return await self._get_cached(cache_key, lambda: self._get_by_id_internal(id))

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { message } from 'antd';
+import type { MessageInstance } from 'antd/es/message/interface';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -13,7 +13,12 @@ import {
 import { parseNodesFromText, formatNodesForText } from '../utils/nodeParser';
 import { Cluster, ClusterNode, ClusterFormValues } from '../types/cluster';
 
-export const useClusters = () => {
+interface UseClustersOptions {
+  /** Message API instance from App.useApp() */
+  messageApi?: MessageInstance;
+}
+
+export const useClusters = (options?: UseClustersOptions) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
@@ -47,11 +52,11 @@ export const useClusters = () => {
       return createCluster(clusterData);
     },
     onSuccess: () => {
-      message.success(t('clusters.nodeTable.messages.clusterCreated'));
+      options?.messageApi?.success(t('clusters.nodeTable.messages.clusterCreated'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
     },
     onError: () => {
-      message.error(t('clusters.nodeTable.messages.clusterCreateError'));
+      options?.messageApi?.error(t('clusters.nodeTable.messages.clusterCreateError'));
     },
   });
 
@@ -66,14 +71,14 @@ export const useClusters = () => {
   const deleteClusterMutation = useMutation({
     mutationFn: deleteCluster,
     onSuccess: () => {
-      message.success(t('clusters.nodeTable.messages.clusterDeleted'));
+      options?.messageApi?.success(t('clusters.nodeTable.messages.clusterDeleted'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
       setSelectedCluster(null);
       setClusterDetails(null);
       setClusterNodes([]);
     },
     onError: () => {
-      message.error(t('clusters.nodeTable.messages.clusterDeleteError'));
+      options?.messageApi?.error(t('clusters.nodeTable.messages.clusterDeleteError'));
     },
   });
 
@@ -95,7 +100,7 @@ export const useClusters = () => {
         kubeconfig: data.kubeconfig || '',
       };
     } catch (error: unknown) {
-      message.error(t('clusters.nodeTable.messages.clusterLoadError'));
+      options?.messageApi?.error(t('clusters.nodeTable.messages.clusterLoadError'));
       throw error;
     }
   }, []);
@@ -118,7 +123,7 @@ export const useClusters = () => {
       return updateCluster(clusterName, clusterData);
     },
     onSuccess: () => {
-      message.success(t('clusters.nodeTable.messages.clusterUpdated'));
+      options?.messageApi?.success(t('clusters.nodeTable.messages.clusterUpdated'));
       queryClient.invalidateQueries({ queryKey: ['clusters'] });
       setSelectedCluster(null);
       if (clusterDetails) {
@@ -126,7 +131,7 @@ export const useClusters = () => {
       }
     },
     onError: () => {
-      message.error(t('clusters.nodeTable.messages.clusterUpdateError'));
+      options?.messageApi?.error(t('clusters.nodeTable.messages.clusterUpdateError'));
     },
   });
 
@@ -148,7 +153,7 @@ export const useClusters = () => {
       if (nodesData.status === 'success') {
         setClusterNodes(nodesData.nodes || []);
       } else {
-        message.error(t('clusters.nodeTable.messages.clusterNodesError'));
+        options?.messageApi?.error(t('clusters.nodeTable.messages.clusterNodesError'));
         setClusterNodes([]);
       }
     } catch (error: unknown) {
@@ -160,7 +165,7 @@ export const useClusters = () => {
         errorMessage = err.response.data.error;
       }
 
-      message.error(errorMessage);
+      options?.messageApi?.error(errorMessage);
       setClusterNodes([]);
     } finally {
       setNodesLoading(false);

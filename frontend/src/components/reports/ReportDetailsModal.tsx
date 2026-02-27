@@ -21,6 +21,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { getStatusTag, getSeverityTag } from '../ui/statusUtils';
+import { formatDate } from '../../utils/dateFormat';
 
 interface ReportDetail {
   result_id: string;
@@ -264,9 +265,7 @@ const ReportDetailsModal: React.FC<ReportDetailsModalProps> = React.memo(
                   <Typography.Text>{reportDetail.cluster_name}</Typography.Text>
                 </Descriptions.Item>
                 <Descriptions.Item label={t('reports.time')}>
-                  <Typography.Text>
-                    {new Date(reportDetail.timestamp).toLocaleString()}
-                  </Typography.Text>
+                  <Typography.Text>{formatDate(reportDetail.timestamp)}</Typography.Text>
                 </Descriptions.Item>
                 <Descriptions.Item label={t('reports.type')}>
                   <Typography.Text>

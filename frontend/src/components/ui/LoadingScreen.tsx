@@ -1,6 +1,6 @@
 import React from 'react';
 import { CloseCircleOutlined } from '@ant-design/icons';
-import { theme, Spin } from 'antd';
+import { theme, Spin, Flex } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../../stores/uiStore';
 import KubeEyeLogo from './KubeEyeLogo';
@@ -65,19 +65,22 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
       </div>
 
       {/* Spinner in the middle */}
-      <div className="kube-display-flex kube-justify-center kube-margin-8">{statusInfo.icon}</div>
+      <Flex justify="center" style={{ margin: 8 }}>
+        {statusInfo.icon}
+      </Flex>
 
       <div className="loading-screen-status">
         {/* Backend Status Section */}
-        <div className="kube-display-flex kube-align-center kube-justify-center kube-margin-8">
+        <Flex align="center" justify="center" style={{ margin: 8 }}>
           <span
             className={`loading-screen-status-text ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
           >
             {t('loadingScreen.backend')}: {statusInfo.text}
           </span>
-        </div>
+        </Flex>
         <p
-          className={`loading-screen-subtitle ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'} kube-font-size-14px kube-margin-8`}
+          className={`loading-screen-subtitle ${uiTheme === 'dark' ? 'loading-screen-subtitle-dark' : 'loading-screen-subtitle-light'}`}
+          style={{ fontSize: '0.9rem', margin: 8 }}
         >
           {t('loadingScreen.preparingSystem')}
         </p>

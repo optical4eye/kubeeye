@@ -11,18 +11,20 @@ import {
   Tag,
   Popconfirm,
   App,
+  Flex,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useUsers, User, UserCreateData, UserUpdateData } from '../hooks/useUsers';
+import { useUsers, User, UserUpdateData } from '../hooks/useUsers';
 import { useAuthStore } from '../stores/authStore';
 import { getAllRoles, getRoleLabel, getRoleColor } from '../config/rbac';
+import { formatDateTimeRu } from '../utils/dateFormat';
 
 const { Option } = Select;
 
 const UserManagement: React.FC = () => {
   const { t } = useTranslation();
-  const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useUsers();
+  const { users, loading, fetchUsers, updateUser, deleteUser } = useUsers();
   const { user: currentUser } = useAuthStore();
   const availableRoles = getAllRoles();
   const { message } = App.useApp();
@@ -34,12 +36,6 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
-
-  const handleCreate = () => {
-    setEditingUser(null);
-    form.resetFields();
-    setIsModalVisible(true);
-  };
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
@@ -73,16 +69,6 @@ const UserManagement: React.FC = () => {
           is_active: values.is_active,
         };
         await updateUser(editingUser.id, updateData);
-      } else {
-        // Create new user
-        const createData: UserCreateData = {
-          username: values.username,
-          email: values.email,
-          password: values.password,
-          role: values.role,
-          is_active: values.is_active,
-        };
-        await createUser(createData);
       }
 
       setIsModalVisible(false);
@@ -124,11 +110,18 @@ const UserManagement: React.FC = () => {
       title: t('userManagement.authType'),
       dataIndex: 'auth_type',
       key: 'auth_type',
-      render: (authType: string) => (
-        <Tag color={authType === 'ldap' ? 'blue' : 'green'}>
-          {authType === 'ldap' ? 'LDAP' : 'Local'}
-        </Tag>
-      ),
+      render: (authType: string) => {
+        const authTypeConfig: Record<string, { color: string; label: string }> = {
+          ldap: { color: 'blue', label: 'LDAP' },
+          oauth: { color: 'purple', label: 'OAuth' },
+          local: { color: 'green', label: 'Local' },
+        };
+        const config = authTypeConfig[authType] || {
+          color: 'default',
+          label: authType || 'Unknown',
+        };
+        return <Tag color={config.color}>{config.label}</Tag>;
+      },
     },
     {
       title: t('userManagement.isActive'),
@@ -144,14 +137,14 @@ const UserManagement: React.FC = () => {
       title: t('userManagement.createdAt'),
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date: string) => new Date(date).toLocaleString('ru-RU'),
+      render: (date: string) => formatDateTimeRu(date),
     },
     {
       title: t('userManagement.lastLoginAt'),
       dataIndex: 'last_login_at',
       key: 'last_login_at',
       render: (date: string | undefined) =>
-        date ? new Date(date).toLocaleString('ru-RU') : t('userManagement.neverLoggedIn'),
+        date ? formatDateTimeRu(date) : t('userManagement.neverLoggedIn'),
     },
     {
       title: t('userManagement.actions'),
@@ -162,7 +155,7 @@ const UserManagement: React.FC = () => {
             type="link"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
-            disabled={record.id === currentUser?.id}
+            disabled={record.id === currentUser?.id || record.auth_type === 'local'}
           >
             {t('userManagement.edit')}
           </Button>
@@ -172,13 +165,13 @@ const UserManagement: React.FC = () => {
             onConfirm={() => handleDelete(record.id, record.username)}
             okText={t('userManagement.yes')}
             cancelText={t('userManagement.no')}
-            disabled={record.id === currentUser?.id}
+            disabled={record.id === currentUser?.id || record.auth_type === 'local'}
           >
             <Button
               type="link"
               danger
               icon={<DeleteOutlined />}
-              disabled={record.id === currentUser?.id}
+              disabled={record.id === currentUser?.id || record.auth_type === 'local'}
             >
               {t('userManagement.delete')}
             </Button>
@@ -189,13 +182,10 @@ const UserManagement: React.FC = () => {
   ];
 
   return (
-    <div className="kube-padding-24">
-      <div className="kube-margin-bottom-16 kube-display-flex kube-justify-between kube-align-center">
+    <div style={{ padding: 24 }}>
+      <Flex justify="flex-start" align="center" style={{ marginBottom: 16 }}>
         <h2>{t('userManagement.title')}</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          {t('userManagement.createUser')}
-        </Button>
-      </div>
+      </Flex>
 
       <Table
         columns={columns}
@@ -210,7 +200,7 @@ const UserManagement: React.FC = () => {
       />
 
       <Modal
-        title={editingUser ? t('userManagement.editUser') : t('userManagement.createUser')}
+        title={t('userManagement.editUser')}
         open={isModalVisible}
         onOk={handleSubmit}
         onCancel={handleCancel}
@@ -248,19 +238,6 @@ const UserManagement: React.FC = () => {
           >
             <Input placeholder={t('userManagement.emailPlaceholder')} />
           </Form.Item>
-
-          {!editingUser && (
-            <Form.Item
-              label={t('userManagement.password')}
-              name="password"
-              rules={[
-                { required: true, message: t('userManagement.passwordRequired') },
-                { min: 6, message: t('userManagement.passwordMin') },
-              ]}
-            >
-              <Input.Password placeholder={t('userManagement.passwordPlaceholder')} />
-            </Form.Item>
-          )}
 
           <Form.Item
             label={t('userManagement.role')}

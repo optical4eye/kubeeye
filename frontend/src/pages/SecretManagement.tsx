@@ -32,6 +32,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { getSecretTypeTag } from '../components/ui/statusUtils';
+import { formatDateTimeRu } from '../utils/dateFormat';
 const { TextArea } = Input;
 
 interface Secret {
@@ -215,13 +216,13 @@ const SecretManagement: React.FC = () => {
       title: t('secrets.columns.created'),
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (date: string | null) => (date ? new Date(date).toLocaleString('ru-RU') : '-'),
+      render: (date: string | null) => formatDateTimeRu(date),
     },
     {
       title: t('secrets.columns.updated'),
       dataIndex: 'updated_at',
       key: 'updated_at',
-      render: (date: string | null) => (date ? new Date(date).toLocaleString('ru-RU') : '-'),
+      render: (date: string | null) => formatDateTimeRu(date),
     },
     {
       title: t('secrets.columns.active'),
@@ -237,7 +238,7 @@ const SecretManagement: React.FC = () => {
       title: t('secrets.columns.lastUsed'),
       dataIndex: 'last_used_at',
       key: 'last_used_at',
-      render: (date: string | null) => (date ? new Date(date).toLocaleString('ru-RU') : '-'),
+      render: (date: string | null) => formatDateTimeRu(date),
     },
     {
       title: t('secrets.columns.actions'),

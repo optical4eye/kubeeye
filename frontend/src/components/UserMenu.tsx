@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dropdown, Avatar, Space, Typography, Button, message, Tooltip } from 'antd';
+import { Dropdown, Avatar, Space, Typography, Button, App, Tooltip } from 'antd';
 import { UserOutlined, LogoutOutlined, CheckOutlined, KeyOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -11,6 +11,7 @@ const UserMenu: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [copied, setCopied] = useState(false);
+  const { message } = App.useApp();
 
   const handleLogout = async () => {
     await logout();

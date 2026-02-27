@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '../../stores/uiStore';
+import { formatDateShort } from '../../utils/dateFormat';
 
 interface DashboardData {
   recent_results?: Array<{
@@ -34,19 +35,8 @@ interface DashboardStatisticsProps {
 
 const formatScanTime = (scanTime: string | undefined, noDataText: string): string => {
   if (!scanTime || scanTime === noDataText) return noDataText;
-  try {
-    return new Date(scanTime)
-      .toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
-      .replace(', ', '-');
-  } catch {
-    return scanTime;
-  }
+  const formatted = formatDateShort(scanTime);
+  return formatted === '-' ? scanTime : formatted;
 };
 
 const DashboardStatistics: React.FC<DashboardStatisticsProps> = ({ dashboardData }) => {

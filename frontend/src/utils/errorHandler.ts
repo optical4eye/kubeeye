@@ -1,4 +1,4 @@
-import { message } from 'antd';
+import type { MessageInstance } from 'antd/es/message/interface';
 
 /**
  * API error types
@@ -34,6 +34,8 @@ interface ErrorHandlerConfig {
   logToConsole?: boolean;
   redirectOnAuthError?: boolean;
   customHandler?: (error: ApiError) => void;
+  /** Message API instance from App.useApp() */
+  messageApi?: MessageInstance;
 }
 
 /**
@@ -156,17 +158,17 @@ export const handleApiError = (
   }
 
   // Show message to user if enabled
-  if (finalConfig.showMessage) {
+  if (finalConfig.showMessage && finalConfig.messageApi) {
     switch (severity) {
       case ErrorSeverity.INFO:
-        message.info(errorMessage);
+        finalConfig.messageApi.info(errorMessage);
         break;
       case ErrorSeverity.WARNING:
-        message.warning(errorMessage);
+        finalConfig.messageApi.warning(errorMessage);
         break;
       case ErrorSeverity.ERROR:
       case ErrorSeverity.CRITICAL:
-        message.error(errorMessage);
+        finalConfig.messageApi.error(errorMessage);
         break;
     }
   }

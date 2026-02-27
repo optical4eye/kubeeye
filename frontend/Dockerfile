@@ -3,11 +3,11 @@ FROM node:24-slim AS build
 
 WORKDIR /app
 
-# Copy package files
-COPY ./package*.json ./
+# Copy package files first for better caching
+COPY package*.json ./
 
-# Install all dependencies (including dev for build)
-RUN npm install
+# Install dependencies using lock file for deterministic builds
+RUN npm ci --no-audit --no-fund
 
 # Copy source code
 COPY . .
@@ -15,6 +15,8 @@ COPY . .
 # Build React app with API URL
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=${REACT_APP_API_URL:-/api}
+# Optimize memory usage for build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Production stage with nginx

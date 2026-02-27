@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuditLogs, AuditLogsParams, AuditStats } from '../hooks/useAuditLogs';
 import { getAuditCleanupConfig } from '../services/api';
 import type { Dayjs } from 'dayjs';
+import { formatDateTimeRu } from '../utils/dateFormat';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -98,7 +99,7 @@ const AuditLogsPage: React.FC = () => {
       dataIndex: 'created_at',
       key: 'created_at',
       width: 180,
-      render: (date: string) => new Date(date).toLocaleString('ru-RU'),
+      render: (date: string) => formatDateTimeRu(date),
     },
     {
       title: t('auditLogs.user'),

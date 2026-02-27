@@ -1,8 +1,11 @@
-import React, { useMemo } from 'react';
-import { Card, Row, Col, theme, Typography } from 'antd';
+import React, { useMemo, lazy, Suspense } from 'react';
+import { Card, Row, Col, theme, Typography, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { Area } from '@ant-design/charts';
 import { useUIStore } from '../../stores/uiStore';
+import { formatDateShort, compareDates } from '../../utils/dateFormat';
+
+// Lazy load heavy charts library
+const Area = lazy(() => import('@ant-design/charts').then(m => ({ default: m.Area })));
 
 interface DashboardChartsProps {
   dashboardData: {
@@ -30,19 +33,11 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
   const longData = useMemo(() => {
     if (!dashboardData || !dashboardData.recent_results) return [];
     const sorted = dashboardData.recent_results
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .sort((a, b) => compareDates(a.timestamp, b.timestamp))
       .slice(-7);
     const result = [];
     sorted.forEach(resultItem => {
-      const date = new Date(resultItem.timestamp)
-        .toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        })
-        .replace(', ', '-');
+      const date = formatDateShort(resultItem.timestamp);
       const critical = resultItem.critical || 0;
       const warning = resultItem.warning || 0;
       const info = resultItem.info || 0;
@@ -157,7 +152,9 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ dashboardData }) => {
               role="img"
               aria-label={`${t('charts.errorTrends')} ${t('charts.chart')}`}
             >
-              <Area {...config} />
+              <Suspense fallback={<Spin size="large" />}>
+                <Area {...config} />
+              </Suspense>
             </div>
           </Card>
         </Col>

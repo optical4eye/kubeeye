@@ -1,6 +1,7 @@
 import React from 'react';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { Space } from 'antd';
 
 const Help = () => {
   const { t } = useTranslation();
@@ -12,9 +13,9 @@ const Help = () => {
         {t('help.title')}
       </div>
       <div className="page-subtitle">{t('help.subtitle')}</div>
-      <div className="kube-padding-20">
+      <Space direction="vertical" style={{ padding: 20, width: '100%' }}>
         <p>{t('help.useMenu')}</p>
-      </div>
+      </Space>
     </div>
   );
 };

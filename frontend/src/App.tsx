@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout, ConfigProvider, App as AntdApp, theme as antdTheme, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,15 @@ function App() {
   const { t, i18n } = useTranslation();
   const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
   const { canAccessRoute } = useRBAC();
+  const { message } = AntdApp.useApp();
+
+  // Callback for WebSocket warning messages
+  const handleWebSocketWarning = useCallback(
+    (msg: string) => {
+      message.warning(msg);
+    },
+    [message]
+  );
 
   // Create all menu items using configuration
   const allMenuItems = useMemo(() => createMenuItems(t), [t]);
@@ -48,7 +57,14 @@ function App() {
   }, [language, i18n]);
 
   // Use WebSocket for real-time system status
-  const { isReady, message, subMessage, isConnecting } = useSystemStatusWebSocket();
+  const {
+    isReady,
+    message: wsMessage,
+    subMessage,
+    isConnecting,
+  } = useSystemStatusWebSocket({
+    onWarning: handleWebSocketWarning,
+  });
 
   // Show loading screen if backend is not ready
   const isSystemReady = isReady; // Use only WebSocket status
@@ -75,7 +91,7 @@ function App() {
           if (!minLoadingTimePassed) {
             return (
               <LoadingScreen
-                message={message || t('loading.connecting')}
+                message={wsMessage || t('loading.connecting')}
                 subMessage={subMessage || t('loading.pleaseWait')}
                 isConnecting={isConnecting}
               />
@@ -86,7 +102,7 @@ function App() {
           if (!isSystemReady) {
             return (
               <LoadingScreen
-                message={message || t('loading.connectionProblem')}
+                message={wsMessage || t('loading.connectionProblem')}
                 subMessage={subMessage || t('loading.restoringConnection')}
                 isConnecting={!isReady}
               />

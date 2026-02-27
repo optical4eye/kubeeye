@@ -14,6 +14,7 @@ from db.models.user import User
 from core.security.jwt_utils import JWTUtils
 from core.logging import get_logger
 from core.rbac import RBACManager, Role
+from core.common.exceptions import NotFoundError
 
 logger = get_logger(__name__)
 
@@ -74,6 +75,13 @@ async def get_current_user(
         return user
     except HTTPException:
         raise
+    except NotFoundError:
+        # User not found in database - token is valid but user was deleted
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except Exception as e:
         logger.error(f"Get current user error: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

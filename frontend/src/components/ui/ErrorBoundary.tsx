@@ -1,5 +1,5 @@
 import React from 'react';
-import { Result, Button, Alert, Typography } from 'antd';
+import { Result, Button, Alert, Typography, Space } from 'antd';
 import { ReloadOutlined, HomeOutlined } from '@ant-design/icons';
 import { withTranslation, WithTranslation } from 'react-i18next';
 
@@ -69,25 +69,23 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
 
       return (
-        <div className="kube-padding-20 kube-max-width-800 kube-margin-0-auto">
+        <Space
+          direction="vertical"
+          style={{ padding: 20, maxWidth: 800, margin: '0 auto', width: '100%' }}
+        >
           <Result
             status="error"
             title={t('errorBoundary.title')}
             subTitle={t('errorBoundary.subtitle')}
             extra={
-              <>
-                <Button
-                  type="primary"
-                  icon={<ReloadOutlined />}
-                  onClick={this.resetError}
-                  className="kube-margin-right-8"
-                >
+              <Space>
+                <Button type="primary" icon={<ReloadOutlined />} onClick={this.resetError}>
                   {t('errorBoundary.retryButton')}
                 </Button>
                 <Button icon={<HomeOutlined />} onClick={() => (window.location.href = '/')}>
                   {t('errorBoundary.homeButton')}
                 </Button>
-              </>
+              </Space>
             }
           />
 
@@ -101,12 +99,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                   </Paragraph>
                   <Paragraph>
                     <Text strong>{t('errorBoundary.stackLabel')}</Text>
-                    <pre className="kube-white-space-pre-wrap kube-font-size-12">{error.stack}</pre>
+                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{error.stack}</pre>
                   </Paragraph>
                   {errorInfo && (
                     <Paragraph>
                       <Text strong>{t('errorBoundary.componentLabel')}</Text>
-                      <pre className="kube-white-space-pre-wrap kube-font-size-12">
+                      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>
                         {errorInfo.componentStack}
                       </pre>
                     </Paragraph>
@@ -114,10 +112,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 </div>
               }
               type="error"
-              className="kube-margin-top-16"
+              style={{ marginTop: 16 }}
             />
           )}
-        </div>
+        </Space>
       );
     }
 

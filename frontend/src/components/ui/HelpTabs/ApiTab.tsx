@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Typography, Alert } from 'antd';
+import { Card, Row, Col, Typography, Alert, Space } from 'antd';
 
 const { Paragraph, Text } = Typography;
 
@@ -17,9 +17,9 @@ const ApiTab = () => {
           <Alert
             message="Документация API"
             description={
-              <div>
-                Полная интерактивная документация доступна по адресам:
-                <ul className="kube-margin-top-8 kube-margin-bottom-0">
+              <Space direction="vertical" size="small">
+                <div>Полная интерактивная документация доступна по адресам:</div>
+                <ul style={{ marginTop: 8, marginBottom: 0 }}>
                   <li>
                     <a href="/docs" target="_blank" rel="noopener noreferrer">
                       Swagger UI (/docs)
@@ -36,11 +36,11 @@ const ApiTab = () => {
                     </a>
                   </li>
                 </ul>
-              </div>
+              </Space>
             }
             type="info"
             showIcon
-            className="kube-margin-bottom-16"
+            style={{ marginBottom: 16 }}
           />
         </Card>
       </Col>

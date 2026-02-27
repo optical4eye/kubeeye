@@ -1,10 +1,18 @@
-import { message } from 'antd';
+import type { MessageInstance } from 'antd/es/message/interface';
 import { useTranslation } from 'react-i18next';
 import { testClusterNodes, testClusterKubeconfig, getNodesFromKubeconfig } from '../services/api';
 import { parseNodesFromText } from '../utils/nodeParser';
 import { Cluster } from '../types/cluster';
 
-export const useClusterForm = (selectedCluster: Cluster | null) => {
+interface UseClusterFormOptions {
+  /** Message API instance from App.useApp() */
+  messageApi?: MessageInstance;
+}
+
+export const useClusterForm = (
+  selectedCluster: Cluster | null,
+  options?: UseClusterFormOptions
+) => {
   const { t } = useTranslation();
   const handleTestNodes = async (editForm: any, createForm: any) => {
     let nodesToTest = null;
@@ -38,13 +46,15 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
 
       if (failCount > 0) {
         const failedList = failedNodes.join(', ');
-        message.error(t('clusters.nodeTable.messages.connectionFailed', { nodes: failedList }));
+        options?.messageApi?.error(
+          t('clusters.nodeTable.messages.connectionFailed', { nodes: failedList })
+        );
       } else if (results.length > 0) {
-        message.success(
+        options?.messageApi?.success(
           t('clusters.nodeTable.messages.allNodesAvailable', { count: successCount })
         );
       } else {
-        message.warning(t('clusters.nodeTable.messages.noTestResults'));
+        options?.messageApi?.warning(t('clusters.nodeTable.messages.noTestResults'));
       }
     } catch (error: unknown) {
       let errorMessage = t('clusters.nodeTable.messages.unknownError');
@@ -71,7 +81,9 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      message.error(t('clusters.nodeTable.messages.testNodesError', { error: errorMessage }));
+      options?.messageApi?.error(
+        t('clusters.nodeTable.messages.testNodesError', { error: errorMessage })
+      );
     }
   };
 
@@ -93,18 +105,22 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       const { success, message: testMessage } = response.data;
 
       if (success) {
-        message.success(
+        options?.messageApi?.success(
           t('clusters.nodeTable.messages.kubeconfigTested', { message: testMessage })
         );
       } else {
-        message.error(t('clusters.nodeTable.messages.kubeconfigTestError', { error: testMessage }));
+        options?.messageApi?.error(
+          t('clusters.nodeTable.messages.kubeconfigTestError', { error: testMessage })
+        );
       }
     } catch (error: unknown) {
       const errorMessage =
         (error as any).response?.data?.detail ||
         (error as Error).message ||
         t('clusters.nodeTable.messages.unknownError');
-      message.error(t('clusters.nodeTable.messages.kubeconfigTestError', { error: errorMessage }));
+      options?.messageApi?.error(
+        t('clusters.nodeTable.messages.kubeconfigTestError', { error: errorMessage })
+      );
     }
   };
 
@@ -121,7 +137,7 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
       }
 
       if (!kubeconfigToUse) {
-        message.error(t('clusters.nodeTable.messages.kubeconfigNotSpecified'));
+        options?.messageApi?.error(t('clusters.nodeTable.messages.kubeconfigNotSpecified'));
         return;
       }
 
@@ -144,11 +160,11 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
           createForm.setFieldsValue({ nodes_text: nodesText });
         }
 
-        message.success(
+        options?.messageApi?.success(
           t('clusters.nodeTable.messages.nodesRetrieved', { count: nodesData.nodes.length })
         );
       } else {
-        message.error(t('clusters.nodeTable.messages.getNodesError'));
+        options?.messageApi?.error(t('clusters.nodeTable.messages.getNodesError'));
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -156,7 +172,9 @@ export const useClusterForm = (selectedCluster: Cluster | null) => {
         (error as any).response?.data?.error ||
         (error as Error).message ||
         t('clusters.nodeTable.messages.unknownError');
-      message.error(t('clusters.nodeTable.messages.getNodesErrorDetail', { error: errorMessage }));
+      options?.messageApi?.error(
+        t('clusters.nodeTable.messages.getNodesErrorDetail', { error: errorMessage })
+      );
     }
   };
 

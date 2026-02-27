@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { getDashboardData } from '../services/api';
 import { DashboardStatistics, DashboardCharts } from '../components/dashboard';
 import { getStatusTag } from '../components/ui/statusUtils';
+import { formatDateShort } from '../utils/dateFormat';
 
 interface ClusterStatus {
   name: string;
@@ -153,18 +154,7 @@ const Dashboard = () => {
       title: t('dashboard.lastCheck'),
       dataIndex: 'last_scan',
       key: 'last_scan',
-      render: (text: string) =>
-        text
-          ? new Date(text)
-              .toLocaleString('ru-RU', {
-                day: '2-digit',
-                month: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-              })
-              .replace(', ', '-')
-          : t('dashboard.notChecked'),
+      render: (text: string) => (text ? formatDateShort(text) : t('dashboard.notChecked')),
     },
   ];
 

@@ -12,6 +12,7 @@ import {
   Space,
   Alert,
 } from 'antd';
+import dayjs from 'dayjs';
 import {
   PlayCircleOutlined,
   CheckCircleOutlined,
@@ -157,7 +158,7 @@ const NetworkConnectivity = () => {
       const link = document.createElement('a');
       link.href = url;
 
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const timestamp = dayjs().format('YYYY-MM-DD_HH-mm-ss');
       const filename = `network_check_${selectedCluster}_${timestamp}.${format}`;
       link.setAttribute('download', filename);
 

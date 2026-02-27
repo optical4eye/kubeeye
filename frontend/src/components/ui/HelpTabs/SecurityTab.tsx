@@ -10,7 +10,7 @@ const CommandList = ({ title, commands, description }) => (
     <Title level={4}>{title}</Title>
     {description && <Paragraph>{description}</Paragraph>}
     {commands.map((item, index) => (
-      <div key={index} className="kube-margin-bottom-16">
+      <div key={index} style={{ marginBottom: 16 }}>
         <Text strong>{item.category}:</Text>
         <CodeHighlighter code={item.commands} language="bash" />
       </div>

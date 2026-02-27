@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { message } from 'antd';
+import type { MessageInstance } from 'antd/es/message/interface';
 import { useTranslation } from 'react-i18next';
 import { getAuditLogs, getAuditLog, getAuditStats, cleanupAuditLogs } from '../services/api';
 
@@ -39,7 +39,12 @@ export interface AuditLogsParams {
   date_to?: string;
 }
 
-export const useAuditLogs = () => {
+interface UseAuditLogsOptions {
+  /** Message API instance from App.useApp() */
+  messageApi?: MessageInstance;
+}
+
+export const useAuditLogs = (options?: UseAuditLogsOptions) => {
   const { t } = useTranslation();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,7 +57,7 @@ export const useAuditLogs = () => {
       setLogs(response.data.logs);
       setTotal(response.data.total);
     } catch (error) {
-      message.error(t('auditLogs.title') + ': ' + t('errors.loadClusters'));
+      options?.messageApi?.error(t('auditLogs.title') + ': ' + t('errors.loadClusters'));
       console.error('Error fetching audit logs:', error);
     } finally {
       setLoading(false);
@@ -65,7 +70,7 @@ export const useAuditLogs = () => {
       const response = await getAuditLog(logId);
       return response.data;
     } catch (error) {
-      message.error(t('auditLogs.title') + ': ' + t('errors.loadClusters'));
+      options?.messageApi?.error(t('auditLogs.title') + ': ' + t('errors.loadClusters'));
       console.error('Error fetching audit log:', error);
       throw error;
     } finally {
@@ -79,7 +84,7 @@ export const useAuditLogs = () => {
       const response = await getAuditStats(dateFrom, dateTo);
       return response.data;
     } catch (error) {
-      message.error(t('auditLogs.statistics') + ': ' + t('errors.loadClusters'));
+      options?.messageApi?.error(t('auditLogs.statistics') + ': ' + t('errors.loadClusters'));
       console.error('Error fetching audit stats:', error);
       throw error;
     } finally {
@@ -91,13 +96,13 @@ export const useAuditLogs = () => {
     setLoading(true);
     try {
       const response = await cleanupAuditLogs();
-      message.success(
+      options?.messageApi?.success(
         t('auditLogs.messages.cleanupSuccess', { count: response.data.deleted_count })
       );
       await fetchAuditLogs();
       return response.data;
     } catch (error) {
-      message.error(t('auditLogs.messages.cleanupError'));
+      options?.messageApi?.error(t('auditLogs.messages.cleanupError'));
       console.error('Error cleaning up logs:', error);
       throw error;
     } finally {

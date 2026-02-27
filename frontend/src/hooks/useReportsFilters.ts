@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 
 export interface Filters {
   cluster: string;
@@ -39,8 +39,8 @@ export const useReportsFilters = (reports: any[]) => {
     if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
       const [startDate, endDate] = filters.dateRange;
       filtered = filtered.filter(report => {
-        const reportDate = new Date(report.timestamp);
-        return reportDate >= startDate.toDate() && reportDate <= endDate.toDate();
+        const reportDate = dayjs(report.timestamp);
+        return reportDate.isAfter(startDate, 'day') && reportDate.isBefore(endDate, 'day');
       });
     }
 

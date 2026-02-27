@@ -16,9 +16,10 @@ import {
   Alert,
 } from 'antd';
 import { DeleteOutlined, PlayCircleFilled, EditOutlined } from '@ant-design/icons';
-import { format, parseISO, parse } from 'date-fns';
+import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import * as api from '../../services/api';
+import { formatDate } from '../../utils/dateFormat';
 import { RuleSelector } from '../rules';
 import { getStatusTag } from '../ui/statusUtils';
 import { Task, Cluster, Rule } from '../../types';
@@ -78,7 +79,7 @@ const ScheduledInspection = () => {
         cronExpr = `${values.cron_min || '0'} ${values.cron_hour || '8'} ${values.cron_dom || '*'} ${values.cron_month || '*'} ${values.cron_dow || '*'}`;
       } else {
         // Одноразовая задача
-        const dateTime = `${format(values.run_date.toDate(), 'yyyy-MM-dd')} ${format(values.run_time.toDate(), 'HH:mm')}`;
+        const dateTime = `${dayjs(values.run_date).format('YYYY-MM-DD')} ${dayjs(values.run_time).format('HH:mm')}`;
         runDatetime = dateTime;
       }
 
@@ -144,8 +145,8 @@ const ScheduledInspection = () => {
     if (task.task_type === 'once' && task.run_datetime) {
       const [date, time] = task.run_datetime.split(' ');
       editForm.setFieldsValue({
-        run_date: parseISO(date),
-        run_time: parse(time, 'HH:mm', new Date()),
+        run_date: dayjs(date, 'YYYY-MM-DD'),
+        run_time: dayjs(time, 'HH:mm'),
       });
     } else if (task.cron_expr) {
       const cronParts = task.cron_expr.split(' ');
@@ -171,7 +172,7 @@ const ScheduledInspection = () => {
       if (values.schedule_type === 'cron') {
         cronExpr = `${values.cron_min || '0'} ${values.cron_hour || '8'} ${values.cron_dom || '*'} ${values.cron_month || '*'} ${values.cron_dow || '*'}`;
       } else {
-        const dateTime = `${format(values.run_date.toDate(), 'yyyy-MM-dd')} ${format(values.run_time.toDate(), 'HH:mm')}`;
+        const dateTime = `${dayjs(values.run_date).format('YYYY-MM-DD')} ${dayjs(values.run_time).format('HH:mm')}`;
         runDatetime = dateTime;
       }
 
@@ -227,7 +228,7 @@ const ScheduledInspection = () => {
       title: t('scheduledInspection.lastRun'),
       dataIndex: 'last_run',
       key: 'last_run',
-      render: date => (date ? new Date(date).toLocaleString() : t('scheduledInspection.neverRun')),
+      render: date => (date ? formatDate(date) : t('scheduledInspection.neverRun')),
     },
     {
       title: t('scheduledInspection.actions'),

@@ -5,6 +5,7 @@ import { getClusters, runInspectionAsync, getRules, getRuleTags } from '../servi
 import { ActiveTasksList } from '../components/tasks';
 import { InspectionForm } from '../components/inspection';
 import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
+import { formatDate, getCurrentISOTime } from '../utils/dateFormat';
 
 interface Task {
   task_id: string;
@@ -112,7 +113,7 @@ const Inspection = React.memo(() => {
         task_id: taskId,
         task_type: 'inspection',
         status: 'pending',
-        created_at: new Date().toISOString(),
+        created_at: getCurrentISOTime(),
         payload: inspectionData,
       };
 
@@ -147,7 +148,7 @@ const Inspection = React.memo(() => {
 
   const formatTaskTime = useCallback((isoString: string) => {
     if (!isoString) return '';
-    return new Date(isoString).toLocaleString();
+    return formatDate(isoString);
   }, []);
 
   return (

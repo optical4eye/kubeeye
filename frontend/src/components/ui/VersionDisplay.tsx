@@ -1,4 +1,5 @@
 import React from 'react';
+import { Typography } from 'antd';
 
 interface VersionDisplayProps {
   version: string;
@@ -6,9 +7,18 @@ interface VersionDisplayProps {
 
 const VersionDisplay: React.FC<VersionDisplayProps> = ({ version }) => {
   return (
-    <div className="kube-text-center kube-margin-top-0 kube-font-size-12 kube-text-secondary kube-opacity-70">
-      ver. {version}
-    </div>
+    <Typography.Text
+      type="secondary"
+      style={{
+        textAlign: 'center',
+        marginTop: 0,
+        fontSize: 12,
+        opacity: 0.7,
+        display: 'block',
+      }}
+    >
+      v{version}
+    </Typography.Text>
   );
 };
 
