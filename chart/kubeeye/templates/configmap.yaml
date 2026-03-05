@@ -1,15 +1,3 @@
-{{- $files := .Files }}
-{{- range $path, $bytes := $files.Glob "rules/*.yaml" }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ base $path | trimSuffix ".yaml" | replace "_" "-" | kebabcase }}
-data:
-  {{ base $path | replace "_" "-" }}: |
-{{ $.Files.Get $path | indent 4 }}
-{{- end }}
-
 ---
 apiVersion: v1
 kind: ConfigMap

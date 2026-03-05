@@ -1,7 +1,7 @@
 # Builder stage for dependencies
 FROM python:3.14-alpine AS builder
 
-ARG OPA_VERSION=v1.13.2
+ARG OPA_VERSION=v1.14.0
 ARG POPEYE_VERSION=v0.22.1
 
 # Set environment variables
@@ -92,7 +92,7 @@ EXPOSE 8000
 
 # Improved health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-    CMD curl -f --max-time 10 --silent --output /dev/null http://localhost:8000/health || exit 1
+    CMD curl -f --max-time 10 --silent --output /dev/null http://localhost:8000/api/health || exit 1
 
 # Start command
 CMD ["uvicorn", "scripts.api:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--log-level", "critical"]

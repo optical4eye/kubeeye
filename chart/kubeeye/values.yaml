@@ -13,9 +13,13 @@ externalSecret:
   - secretName: "kubeeye-postgres-secret"
     vaultPath: "database/postgres"
     vaultKey: "password"
+  - secretName: "oauth-token"
+    vaultPath: "oauth/token"
+    vaultKey: "token"
 
-# Common configuration
-common:
+# Frontend configuration
+frontend:
+  replicaCount: 1
   securityContext:
     allowPrivilegeEscalation: false
     runAsNonRoot: true
@@ -24,10 +28,6 @@ common:
         - ALL
     seccompProfile:
         type: RuntimeDefault
-
-# Frontend configuration
-frontend:
-  replicaCount: 1
   image:
     repository: kubeeye-frontend
     pullPolicy: IfNotPresent
@@ -35,6 +35,8 @@ frontend:
     type: ClusterIP
     port: 80
   nodeSelector: {}
+  tolerations: []
+  affinity: {}
   resources:
     limits:
       memory: "1Gi"
@@ -46,12 +48,22 @@ frontend:
 # Backend configuration
 backend:
   replicaCount: 1
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+        type: RuntimeDefault
   image:
     repository: kubeeye-backend
     pullPolicy: IfNotPresent
   service:
     port: 8000
   nodeSelector: {}
+  tolerations: []
+  affinity: {}
   env:
     - name: KUBEEYE_GITOPS_REPO_NAME
       value: "kubeeye_rules"
@@ -107,12 +119,6 @@ backend:
     accessMode: ReadWriteOnce
     size: 1Gi
 
-  LocalRules:
-    - name: opa-host-network
-      type: opa
-    - name: node-disk-usage-simple
-      type: node
-
 # PostgreSQL configuration
 postgresql:
   enabled: true
@@ -134,3 +140,23 @@ postgresql:
       size: 8Gi
     containerSecurityContext:
       readOnlyRootFilesystem: false
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: kubeeye.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: kubeeye-tls
+  #    hosts:
+  #      - kubeeye.local

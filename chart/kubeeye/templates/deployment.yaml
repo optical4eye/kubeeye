@@ -17,12 +17,18 @@ spec:
       labels:
         {{- include "kubeeye.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: frontend
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       securityContext:
         runAsUser: 1001
         runAsGroup: 1001
         fsGroup: 1001
       nodeSelector: {{- .Values.frontend.nodeSelector | toYaml | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.frontend.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.frontend.affinity | nindent 8 }}
       containers:
         - name: frontend
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }}"
@@ -48,7 +54,7 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
           securityContext:
-            {{- toYaml .Values.common.securityContext | nindent 12 }}
+            {{- toYaml .Values.frontend.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
       volumes:
@@ -81,6 +87,10 @@ spec:
         runAsGroup: 1001
         fsGroup: 1001
       nodeSelector: {{- .Values.backend.nodeSelector | toYaml | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.backend.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.backend.affinity | nindent 8 }}
       containers:
         - name: backend
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
@@ -99,18 +109,18 @@ spec:
             {{- .Values.backend.env | toYaml | nindent 12 }}
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: http
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: http
             initialDelaySeconds: 5
             periodSeconds: 5
           securityContext:
-            {{- toYaml .Values.common.securityContext | nindent 12 }}
+            {{- toYaml .Values.backend.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           volumeMounts:
@@ -118,21 +128,10 @@ spec:
             - name: data-volume
               mountPath: /app/data
             {{- end }}
-            {{- range .Values.backend.LocalRules }}
-            - name: {{ .name }}
-              mountPath: /app/rules/{{ .type }}/{{ .name }}.yaml
-              subPath: {{ .name }}.yaml
-            {{- end }}
-
 
       volumes:
         {{- if .Values.backend.persistence.enabled }}
         - name: data-volume
           persistentVolumeClaim:
             claimName: {{ include "kubeeye.fullname" . }}-pvc
-        {{- end }}
-        {{- range .Values.backend.LocalRules }}
-        - name: {{ .name }}
-          configMap:
-            name: {{ .name }}
         {{- end }}

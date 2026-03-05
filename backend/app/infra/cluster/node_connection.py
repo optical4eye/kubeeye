@@ -54,7 +54,7 @@ class AsyncNodeConnection:
                 f"Connecting to node: {self.node_info['ip']}:{self.node_info['port']} user: {self.node_info['username']}"
             )
 
-            # Use SSHService for connection
+            # Use SSHService for connection (use pool for better resource management)
             ssh_service = await get_service("ssh_service")
             self.client = await ssh_service.connect(
                 host=self.node_info["ip"],
@@ -64,6 +64,7 @@ class AsyncNodeConnection:
                 password=self.node_info.get("password"),
                 key_data=self.node_info.get("ssh_key"),
                 timeout=settings.kubeeye_ssh_connection_timeout,
+                use_pool=True,  # Use connection pool for better resource management
             )
 
             self.connected = True
@@ -85,15 +86,55 @@ class AsyncNodeConnection:
             logger.error(f"Node {self.node_info['ip']}: {error_msg}")
             return False, error_msg
 
-    def close(self) -> None:
-        """Close connection"""
-        if self.connected and self.client:
+    async def close_async(self) -> None:
+        """Close connection - return to pool if using pool, otherwise close"""
+        if not self.connected or not self.client:
+            return
+
+        try:
+            # Get SSH service to return connection to pool
+            ssh_service = await get_service("ssh_service")
+            await ssh_service._return_connection_to_pool(
+                host=self.node_info["ip"],
+                port=int(self.node_info["port"]),
+                username=self.node_info["username"],
+                client=self.client,
+            )
+            logger.debug(f"Connection to {self.node_info['ip']} returned to pool")
+        except Exception as e:
+            # Fallback: close connection if return to pool fails
             try:
-                self.client.close()
-            except Exception as e:
-                logger.warning(f"Error closing connection: {str(e)}")
+                if self.client and not self.client.is_closed():
+                    self.client.close()
+                    logger.warning(f"Error returning connection to pool, closed directly: {e}")
+            except Exception as close_error:
+                logger.warning(f"Error closing connection: {close_error}")
+        finally:
             self.client = None
             self.connected = False
+
+    def close(self) -> None:
+        """Close connection (synchronous wrapper that calls async close)"""
+        if not self.connected or not self.client:
+            return
+
+        try:
+            # Handle both async and sync contexts properly
+            try:
+                loop = asyncio.get_running_loop()
+                # If there's a running loop, schedule close as a task and wait briefly
+                if loop.is_running():
+                    # Create task and run it to completion
+                    task = asyncio.run_coroutine_threadsafe(self.close_async(), loop)
+                    # Wait for task with timeout to avoid hanging
+                    task.result(timeout=10)
+                else:
+                    loop.run_until_complete(self.close_async())
+            except RuntimeError:
+                # No running loop, use asyncio.run
+                asyncio.run(self.close_async())
+        except Exception as e:
+            logger.warning(f"Error closing connection: {str(e)}")
 
 
 class NodeConnection:
@@ -142,9 +183,6 @@ class NodeConnection:
             # Get configurable SSH timeout
             ssh_timeout = settings.kubeeye_ssh_connection_timeout
 
-            # Use asyncio.run to wrap SSHService connection
-            from infra.dependency_injection.container import get_service_sync
-
             async def _connect_async():
                 ssh_service = await get_service("ssh_service")
                 return await ssh_service.connect(
@@ -155,9 +193,26 @@ class NodeConnection:
                     password=self.node_info.get("password"),
                     key_data=self.node_info.get("ssh_key"),
                     timeout=ssh_timeout,
+                    use_pool=True,  # Use connection pool for better resource management
                 )
 
-            self.client = asyncio.run(_connect_async())
+            # Handle both async and sync contexts properly
+            try:
+                loop = asyncio.get_running_loop()
+                # If there's already a running loop, schedule task properly
+                if loop.is_running():
+                    # Use threadsafe approach to avoid blocking
+                    import concurrent.futures
+
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                        future = executor.submit(asyncio.run, _connect_async())
+                        self.client = future.result(timeout=ssh_timeout + 10)
+                else:
+                    self.client = loop.run_until_complete(_connect_async())
+            except RuntimeError:
+                # No running loop, we can use asyncio.run
+                self.client = asyncio.run(_connect_async())
+
             self.connected = True
             return True, ""
         except AuthenticationException:
@@ -188,19 +243,21 @@ class NodeConnection:
             Tuple (success, stdout, stderr)
         """
         try:
-            # Get configurable SSH timeout
-            ssh_timeout = settings.kubeeye_ssh_connection_timeout
-            command_timeout = ssh_timeout * 6  # 60s for 10s base
+            # Use command timeout from settings directly
+            command_timeout = settings.kubeeye_ssh_command_timeout
 
-            # Get or create event loop
+            # Handle both async and sync contexts properly
             try:
                 loop = asyncio.get_running_loop()
-                # If there's already a running loop, we need to use it differently
-                import concurrent.futures
+                # If there's already a running loop, schedule task properly
+                if loop.is_running():
+                    import concurrent.futures
 
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(self._execute_command_sync, command)
-                    return future.result(timeout=command_timeout + 5)  # command timeout + 5s buffer
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                        future = executor.submit(self._execute_command_sync, command)
+                        return future.result(timeout=command_timeout + 10)
+                else:
+                    return loop.run_until_complete(self._execute_command_async(command))
             except RuntimeError:
                 # No running loop, we can use asyncio.run
                 return asyncio.run(self._execute_command_async(command))
@@ -213,11 +270,8 @@ class NodeConnection:
         # Get SSH service
         ssh_service = await get_service("ssh_service")
 
-        # Get configurable SSH timeout
-        ssh_timeout = settings.kubeeye_ssh_connection_timeout
-
-        # Execute command with configurable timeout (6x base SSH timeout for commands)
-        command_timeout = ssh_timeout * 6  # 60s for 10s base
+        # Use command timeout from settings directly
+        command_timeout = settings.kubeeye_ssh_command_timeout
 
         # Use SSHService to execute command (it handles connection pooling internally)
         # execute_command expects node_info dict and returns (stdout, stderr)
@@ -237,15 +291,53 @@ class NodeConnection:
         return asyncio.run(self._execute_command_async(command))
 
     def close(self) -> None:
-        """Close connection"""
-        if self.connected and self.client:
+        """Close connection - return to pool or close it"""
+        if not self.connected or not self.client:
+            return
+
+        try:
+            # Handle both async and sync contexts properly
             try:
-                # For asyncssh.SSHClientConnection, close() is async, but we can call it synchronously
-                asyncio.run(self.client.close())
-            except Exception as e:
-                logger.warning(f"Error closing connection: {str(e)}")
+                loop = asyncio.get_running_loop()
+                # If there's a running loop, use threadsafe execution
+                if loop.is_running():
+                    task = asyncio.run_coroutine_threadsafe(self._close_async(), loop)
+                    task.result(timeout=10)
+                else:
+                    loop.run_until_complete(self._close_async())
+            except RuntimeError:
+                # No running loop, use asyncio.run
+                asyncio.run(self._close_async())
+        except Exception as e:
+            logger.warning(f"Error closing connection: {str(e)}")
+        finally:
+            # Reset state regardless of success/failure
             self.client = None
             self.connected = False
+
+    async def _close_async(self) -> None:
+        """Return connection to pool or close it"""
+        if not self.client:
+            return
+
+        try:
+            # Get SSH service to return connection to pool
+            ssh_service = await get_service("ssh_service")
+            await ssh_service._return_connection_to_pool(
+                host=self.node_info["ip"],
+                port=int(self.node_info["port"]),
+                username=self.node_info["username"],
+                client=self.client,
+            )
+            logger.debug(f"Connection to {self.node_info['ip']} returned to pool")
+        except Exception as e:
+            # Fallback: close connection if return to pool fails
+            try:
+                if self.client and not self.client.is_closed():
+                    self.client.close()
+                    logger.warning(f"Error returning connection to pool, closed directly: {e}")
+            except Exception as close_error:
+                logger.warning(f"Error closing connection: {close_error}")
 
 
 async def async_test_node_connection(node_info: Dict) -> Tuple[bool, str]:

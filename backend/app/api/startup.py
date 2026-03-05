@@ -200,6 +200,31 @@ async def _init_admin_user():
         raise
 
 
+async def _start_ssh_keepalive():
+    """Start SSH keepalive task for connection pool"""
+    try:
+        from infra.dependency_injection.container import get_service
+        from core.config.settings import settings
+
+        # Only start if keepalive is enabled in settings
+        if not settings.kubeeye_ssh_keep_alive:
+            logger.info("SSH keepalive is disabled in settings")
+            return
+
+        # Only start if pool is enabled
+        if not settings.kubeeye_ssh_pool_enabled:
+            logger.info("SSH connection pool is disabled, keepalive not needed")
+            return
+
+        logger.info("Starting SSH keepalive task...")
+        ssh_service = await get_service("ssh_service")
+        await ssh_service.start_keepalive()
+        logger.info("SSH keepalive task started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start SSH keepalive: {e}", exc_info=True)
+        # Don't fail startup if keepalive fails
+
+
 async def _init_rbac():
     """Initialize RBAC system - loads configuration from YAML file"""
     try:

@@ -33,6 +33,30 @@ class SSHKeyResolver:
         self.cache_manager = CacheManager()
         self.cache = self.cache_manager.get_or_create_cache("ssh_key_resolver", maxsize=100, ttl=600)  # 10 minutes TTL
 
+    def invalidate_cache(self, ip: Optional[str] = None) -> int:
+        """
+        Invalidate cached node configurations.
+
+        Args:
+            ip: Optional IP address to invalidate specific node, or None to clear all
+
+        Returns:
+            Number of cache entries invalidated
+        """
+        if ip is None:
+            # Clear entire cache
+            count = len(self.cache)
+            self.cache.clear()
+            logger.info(f"Invalidated all {count} cache entries in SSHKeyResolver")
+            return count
+        else:
+            # Clear specific entries for IP
+            keys_to_remove = [k for k in self.cache.keys() if f"ip:{ip}" in k]
+            for key in keys_to_remove:
+                del self.cache[key]
+            logger.info(f"Invalidated {len(keys_to_remove)} cache entries for IP {ip}")
+            return len(keys_to_remove)
+
     async def resolve_node_config(self, node_config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Resolve and standardize node authentication configuration.
@@ -123,13 +147,13 @@ class SSHKeyResolver:
 
         # Add hashes of direct values (if no secret sources)
         if "ssh_key" in node_config and not any(k in node_config for k in ["ssh_key_secret_id", "ssh_key_secret_name"]):
-            key_hash = hashlib.md5(node_config["ssh_key"].encode()).hexdigest()
+            key_hash = hashlib.sha256(node_config["ssh_key"].encode()).hexdigest()
             key_parts.append(f"ssh_key_hash:{key_hash}")
 
         if "password" in node_config and not any(
             k in node_config for k in ["password_secret_id", "password_secret_name"]
         ):
-            pass_hash = hashlib.md5(node_config["password"].encode()).hexdigest()
+            pass_hash = hashlib.sha256(node_config["password"].encode()).hexdigest()
             key_parts.append(f"password_hash:{pass_hash}")
 
         return "|".join(key_parts) or "no_auth"

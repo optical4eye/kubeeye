@@ -332,7 +332,7 @@ backend:
 ### Health Checks
 
 - Frontend: HTTP health check на `/`
-- Backend: HTTP health check на `/health`
+- Backend: HTTP health check на `/api/health`
 - PostgreSQL: Readiness probe через `pg_isready`
 
 ### Логирование

@@ -29,6 +29,7 @@ from .startup import (
     _init_websocket_subscriptions,
     _init_admin_user,
     _init_rbac,
+    _start_ssh_keepalive,
 )
 from .shutdown import (
     _shutdown_task_queue,
@@ -90,6 +91,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await _start_cleanup_worker()
     await _start_task_manager()
     await _init_admin_user()
+    await _start_ssh_keepalive()
 
     yield
 

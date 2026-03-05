@@ -23,6 +23,7 @@ class ISSHService(Protocol):
         password: Optional[str] = None,
         key_data: Optional[str] = None,
         timeout: Optional[int] = None,
+        use_pool: bool = True,
     ) -> Optional[asyncssh.SSHClientConnection]:
         """
         Create SSH connection
@@ -35,6 +36,7 @@ class ISSHService(Protocol):
             password: Password for password auth
             key_data: Private key data as string for key auth
             timeout: Connection timeout (uses default if None)
+            use_pool: Use connection pool (default: True)
 
         Returns:
             SSH connection or None if failed

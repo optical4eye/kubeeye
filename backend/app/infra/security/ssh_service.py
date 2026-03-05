@@ -7,8 +7,9 @@ With integrated connection pooling for performance optimization
 """
 
 import asyncio
+import random
 import time
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Set
 from dataclasses import dataclass
 import asyncssh
 
@@ -30,7 +31,7 @@ class ConnectionInfo:
     created_at: float
 
 
-# SSH Exceptions (moved from async_ssh_base.py)
+# SSH Exceptions
 class SSHException(Exception):
     """Base SSH exception"""
 
@@ -39,12 +40,6 @@ class SSHException(Exception):
 
 class AuthenticationException(SSHException):
     """Authentication failed"""
-
-    pass
-
-
-class BadHostKeyException(SSHException):
-    """Bad host key"""
 
     pass
 
@@ -67,6 +62,16 @@ def map_asyncssh_exception(e: Exception) -> Exception:
         return SSHException(f"Key import error: {str(e)}")
     elif isinstance(e, asyncssh.ChannelOpenError):
         return SSHException(f"Channel error: {str(e)}")
+    elif isinstance(e, asyncssh.HostKeyNotVerifiable):
+        return SSHException(f"Host key verification failed: {str(e)}")
+    elif isinstance(e, asyncssh.ProtocolError):
+        return SSHException(f"SSH protocol error: {str(e)}")
+    elif isinstance(e, asyncssh.ConnectionLost):
+        return SSHException(f"SSH connection lost: {str(e)}")
+    elif isinstance(e, asyncssh.TimeoutError):
+        return SSHException(f"SSH timeout: {str(e)}")
+    elif isinstance(e, asyncssh.CompressionError):
+        return SSHException(f"SSH compression error: {str(e)}")
     else:
         return SSHException(str(e))
 
@@ -105,7 +110,6 @@ class SSHService(ISSHService):
     # Timeout constants
     DEFAULT_CONNECTION_TIMEOUT = 10
     DEFAULT_COMMAND_TIMEOUT = 60
-    COMMAND_TIMEOUT_MULTIPLIER = 6  # Command timeout = connection_timeout * 6
 
     # Pool configuration (now using settings)
     @property
@@ -133,10 +137,50 @@ class SSHService(ISSHService):
             "failed_connections": 0,
             "closed_connections": 0,
         }
+        # Circuit breaker for connection failures
+        self._circuit_breaker: Dict[str, Dict] = {}  # node_key -> {failures, last_failure, open}
+        self._circuit_breaker_threshold = 5  # Open circuit after 5 consecutive failures
+        self._circuit_breaker_timeout = 300  # Keep circuit open for 5 minutes
 
     def _get_node_key(self, host: str, port: int, username: str) -> str:
         """Generate unique key for node"""
         return f"{host}:{port}:{username}"
+
+    def _is_circuit_open(self, node_key: str) -> bool:
+        """Check if circuit breaker is open for node"""
+        if node_key not in self._circuit_breaker:
+            return False
+
+        breaker = self._circuit_breaker[node_key]
+        if breaker["open"]:
+            # Check if circuit should be half-open (timeout expired)
+            if time.time() - breaker["last_failure"] > self._circuit_breaker_timeout:
+                logger.info(f"Circuit breaker for {node_key} entering half-open state")
+                breaker["open"] = False
+                breaker["failures"] = 0
+                return False
+            return True
+        return False
+
+    def _record_success(self, node_key: str):
+        """Record successful connection, reset circuit breaker"""
+        if node_key in self._circuit_breaker:
+            del self._circuit_breaker[node_key]
+
+    def _record_failure(self, node_key: str):
+        """Record connection failure, potentially open circuit breaker"""
+        if node_key not in self._circuit_breaker:
+            self._circuit_breaker[node_key] = {"failures": 0, "last_failure": 0, "open": False}
+
+        breaker = self._circuit_breaker[node_key]
+        breaker["failures"] += 1
+        breaker["last_failure"] = time.time()
+
+        if breaker["failures"] >= self._circuit_breaker_threshold:
+            breaker["open"] = True
+            logger.warning(
+                f"Circuit breaker OPEN for {node_key} after {breaker['failures']} consecutive failures"
+            )
 
     async def _get_connection_from_pool(
         self, host: str, port: int, username: str
@@ -197,6 +241,16 @@ class SSHService(ISSHService):
         """
         node_key = self._get_node_key(host, port, username)
 
+        # Check if connection is alive before returning to pool
+        if not await self._is_connection_alive(client):
+            try:
+                client.close()
+                self._pool_stats["closed_connections"] += 1
+                logger.debug(f"Closed dead connection for {node_key} (not returned to pool)")
+            except Exception:
+                pass
+            return
+
         # Get or create lock for this node
         if node_key not in self._locks:
             self._locks[node_key] = asyncio.Lock()
@@ -218,19 +272,49 @@ class SSHService(ISSHService):
                 # Pool is full, close connection
                 try:
                     client.close()
+                    self._pool_stats["closed_connections"] += 1
                 except Exception:
                     pass
                 logger.debug(f"Closed connection (pool full) for {node_key}, max pool size: {self.DEFAULT_POOL_SIZE}")
 
     async def _is_connection_alive(self, client: asyncssh.SSHClientConnection) -> bool:
-        """Check if connection is alive"""
+        """
+        Check if connection is alive using lightweight keepalive mechanism.
+        Uses send_keepalive() for reliable connection validation without
+        executing commands on remote host.
+        """
         try:
-            # Check if connection is closed
+            # First check if connection is already marked as closed
             if client.is_closed():
                 return False
-            # Try to execute a simple command
-            result = await client.run("echo 1", timeout=5)
-            return result.returncode == 0
+
+            # Use keepalive for reliable connection check (asyncssh >= 2.0)
+            if hasattr(client, 'send_keepalive'):
+                try:
+                    await client.send_keepalive()
+                    return True
+                except Exception:
+                    # Keepalive failed, connection is likely dead
+                    return False
+
+            # Fallback for older asyncssh: check transport layer
+            # Access internal connection to check if transport is still open
+            conn = getattr(client, '_conn', None)
+            if conn is not None:
+                transport = getattr(conn, '_transport', None)
+                if transport is not None:
+                    # Check if transport is closing or closed
+                    if hasattr(transport, 'is_closing'):
+                        return not transport.is_closing()
+                    if hasattr(transport, 'is_closed'):
+                        return not transport.is_closed()
+                    # Last resort: check if we can write to transport
+                    return not transport.is_reading_paused() if hasattr(transport, 'is_reading_paused') else True
+
+            # If no keepalive and no transport access, assume connection is alive
+            # but mark it for reconnection on next use
+            return True
+
         except Exception:
             return False
 
@@ -242,7 +326,8 @@ class SSHService(ISSHService):
         current_time = time.time()
         active_connections = []
 
-        for conn_info in self.pools[node_key]:
+        # Use list() to avoid modification during iteration
+        for conn_info in list(self.pools[node_key]):
             if current_time - conn_info.last_used < self.DEFAULT_CONNECTION_TIMEOUT_POOL:
                 active_connections.append(conn_info)
             else:
@@ -256,21 +341,62 @@ class SSHService(ISSHService):
         self.pools[node_key] = active_connections
 
     async def start_keepalive(self):
-        """Start keepalive task for all connections"""
+        """Start keepalive task for all connections with stagger"""
 
         async def keepalive():
+            # Initial stagger to avoid thundering herd on startup
+            await asyncio.sleep(random.uniform(0, 10))
+
             while True:
-                await asyncio.sleep(self.DEFAULT_KEEPALIVE_INTERVAL)
-                for node_key, connections in list(self.pools.items()):
-                    for conn_info in list(connections):
-                        if not await self._is_connection_alive(conn_info.client):
-                            logger.warning(f"Connection {node_key} is dead, removing from pool")
+                try:
+                    await asyncio.sleep(self.DEFAULT_KEEPALIVE_INTERVAL)
+
+                    # Process connections in batches to avoid thundering herd
+                    all_connections = []
+                    for node_key, connections in list(self.pools.items()):
+                        for conn_info in connections:
+                            all_connections.append((node_key, conn_info))
+
+                    # Process in batches of 10 with small delays between batches
+                    batch_size = 10
+                    for i in range(0, len(all_connections), batch_size):
+                        batch = all_connections[i:i + batch_size]
+                        dead_connections = []
+
+                        for node_key, conn_info in batch:
+                            if not await self._is_connection_alive(conn_info.client):
+                                logger.warning(f"Connection {node_key} is dead, removing from pool")
+                                dead_connections.append((node_key, conn_info))
+
+                        # Remove dead connections
+                        for node_key, conn_info in dead_connections:
                             try:
                                 conn_info.client.close()
                                 self._pool_stats["closed_connections"] += 1
                             except Exception:
                                 pass
-                            connections.remove(conn_info)
+
+                            # Remove from pool
+                            if node_key in self.pools:
+                                if conn_info in self.pools[node_key]:
+                                    self.pools[node_key].remove(conn_info)
+
+                                # Clean up empty pools
+                                if not self.pools[node_key]:
+                                    del self.pools[node_key]
+                                    if node_key in self._locks:
+                                        del self._locks[node_key]
+
+                        # Small stagger between batches
+                        if i + batch_size < len(all_connections):
+                            await asyncio.sleep(0.1)
+
+                except asyncio.CancelledError:
+                    logger.debug("Keepalive task cancelled")
+                    break
+                except Exception as e:
+                    logger.error(f"Error in keepalive task: {e}")
+                    await asyncio.sleep(5)  # Brief pause before retry
 
         self._keepalive_task = asyncio.create_task(keepalive())
         logger.info("Started SSH keepalive task")
@@ -298,21 +424,60 @@ class SSHService(ISSHService):
         }
 
     async def close_all_connections(self):
-        """Close all connections in pool"""
-        # Close all connections
-        for node_key, connections in self.pools.items():
-            for conn_info in connections:
-                try:
-                    conn_info.client.close()
-                except Exception:
-                    pass
-        self.pools.clear()
-        # Clear all locks
-        self._locks.clear()
-        # Stop keepalive task
+        """Close all connections in pool gracefully"""
+        logger.info("Closing all SSH connections in pool...")
+
+        # Stop keepalive task first
         await self.stop_keepalive()
 
-        logger.info("Closed all connections in pool")
+        # Close all connections
+        close_count = 0
+        for node_key, connections in list(self.pools.items()):
+            for conn_info in list(connections):
+                try:
+                    if not conn_info.client.is_closed():
+                        conn_info.client.close()
+                        close_count += 1
+                except Exception as e:
+                    logger.debug(f"Error closing connection for {node_key}: {e}")
+
+        self.pools.clear()
+        self._locks.clear()
+        self._circuit_breaker.clear()  # Clear circuit breaker state
+
+        logger.info(f"Closed {close_count} SSH connections from pool")
+
+    async def close_connection_for_node(self, host: str, port: int, username: str) -> int:
+        """
+        Close all connections for specific node.
+
+        Args:
+            host: Target host
+            port: SSH port
+            username: SSH username
+
+        Returns:
+            Number of connections closed
+        """
+        node_key = self._get_node_key(host, port, username)
+        closed_count = 0
+
+        if node_key in self.pools:
+            for conn_info in self.pools[node_key]:
+                try:
+                    if not conn_info.client.is_closed():
+                        conn_info.client.close()
+                        closed_count += 1
+                        self._pool_stats["closed_connections"] += 1
+                except Exception:
+                    pass
+            del self.pools[node_key]
+
+        if node_key in self._locks:
+            del self._locks[node_key]
+
+        logger.debug(f"Closed {closed_count} connections for {node_key}")
+        return closed_count
 
     async def connect(
         self,
@@ -326,7 +491,7 @@ class SSHService(ISSHService):
         use_pool: bool = True,
     ) -> Optional[asyncssh.SSHClientConnection]:
         """
-        Create SSH connection (with optional connection pooling)
+        Create SSH connection (with optional connection pooling and retry logic)
 
         Args:
             host: Target host
@@ -341,63 +506,109 @@ class SSHService(ISSHService):
         Returns:
             SSH connection or None if failed
         """
-        try:
-            # Try to get connection from pool first
-            if use_pool:
-                client = await self._get_connection_from_pool(host, port, username)
-                if client:
-                    logger.debug(f"Using pooled connection for {host}:{port}")
-                    return client
+        node_key = self._get_node_key(host, port, username)
 
-            # Create new connection
-            # Use provided timeout or default from settings
-            if timeout is None:
-                timeout = settings.kubeeye_ssh_connection_timeout
-
-            logger.info(
-                f"Creating new SSH connection to {host}:{port} with auth_type: {auth_type}, timeout: {timeout}s"
+        # Check circuit breaker before attempting connection
+        if self._is_circuit_open(node_key):
+            raise SSHException(
+                f"Circuit breaker is OPEN for {node_key} - too many recent connection failures. "
+                f"Retry after {self._circuit_breaker_timeout} seconds."
             )
 
-            if auth_type == "password":
-                logger.debug("Using password authentication")
-                conn = await asyncssh.connect(
-                    host=host,
-                    port=port,
-                    username=username,
-                    password=password,
-                    known_hosts=None,  # Disable host key checking
-                    connect_timeout=timeout,
+        # Respect global pool setting
+        if not settings.kubeeye_ssh_pool_enabled:
+            use_pool = False
+
+        # Try to get connection from pool first (no retry needed for pool)
+        if use_pool:
+            client = await self._get_connection_from_pool(host, port, username)
+            if client:
+                logger.debug(f"Using pooled connection for {host}:{port}")
+                self._record_success(node_key)  # Reset circuit breaker on successful pool hit
+                return client
+
+        # Use provided timeout or default from settings
+        if timeout is None:
+            timeout = settings.kubeeye_ssh_connection_timeout
+
+        # Get retry configuration from settings
+        max_retries = settings.kubeeye_ssh_retry_attempts
+        retry_delay = settings.kubeeye_ssh_retry_delay
+
+        last_exception = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                logger.info(
+                    f"Creating new SSH connection to {host}:{port} with auth_type: {auth_type}, "
+                    f"timeout: {timeout}s (attempt {attempt + 1}/{max_retries + 1})"
                 )
-            elif auth_type == "key":
-                logger.debug("Using key authentication")
-                if not key_data:
-                    raise ValueError("key_data required for key authentication")
 
-                logger.debug(f"Key data length: {len(key_data)}")
-                key = load_private_key(key_data)
-                if not key:
-                    raise SSHException("Failed to load key from provided data")
+                if auth_type == "password":
+                    logger.debug("Using password authentication")
+                    conn = await asyncssh.connect(
+                        host=host,
+                        port=port,
+                        username=username,
+                        password=password,
+                        known_hosts=None,  # Disable host key checking
+                        connect_timeout=timeout,
+                        banner_timeout=timeout,
+                    )
+                elif auth_type == "key":
+                    logger.debug("Using key authentication")
+                    if not key_data:
+                        raise ValueError("key_data required for key authentication")
 
-                conn = await asyncssh.connect(
-                    host=host,
-                    port=port,
-                    username=username,
-                    client_keys=[key],
-                    known_hosts=None,  # Disable host key checking
-                    connect_timeout=timeout,
-                )
-            else:
-                raise ValueError(f"Unsupported auth_type: {auth_type}")
+                    logger.debug(f"Key data length: {len(key_data)}")
+                    key = load_private_key(key_data)
+                    if not key:
+                        raise SSHException("Failed to load key from provided data")
 
-            self._pool_stats["new_connections"] += 1
-            self._pool_stats["total_connections"] += 1
-            logger.info(f"SSH connection to {host}:{port} established successfully")
-            return conn
+                    conn = await asyncssh.connect(
+                        host=host,
+                        port=port,
+                        username=username,
+                        client_keys=[key],
+                        known_hosts=None,  # Disable host key checking
+                        connect_timeout=timeout,
+                        banner_timeout=timeout,
+                    )
+                else:
+                    raise ValueError(f"Unsupported auth_type: {auth_type}")
 
-        except Exception as e:
-            logger.error(f"Failed to create SSH connection to {host}:{port}: {e}")
-            self._pool_stats["failed_connections"] += 1
-            raise map_asyncssh_exception(e)
+                self._pool_stats["new_connections"] += 1
+                self._pool_stats["total_connections"] += 1
+                self._record_success(node_key)  # Reset circuit breaker on success
+                logger.info(f"SSH connection to {host}:{port} established successfully")
+                return conn
+
+            except (asyncssh.PermissionDenied, asyncssh.KeyImportError, ValueError) as e:
+                # Don't retry on authentication errors or invalid config
+                logger.error(f"Authentication/config error for {host}:{port}: {e}")
+                self._pool_stats["failed_connections"] += 1
+                self._record_failure(node_key)  # Record failure for circuit breaker
+                raise map_asyncssh_exception(e)
+            except Exception as e:
+                last_exception = e
+                self._record_failure(node_key)  # Record failure for circuit breaker
+                if attempt < max_retries:
+                    # Exponential backoff: delay * (2 ^ attempt)
+                    current_delay = retry_delay * (2 ** attempt)
+                    logger.warning(
+                        f"SSH connection attempt {attempt + 1} failed for {host}:{port}: {e}. "
+                        f"Retrying in {current_delay}s..."
+                    )
+                    await asyncio.sleep(current_delay)
+                else:
+                    logger.error(f"All {max_retries + 1} attempts failed for {host}:{port}: {e}")
+
+        # All retries exhausted
+        self._pool_stats["failed_connections"] += 1
+        if last_exception is not None:
+            raise map_asyncssh_exception(last_exception)
+        else:
+            raise SSHException("Failed to establish SSH connection after all retries")
 
     async def test_connection(self, node_info: Dict) -> Tuple[bool, str]:
         """
@@ -537,7 +748,7 @@ class SSHService(ISSHService):
             try:
                 # Calculate timeout
                 if timeout is None:
-                    timeout = settings.kubeeye_ssh_connection_timeout * self.COMMAND_TIMEOUT_MULTIPLIER
+                    timeout = settings.kubeeye_ssh_command_timeout
 
                 # Execute command
                 result = await asyncio.wait_for(client.run(command, timeout=timeout), timeout=timeout)
@@ -547,21 +758,42 @@ class SSHService(ISSHService):
                 stderr_data = result.stderr
                 exit_status = result.returncode
 
+                # Check connection health before returning to pool
+                is_healthy = await self._is_connection_alive(client)
+
                 if exit_status == 0:
                     logger.info(f"Command executed successfully on node {node_name}")
-                    # Return connection to pool on success
-                    await self._return_connection_to_pool(host, port, username, client)
+                    # Return connection to pool only if healthy
+                    if is_healthy:
+                        await self._return_connection_to_pool(host, port, username, client)
+                    else:
+                        logger.warning(f"Connection unhealthy after command on {node_name}, closing")
+                        try:
+                            client.close()
+                            self._pool_stats["closed_connections"] += 1
+                        except Exception:
+                            pass
                     return stdout_data, ""
                 else:
                     logger.warning(f"Command failed on node {node_name} with exit code {exit_status}")
-                    # Return connection to pool even on failure (connection is still valid)
-                    await self._return_connection_to_pool(host, port, username, client)
+                    # Return connection to pool if healthy (command failure != connection failure)
+                    if is_healthy:
+                        await self._return_connection_to_pool(host, port, username, client)
+                    else:
+                        logger.warning(f"Connection unhealthy after failed command on {node_name}, closing")
+                        try:
+                            client.close()
+                            self._pool_stats["closed_connections"] += 1
+                        except Exception:
+                            pass
                     return stdout_data, stderr_data
 
             except Exception as e:
-                # On error, close connection instead of returning to pool
+                # On execution error, close connection instead of returning to pool
+                logger.warning(f"Exception during command execution on {node_name}, closing connection: {e}")
                 try:
                     client.close()
+                    self._pool_stats["closed_connections"] += 1
                 except Exception:
                     pass
                 raise

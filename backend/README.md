@@ -598,13 +598,13 @@ backend/
 | `KUBEEYE_SQL_DEBUG` | `False` | Включить SQL debug логирование |
 | `KUBEEYE_LOG_LEVEL` | `INFO` | Уровень логирования приложения |
 | `KUBEEYE_REPORT_RETENTION_DAYS` | `7` | Количество дней хранения отчетов |
-| `KUBEEYE_SSH_CONNECTION_TIMEOUT` | `10` | Таймаут SSH соединения (секунды) |
-| `KUBEEYE_SSH_MAX_CONCURRENT_CHECKS` | `20` | Максимальное количество одновременных SSH проверок |
-| `KUBEEYE_SSH_COMMAND_TIMEOUT` | `30` | Таймаут выполнения SSH команды (секунды) |
+| `KUBEEYE_SSH_CONNECTION_TIMEOUT` | `15` | Таймаут SSH соединения (секунды) |
+| `KUBEEYE_SSH_MAX_CONCURRENT_CHECKS` | `50` | Максимальное количество одновременных SSH проверок |
+| `KUBEEYE_SSH_COMMAND_TIMEOUT` | `60` | Таймаут выполнения SSH команды (секунды) |
 | `KUBEEYE_SSH_RETRY_ATTEMPTS` | `2` | Количество повторных попыток SSH соединения |
-| `KUBEEYE_SSH_RETRY_DELAY` | `1` | Задержка между повторными попытками (секунды) |
+| `KUBEEYE_SSH_RETRY_DELAY` | `2` | Задержка между повторными попытками (секунды) |
 | `KUBEEYE_SSH_POOL_ENABLED` | `true` | Включить пул SSH соединений |
-| `KUBEEYE_SSH_POOL_SIZE` | `10` | Размер пула SSH соединений |
+| `KUBEEYE_SSH_POOL_SIZE` | `50` | Размер пула SSH соединений |
 | `KUBEEYE_SSH_POOL_CONNECTION_TIMEOUT` | `300` | Таймаут соединения в пуле SSH (секунды, 5 минут) |
 | `KUBEEYE_SSH_POOL_KEEPALIVE_INTERVAL` | `60` | Интервал keepalive для пула SSH (секунды, 1 минута) |
 | `KUBEEYE_SSH_KEEP_ALIVE` | `true` | Поддерживать SSH соединения активными |
@@ -909,10 +909,10 @@ Backend использует следующие Python пакеты для ра�
 ## Детальное описание API Endpoints
 
 ### Health Check Endpoints
-- `GET /health` - Общая проверка здоровья системы
-- `GET /health/db` - Проверка подключения к базе данных
-- `GET /health/redis` - Проверка подключения к Redis (если используется)
-- `GET /health/scheduler` - Проверка состояния планировщика задач
+- `GET /api/health` - Общая проверка здоровья системы
+- `GET /api/health/db` - Проверка подключения к базе данных
+- `GET /api/health/db/monitor` - Мониторинг подключения к базе данных
+- `GET /api/health/scheduler` - Проверка состояния планировщика задач
 
 ### Cluster Management Endpoints
 - `GET /api/clusters` - Получить список всех кластеров (поддержка пагинации через offset/limit)
@@ -1810,7 +1810,7 @@ success, stdout, stderr = await ssh_service.execute_command(
 - Error tracking для анализа ошибок
 
 ### Мониторинг
-- Health checks: `/health`, `/health/db`, `/health/scheduler`
+- Health checks: `/api/health`, `/api/health/db`, `/api/health/db/monitor`, `/api/health/scheduler`
 - Статистика очереди: `/api/queue/status`
 - Статистика очистки: `/api/cleanup/stats`
 - Error summary: через `ErrorTracker`

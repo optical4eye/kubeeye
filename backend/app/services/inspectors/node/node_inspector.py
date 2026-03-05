@@ -36,10 +36,10 @@ class NodeInspectorConfig:
     max_workers: int = 10  # Maximum number of parallel threads
     timeout: int = 30  # Command execution timeout for one node (seconds)
 
-    # Connection configuration
-    connection_timeout: int = 10  # SSH connection timeout (seconds)
-    retry_attempts: int = 2  # Number of retry attempts on failed connection
-    retry_delay: int = 1  # Interval between retry attempts (seconds)
+    # Connection configuration (defaults synchronized with settings)
+    connection_timeout: int = 15  # SSH connection timeout (seconds), default from settings.kubeeye_ssh_connection_timeout
+    retry_attempts: int = 2  # Number of retry attempts, default from settings.kubeeye_ssh_retry_attempts
+    retry_delay: int = 2  # Interval between retry attempts (seconds), default from settings.kubeeye_ssh_retry_delay
 
     # Performance optimization
     enable_connection_pool: bool = True  # Enable connection pool

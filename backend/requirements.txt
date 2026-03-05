@@ -12,11 +12,11 @@ simpleeval>=1.0.3
 reportlab>=4.4.10
 jinja2>=3.1.6
 # FastAPI backend
-fastapi>=0.133.1
+fastapi>=0.135.1
 uvicorn>=0.41.0
 websockets>=16.0
 pydantic>=2.12.5  # Pydantic V2 for simplified validation
-pydantic-settings>=2.12.0  # Centralized configuration management
+pydantic-settings>=2.13.1  # Centralized configuration management
 email-validator>=2.3.0  # Email validation support for Pydantic
 asyncssh>=2.22.0  # Async SSH connections for node inspections
 # Performance optimizations
@@ -28,10 +28,10 @@ httpx>=0.28.1  # Modern async HTTP client
 asyncpg>=0.31.0  # Async PostgreSQL driver
 psycopg2-binary>=2.9.11  # Synchronous PostgreSQL driver (legacy)
 sqlalchemy[asyncio]>=2.1.0b1  # Async ORM with eager loading support
-cachetools>=7.0.1  # Thread-safe caching with TTL
+cachetools>=7.0.2  # Thread-safe caching with TTL
 # Authentication dependencies
 python-jose[cryptography]>=3.5.0  # JWT token handling
 pwdlib[argon2]>=0.3.0  # Password hashing (Argon2 only)
 python-multipart>=0.0.22  # Form data parsing for login
-authlib>=1.6.8  # OAuth/OIDC client for Dex authentication
+authlib>=1.6.9  # OAuth/OIDC client for Dex authentication
 pyjwt>=2.11.0  # JWT parsing for ID tokens
