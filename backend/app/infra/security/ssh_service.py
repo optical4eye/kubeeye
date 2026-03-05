@@ -178,9 +178,7 @@ class SSHService(ISSHService):
 
         if breaker["failures"] >= self._circuit_breaker_threshold:
             breaker["open"] = True
-            logger.warning(
-                f"Circuit breaker OPEN for {node_key} after {breaker['failures']} consecutive failures"
-            )
+            logger.warning(f"Circuit breaker OPEN for {node_key} after {breaker['failures']} consecutive failures")
 
     async def _get_connection_from_pool(
         self, host: str, port: int, username: str
@@ -289,7 +287,7 @@ class SSHService(ISSHService):
                 return False
 
             # Use keepalive for reliable connection check (asyncssh >= 2.0)
-            if hasattr(client, 'send_keepalive'):
+            if hasattr(client, "send_keepalive"):
                 try:
                     await client.send_keepalive()
                     return True
@@ -299,17 +297,17 @@ class SSHService(ISSHService):
 
             # Fallback for older asyncssh: check transport layer
             # Access internal connection to check if transport is still open
-            conn = getattr(client, '_conn', None)
+            conn = getattr(client, "_conn", None)
             if conn is not None:
-                transport = getattr(conn, '_transport', None)
+                transport = getattr(conn, "_transport", None)
                 if transport is not None:
                     # Check if transport is closing or closed
-                    if hasattr(transport, 'is_closing'):
+                    if hasattr(transport, "is_closing"):
                         return not transport.is_closing()
-                    if hasattr(transport, 'is_closed'):
+                    if hasattr(transport, "is_closed"):
                         return not transport.is_closed()
                     # Last resort: check if we can write to transport
-                    return not transport.is_reading_paused() if hasattr(transport, 'is_reading_paused') else True
+                    return not transport.is_reading_paused() if hasattr(transport, "is_reading_paused") else True
 
             # If no keepalive and no transport access, assume connection is alive
             # but mark it for reconnection on next use
@@ -360,7 +358,7 @@ class SSHService(ISSHService):
                     # Process in batches of 10 with small delays between batches
                     batch_size = 10
                     for i in range(0, len(all_connections), batch_size):
-                        batch = all_connections[i:i + batch_size]
+                        batch = all_connections[i : i + batch_size]
                         dead_connections = []
 
                         for node_key, conn_info in batch:
@@ -594,7 +592,7 @@ class SSHService(ISSHService):
                 self._record_failure(node_key)  # Record failure for circuit breaker
                 if attempt < max_retries:
                     # Exponential backoff: delay * (2 ^ attempt)
-                    current_delay = retry_delay * (2 ** attempt)
+                    current_delay = retry_delay * (2**attempt)
                     logger.warning(
                         f"SSH connection attempt {attempt + 1} failed for {host}:{port}: {e}. "
                         f"Retrying in {current_delay}s..."

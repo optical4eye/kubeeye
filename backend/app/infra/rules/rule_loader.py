@@ -16,9 +16,7 @@ from core.config.settings import settings
 # Log setup
 logger = get_logger(__name__)
 
-# Local rules directory (deprecated, use GitOps instead)
-RULES_DIR = Path(settings.kubeeye_data_dir) / "rules"
-# GitOps rules directory - primary source of rules
+# GitOps rules directory - primary and only source of rules
 GIT_RULES_DIR = Path(settings.kubeeye_data_dir) / "git_rules"
 
 
@@ -113,15 +111,15 @@ _rules_cache = _cache_manager.get_or_create_cache("rules", maxsize=128, ttl=300)
 _cache_metadata = _cache_manager.get_or_create_cache("rules_metadata", maxsize=128, ttl=300)
 
 
-def _is_cache_valid(rule_type: Optional[str], include_disabled: bool, use_gitops: bool) -> bool:
+def _is_cache_valid(rule_type: Optional[str], include_disabled: bool) -> bool:
     """Check if cache is valid for given parameters"""
-    cache_key = f"{rule_type}_{include_disabled}_{use_gitops}"
+    cache_key = f"{rule_type}_{include_disabled}"
 
     if cache_key not in _rules_cache:
         return False
 
     # Check if directory has changed
-    base_dir = GIT_RULES_DIR if use_gitops else RULES_DIR
+    base_dir = GIT_RULES_DIR
     current_hash = _get_directory_hash(base_dir)
 
     cache_entry = _cache_metadata.get(cache_key, {})
@@ -130,15 +128,15 @@ def _is_cache_valid(rule_type: Optional[str], include_disabled: bool, use_gitops
     return current_hash == cached_hash
 
 
-def _update_cache(rule_type: Optional[str], include_disabled: bool, use_gitops: bool, rules: List[Rule]) -> None:
+def _update_cache(rule_type: Optional[str], include_disabled: bool, rules: List[Rule]) -> None:
     """Update cache with new rules"""
-    cache_key = f"{rule_type}_{include_disabled}_{use_gitops}"
+    cache_key = f"{rule_type}_{include_disabled}"
 
     # Store rules in cache
     _rules_cache[cache_key] = rules.copy()
 
     # Update cache metadata
-    base_dir = GIT_RULES_DIR if use_gitops else RULES_DIR
+    base_dir = GIT_RULES_DIR
     directory_hash = _get_directory_hash(base_dir)
 
     _cache_metadata[cache_key] = {"directory_hash": directory_hash, "timestamp": time.time(), "rule_count": len(rules)}
@@ -146,11 +144,11 @@ def _update_cache(rule_type: Optional[str], include_disabled: bool, use_gitops: 
     logger.info(f"Updated cache for {cache_key}: {len(rules)} rules")
 
 
-def _get_cached_rules(rule_type: Optional[str], include_disabled: bool, use_gitops: bool) -> Optional[List[Rule]]:
+def _get_cached_rules(rule_type: Optional[str], include_disabled: bool) -> Optional[List[Rule]]:
     """Get rules from cache if available and valid"""
-    cache_key = f"{rule_type}_{include_disabled}_{use_gitops}"
+    cache_key = f"{rule_type}_{include_disabled}"
 
-    if not _is_cache_valid(rule_type, include_disabled, use_gitops):
+    if not _is_cache_valid(rule_type, include_disabled):
         return None
 
     rules = _rules_cache.get(cache_key)
@@ -161,63 +159,42 @@ def _get_cached_rules(rule_type: Optional[str], include_disabled: bool, use_gito
     return None
 
 
-def _load_rules_impl(
-    rule_type: Optional[str] = None, include_disabled: bool = False, use_gitops: bool = False
-) -> List[Rule]:
+def _load_rules_impl(rule_type: Optional[str] = None, include_disabled: bool = False) -> List[Rule]:
     """Internal implementation of rule loading"""
     rules = []
 
-    # Determine base directory
-    if use_gitops:
-        base_dir = GIT_RULES_DIR
-        # If GitOps directory does not exist, return empty list
-        if not base_dir.exists():
-            logger.info(f"GitOps rules directory does not exist: {base_dir}")
-            return rules
-        logger.info(f"Loading GitOps rules from: {base_dir}")
+    # GitOps is the only source of rules
+    base_dir = GIT_RULES_DIR
+    # If GitOps directory does not exist, return empty list
+    if not base_dir.exists():
+        logger.info(f"GitOps rules directory does not exist: {base_dir}")
+        return rules
+    logger.info(f"Loading GitOps rules from: {base_dir}")
 
-        # For GitOps search in all repository subdirectories
-        search_dirs = []
-        for repo_dir in base_dir.iterdir():
-            if repo_dir.is_dir():
-                # First try hierarchical structure: repo_name/rule_type/
-                type_dir = repo_dir / rule_type if rule_type else repo_dir
-                if type_dir.exists() and type_dir.is_dir():
-                    search_dirs.append(type_dir)
-                else:
-                    # If hierarchical structure not found, try flat structure in repo root
-                    # Check if there are rule files directly in repo_dir
-                    yaml_files_in_repo = list(repo_dir.glob("*.yaml"))
-                    if yaml_files_in_repo:
-                        # Use repo_dir as search directory for flat structure
-                        search_dirs.append(repo_dir)
-                    else:
-                        # Fallback: search in subdirectories with rule type names
-                        for sub_dir in repo_dir.iterdir():
-                            if sub_dir.is_dir() and sub_dir.name in [
-                                "node",
-                                "opa",
-                            ]:
-                                if not rule_type or sub_dir.name == rule_type:
-                                    search_dirs.append(sub_dir)
-    else:
-        base_dir = RULES_DIR
-        logger.info(f"Loading local rules from: {base_dir}")
-
-        # Determine directories to search
-        search_dirs = []
-        if rule_type:
-            # Search only in specified rule type directory
-            type_dir = base_dir / rule_type
-            if type_dir.exists():
+    # For GitOps search in all repository subdirectories
+    search_dirs = []
+    for repo_dir in base_dir.iterdir():
+        if repo_dir.is_dir():
+            # First try hierarchical structure: repo_name/rule_type/
+            type_dir = repo_dir / rule_type if rule_type else repo_dir
+            if type_dir.exists() and type_dir.is_dir():
                 search_dirs.append(type_dir)
             else:
-                logger.warning(f"Directory for rule type '{rule_type}' does not exist: {type_dir}")
-        else:
-            # Search in all rule directories
-            for item in base_dir.iterdir():
-                if item.is_dir() and not item.name.startswith("_") and not item.name == "examples":
-                    search_dirs.append(item)
+                # If hierarchical structure not found, try flat structure in repo root
+                # Check if there are rule files directly in repo_dir
+                yaml_files_in_repo = list(repo_dir.glob("*.yaml"))
+                if yaml_files_in_repo:
+                    # Use repo_dir as search directory for flat structure
+                    search_dirs.append(repo_dir)
+                else:
+                    # Fallback: search in subdirectories with rule type names
+                    for sub_dir in repo_dir.iterdir():
+                        if sub_dir.is_dir() and sub_dir.name in [
+                            "node",
+                            "opa",
+                        ]:
+                            if not rule_type or sub_dir.name == rule_type:
+                                search_dirs.append(sub_dir)
 
     logger.info(f"Found directories to search: {[str(d) for d in search_dirs]}")
 
@@ -254,24 +231,23 @@ def _load_rules_impl(
                             rule_data["type"] = "unknown"
 
                 # For GitOps rules add source information
-                if use_gitops:
-                    # Find repository name from path
-                    repo_name = None
-                    try:
-                        # Path relative to GIT_RULES_DIR
-                        relative_path = file_path.relative_to(GIT_RULES_DIR)
-                        if relative_path.parts:
-                            repo_name = relative_path.parts[0]
-                    except ValueError:
-                        pass
+                # Find repository name from path
+                repo_name = None
+                try:
+                    # Path relative to GIT_RULES_DIR
+                    relative_path = file_path.relative_to(GIT_RULES_DIR)
+                    if relative_path.parts:
+                        repo_name = relative_path.parts[0]
+                except ValueError:
+                    pass
 
-                    rule_data["source"] = "git"
-                    rule_data["repository"] = repo_name or "unknown"
-                    rule_data["file_path"] = str(file_path.relative_to(GIT_RULES_DIR))
+                rule_data["source"] = "git"
+                rule_data["repository"] = repo_name or "unknown"
+                rule_data["file_path"] = str(file_path.relative_to(GIT_RULES_DIR))
 
-                    # AUTOMATICALLY ENABLE RULES FROM GITOPS
-                    rule_data["enabled"] = True
-                    logger.info(f"Rule from GitOps automatically enabled: {rule_data.get('id', 'unknown')}")
+                # AUTOMATICALLY ENABLE RULES FROM GITOPS
+                rule_data["enabled"] = True
+                logger.info(f"Rule from GitOps automatically enabled: {rule_data.get('id', 'unknown')}")
 
                 # Create rule object
                 rule = Rule(rule_data)
@@ -279,7 +255,7 @@ def _load_rules_impl(
                 # Check if should include in result
                 if rule.enabled or include_disabled:
                     # For GitOps with flat structure, filter by rule_type if specified
-                    if use_gitops and rule_type and rule.type != rule_type and rule.type != "unknown":
+                    if rule_type and rule.type != rule_type and rule.type != "unknown":
                         logger.info(f"Skipped rule {rule.id} (type mismatch: expected {rule_type}, got {rule.type})")
                         continue
                     rules.append(rule)
@@ -290,7 +266,7 @@ def _load_rules_impl(
             except Exception as e:
                 logger.error(f"Failed to load rule file {file_path}: {str(e)}")
 
-    logger.info(f"Loaded {len(rules)} rules from {'GitOps' if use_gitops else 'local'} directory")
+    logger.info(f"Loaded {len(rules)} rules from GitOps directory")
     return rules
 
 
@@ -318,31 +294,28 @@ def _get_directory_hash(base_dir: Path) -> int:
     return int(hasher.hexdigest(), 16) % 2**32
 
 
-def load_rules(rule_type: Optional[str] = None, include_disabled: bool = False, use_gitops: bool = False) -> List[Rule]:
+def load_rules(rule_type: Optional[str] = None, include_disabled: bool = False) -> List[Rule]:
     """
     Load rules of specified type with efficient caching
 
     Args:
         rule_type: rule type, e.g. node, opa, if None, load all rules
         include_disabled: whether to include disabled rules
-        use_gitops: whether to use GitOps rules
 
     Returns:
         List of rules
     """
     # Try to get from cache first
-    cached_rules = _get_cached_rules(rule_type, include_disabled, use_gitops)
+    cached_rules = _get_cached_rules(rule_type, include_disabled)
     if cached_rules is not None:
         return cached_rules
 
     # Load rules from disk
-    logger.info(
-        f"Loading rules from disk for {rule_type}, include_disabled={include_disabled}, use_gitops={use_gitops}"
-    )
-    rules = _load_rules_impl(rule_type, include_disabled, use_gitops)
+    logger.info(f"Loading rules from disk for {rule_type}, include_disabled={include_disabled}")
+    rules = _load_rules_impl(rule_type, include_disabled)
 
     # Update cache
-    _update_cache(rule_type, include_disabled, use_gitops, rules)
+    _update_cache(rule_type, include_disabled, rules)
 
     return rules
 

@@ -46,11 +46,10 @@ class BaseInspector(ABC):
         """Load rules applicable to this inspector"""
         yaml_rules = load_rules(
             rule_type=self.inspector_type,
-            use_gitops=self.use_gitops,
             include_disabled=True,
         )
         self.rules = yaml_rules  # Include all rules, enabled and disabled
-        source_type = "GitOps" if self.use_gitops else "local"
+        source_type = "GitOps"
         logger.info(f"Loaded {len(self.rules)} {source_type} rules for {self.inspector_type} inspection")
 
         # Log rule details for debugging

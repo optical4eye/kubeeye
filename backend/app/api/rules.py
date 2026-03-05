@@ -37,18 +37,18 @@ def _sync_gitops_repository(force: bool = False) -> bool:
         return False
 
 
-def _load_rules_for_types(rule_types: List[str], use_gitops: bool) -> Dict[str, List]:
+def _load_rules_for_types(rule_types: List[str]) -> Dict[str, List]:
     """Load rules for specified types"""
     rules = {}
     for rule_type in rule_types:
-        rules[rule_type] = load_rules(rule_type, use_gitops=use_gitops)
+        rules[rule_type] = load_rules(rule_type)
     return rules
 
 
-def _log_rules_statistics(rules: Dict[str, List], use_gitops: bool) -> int:
+def _log_rules_statistics(rules: Dict[str, List]) -> int:
     """Log loaded rules statistics"""
     total_rules = sum(len(rules.get(rule_type, [])) for rule_type in ["node", "opa"])
-    logger.debug(f"Loaded {total_rules} rules total (GitOps: {use_gitops})")
+    logger.debug(f"Loaded {total_rules} rules total (GitOps: True)")
     for rule_type, rule_list in rules.items():
         logger.debug(f"{rule_type}: {len(rule_list)} rules")
     return total_rules
@@ -62,12 +62,12 @@ async def get_rules(tags: Optional[str] = None, current_user: User = Depends(get
         logger.debug(f"GitOps mode: {use_gitops}")
 
         # Sync GitOps repository if necessary
-        if use_gitops and not _sync_gitops_repository():
-            use_gitops = False
+        if not _sync_gitops_repository():
+            logger.warning("GitOps sync failed")
 
         # Load rules
-        rules = _load_rules_for_types(["node", "opa"], use_gitops)
-        total_rules = _log_rules_statistics(rules, use_gitops)
+        rules = _load_rules_for_types(["node", "opa"])
+        total_rules = _log_rules_statistics(rules)
 
         # Filter by tags if specified
         if tags:
@@ -98,11 +98,11 @@ async def get_rule_tags(current_user: User = Depends(get_current_user)):
         logger.debug(f"GitOps mode: {use_gitops}")
 
         # Sync GitOps repository if necessary
-        if use_gitops and not _sync_gitops_repository():
-            use_gitops = False
+        if not _sync_gitops_repository():
+            logger.warning("GitOps sync failed")
 
         # Load rules
-        rules = _load_rules_for_types(["node", "opa"], use_gitops)
+        rules = _load_rules_for_types(["node", "opa"])
 
         # Collect all unique tags with counts
         tag_count = {}

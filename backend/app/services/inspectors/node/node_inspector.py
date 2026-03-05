@@ -37,7 +37,9 @@ class NodeInspectorConfig:
     timeout: int = 30  # Command execution timeout for one node (seconds)
 
     # Connection configuration (defaults synchronized with settings)
-    connection_timeout: int = 15  # SSH connection timeout (seconds), default from settings.kubeeye_ssh_connection_timeout
+    connection_timeout: int = (
+        15  # SSH connection timeout (seconds), default from settings.kubeeye_ssh_connection_timeout
+    )
     retry_attempts: int = 2  # Number of retry attempts, default from settings.kubeeye_ssh_retry_attempts
     retry_delay: int = 2  # Interval between retry attempts (seconds), default from settings.kubeeye_ssh_retry_delay
 

@@ -25,16 +25,15 @@ class RuleManager:
         }
 
     @staticmethod
-    def get_enabled_rules(rule_type: str, use_gitops: bool = False) -> List[Rule]:
+    def get_enabled_rules(rule_type: str) -> List[Rule]:
         """Get enabled rules of specified type"""
-        all_rules = load_rules(rule_type, use_gitops=use_gitops)
+        all_rules = load_rules(rule_type)
         enabled_rules = [rule for rule in all_rules if rule.enabled]
 
         # Debug information
-        if use_gitops:
-            logger.info(f"GitOps rules for {rule_type}: found {len(all_rules)} total, {len(enabled_rules)} enabled")
-            for rule in enabled_rules:
-                logger.info(f"  - {rule.id}: {rule.name} (enabled: {rule.enabled})")
+        logger.info(f"GitOps rules for {rule_type}: found {len(all_rules)} total, {len(enabled_rules)} enabled")
+        for rule in enabled_rules:
+            logger.info(f"  - {rule.id}: {rule.name} (enabled: {rule.enabled})")
 
         return enabled_rules
 
@@ -50,25 +49,5 @@ class RuleManager:
 
     @classmethod
     def should_use_gitops(cls) -> bool:
-        """Determine whether to use GitOps rules"""
-        try:
-            from infra.gitops.gitops_manager import GitOpsManager
-
-            gitops_manager = GitOpsManager()
-            config = gitops_manager.load_config()
-
-            # If there is configuration from ENV variables, use GitOps
-            if config.get("from_env"):
-                return True
-
-            # If no ENV variables, but GitOps mode is saved in config
-            if config.get("mode") == "gitops" and config.get("repository") is not None:
-                # Check if required ENV variables are set
-                if not gitops_manager.has_env_config():
-                    logger.warning("GitOps configured in config, but ENV variables not set - using local mode")
-                    return False
-                return True
-
-            return False
-        except Exception:
-            return False
+        """Determine whether to use GitOps rules - always returns True since GitOps is the only source"""
+        return True

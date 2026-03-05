@@ -130,7 +130,7 @@ async def get_inspection_config(types=None):
             result = {}
             for rule_type in types:
                 try:
-                    rules = RuleManager.get_enabled_rules(rule_type, use_gitops)
+                    rules = RuleManager.get_enabled_rules(rule_type)
                     logger.info(f"DEBUG: rules for {rule_type}: {rules}")
                     result[rule_type] = [{"name": rule.id, "enabled": rule.enabled} for rule in rules]
                 except Exception as e:
@@ -143,7 +143,7 @@ async def get_inspection_config(types=None):
             result = {}
             for rule_type in rule_types:
                 try:
-                    rules = RuleManager.get_enabled_rules(rule_type, use_gitops)
+                    rules = RuleManager.get_enabled_rules(rule_type)
                     logger.info(f"DEBUG: rules for {rule_type}: {rules}")
                     result[rule_type] = [{"name": rule.id, "enabled": rule.enabled} for rule in rules]
                 except Exception as e:
@@ -184,7 +184,7 @@ async def get_default_inspection_config():
         result = {}
         for rule_type in rule_types:
             try:
-                rules = RuleManager.get_enabled_rules(rule_type, use_gitops)
+                rules = RuleManager.get_enabled_rules(rule_type)
                 logger.info(f"DEBUG: rules for {rule_type}: {rules}")
                 result[rule_type] = [{"name": rule.id, "enabled": rule.enabled} for rule in rules]
             except Exception as e:
