@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ menuItems, menuNavigation }) => {
       <div className="logo logo-container">
         {menuNavigation.collapsed ? <span>KE</span> : <span>KubeEye</span>}
       </div>
-      {!menuNavigation.collapsed && <VersionDisplay version="3.5.3" />}
+      {!menuNavigation.collapsed && <VersionDisplay version="3.5.5" />}
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
